@@ -293,7 +293,7 @@ function send_mail_to_recipient(string $recipient, string $subject, string $body
  * Builds shared appointment email context values.
  *
  * @param array<string,mixed> $appointment
- * @return array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string}
+ * @return array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string,checkinToken:string}
  */
 function build_appointment_email_context(array $appointment): array
 {
@@ -307,6 +307,7 @@ function build_appointment_email_context(array $appointment): array
         ? format_date_label((string) ($appointment['date'] ?? ''))
         : (string) ($appointment['date'] ?? '');
     $rescheduleToken = trim((string) ($appointment['rescheduleToken'] ?? ''));
+    $checkinToken = trim((string) (($appointment['checkinToken'] ?? ($appointment['checkin_token'] ?? ''))));
 
     return [
         'name' => (string) ($appointment['name'] ?? 'Paciente'),
@@ -315,6 +316,7 @@ function build_appointment_email_context(array $appointment): array
         'dateLabel' => $dateLabel,
         'timeLabel' => (string) ($appointment['time'] ?? ''),
         'rescheduleToken' => $rescheduleToken,
+        'checkinToken' => $checkinToken,
         'rescheduleUrl' => $rescheduleToken !== ''
             ? AppConfig::BASE_URL . '/?reschedule=' . rawurlencode($rescheduleToken)
             : AppConfig::BASE_URL . '/#citas',
@@ -351,7 +353,7 @@ function build_email_detail_rows(array $rows, string $labelStyle, string $valueS
 /**
  * Builds the shared appointment detail rows.
  *
- * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string} $context
+ * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string,checkinToken:string} $context
  * @return array<int,array{label:string,value:string}>
  */
 function build_appointment_detail_rows(array $context): array
@@ -367,7 +369,7 @@ function build_appointment_detail_rows(array $context): array
 /**
  * Builds the shared appointment detail table.
  *
- * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string} $context
+ * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string,checkinToken:string} $context
  */
 function build_appointment_detail_table(array $context, string $tableStyle, string $labelStyle, string $valueStyle): string
 {
@@ -593,7 +595,14 @@ function build_appointment_email_html(array $appointment): string
     $context = build_appointment_email_context($appointment);
     $name = htmlspecialchars($context['name'], ENT_QUOTES, 'UTF-8');
     $dateLabel = htmlspecialchars($context['dateLabel'], ENT_QUOTES, 'UTF-8');
-    $timeLabel = htmlspecialchars($context['timeLabel'], ENT_QUOTES, 'UTF-8');
+    $checkinToken = htmlspecialchars($context['checkinToken'], ENT_QUOTES, 'UTF-8');
+    $checkinBlock = $context['checkinToken'] !== ''
+        ? '<div style="margin:0 0 20px;padding:16px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;">'
+            . '<p style="margin:0 0 8px;font-weight:700;color:#0d1a2f;">Codigo de llegada al kiosco</p>'
+            . '<p style="margin:0 0 6px;line-height:1.6;color:#475569;">Cuando llegues, puedes escanear tu QR de confirmacion o mostrar este codigo en el kiosco:</p>'
+            . '<p style="margin:0;font-size:15px;font-weight:700;letter-spacing:0.08em;color:#0f172a;">' . $checkinToken . '</p>'
+        . '</div>'
+        : '';
 
     $content = '<h2 style="margin:0 0 20px;color:#0d1a2f;font-size:20px;">Cita Confirmada</h2>'
         . '<p style="margin:0 0 15px;line-height:1.6;color:#555;">Hola <strong>' . $name . '</strong>,</p>'
@@ -604,6 +613,7 @@ function build_appointment_email_html(array $appointment): string
             'padding:8px 0;color:#64748b;font-weight:bold;width:120px;',
             'padding:8px 0;color:#334155;'
         )
+        . $checkinBlock
         . '<p style="margin:0 0 25px;line-height:1.6;color:#555;">Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.</p>'
         . build_email_cta_button($context['rescheduleUrl'], 'Reprogramar Cita')
         . '<p style="margin:0;font-size:13px;color:#94a3b8;text-align:center;">Si necesitas ayuda, responde a este correo.</p>';
@@ -622,6 +632,10 @@ function build_appointment_email_text(array $appointment): string
     $body .= "Tu cita ha sido registrada exitosamente.\n\n";
     $body .= "Detalles:\n";
     $body .= build_appointment_detail_text($context, false);
+    if ($context['checkinToken'] !== '') {
+        $body .= "Codigo de llegada al kiosco: " . $context['checkinToken'] . "\n";
+        $body .= "Puedes usar este codigo o tu QR de confirmacion cuando llegues.\n";
+    }
     $body .= "Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.\n\n";
     $body .= "Si deseas reprogramar, visita: " . $context['rescheduleUrl'] . "\n\n";
     $body .= "Si tienes dudas, responde este correo o escribe por WhatsApp: " . AppConfig::WHATSAPP_NUMBER . ".\n\n";

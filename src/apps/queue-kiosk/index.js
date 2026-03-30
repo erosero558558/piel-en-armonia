@@ -3315,7 +3315,7 @@ function buildVoiceGuideText() {
     const flowHint =
         state.selectedFlow === 'walkin'
             ? 'Si no tienes cita, escribe iniciales y pulsa Generar turno.'
-            : 'Si tienes cita, escribe telefono, fecha y hora y pulsa Confirmar check in.';
+            : 'Si tienes cita, escanea tu QR o escribe telefono, fecha y hora y pulsa Confirmar check in.';
     const clinicName = getTurneroClinicBrandName(state.clinicProfile);
     return `Bienvenida al kiosco de turnos de ${clinicName}. ${flowHint} Si necesitas ayuda, pulsa Necesito apoyo y recepcion te asistira. Conserva tu ticket y espera el llamado en la pantalla de sala.`;
 }
@@ -3568,6 +3568,39 @@ function setKioskHelpPanelOpen(nextOpen, { source = 'ui' } = {}) {
     }
 }
 
+function resolveCheckinQrToken(rawValue) {
+    const value = String(rawValue || '').trim();
+    if (!value) {
+        return '';
+    }
+
+    try {
+        const baseUrl =
+            typeof window !== 'undefined' && window.location
+                ? window.location.origin || 'https://pielarmonia.com'
+                : 'https://pielarmonia.com';
+        const parsedUrl = new URL(value, baseUrl);
+        const urlToken =
+            String(parsedUrl.searchParams.get('checkin') || '').trim() ||
+            String(parsedUrl.searchParams.get('checkinToken') || '').trim();
+        if (urlToken) {
+            return urlToken;
+        }
+    } catch (_error) {
+        // When the scanner returns a raw token instead of a URL, keep parsing below.
+    }
+
+    const compactValue = value.replace(/\s+/g, '');
+    const prefixedTokenMatch = compactValue.match(
+        /(?:checkin|checkinToken|token|qr)[:=]([A-Za-z0-9_-]{8,})/i
+    );
+    if (prefixedTokenMatch && prefixedTokenMatch[1]) {
+        return String(prefixedTokenMatch[1]).trim();
+    }
+
+    return compactValue;
+}
+
 function focusFlowTarget(target, { announce = true } = {}) {
     const normalized =
         String(target || '').toLowerCase() === 'walkin' ? 'walkin' : 'checkin';
@@ -3599,7 +3632,7 @@ function focusFlowTarget(target, { announce = true } = {}) {
     }
 
     const targetInputId =
-        normalized === 'walkin' ? 'walkinInitials' : 'checkinPhone';
+        normalized === 'walkin' ? 'walkinInitials' : 'checkinQrCode';
     const targetInput = getById(targetInputId);
     if (targetInput instanceof HTMLInputElement) {
         targetInput.focus({ preventScroll: false });
@@ -3609,7 +3642,7 @@ function focusFlowTarget(target, { announce = true } = {}) {
         setKioskProgressHint(
             normalized === 'walkin'
                 ? 'Paso 2: escribe iniciales y pulsa "Generar turno".'
-                : 'Paso 2: escribe telefono, fecha y hora para check-in.',
+                : 'Paso 2: escanea tu QR o escribe telefono, fecha y hora.',
             'info'
         );
     }
@@ -4022,9 +4055,14 @@ function resolveAssistantPatientInitials() {
 
 function buildHelpRequestBody(reason, message, source, intent = '') {
     const ticket = state.lastIssuedTicket;
+    const checkinQrCode = getById('checkinQrCode');
     const checkinPhone = getById('checkinPhone');
     const checkinDate = getById('checkinDate');
     const checkinTime = getById('checkinTime');
+    const qrToken =
+        checkinQrCode instanceof HTMLInputElement
+            ? resolveCheckinQrToken(checkinQrCode.value)
+            : '';
     const phoneDigits =
         checkinPhone instanceof HTMLInputElement
             ? String(checkinPhone.value || '').replace(/\D/g, '')
@@ -4055,6 +4093,7 @@ function buildHelpRequestBody(reason, message, source, intent = '') {
             offlinePending: Number(state.offlineOutbox.length || 0),
             appointmentId: Number(ticket?.appointmentId || 0) || 0,
             patientCaseId: String(ticket?.patientCaseId || '').trim(),
+            checkinToken: qrToken,
             phoneLast4: phoneLast4 || '',
             requestedDate,
             requestedTime,
@@ -5201,12 +5240,17 @@ async function submitCheckin(event) {
     const form = event.currentTarget;
     if (!(form instanceof HTMLFormElement)) return;
 
+    const qrInput = getById('checkinQrCode');
     const phoneInput = getById('checkinPhone');
     const timeInput = getById('checkinTime');
     const dateInput = getById('checkinDate');
     const initialsInput = getById('checkinInitials');
     const submitBtn = getById('checkinSubmit');
 
+    const checkinToken =
+        qrInput instanceof HTMLInputElement
+            ? resolveCheckinQrToken(qrInput.value.trim())
+            : '';
     const phone =
         phoneInput instanceof HTMLInputElement ? phoneInput.value.trim() : '';
     const time =
@@ -5217,14 +5261,15 @@ async function submitCheckin(event) {
         initialsInput instanceof HTMLInputElement
             ? initialsInput.value.trim()
             : '';
+    const usingQrCheckin = checkinToken !== '';
 
-    if (!phone || !time || !date) {
+    if (!usingQrCheckin && (!phone || !time || !date)) {
         setKioskStatus(
-            'Telefono, fecha y hora son obligatorios para check-in',
+            'Escanea tu QR o completa telefono, fecha y hora para check-in',
             'error'
         );
         setKioskProgressHint(
-            'Completa telefono, fecha y hora para continuar.',
+            'Usa tu QR o completa telefono, fecha y hora para continuar.',
             'warn'
         );
         return;
@@ -5235,24 +5280,42 @@ async function submitCheckin(event) {
     }
 
     try {
-        const body = {
-            telefono: phone,
-            hora: time,
-            fecha: date,
-            patientInitials,
-        };
+        const body = usingQrCheckin
+            ? {
+                  checkinToken,
+                  patientInitials,
+              }
+            : {
+                  telefono: phone,
+                  hora: time,
+                  fecha: date,
+                  patientInitials,
+              };
         const payload = await apiRequest('queue-checkin', {
             method: 'POST',
             body,
         });
-        setKioskStatus('Check-in registrado correctamente', 'success');
+        setKioskStatus(
+            usingQrCheckin
+                ? 'QR reconocido. Check-in registrado correctamente'
+                : 'Check-in registrado correctamente',
+            'success'
+        );
         setKioskProgressHint(
-            'Check-in completado. Conserva tu ticket y espera llamado.',
+            usingQrCheckin
+                ? 'QR aceptado. Conserva tu ticket y espera llamado.'
+                : 'Check-in completado. Conserva tu ticket y espera llamado.',
             'success'
         );
         renderTicketResult(
             payload,
-            payload.replay ? 'Check-in ya existente' : 'Check-in de cita'
+            payload.replay
+                ? usingQrCheckin
+                    ? 'Check-in QR ya existente'
+                    : 'Check-in ya existente'
+                : usingQrCheckin
+                  ? 'Check-in QR'
+                  : 'Check-in de cita'
         );
         state.queueFailureStreak = 0;
         const refreshResult = await refreshQueueState();
@@ -5266,14 +5329,22 @@ async function submitCheckin(event) {
         if (isRecoverableTransportError(error)) {
             const queued = queueOfflineRequest({
                 resource: 'queue-checkin',
-                body: {
-                    telefono: phone,
-                    hora: time,
-                    fecha: date,
-                    patientInitials,
-                },
-                originLabel: 'Check-in de cita',
-                patientInitials: patientInitials || phone.slice(-2),
+                body: usingQrCheckin
+                    ? {
+                          checkinToken,
+                          patientInitials,
+                      }
+                    : {
+                          telefono: phone,
+                          hora: time,
+                          fecha: date,
+                          patientInitials,
+                      },
+                originLabel: usingQrCheckin
+                    ? 'Check-in QR'
+                    : 'Check-in de cita',
+                patientInitials:
+                    patientInitials || phone.slice(-2) || 'QR',
                 queueType: 'appointment',
             });
             if (queued) {
@@ -5294,7 +5365,9 @@ async function submitCheckin(event) {
                     'info'
                 );
                 setKioskProgressHint(
-                    'Check-in guardado offline. Recepcion confirmara al reconectar.',
+                    usingQrCheckin
+                        ? 'QR guardado offline. Recepcion confirmara al reconectar.'
+                        : 'Check-in guardado offline. Recepcion confirmara al reconectar.',
                     'warn'
                 );
                 return;
@@ -5579,7 +5652,7 @@ function buildAssistantNextStepMessage() {
     if (state.selectedFlow === 'walkin') {
         return 'Completa tus iniciales y pulsa "Generar turno". Luego espera el llamado en la pantalla de sala.';
     }
-    return 'Completa telefono, fecha y hora y pulsa "Confirmar check-in". Luego espera el llamado en la pantalla de sala.';
+    return 'Escanea tu QR o completa telefono, fecha y hora y pulsa "Confirmar check-in". Luego espera el llamado en la pantalla de sala.';
 }
 
 async function resolveAssistantIntent(route, rawText, startedAt) {
@@ -5591,7 +5664,7 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             recordAssistantMetric(intent, 'resolved', startedAt, {
                 action: 'focus_checkin',
             });
-            return 'Te llevo a Tengo cita. Escribe telefono, fecha y hora y pulsa "Confirmar check-in".';
+            return 'Te llevo a Tengo cita. Escanea tu QR o escribe telefono, fecha y hora y pulsa "Confirmar check-in".';
         case 'walk_in':
             focusFlowTarget('walkin');
             recordAssistantMetric(intent, 'resolved', startedAt, {
@@ -5693,7 +5766,7 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
                 queued: support.queued,
                 reason: 'late_arrival',
             });
-            return `${support.message} Si tienes la cita a mano, deja listos telefono, fecha y hora para validarlo con recepcion.`;
+            return `${support.message} Si tienes la cita a mano, deja listo tu QR o telefono, fecha y hora para validarlo con recepcion.`;
         }
         case 'offline_pending': {
             const pendingCount = Math.max(
@@ -5728,7 +5801,7 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
                 queued: support.queued,
                 reason: 'appointment_not_found',
             });
-            return `${support.message} Mientras tanto, revisa telefono, fecha y hora en Tengo cita.`;
+            return `${support.message} Mientras tanto, revisa tu QR o los datos de telefono, fecha y hora en Tengo cita.`;
         }
         case 'no_phone': {
             focusFlowTarget('checkin');

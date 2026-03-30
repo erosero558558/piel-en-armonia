@@ -80,6 +80,35 @@ qs_assert_equals(
     'second check-in should return same ticket'
 );
 
+// 2b) QR appointment check-in should avoid duplicates too
+$qrStore = qs_base_store();
+$qrStore['appointments'][] = [
+    'id' => 9102,
+    'date' => $today,
+    'time' => '11:00',
+    'name' => 'Paciente QR',
+    'phone' => '+593 99 111 2233',
+    'status' => 'confirmed',
+    'checkinToken' => 'CHK-TEST-QR-9102',
+];
+
+$qrCheckin1 = $service->checkInAppointment($qrStore, [
+    'checkinToken' => 'CHK-TEST-QR-9102',
+], 'kiosk');
+qs_assert_true(($qrCheckin1['ok'] ?? false) === true, 'QR appointment check-in should succeed');
+qs_assert_true(($qrCheckin1['replay'] ?? false) === false, 'first QR check-in should not be replay');
+
+$qrCheckin2 = $service->checkInAppointment(($qrCheckin1['store'] ?? []), [
+    'checkinToken' => 'CHK-TEST-QR-9102',
+], 'kiosk');
+qs_assert_true(($qrCheckin2['ok'] ?? false) === true, 'second QR check-in should succeed');
+qs_assert_true(($qrCheckin2['replay'] ?? false) === true, 'second QR check-in should be replay');
+qs_assert_equals(
+    (int) ($qrCheckin1['ticket']['id'] ?? 0),
+    (int) ($qrCheckin2['ticket']['id'] ?? -1),
+    'second QR check-in should return same ticket'
+);
+
 // 3) Priority order for call-next: appt_overdue > appt_current > walk_in
 $store2 = qs_base_store();
 $store2['appointments'][] = [

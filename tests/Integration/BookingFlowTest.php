@@ -103,6 +103,7 @@ class BookingFlowTest extends TestCase
         $this->assertTrue($result['ok']);
         $newAppt = $result['data'];
         $this->assertNotEmpty($newAppt['id']);
+        $this->assertNotEmpty($newAppt['checkinToken'] ?? '');
 
         // Persist
         write_store($result['store']);

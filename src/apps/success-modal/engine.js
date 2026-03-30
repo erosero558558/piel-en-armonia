@@ -87,6 +87,20 @@ function getServiceName(service) {
     return names[service] || service || '-';
 }
 
+function getCheckinToken(appointment) {
+    return String(
+        appointment?.checkinToken || appointment?.checkin_token || ''
+    ).trim();
+}
+
+function buildCheckinQrImageUrl(checkinToken) {
+    const token = String(checkinToken || '').trim();
+    if (!token) {
+        return '';
+    }
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(token)}`;
+}
+
 function formatDateForGoogle(date) {
     return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 }
@@ -134,6 +148,7 @@ function showSuccessModal(emailSent) {
     const detailsDiv = document.getElementById('appointmentDetails');
     const successDesc = modal.querySelector('[data-i18n="success_desc"]');
     const lang = getLang();
+    const checkinToken = getCheckinToken(appointment);
 
     if (successDesc) {
         if (emailSent) {
@@ -161,6 +176,43 @@ function showSuccessModal(emailSent) {
     activeIcsUrl = URL.createObjectURL(icsBlob);
 
     if (detailsDiv) {
+        const checkinQrImageUrl = buildCheckinQrImageUrl(checkinToken);
+        const checkinTitle =
+            lang === 'es' ? 'Check-in rapido en kiosco' : 'Fast kiosk check-in';
+        const checkinMessage =
+            lang === 'es'
+                ? 'Cuando llegues, escanea este QR en el kiosco o muestra el codigo.'
+                : 'When you arrive, scan this QR at the kiosk or show the code.';
+        const checkinCodeLabel =
+            lang === 'es' ? 'Codigo de llegada:' : 'Arrival code:';
+        const checkinNote =
+            lang === 'es'
+                ? 'Guarda este QR o el codigo para confirmar tu llegada en el kiosco.'
+                : 'Save this QR or code to confirm your arrival at the kiosk.';
+        const checkinBlock = checkinToken
+            ? `
+            <div style="margin-top:20px;padding:18px;border-radius:16px;background:#f8fafc;border:1px solid rgba(15,23,42,0.08);text-align:center;">
+                <p style="margin:0 0 10px;font-size:16px;font-weight:700;color:#0d1a2f;">${escapeHtml(checkinTitle)}</p>
+                <p style="margin:0 0 14px;line-height:1.5;color:#475569;">${escapeHtml(checkinMessage)}</p>
+                <img
+                    src="${checkinQrImageUrl}"
+                    alt="${escapeHtml(
+                        lang === 'es'
+                            ? 'QR de check-in para kiosco'
+                            : 'Kiosk check-in QR'
+                    )}"
+                    width="220"
+                    height="220"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    style="display:block;margin:0 auto 14px;border-radius:18px;background:#fff;padding:10px;border:1px solid rgba(15,23,42,0.08);"
+                />
+                <p style="margin:0 0 6px;font-size:13px;color:#64748b;">${escapeHtml(checkinCodeLabel)}</p>
+                <p style="margin:0;font-size:15px;font-weight:700;letter-spacing:0.08em;color:#0f172a;">${escapeHtml(checkinToken)}</p>
+                <p style="margin:12px 0 0;font-size:13px;line-height:1.5;color:#64748b;">${escapeHtml(checkinNote)}</p>
+            </div>
+        `
+            : '';
         detailsDiv.innerHTML = `
             <div class="success-details-card">
                 <p class="success-details-line"><strong>${lang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${escapeHtml(getDoctorName(appointment.doctor))}</p>
@@ -169,6 +221,7 @@ function showSuccessModal(emailSent) {
                 <p class="success-details-line"><strong>${lang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(getPaymentMethodLabel(appointment.paymentMethod))} - ${escapeHtml(getPaymentStatusLabel(appointment.paymentStatus))}</p>
                 <p><strong>${lang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
             </div>
+            ${checkinBlock}
             <div class="success-calendar-actions">
                 <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary success-calendar-btn">
                     <i class="fab fa-google"></i> Google Calendar

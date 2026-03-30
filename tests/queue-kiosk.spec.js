@@ -202,6 +202,77 @@ test.describe('Kiosco turnos', () => {
         expect(checkinRequests).toBe(0);
     });
 
+    test('acepta check-in por QR sin requerir telefono, fecha y hora', async ({
+        page,
+    }) => {
+        /** @type {Record<string, unknown> | null} */
+        let checkinBody = null;
+
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+                city: 'Quito',
+            },
+            surfaces: {
+                kiosk: {
+                    enabled: true,
+                    route: '/kiosco-turnos.html',
+                },
+            },
+        });
+
+        await installTurneroQueueStateMock(page, {
+            async handleApiRoute({ resource, request, route, fulfillJson }) {
+                if (resource !== 'queue-checkin') {
+                    return false;
+                }
+
+                checkinBody = request.postDataJSON();
+                await fulfillJson(
+                    route,
+                    {
+                        ok: true,
+                        data: {
+                            id: 301,
+                            ticketCode: 'A-301',
+                            patientInitials: 'QR',
+                            queueType: 'appointment',
+                            createdAt: new Date().toISOString(),
+                        },
+                        printed: true,
+                        print: { ok: true, errorCode: '', message: 'ok' },
+                    },
+                    201
+                );
+                return true;
+            },
+        });
+
+        await page.goto('/kiosco-turnos.html');
+
+        await page.fill(
+            '#checkinQrCode',
+            'https://pielarmonia.com/kiosco-turnos.html?checkin=CHK-QR-20260329'
+        );
+        await page.fill('#checkinInitials', 'QR');
+        await page.click('#checkinSubmit');
+
+        await expect(page.locator('#kioskStatus')).toContainText(
+            'QR reconocido. Check-in registrado correctamente'
+        );
+        await expect(page.locator('#ticketResult')).toContainText('A-301');
+        await expect(page.locator('#ticketResult')).toContainText(
+            'Check-in QR'
+        );
+
+        expect(checkinBody).toEqual({
+            checkinToken: 'CHK-QR-20260329',
+            patientInitials: 'QR',
+        });
+    });
+
     test('genera walk-in y responde asistente de sala', async ({ page }) => {
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -590,7 +661,7 @@ test.describe('Kiosco turnos', () => {
         await page.click('#assistantSend');
 
         await expect(page.locator('#assistantMessages')).toContainText(
-            'revisa telefono, fecha y hora en Tengo cita'
+            'revisa tu QR o los datos de telefono, fecha y hora en Tengo cita'
         );
         expect(chatCalls).toBe(0);
         expect(helpRequestBody?.reason).toBe('appointment_not_found');

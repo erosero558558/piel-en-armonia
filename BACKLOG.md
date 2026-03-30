@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 5:54:38 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 7:00:59 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████░░░░░░░░░░░░░░` **31%** completado (44/144)
+`██████░░░░░░░░░░░░░░` **32%** completado (46/144)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 7 | 28 | 20% |
+| 🎯 Sprint 3 | 9 | 26 | 26% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 0 | 25 | 0% |
@@ -30,7 +30,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (20)
+### 🟢 Disponibles (18)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -45,19 +45,17 @@ _Sprint completado. 24/24 tareas._
 | **S3-28** | `[M]` | Vista de agenda diaria — en admin: agenda del día con pacientes confir... |
 | **S3-33** | `[M]` | Verificación de transferencia — paciente sube foto del comprobante. Ad... |
 | **S3-34** | `[M]` | Estado de cuenta — vista en admin: historial de pagos por paciente, sa... |
-| **S3-07** | `[L]` | Check-in QR — paciente llega al kiosco, escanea QR de su cita (generad... |
 | **S3-12** | `[L]` | Estimación de espera — calcular tiempo estimado basado en: posición en... |
 | **S3-15** | `[L]` | Formulario de anamnesis — vista en admin: motivo, antecedentes persona... |
 | **S3-16** | `[L]` | Fotografía clínica — captura desde cámara, upload a . Metadata: fecha,... |
 | **S3-17** | `[L]` | Comparación before/after — en admin: dos fotos side-by-side de misma z... |
-| **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
 | **S3-24** | `[XL]` | Booking público — crear : selección de servicio → doctor → fecha → hor... |
 | **S3-29** | `[XL]` | Flujo completo de teleconsulta — paciente solicita →  evalúa →  decide... |
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-06** `[M]` → _Codex-erosero558558_ (expira en 223min)
+- **S3-30** `[L]` → _Codex-erosero558558_ (expira en 25min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -133,6 +131,10 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 | **S6-10** | `[L]` | Pricing SaaS — definir y publicar: Free (1 doctor, 50 citas/mes), Star... |
 | ... | | _+4 más_ |
 
+### 🔒 En progreso — NO tomar
+
+- **S6-09** `[S]` → _Codex-erosero558558_ (expira en 119min)
+
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
 - **S6-03** `[M]` — necesita: S6-02 primero
@@ -141,7 +143,6 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 - **S6-06** `[L]` — necesita: S6-02 primero
 - **S6-07** `[M]` — necesita: S6-02 primero
 - **S6-08** `[M]` — necesita: S6-06 primero
-- **S6-09** `[S]` — necesita: S6-01 primero
 - **S6-11** `[L]` — necesita: S6-10 primero
 - **S6-12** `[M]` — necesita: S6-11 primero
 - **S6-13** `[M]` — necesita: S6-11 primero

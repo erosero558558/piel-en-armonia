@@ -101,6 +101,7 @@ final class PatientCaseFlowTest extends TestCase
         );
         $appointment = $create['data'];
         $this->assertNotSame('', (string) ($appointment['patientCaseId'] ?? ''));
+        $this->assertNotSame('', (string) ($appointment['checkinToken'] ?? ''));
         \write_store($create['store'], false);
 
         $store = \read_store();
@@ -113,9 +114,7 @@ final class PatientCaseFlowTest extends TestCase
 
         $queueService = new \QueueService();
         $checkIn = $queueService->checkInAppointment($store, [
-            'telefono' => '0991234567',
-            'hora' => '09:00',
-            'fecha' => $futureDate,
+            'checkinToken' => (string) ($appointment['checkinToken'] ?? ''),
         ], 'kiosk');
         $this->assertTrue($checkIn['ok']);
         $this->assertFalse((bool) ($checkIn['replay'] ?? true));

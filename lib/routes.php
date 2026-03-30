@@ -87,6 +87,19 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'whatsapp-openclaw-ops', [WhatsappOpenclawController::class, 'ops']);
     $router->add('POST', 'whatsapp-openclaw-ops', [WhatsappOpenclawController::class, 'ops']);
 
+    // OpenClaw — Copiloto clínico (endpoints para openclaw-chat.js y Custom GPT Actions)
+    $router->add('GET',  'openclaw-patient',        [OpenclawController::class, 'patient']);
+    $router->add('GET',  'openclaw-cie10-suggest',  [OpenclawController::class, 'cie10Suggest']);
+    $router->add('GET',  'openclaw-protocol',       [OpenclawController::class, 'protocol']);
+    $router->add('POST', 'openclaw-chat',            [OpenclawController::class, 'chat']);
+    $router->add('POST', 'openclaw-save-diagnosis', [OpenclawController::class, 'saveDiagnosis']);
+    $router->add('POST', 'openclaw-save-evolution', [OpenclawController::class, 'saveEvolution']);
+    $router->add('POST', 'openclaw-prescription',  [OpenclawController::class, 'savePrescription']);
+    $router->add('POST', 'openclaw-certificate',   [OpenclawController::class, 'generateCertificate']);
+    $router->add('POST', 'openclaw-interactions',  [OpenclawController::class, 'checkInteractions']);
+    $router->add('POST', 'openclaw-summarize',     [OpenclawController::class, 'summarizeSession']);
+    $router->add('GET',  'openclaw-router-status', [OpenclawController::class, 'routerStatus']);
+
     $router->add('GET', 'reviews', [ReviewController::class, 'index']);
     $router->add('POST', 'reviews', [ReviewController::class, 'store']);
 
