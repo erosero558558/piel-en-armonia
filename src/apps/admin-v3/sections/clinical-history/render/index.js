@@ -899,6 +899,9 @@ function emptyReview() {
         patientRecord: {},
         activeEpisode: {},
         encounter: {},
+        certificateHistory: [],
+        certificateHistoryStatus: 'idle',
+        certificateHistoryError: '',
         documents: cloneValue(emptyDraft().documents),
         interconsultations: [],
         activeInterconsultationId: '',
@@ -4348,9 +4351,56 @@ function normalizeReviewQueueItem(item) {
     };
 }
 
-function normalizeReviewPayload(payload) {
+function buildCertificatePdfUrl(certificateId) {
+    const normalizedId = normalizeString(certificateId);
+    if (!normalizedId) {
+        return '';
+    }
+
+    return `/api.php?resource=certificate&id=${encodeURIComponent(
+        normalizedId
+    )}&format=pdf`;
+}
+
+function normalizeCertificateHistoryItem(item) {
+    const source = item && typeof item === 'object' ? item : {};
+
+    return {
+        id: normalizeString(source.id),
+        folio: normalizeString(source.folio),
+        caseId: normalizeString(source.caseId),
+        type: normalizeString(source.type),
+        typeLabel:
+            normalizeString(source.typeLabel) ||
+            normalizeString(source.type).replaceAll('_', ' ') ||
+            'Certificado medico',
+        diagnosisText: normalizeString(source.diagnosisText),
+        cie10Code: normalizeString(source.cie10Code).toUpperCase(),
+        restrictions: normalizeString(source.restrictions),
+        observations: normalizeString(source.observations),
+        issuedAt: normalizeString(source.issuedAt),
+        issuedDateLocal: normalizeString(source.issuedDateLocal),
+        restDays: normalizeNullableInt(source.restDays),
+        pdfUrl: buildCertificatePdfUrl(source.id),
+    };
+}
+
+function normalizeCertificateHistory(items) {
+    return normalizeList(items)
+        .map(normalizeCertificateHistoryItem)
+        .filter((item) => item.id || item.folio || item.issuedAt)
+        .sort((left, right) =>
+            String(right.issuedAt || '').localeCompare(String(left.issuedAt || ''))
+        );
+}
+
+function normalizeReviewPayload(payload, options = {}) {
     const review = emptyReview();
     const source = payload && typeof payload === 'object' ? payload : {};
+    const previousReview =
+        options.previousReview && typeof options.previousReview === 'object'
+            ? options.previousReview
+            : {};
     const sessionSource =
         source.session && typeof source.session === 'object'
             ? source.session
@@ -4412,6 +4462,23 @@ function normalizeReviewPayload(payload) {
         source.encounter && typeof source.encounter === 'object'
             ? source.encounter
             : {};
+    review.certificateHistory = normalizeCertificateHistory(
+        source.certificateHistory !== undefined
+            ? source.certificateHistory
+            : previousReview.certificateHistory
+    );
+    review.certificateHistoryStatus =
+        normalizeString(
+            source.certificateHistoryStatus !== undefined
+                ? source.certificateHistoryStatus
+                : previousReview.certificateHistoryStatus
+        ) ||
+        (review.certificateHistory.length > 0 ? 'loaded' : 'idle');
+    review.certificateHistoryError = normalizeString(
+        source.certificateHistoryError !== undefined
+            ? source.certificateHistoryError
+            : previousReview.certificateHistoryError
+    );
     review.documents = normalizeDocuments(
         source.documents || review.draft.documents
     );
@@ -4535,6 +4602,13 @@ function getClinicalHistorySlice(state = getState()) {
     return state?.clinicalHistory && typeof state.clinicalHistory === 'object'
         ? state.clinicalHistory
         : {};
+}
+
+function normalizeUpdatedReviewPayload(
+    payload,
+    previousReview = currentReviewSource()
+) {
+    return normalizeReviewPayload(payload, { previousReview });
 }
 
 function currentActiveWorkspace(state = getState()) {
@@ -11008,7 +11082,90 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
     );
 }
 
-function buildClinicalHistoryDocumentsSection(draft, disabled) {
+function buildCertificateHistorySummary(certificate) {
+    return (
+        normalizeString(certificate.diagnosisText) ||
+        normalizeString(certificate.observations) ||
+        'Certificado emitido para este episodio clinico.'
+    );
+}
+
+function buildCertificateHistoryCards(review) {
+    const certificates = normalizeCertificateHistory(review.certificateHistory);
+    const status = normalizeString(review.certificateHistoryStatus);
+    const error = normalizeString(review.certificateHistoryError);
+
+    if (status === 'error') {
+        return buildEmptyClinicalCard(
+            'Historial no disponible',
+            error || 'No se pudo recuperar los certificados emitidos.',
+            { cardClass: 'clinical-history-event-card is-empty', tone: 'warning' }
+        );
+    }
+
+    return buildClinicalHistoryCollection(
+        certificates,
+        () =>
+            buildEmptyClinicalCard(
+                'Sin certificados emitidos',
+                'Cuando este caso tenga certificados emitidos apareceran listados aqui.',
+                { cardClass: 'clinical-history-event-card is-empty' }
+            ),
+        (certificate) => {
+            const metadata = [
+                certificate.folio ? `Folio ${certificate.folio}` : '',
+                certificate.cie10Code
+                    ? `CIE-10 ${certificate.cie10Code}`
+                    : '',
+                certificate.restDays
+                    ? `Reposo ${certificate.restDays} dia(s)`
+                    : '',
+            ]
+                .filter(Boolean)
+                .join(' • ');
+
+            return `
+                <article
+                    class="clinical-history-event-card"
+                    data-tone="success"
+                    data-certificate-history-item="${escapeHtml(certificate.id)}"
+                >
+                    <div class="clinical-history-event-head">
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            certificate.typeLabel
+                        )}</span>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            certificate.issuedDateLocal ||
+                                readableTimestamp(certificate.issuedAt) ||
+                                'Sin fecha'
+                        )}</span>
+                    </div>
+                    <p>${escapeHtml(
+                        buildCertificateHistorySummary(certificate)
+                    )}</p>
+                    <small>${escapeHtml(
+                        metadata || 'Sin metadata complementaria'
+                    )}</small>
+                    <div class="toolbar-row clinical-history-actions-row">
+                        <a
+                            href="${escapeHtml(certificate.pdfUrl)}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="clinical-history-action-btn"
+                            data-certificate-history-download="${escapeHtml(
+                                certificate.id
+                            )}"
+                        >
+                            Descargar PDF
+                        </a>
+                    </div>
+                </article>
+            `;
+        }
+    );
+}
+
+function buildClinicalHistoryDocumentsSection(review, draft, disabled) {
     return buildClinicalHistorySection(
         'Certificado y salida',
         'La nota final y la receta se regeneran desde HCU-005; aquí solo mantienes el certificado.',
@@ -11051,6 +11208,16 @@ function buildClinicalHistoryDocumentsSection(draft, disabled) {
                         }
                     ),
                 ])}
+                <div>
+                    <strong>Historial emitido</strong>
+                    <small>
+                        Certificados ya emitidos para este caso, con descarga
+                        inmediata del PDF legal.
+                    </small>
+                    <div data-certificate-history-list>
+                        ${buildCertificateHistoryCards(review)}
+                    </div>
+                </div>
                 <div class="toolbar-row clinical-history-actions-row">
                     <button
                         type="button"
@@ -11194,7 +11361,7 @@ function buildDraftForm(review, draft, saving) {
             ${buildClinicalHistoryImagingOrderSection(review, draft, disabled)}
             ${buildClinicalHistoryConsentSection(review, draft, disabled)}
             ${buildClinicalHistoryCarePlanSection(draft, disabled)}
-            ${buildClinicalHistoryDocumentsSection(draft, disabled)}
+            ${buildClinicalHistoryDocumentsSection(review, draft, disabled)}
         </div>
     `;
 }
@@ -12117,7 +12284,7 @@ async function submitConsentPacketAction(action) {
             method: 'POST',
             body: payload,
         });
-        const nextReview = normalizeReviewPayload(response.data);
+        const nextReview = normalizeUpdatedReviewPayload(response.data);
         setClinicalHistoryState({
             saving: false,
             error: '',
@@ -12279,7 +12446,7 @@ async function submitInterconsultationAction(action, interconsultId = '') {
             method: 'POST',
             body: payload,
         });
-        const nextReview = normalizeReviewPayload(response.data);
+        const nextReview = normalizeUpdatedReviewPayload(response.data);
         setClinicalHistoryState({
             saving: false,
             error: '',
@@ -12494,7 +12661,7 @@ async function submitLabOrderAction(action, labOrderId = '') {
             method: 'POST',
             body: payload,
         });
-        const nextReview = normalizeReviewPayload(response.data);
+        const nextReview = normalizeUpdatedReviewPayload(response.data);
         setClinicalHistoryState({
             saving: false,
             error: '',
@@ -12601,7 +12768,7 @@ async function submitImagingOrderAction(action, imagingOrderId = '') {
             method: 'POST',
             body: payload,
         });
-        const nextReview = normalizeReviewPayload(response.data);
+        const nextReview = normalizeUpdatedReviewPayload(response.data);
         setClinicalHistoryState({
             saving: false,
             error: '',
@@ -12846,7 +13013,7 @@ async function submitGovernanceAction(action) {
             method: 'POST',
             body: payload,
         });
-        const nextReview = normalizeReviewPayload(response.data);
+        const nextReview = normalizeUpdatedReviewPayload(response.data);
         const exportOpened =
             action === 'export-full-record'
                 ? openClinicalRecordExport(nextReview)
@@ -12974,6 +13141,55 @@ function currentSessionId(state = getState()) {
     return normalizeString(currentReviewSource(state).session.sessionId);
 }
 
+async function hydrateReviewCertificateHistory(review) {
+    const currentReview = normalizeReviewPayload(review);
+    const caseId = normalizeString(
+        currentReview.session.caseId || currentReview.draft.caseId
+    );
+
+    if (!caseId) {
+        return normalizeReviewPayload(
+            {
+                ...currentReview,
+                certificateHistory: [],
+                certificateHistoryStatus: 'idle',
+                certificateHistoryError: '',
+            },
+            { previousReview: emptyReview() }
+        );
+    }
+
+    try {
+        const response = await apiRequest('certificate', {
+            query: {
+                case_id: caseId,
+            },
+        });
+
+        return normalizeReviewPayload(
+            {
+                ...currentReview,
+                certificateHistory: response.certificates,
+                certificateHistoryStatus: 'loaded',
+                certificateHistoryError: '',
+            },
+            { previousReview: emptyReview() }
+        );
+    } catch (error) {
+        return normalizeReviewPayload(
+            {
+                ...currentReview,
+                certificateHistory: [],
+                certificateHistoryStatus: 'error',
+                certificateHistoryError:
+                    error?.message ||
+                    'No se pudo cargar el historial de certificados.',
+            },
+            { previousReview: emptyReview() }
+        );
+    }
+}
+
 async function loadClinicalHistorySession(sessionId, options = {}) {
     const desiredSessionId = normalizeString(sessionId);
     if (!desiredSessionId) {
@@ -13013,7 +13229,9 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
                 sessionId: desiredSessionId,
             },
         });
-        const review = normalizeReviewPayload(response.data);
+        const review = await hydrateReviewCertificateHistory(
+            normalizeReviewPayload(response.data)
+        );
         setClinicalHistoryState({
             selectedSessionId: review.session.sessionId || desiredSessionId,
             loading: false,
@@ -13155,7 +13373,7 @@ async function saveClinicalHistoryReview(mode, question) {
                       method: 'POST',
                       body: payload.actionPayload,
                   });
-        const nextReview = normalizeReviewPayload(response.data);
+        const nextReview = normalizeUpdatedReviewPayload(response.data);
         setClinicalHistoryState({
             saving: false,
             error: '',

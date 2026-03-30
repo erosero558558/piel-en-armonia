@@ -4707,3 +4707,190 @@ test('exporta la HCE completa desde admin en una vista imprimible con readiness 
     );
     await expect(popup.locator('body')).toContainText('Imprimir / Guardar PDF');
 });
+
+test('muestra el historial de certificados emitidos en documentos', async ({
+    page,
+}) => {
+    const reviewRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-cert-history-001',
+        caseId: 'case-cert-history-001',
+        patientName: 'Marta Leon',
+        clinicianSummary:
+            'Control dermatologico con certificados previos ya emitidos.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La evolucion clinica del caso ya permite revisar los documentos emitidos.',
+            checklist: [],
+            blockingReasons: [],
+        },
+        documents: {
+            certificate: {
+                status: 'issued',
+                summary: 'Control dermatologico con reposo ya documentado.',
+                restDays: 3,
+                signedAt: '2026-03-18T10:20:00-05:00',
+            },
+        },
+    });
+    const certificateHistoryRequests = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    recordsGovernance: {
+                        pendingCopyRequests: 0,
+                        overdueCopyRequests: 0,
+                        disclosures: 0,
+                        archiveEligible: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-cert-history-001',
+                        caseId: 'case-cert-history-001',
+                        patientName: 'Marta Leon',
+                        summary:
+                            'Seguimiento clinico con certificados previos emitidos.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: false,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'La historia clinica ya esta lista para revisar documentos emitidos.',
+                        approvalBlockedReasons: [],
+                        pendingCopyRequests: 0,
+                        overdueCopyRequests: 0,
+                        disclosureCount: 0,
+                        archiveEligibleForPassive: false,
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: reviewRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'certificate' && method === 'GET') {
+                const requestUrl = new URL(route.request().url());
+                certificateHistoryRequests.push(
+                    requestUrl.searchParams.get('case_id')
+                );
+                await fulfillJson(route, {
+                    ok: true,
+                    certificates: [
+                        {
+                            id: 'cert-hist-001',
+                            folio: 'CERT-0001',
+                            caseId: 'case-cert-history-001',
+                            type: 'reposo_laboral',
+                            typeLabel: 'CERTIFICADO DE REPOSO',
+                            diagnosisText:
+                                'Reposo posterior a procedimiento laser facial.',
+                            cie10Code: 'L71.9',
+                            restDays: 3,
+                            issuedAt: '2026-03-17T09:30:00-05:00',
+                            issuedDateLocal: '17/03/2026',
+                        },
+                        {
+                            id: 'cert-hist-002',
+                            folio: 'CERT-0002',
+                            caseId: 'case-cert-history-001',
+                            type: 'constancia_tratamiento',
+                            typeLabel: 'CERTIFICADO DE TRATAMIENTO',
+                            observations:
+                                'Control terapeutico en curso y adherencia adecuada.',
+                            cie10Code: 'L20.9',
+                            issuedAt: '2026-03-18T10:20:00-05:00',
+                            issuedDateLocal: '18/03/2026',
+                        },
+                    ],
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('historia clinica');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Historial emitido'
+    );
+    await expect(page.locator('[data-certificate-history-item]')).toHaveCount(2);
+
+    const latestCertificate = page.locator(
+        '[data-certificate-history-item="cert-hist-002"]'
+    );
+    await expect(latestCertificate).toContainText(
+        'CERTIFICADO DE TRATAMIENTO'
+    );
+    await expect(latestCertificate).toContainText('18/03/2026');
+    await expect(latestCertificate).toContainText('Folio CERT-0002');
+    await expect(latestCertificate).toContainText('CIE-10 L20.9');
+    await expect(
+        latestCertificate.locator(
+            '[data-certificate-history-download="cert-hist-002"]'
+        )
+    ).toHaveAttribute(
+        'href',
+        /resource=certificate&id=cert-hist-002&format=pdf/
+    );
+
+    const restCertificate = page.locator(
+        '[data-certificate-history-item="cert-hist-001"]'
+    );
+    await expect(restCertificate).toContainText('Reposo 3 dia(s)');
+
+    expect(certificateHistoryRequests.length).toBeGreaterThan(0);
+    expect(
+        certificateHistoryRequests.every(
+            (caseId) => caseId === 'case-cert-history-001'
+        )
+    ).toBe(true);
+});
