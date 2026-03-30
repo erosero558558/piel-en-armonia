@@ -37,7 +37,8 @@
 <link rel="stylesheet" href="/styles/tokens.css">
 <link rel="stylesheet" href="/styles/base.css">
 <link rel="stylesheet" href="/styles/components.css">
-</head>
+  <link rel="stylesheet" href="/styles/aurora-admin.css">
+    </head>
     <body
         class="admin-body"
         data-ops-family="command"
@@ -57,12 +58,65 @@
                 </p>
             </section>
         </div>
-        <div
-            id="adminDashboard"
-            class="admin-dashboard is-hidden"
-            data-admin-entrypoint="queue"
-            aria-hidden="true"
-        >
+        
+        <div id="adminDashboard" class="admin-dashboard is-hidden admin-shell-layout" data-admin-entrypoint="queue" aria-hidden="true">
+            
+            <!-- Sidebar Area -->
+            <aside class="admin-sidebar">
+                <div class="sidebar-brand">
+                    <div class="dot"></div>
+                    Aurora Derm
+                </div>
+                <nav class="sidebar-nav" aria-label="Secciones del admin" data-admin-raw-nav="true">
+                    <a href="#queue" data-section="queue" class="nav-item active" aria-current="page">
+                        <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></div>
+                        <span class="nav-label">Turnero</span>
+                    </a>
+                    <a href="#dashboard" data-section="dashboard" class="nav-item">
+                        <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M9 9l3 3l4-4l5 5"></path></svg></div>
+                        <span class="nav-label">Inicio</span>
+                    </a>
+                    <a href="#appointments" data-section="appointments" class="nav-item">
+                        <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
+                        <span class="nav-label">Agenda</span>
+                    </a>
+                    <a href="#daily-agenda" data-section="daily-agenda" class="nav-item">
+                        <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <span class="nav-label">Agenda Diaria</span>
+                    </a>
+                    <a href="#callbacks" data-section="callbacks" class="nav-item">
+                        <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg></div>
+                        <span class="nav-label">Pendientes</span>
+                    </a>
+                    <a href="#availability" data-section="availability" class="nav-item">
+                        <div class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></div>
+                        <span class="nav-label">Horarios</span>
+                    </a>
+                    <a href="#clinical-history" data-section="clinical-history" class="nav-item">
+                        <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+                        <span class="nav-label">Historia clínica</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Workspace Area -->
+            <div class="admin-shell-main">
+                
+                <!-- Top Header -->
+                <header class="admin-header">
+                    <div class="admin-search">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" placeholder="Buscar paciente, C.I o número de caso...">
+                    </div>
+                    <div class="admin-stats">
+                        <div class="stat-badge"><div class="dot"></div> OpenClaw en línea</div>
+                        <div class="stat-badge"><div class="dot warn"></div> 2 Claims activos</div>
+                    </div>
+                </header>
+
+                <!-- Legacy Canvas Enclosure -->
+                <div class="admin-content-canvas">
+
             <main
                 id="adminMainContent"
                 class="admin-dashboard__raw-shell"
@@ -79,51 +133,7 @@
                     </p>
                 </section>
 
-                <nav aria-label="Secciones del admin" data-admin-raw-nav="true">
-                    <a
-                        href="#queue"
-                        data-section="queue"
-                        class="nav-item active"
-                        aria-current="page"
-                        >Turnero</a
-                    >
-                    <a
-                        href="#dashboard"
-                        data-section="dashboard"
-                        class="nav-item"
-                        >Inicio</a
-                    >
-                    <a
-                        href="#appointments"
-                        data-section="appointments"
-                        class="nav-item"
-                        >Agenda</a
-                    >
-                    <a
-                        href="#daily-agenda"
-                        data-section="daily-agenda"
-                        class="nav-item"
-                        >Agenda Diaria</a
-                    >
-                    <a
-                        href="#callbacks"
-                        data-section="callbacks"
-                        class="nav-item"
-                        >Pendientes</a
-                    >
-                    <a
-                        href="#availability"
-                        data-section="availability"
-                        class="nav-item"
-                        >Horarios</a
-                    >
-                    <a
-                        href="#clinical-history"
-                        data-section="clinical-history"
-                        class="nav-item"
-                        >Historia clinica</a
-                    >
-                </nav>
+                
 
                 <section
                     id="daily-agenda"
@@ -220,6 +230,8 @@
                     </div>
                 </section>
             </main>
+                </div>
+            </div>
         </div>
 
         <div

@@ -690,7 +690,7 @@ final class OpenclawController
             'messages' => [
                 [
                     'role'    => 'system',
-                    'content' => 'Eres un asistente médico. Genera un resumen estructurado de la consulta. Responde SOLO con JSON válido con estas claves: evolution_text (nota clínica narrativa), patient_summary (resumen en lenguaje simple para el paciente), pending_actions (array de strings con tareas pendientes).',
+                    'content' => 'Eres un asistente médico. Genera un resumen estructurado de la consulta. Responde SOLO con JSON válido con estas claves: evolution_text (nota clínica para HCE), patient_summary (resumen en lenguaje no técnico para el paciente, incluyendo: diagnóstico simple, medicamentos con instrucciones claras de toma, fecha del próximo control, y 3 señales de alarma para consulta urgente), pending_actions (array de tareas pendientes).',
                 ],
                 [
                     'role'    => 'user',
@@ -724,11 +724,21 @@ final class OpenclawController
             $evolutionText = "Consulta realizada. {$chatSummary}";
         }
 
+        $waUrl = '';
+        if ($caseId !== '' && $patientSummary !== '') {
+            $patientCtx = self::readStore()['patients'][$caseId] ?? [];
+            $phone      = trim((string) ($patientCtx['phone'] ?? ''));
+            if ($phone !== '') {
+                $waUrl = 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) . '?text=' . urlencode($patientSummary);
+            }
+        }
+
         json_response([
             'ok'              => true,
             'evolution_text'  => $evolutionText,
             'patient_summary' => $patientSummary,
             'pending_actions' => $pendingActions,
+            'whatsapp_url'    => $waUrl,
         ]);
     }
 

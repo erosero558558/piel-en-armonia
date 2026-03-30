@@ -245,6 +245,13 @@ test.describe('Admin appointments quick filters + shortcuts', () => {
         await page.keyboard.press('Alt+Shift+T');
         await expect(page.locator('#appointments')).toHaveClass(/active/);
         await expect(page).toHaveURL(/#appointments$/);
+        await expect
+            .poll(() =>
+                page.evaluate(() =>
+                    document.documentElement.getAttribute('data-admin-ready')
+                )
+            )
+            .toBe('true');
         await expect(page.locator('#appointmentFilter')).toHaveValue(
             'pending_transfer'
         );

@@ -224,7 +224,12 @@ test.describe('Admin appointments daily agenda', () => {
         const card = page.locator(
             '[data-daily-agenda-item="true"][data-appointment-id="301"]'
         );
-        await card.getByRole('button', { name: 'Marcar llegó' }).click();
+        const checkinButton = card.getByRole('button', { name: 'Marcar llegó' });
+        await expect(
+            page.locator('#appointmentsDailyAgenda [data-daily-agenda-item="true"]')
+        ).toHaveCount(3);
+        await expect(checkinButton).toBeVisible();
+        await checkinButton.click();
 
         await expect.poll(() => checkinPayload?.checkinToken || '').toBe(
             'CHK-301'

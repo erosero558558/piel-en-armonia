@@ -418,6 +418,9 @@ paths:
                 properties:
                   evolution_text: { type: string }
                   patient_summary: { type: string }
+                  whatsapp_url:
+                    type: string
+                    description: "Enlace generado dinámicamente para contactar al paciente por WhatsApp con el paciente_summary ya formateado"
                   pending_actions:
                     type: array
                     items:

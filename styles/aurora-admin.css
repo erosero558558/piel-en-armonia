@@ -1,0 +1,302 @@
+
+/* ==========================================================================
+   Admin Shell (UI-09) - Dark Workspace "La herramienta que el médico ama"
+   ========================================================================== */
+
+:root[data-theme-mode="system"] {
+  /* Override the entire palette for the Admin App with pure Dark Mode tokens */
+  --admin-bg-base: #0f172a;       /* slate-900 */
+  --admin-bg-surface: #1e293b;    /* slate-800 */
+  --admin-bg-elevated: #334155;   /* slate-700 */
+  --admin-border: rgba(255, 255, 255, 0.1);
+  
+  --admin-text-primary: #f8fafc;
+  --admin-text-muted: #94a3b8;
+  
+  --admin-accent: var(--color-aurora-500);
+  --admin-accent-glow: rgba(106, 126, 150, 0.2);
+  
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 72px;
+  --header-height: 72px;
+}
+
+body.admin-body {
+  background-color: var(--admin-bg-base);
+  color: var(--admin-text-primary);
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Stop main native scrolling, handle via layout */
+}
+
+/* ==========================================================================
+   Layout Architecture
+   ========================================================================== */
+.admin-shell-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Sidebar Navigation */
+.admin-sidebar {
+  width: var(--sidebar-collapsed);
+  height: 100vh;
+  background: rgba(30, 41, 59, 0.6); /* Glassmorphism dark slate */
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid var(--admin-border);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--transition-normal);
+  z-index: 50;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (min-width: 1024px) {
+  .admin-sidebar:hover {
+    width: var(--sidebar-width);
+  }
+}
+
+.sidebar-brand {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: #fff;
+  border-bottom: 1px solid var(--admin-border);
+  white-space: nowrap;
+  gap: 16px;
+}
+
+.sidebar-brand .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--color-gold-400);
+  box-shadow: 0 0 10px rgba(220, 185, 115, 0.5);
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: var(--space-6) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sidebar-nav a.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  color: var(--admin-text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.sidebar-nav a.nav-item .nav-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-nav a.nav-item .nav-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar-nav a.nav-item:hover {
+  color: var(--admin-text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav a.nav-item.active {
+  color: #fff;
+  background: var(--admin-accent-glow);
+}
+
+.sidebar-nav a.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--admin-accent);
+  border-radius: 0 4px 4px 0;
+}
+
+/* User / Settings pin at bottom */
+.sidebar-footer {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--admin-border);
+}
+
+/* ==========================================================================
+   Main Shell & Header
+   ========================================================================== */
+.admin-shell-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  background-color: var(--color-stone-900);
+}
+
+.admin-header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-8);
+  background: transparent;
+  z-index: 10;
+}
+
+.admin-search {
+  display: flex;
+  align-items: center;
+  background: var(--admin-bg-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-4);
+  width: 400px;
+  height: 40px;
+  color: var(--admin-text-muted);
+  gap: var(--space-2);
+}
+
+.admin-search input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  font-size: var(--text-sm);
+}
+
+.admin-search input::placeholder {
+  color: var(--admin-text-muted);
+}
+
+.admin-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.stat-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--admin-bg-surface);
+  border: 1px solid var(--admin-border);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--admin-text-muted);
+}
+
+.stat-badge .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-green-500);
+}
+
+.stat-badge .dot.warn {
+  background-color: var(--color-gold-500);
+}
+
+/* ==========================================================================
+   Legacy Override (Hooking into adminMainContent)
+   ========================================================================== */
+.admin-content-canvas {
+  flex: 1;
+  background-color: var(--admin-bg-surface);
+  border-radius: var(--radius-2xl) 0 0 0;
+  border: 1px solid var(--admin-border);
+  border-right: none;
+  border-bottom: none;
+  overflow: hidden;
+  position: relative;
+  box-shadow: -10px -10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.admin-dashboard__raw-shell {
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-8);
+}
+
+.admin-section {
+  display: none;
+  animation: admin-fade 0.3s ease-out forwards;
+}
+
+.admin-section.active {
+  display: block;
+}
+
+@keyframes admin-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Force dark style resets on headers inside sections */
+.admin-section header {
+  margin-bottom: var(--space-8);
+  border-bottom: 1px solid var(--admin-border);
+  padding-bottom: var(--space-6);
+}
+
+.admin-section header p:first-child {
+  color: var(--color-gold-500);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.admin-section header h2,
+.admin-section header h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  color: var(--admin-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.admin-section header p:last-child {
+  color: var(--admin-text-muted);
+  font-size: var(--text-base);
+}
+
+/* Clean up legacy raw info wrappers */
+#adminRawControlRoom {
+  display: none; /* We hide the meta-raw section as we have visual layout now */
+}

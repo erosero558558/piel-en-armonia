@@ -187,30 +187,6 @@ function persistPendingQuickAction(action) {
     }
 }
 
-function readPendingQuickAction() {
-    try {
-        return (
-            window.sessionStorage.getItem(
-                ADMIN_PENDING_QUICK_ACTION_STORAGE_KEY
-            ) || ''
-        );
-    } catch (_error) {
-        return '';
-    }
-}
-
-async function replayPendingQuickAction() {
-    const action = readPendingQuickAction();
-    if (!action) return;
-
-    persistPendingQuickAction('');
-
-    const module = await import('../admin-v3/core/boot/navigation/commands.js');
-    if (typeof module?.runQuickAction === 'function') {
-        await module.runQuickAction(action);
-    }
-}
-
 function installPrebootShortcutCapture() {
     const handler = (event) => {
         if (
@@ -278,7 +254,6 @@ async function loadSonyV3Variant() {
 
     try {
         await loadSonyV3Variant();
-        await replayPendingQuickAction();
         setDocumentReadyState(true);
     } catch (error) {
         setDocumentReadyState(false);

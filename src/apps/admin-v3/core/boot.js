@@ -49,6 +49,25 @@ import {
     setThemeMode,
 } from './boot/ui-prefs.js';
 
+const ADMIN_PENDING_QUICK_ACTION_STORAGE_KEY = 'adminPendingQuickAction';
+
+function consumePendingQuickAction() {
+    try {
+        const action =
+            window.sessionStorage.getItem(
+                ADMIN_PENDING_QUICK_ACTION_STORAGE_KEY
+            ) || '';
+        if (action) {
+            window.sessionStorage.removeItem(
+                ADMIN_PENDING_QUICK_ACTION_STORAGE_KEY
+            );
+        }
+        return action;
+    } catch (_error) {
+        return '';
+    }
+}
+
 export async function bootAdminV3() {
     renderV3Frame();
     bindFrameHooks();
@@ -113,6 +132,10 @@ export async function bootAdminV3() {
     if (getState().auth.authenticated) {
         await bootAuthenticatedUi();
         setActiveSection(getState().ui.activeSection);
+        const pendingQuickAction = consumePendingQuickAction();
+        if (pendingQuickAction) {
+            await runQuickAction(pendingQuickAction);
+        }
     } else {
         showLoginView();
         hideCommandPalette();
