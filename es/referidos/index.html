@@ -262,12 +262,26 @@
     </section>
   </main>
 
+  <script src="/js/revenue-funnel.js"></script>
   <script>
     (function () {
       const shareButtons = document.querySelectorAll('[data-referral-share]');
       const feedback = document.querySelector('[data-referral-feedback]');
       const shareUrl = new URL('/es/referidos/?ref=aurora-circle', window.location.origin).toString();
       const shareText = 'Le comparto este acceso de Aurora Derm por si quiere agendar su primera cita con beneficio de referido: ' + shareUrl;
+
+      function trackShare(channel) {
+        if (!window.AuroraRevenueFunnel || typeof window.AuroraRevenueFunnel.trackMessageIntent !== 'function') {
+          return;
+        }
+
+        window.AuroraRevenueFunnel.trackMessageIntent({
+          cta_label: 'Comparte tu link',
+          cta_section: 'referrals_share',
+          message_channel: channel,
+          message_length: shareText.length
+        });
+      }
 
       function setFeedback(message) {
         if (!feedback) return;
@@ -282,19 +296,23 @@
               text: 'Le comparto el programa de referidos de Aurora Derm.',
               url: shareUrl
             });
+            trackShare('native_share');
             setFeedback('Listo. Se abrió el menú para compartir su link.');
             return;
           }
 
           if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(shareText);
+            trackShare('clipboard_copy');
             setFeedback('Listo. Copiamos el mensaje con su link para que lo pegue donde quiera.');
             return;
           }
 
+          trackShare('whatsapp_redirect');
           window.location.href = 'https://wa.me/?text=' + encodeURIComponent(shareText);
           setFeedback('Listo. Le estamos llevando a WhatsApp para compartir el link.');
         } catch (error) {
+          trackShare('whatsapp_redirect');
           window.location.href = 'https://wa.me/?text=' + encodeURIComponent(shareText);
           setFeedback('No pudimos copiar el link, pero ya abrimos WhatsApp para compartirlo.');
         }
