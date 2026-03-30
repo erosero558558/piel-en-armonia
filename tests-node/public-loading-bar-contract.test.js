@@ -13,6 +13,11 @@ const LAYOUTS = [
     resolve(REPO_ROOT, 'src', 'apps', 'astro', 'src', 'layouts', 'PublicShellV5.astro'),
     resolve(REPO_ROOT, 'src', 'apps', 'astro', 'src', 'layouts', 'PublicShellV6.astro'),
 ];
+const SHELLS = [
+    resolve(REPO_ROOT, 'js', 'public-v3-shell.js'),
+    resolve(REPO_ROOT, 'js', 'public-v5-shell.js'),
+    resolve(REPO_ROOT, 'js', 'public-v6-shell.js'),
+];
 
 test('aurora loading bar script exists and exposes the loader markers', () => {
     assert.equal(existsSync(SCRIPT_PATH), true);
@@ -31,5 +36,14 @@ test('public layouts include the shared aurora loading bar script', () => {
             source,
             /\/js\/aurora-nprogress\.js\?v=aurora-nprogress-20260330-v1/
         );
+    }
+});
+
+test('public shell runtimes bootstrap the shared loader when HTML does not include it yet', () => {
+    for (const filePath of SHELLS) {
+        const source = readFileSync(filePath, 'utf8');
+        assert.match(source, /data-aurora-page-loader/);
+        assert.match(source, /__auroraPageLoader/);
+        assert.match(source, /aurora-loader/);
     }
 });
