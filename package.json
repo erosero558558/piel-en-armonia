@@ -232,6 +232,7 @@
     "gate": "node bin/gate.js",
     "backlog": "node bin/sync-backlog.js",
     "backlog:check": "node bin/sync-backlog.js --check",
+    "readme:stats": "node bin/gen-readme-stats.js",
     "agent:board:resolve-revision": "node bin/resolve-board-revision-conflict.js --file AGENT_BOARD.yaml --json",
     "agent:board:archive:preview": "node bin/archive-agent-board.js --json",
     "agent:board:archive:apply": "node bin/archive-agent-board.js --apply --json",

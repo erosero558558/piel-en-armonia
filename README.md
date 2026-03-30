@@ -44,6 +44,12 @@ node bin/gate.js <TASK-ID>   # debe PASS antes de marcar done
 
 ## Estado actual del proyecto
 
+<!-- STATS_START -->
+- Progreso real del board: **216/449** tareas completadas (**48%**)
+- Pendientes: **233**
+- Sprint activo: **Sprint 3 — Construir Flow OS como plataforma**
+<!-- STATS_END -->
+
 Ver `npm run report` para el estado en tiempo real.
 
 Ver `AGENTS.md` sección "Acceptance Criteria" para saber cuándo cada sprint está done.

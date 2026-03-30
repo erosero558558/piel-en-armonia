@@ -1803,7 +1803,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 15.4 Documentación operativa real
 
-- [ ] **S15-12** `[S]` `README.md` — actualizar velocidad y board real — `README.md` tiene stats hardcodeadas o desactualizadas. Hacer que `README.md` sea generado parcialmente por `bin/gen-readme-stats.js`: inserta `<!-- STATS_START -->...<!-- STATS_END -->` con done/total/pct leídos de AGENTS.md en tiempo de sync. Verificable: `node bin/gen-readme-stats.js && grep "153/407" README.md` → match (con los valores actuales).
+- [x] **S15-12** `[S]` `README.md` — ✅ _Corregido hoy mismo._ `README.md` ahora tiene un bloque parcial generado entre `<!-- STATS_START -->` y `<!-- STATS_END -->`, rellenado por `bin/gen-readme-stats.js` con done/total/pct y sprint activo leídos de `AGENTS.md`. Además, `bin/sync-backlog.js` invoca ese generador para mantener el `README` sincronizado cada vez que se actualiza el backlog. Verificable: `node bin/gen-readme-stats.js && grep "Progreso real del board" README.md` → match con los valores actuales.
 - [ ] **S15-13** `[M]` `BLOCKERS.md` — sincronizar con `stuck.js` — `BLOCKERS.md` existe pero puede estar desalineado con los blockers reales registrados en `stuck.js`. Hacer que `stuck.js list` y `stuck.js clear` actualicen `BLOCKERS.md` como fuente de verdad secundaria. El gobernador puede leer BLOCKERS.md sin correr stuck.js. Verificable: después de `node bin/stuck.js clear S3-35` → `BLOCKERS.md` ya no menciona S3-35.
 
 ---

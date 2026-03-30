@@ -15,6 +15,7 @@
  *   - Por el workflow /status automáticamente
  */
 
+const { execFileSync } = require('child_process');
 const { readFileSync, writeFileSync, existsSync, readdirSync } = require('fs');
 const { resolve, join } = require('path');
 
@@ -36,6 +37,14 @@ function loadClaims() {
   return claims;
 }
 function isExpired(c) { return c?.expiresAt && new Date(c.expiresAt) < new Date(); }
+function syncReadmeStats() {
+  try {
+    execFileSync(process.execPath, [resolve(__dirname, 'gen-readme-stats.js')], {
+      cwd: ROOT,
+      stdio: 'pipe',
+    });
+  } catch {}
+}
 
 const CHECK_MODE = process.argv.includes('--check');
 
@@ -276,6 +285,7 @@ if (CHECK_MODE) {
 }
 
 writeFileSync(BACKLOG_FILE, result, 'utf8');
+syncReadmeStats();
 console.log(`✅ BACKLOG.md regenerated — ${totalDone}/${totalAll} done (${pct}%)`);
 console.log(`   Active sprint: ${activeSprintName}`);
 console.log(`   Available tasks: ${sprints[activeSprintName]?.tasks.filter(t => !t.human && !t.claimed && t.blocked.length === 0).length || 0}`);
