@@ -2961,6 +2961,148 @@ final class ClinicalHistoryControllerTest extends TestCase
         );
     }
 
+    public function testClinicalHistoryApprovalBlockedResponseIncludesComplianceMspPayload(): void
+    {
+        \write_doctor_profile([
+            'fullName' => 'Dra. Aurora Demo',
+            'specialty' => 'Dermatologia clinica',
+            'mspNumber' => '',
+            'signatureImage' => '',
+            'updatedAt' => '2026-03-30T09:00:00-05:00',
+        ]);
+
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Carla Vega',
+                    'email' => 'carla@example.com',
+                    'documentNumber' => '0922334455',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-compliance';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-compliance';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Rosacea facial',
+                        'enfermedadActual' => 'Brote inflamatorio reciente en mejillas.',
+                        'antecedentes' => 'Sin antecedentes dermatologicos de alarma.',
+                        'alergias' => 'Niega alergias medicamentosas.',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 34,
+                            'pesoKg' => 61,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Rosacea facial en control clinico.',
+                        'preguntasFaltantes' => [],
+                        'cie10Sugeridos' => ['L71.9'],
+                        'hcu005' => [
+                            'evolutionNote' => 'Rosacea facial en control clinico.',
+                            'diagnosticImpression' => 'Rosacea facial L71.9 en control clinico.',
+                            'therapeuticPlan' => 'Mantener manejo topico y control dermatologico.',
+                            'careIndications' => 'Fotoproteccion diaria y seguimiento en 6 semanas.',
+                            'prescriptionItems' => [],
+                        ],
+                    ],
+                ],
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Vega',
+                        'primerNombre' => 'Carla',
+                        'documentType' => 'cedula',
+                        'documentNumber' => '0922334455',
+                    ],
+                    'demographics' => [
+                        'sexAtBirth' => 'femenino',
+                        'ageYears' => 34,
+                        'birthDate' => '1992-08-12',
+                    ],
+                ]),
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame(
+            'blocked',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? '')
+        );
+        self::assertSame(
+            'incomplete',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['complianceMspStatus']['status'] ?? '')
+        );
+        self::assertContains(
+            'doctor_msp',
+            $recordPatch['payload']['data']['legalReadiness']['complianceMspStatus']['missingFields'] ?? []
+        );
+        self::assertContains(
+            'Registro MSP del profesional',
+            $recordPatch['payload']['data']['legalReadiness']['complianceMspStatus']['missingFieldLabels'] ?? []
+        );
+        self::assertContains(
+            'compliance_msp_incomplete',
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $recordPatch['payload']['data']['approvalBlockedReasons'] ?? []
+            ))
+        );
+
+        $blockedApprove = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(409, $blockedApprove['status']);
+        self::assertSame(
+            'clinical_history_approval_blocked',
+            (string) ($blockedApprove['payload']['code'] ?? '')
+        );
+        self::assertSame(
+            'incomplete',
+            (string) ($blockedApprove['payload']['data']['legalReadiness']['complianceMspStatus']['status'] ?? '')
+        );
+        self::assertContains(
+            'doctor_msp',
+            $blockedApprove['payload']['data']['legalReadiness']['complianceMspStatus']['missingFields'] ?? []
+        );
+        self::assertContains(
+            'compliance_msp_incomplete',
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $blockedApprove['payload']['blockingReasons'] ?? []
+            ))
+        );
+    }
+
     public function testClinicalHistoryFallbackKeepsTranscriptAndMarksReviewRequired(): void
     {
         putenv('FIGO_PROVIDER_MODE=openclaw_queue');

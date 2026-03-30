@@ -85,7 +85,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Validar secrets, thresholds y confirmación
+            - name: pre-check
               run: |
                   set -euo pipefail
 

@@ -56,7 +56,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Validar inputs de promoción
+            - name: pre-check
               run: |
                   set -euo pipefail
                   if [ -z "${SOURCE_RUN_ID}" ]; then
@@ -256,7 +256,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Validar confirmación y secreto de producción
+            - name: pre-check
               run: |
                   set -euo pipefail
                   if [ "${CONFIRM_PRODUCTION_CUTOVER}" != "true" ]; then

@@ -45,13 +45,17 @@ async function delayJson(route, payload, delayMs = 1200) {
     });
 }
 
-async function selectService(page, label) {
-    await page.locator('#service-grid label', { hasText: label }).click();
+async function selectService(page, value) {
+    await page
+        .locator(`#service-grid label:has(input[name="service"][value="${value}"])`)
+        .click();
     await page.getByRole('button', { name: 'Continuar a Medico' }).click();
 }
 
-async function selectDoctor(page, label) {
-    await page.locator('#doctor-grid label', { hasText: label }).click();
+async function selectDoctor(page, value) {
+    await page
+        .locator(`#doctor-grid label:has(input[name="doctor"][value="${value}"])`)
+        .click();
     await page.getByRole('button', { name: 'Elegir Fecha' }).click();
 }
 
@@ -95,8 +99,8 @@ test.describe('es/agendar loading state', () => {
         });
 
         await openBooking(page);
-        await selectService(page, 'Consulta dermatologica');
-        await selectDoctor(page, 'Indiferente');
+        await selectService(page, 'consulta');
+        await selectDoctor(page, 'indiferente');
         await chooseDateAndTime(page, bookingDate);
         await fillPatient(page);
 
@@ -127,8 +131,8 @@ test.describe('es/agendar loading state', () => {
         });
 
         await openBooking(page);
-        await selectService(page, 'Teledermatologia');
-        await selectDoctor(page, 'Indiferente');
+        await selectService(page, 'video');
+        await selectDoctor(page, 'indiferente');
         await chooseDateAndTime(page, bookingDate);
         await fillPatient(page);
 
@@ -165,8 +169,8 @@ test.describe('es/agendar loading state', () => {
         });
 
         await openBooking(page);
-        await selectService(page, 'Consulta dermatologica');
-        await selectDoctor(page, 'Indiferente');
+        await selectService(page, 'consulta');
+        await selectDoctor(page, 'indiferente');
         await page.locator('#booking-date').fill(bookingDate);
         await page.getByRole('button', { name: 'Unirme a lista de espera' }).click();
 

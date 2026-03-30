@@ -67,7 +67,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Validar inputs y secretos
+            - name: pre-check
               id: preflight
               run: |
                   set -euo pipefail

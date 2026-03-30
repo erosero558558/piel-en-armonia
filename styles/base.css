@@ -140,3 +140,11 @@ body[data-theme="admin"] h6 {
     padding-bottom: var(--space-20);
   }
 }
+
+/* Accesibilidad: Reducción de movimiento */
+@media (prefers-reduced-motion: reduce) { 
+  *, *::before, *::after { 
+    animation-duration: 0.01ms !important; 
+    transition-duration: 0.01ms !important; 
+  } 
+}

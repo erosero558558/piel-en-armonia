@@ -258,3 +258,11 @@ body.queue-kiosk-body .ticket-result > * {
     text-align: center !important;
     max-width: 80%;
 }
+
+/* Accesibilidad: Reducción de movimiento */
+@media (prefers-reduced-motion: reduce) { 
+  *, *::before, *::after { 
+    animation-duration: 0.01ms !important; 
+    transition-duration: 0.01ms !important; 
+  } 
+}

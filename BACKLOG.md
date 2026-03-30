@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 9:09:24 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 9:11:46 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **39%** completado (164/420)
+`████████░░░░░░░░░░░░` **39%** completado (165/420)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -20,7 +20,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 6 | 31 | 16% |
 | ✅ Sprint UI | 19 | 0 | 100% |
-| ⏸ Sprint UI | 3 | 17 | 15% |
+| ⏸ Sprint UI | 4 | 16 | 20% |
 | ⏸ Sprint 8 | 0 | 17 | 0% |
 | ⏸ Sprint 9 | 1 | 26 | 4% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
@@ -148,18 +148,18 @@ _Esperando que Sprint anterior esté completo. 31 tareas pendientes._
 _Sprint completado. 19/19 tareas._
 
 ## ⏸ Sprint UI — Fase 2: Follow-ups del Audit
-_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 16 tareas pendientes._
 
-### 🟢 Disponibles (17)
+### 🟢 Disponibles (16)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **UI2-01** | `[UI2]` | M |
 | **UI2-02** | `[UI2]` | S |
 | **UI2-03** | `[UI2]` | S |
 | **UI2-04** | `[UI2]` | S |
 | **UI2-05** | `[UI2]` | M |
-| ... | | _+12 más_ |
+| **UI2-06** | `[UI2]` | S |
+| ... | | _+11 más_ |
 
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
 _Esperando que Sprint anterior esté completo. 17 tareas pendientes._
@@ -233,7 +233,7 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S13-19** `[S13]` → _Codex-erosero558558_ (expira en 229min)
+- **S13-19** `[S13]` → _Codex-erosero558558_ (expira en 226min)
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 5 tareas pendientes._
@@ -264,7 +264,7 @@ _Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S14-03** `[S14]` → _antigravity_ (expira en 229min)
+- **S14-03** `[S14]` → _antigravity_ (expira en 226min)
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
 _Esperando que Sprint anterior esté completo. 13 tareas pendientes._

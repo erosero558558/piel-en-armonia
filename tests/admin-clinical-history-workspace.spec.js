@@ -2187,6 +2187,238 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     );
 });
 
+test('approval blocked refreshes Compliance MSP blockers and toast detail in workspace', async ({
+    page,
+}) => {
+    const readyRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-msp-001',
+        caseId: 'case-msp-001',
+        patientName: 'Carla Vega',
+        clinicianSummary: 'Rosacea facial con cierre inicialmente listo.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica parece lista para aprobar desde el estado local.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                    label: 'Datos minimos clinicos',
+                    message: 'No hay preguntas faltantes abiertas en el intake.',
+                },
+            ],
+            blockingReasons: [],
+            complianceMspStatus: {
+                status: 'complete',
+                missingFields: [],
+                missingFieldLabels: [],
+                label: 'Compliance MSP OK',
+                summary: 'Cumple con los campos minimos requeridos.',
+            },
+        },
+    });
+
+    const blockedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-msp-001',
+        caseId: 'case-msp-001',
+        patientName: 'Carla Vega',
+        clinicianSummary: 'Rosacea facial con bloqueo documental MSP.',
+        legalReadiness: {
+            status: 'blocked',
+            ready: false,
+            label: 'Bloqueada',
+            summary:
+                'La aprobacion queda bloqueada hasta completar los faltantes de Compliance MSP.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                    label: 'Datos minimos clinicos',
+                    message: 'No hay preguntas faltantes abiertas en el intake.',
+                },
+                {
+                    code: 'compliance_msp',
+                    status: 'fail',
+                    label: 'Compliance MSP',
+                    message:
+                        'Faltan campos clinicos minimos MVP: Documento de identidad, Registro MSP del profesional.',
+                },
+            ],
+            blockingReasons: [
+                {
+                    code: 'compliance_msp_incomplete',
+                    label: 'Faltan campos minimos de Compliance MSP',
+                    message:
+                        'Revisa y completa los siguientes campos: Documento de identidad, Registro MSP del profesional',
+                    missingFields: ['patient_id', 'doctor_msp'],
+                    missingFieldLabels: [
+                        'Documento de identidad',
+                        'Registro MSP del profesional',
+                    ],
+                },
+            ],
+            complianceMspStatus: {
+                status: 'incomplete',
+                missingFields: ['patient_id', 'doctor_msp'],
+                missingFieldLabels: [
+                    'Documento de identidad',
+                    'Registro MSP del profesional',
+                ],
+                label: 'Faltan campos MVP',
+                summary:
+                    'Faltan campos obligatorios descritos en ComplianceMSP para cerrar el registro: Documento de identidad, Registro MSP del profesional.',
+            },
+        },
+    });
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-msp-001',
+                        caseId: 'case-msp-001',
+                        patientName: 'Carla Vega',
+                        summary: 'Caso listo localmente pero pendiente de refresh MSP.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'La historia clinica parece lista para aprobar desde el estado local.',
+                        hcu001Status: 'complete',
+                        hcu001Label: 'HCU-001 completa',
+                        hcu001Summary:
+                            'La admision longitudinal ya deja identidad y contacto base defendibles.',
+                        hcu005Status: 'complete',
+                        hcu005Label: 'HCU-005 completo',
+                        hcu005Summary:
+                            'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+                        hcu024Status: 'not_applicable',
+                        hcu024Label: 'HCU-024 no aplica',
+                        hcu024Summary:
+                            'No hay consentimiento escrito por procedimiento exigible para este episodio.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: readyRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                if (payload.action === 'approve_final_note') {
+                    await fulfillJson(
+                        route,
+                        {
+                            ok: false,
+                            error: 'La nota final no esta lista para aprobar.',
+                            code: 'clinical_history_approval_blocked',
+                            data: blockedRecord,
+                            blockingReasons:
+                                blockedRecord.legalReadiness.blockingReasons,
+                        },
+                        409
+                    );
+                    return true;
+                }
+
+                await fulfillJson(route, {
+                    ok: true,
+                    data: readyRecord,
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Lista para aprobar');
+    await expect(page.locator('#clinicalHistoryApproveBtn')).toBeEnabled();
+
+    await page.locator('#clinicalHistoryApproveBtn').click();
+
+    await expect(page.locator('#toastContainer')).toContainText(
+        'Revisa y completa los siguientes campos: Documento de identidad, Registro MSP del profesional'
+    );
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Bloqueada');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Faltan campos MVP');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Documento de identidad');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Registro MSP del profesional');
+    await expect(page.locator('#clinicalHistoryApproveBtn')).toBeDisabled();
+});
+
 test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del episodio', async ({
     page,
 }) => {

@@ -258,3 +258,11 @@ body.queue-display-body .display-next-list li.display-empty {
     justify-content: center !important;
     opacity: 0.5 !important;
 }
+
+/* Accesibilidad: Reducción de movimiento */
+@media (prefers-reduced-motion: reduce) { 
+  *, *::before, *::after { 
+    animation-duration: 0.01ms !important; 
+    transition-duration: 0.01ms !important; 
+  } 
+}

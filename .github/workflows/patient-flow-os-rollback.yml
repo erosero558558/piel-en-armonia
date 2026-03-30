@@ -67,7 +67,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Validar inputs de rollback
+            - name: pre-check
               run: |
                   set -euo pipefail
                   if [ -z "${SOURCE_RUN_ID}" ]; then
@@ -243,7 +243,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Validar confirmación y secreto de rollback
+            - name: pre-check
               run: |
                   set -euo pipefail
                   if [ -z "${DATABASE_URL}" ]; then

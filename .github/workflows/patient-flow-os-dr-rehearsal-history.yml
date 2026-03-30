@@ -88,7 +88,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Validar inputs
+            - name: pre-check
               run: |
                   set -euo pipefail
 
