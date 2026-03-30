@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:09:16 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:10:18 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **35%** completado (71/202)
+`███████░░░░░░░░░░░░░` **33%** completado (71/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -18,7 +18,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
-| ⏸ Sprint 7 | 0 | 26 | 0% |
+| ⏸ Sprint 7 | 0 | 37 | 0% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -31,7 +31,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (30)
+### 🟢 Disponibles (29)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -57,7 +57,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-56** | `[M]` | PHPUnit smoke baseline — después de S3-55, definir y dejar en verde un... |
 | **S3-58** | `[M]` | conflict.js — precisión quirúrgica — cambiar de heurística solo textua... |
 | **S3-62** | `[M]` | Consolidar npm scripts —  tiene 273 scripts: demasiada superficie cogn... |
-| **S3-17** | `[L]` | Comparación before/after — en admin: dos fotos side-by-side de misma z... |
 | **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
 | **S3-54** | `[L]` | Resumen de consulta para paciente — al cerrar la consulta (), generar ... |
@@ -68,7 +67,8 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 81min)
+- **S3-17** `[L]` → _antigravity_ (expira en 480min)
+- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 80min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -159,9 +159,9 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 - **S6-24** `[M]` — necesita: S6-23 primero
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 37 tareas pendientes._
 
-### 🟢 Disponibles (26)
+### 🟢 Disponibles (37)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -170,7 +170,7 @@ _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 | **S7-05** | `[S]` | Auditar permisos por rol en endpoints OpenClaw —  tiene  pero no verif... |
 | **S7-08** | `[S]` | Backup y restore automatizado — no hay ninguna tarea que valide backup... |
 | **S7-09** | `[S]` | k8s readiness/liveness probes —  no tiene  ni . Kubernetes no puede de... |
-| ... | | _+21 más_ |
+| ... | | _+32 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
