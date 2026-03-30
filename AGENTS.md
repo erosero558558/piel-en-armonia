@@ -1159,7 +1159,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S4-06** `[L]` Tenant isolation audit — verificar que `lib/tenants.php` aísla datos entre clínicas: pacientes, agenda, turnero, pagos. Cada clínica tiene namespace propio.
 - [ ] **S4-07** `[XL]` Onboarding de clínica — flujo: registrar clínica → `TurneroClinicProfile` → cargar staff → activar servicios → generar URL.
-- [ ] **S4-08** `[L]` Pricing page — `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor), Pro ($49/mes, 5 doctores), Enterprise (contactar). Design premium con comparativa.
+- [x] **S4-08** `[L]` Pricing page — `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor), Pro ($49/mes, 5 doctores), Enterprise (contactar). Design premium con comparativa.
 - [ ] **S4-09** `[L]` Demo interactiva mejorada — `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. El visitante experimenta: kiosco → turno → operador lo llama.
 - [ ] **S4-10** `[L]` Dashboard multi-clínica — vista admin: stats de todas las clínicas del tenant. Turnos/día, ingresos, pacientes. Comparativa entre sucursales.
 - [ ] **S4-11** `[L]` Whitelabel — personalizar: logo, colores, nombre, dominio por clínica. Engine Flow OS intacto, branding customizable.
@@ -1690,4 +1690,3 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S13-18** `[M]` Double-submit protection en booking — `es/agendar/index.html` tiene 4 referencias a `disabled`/`preventDefault` pero sin un lock de estado mientras la API responde. Si el usuario hace doble clic antes del response → cita duplicada. Añadir `isSubmitting` flag: button disabled desde el primer clic hasta response con éxito o error. Verificable: test funcional en `tests-node/booking-double-submit.test.js`.
 - [ ] **S13-19** `[M]` `[UI]` `es/agendar/` — loading state visible — durante el submit del booking, el usuario no ve feedback (spinner, mensaje "Agendando..."). Añadir: botón con spinner inline mientras `isLoading=true`, overlay semitransparente sobre el formulario, mensaje "Confirmando tu cita..." con el componente `.skeleton` de `aurora-public.css`. Sin esto el usuario hace doble clic creyendo que falló.
 - [ ] **S13-20** `[M]` Booking confirmation email/WhatsApp — una vez creada la cita, ¿el paciente recibe confirmación automática? Audit: verificar que `BookingController.php` llama a `WhatsAppService::sendConfirmation()` en el happy path. Si no → implementar. La confirmación debe incluir: fecha, hora, dirección, instrucciones previas según servicio y link de cancelación. Sin esto el no-show sube.
-
