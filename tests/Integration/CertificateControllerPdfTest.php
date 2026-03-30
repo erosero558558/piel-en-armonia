@@ -147,6 +147,7 @@ final class CertificateControllerPdfTest extends TestCase
             'cie10_code' => 'L71.9',
             'observations' => 'Control en una semana.',
         ]);
+        usleep(1100000);
         $secondResponse = $this->issueCertificate([
             'rest_days' => 5,
             'diagnosis_text' => 'Dermatitis atopica',
