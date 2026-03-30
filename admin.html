@@ -15,6 +15,7 @@
             content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self';"
         />
         <title>Consola de control del turnero - Aurora Derm</title>
+        <script src="js/theme-toggle.js"></script>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <script src="src/apps/queue-shared/ops-theme-global.js?v=turnero-20260314-auto-theme1"></script>
         <link
@@ -119,10 +120,14 @@
                         <input type="text" placeholder="Buscar paciente, C.I o número de caso...">
                     </div>
                     <div class="admin-stats">
+                        <button id="adminThemeToggle" class="btn-ghost" aria-label="Cambiar tema" style="padding: 8px; border-radius: 50%;"></button>
                         <div class="stat-badge"><div class="dot"></div> OpenClaw en línea</div>
                         <div class="stat-badge"><div class="dot warn"></div> 2 Claims activos</div>
                     </div>
                 </header>
+
+                <!-- UI3-09 Breadcrumb -->
+                <nav aria-label="breadcrumb" class="admin-breadcrumb" id="dynBreadcrumb" style="display: none;"></nav>
 
                 <!-- Legacy Canvas Enclosure -->
                 <div class="admin-content-canvas">
@@ -349,6 +354,7 @@
 
         <div id="openclaw-root-container"></div>
 
+        <script src="js/admin-search.js"></script>
         <script
         src="admin.js?v=admin-20260320-mainpublish1"
             type="module"

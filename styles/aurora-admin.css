@@ -621,3 +621,41 @@ body.admin-body {
     border-radius: var(--radius-xl) 0 0 0;
   }
 }
+
+/* ==========================================================================
+   Breadcrumb (UI3-09)
+   ========================================================================== */
+.admin-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-8);
+  font-size: var(--text-sm);
+  color: var(--admin-text-muted);
+  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-bg-base);
+}
+
+.admin-breadcrumb a {
+  color: var(--color-aurora-400);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+
+.admin-breadcrumb a:hover {
+  color: var(--color-aurora-300);
+  text-decoration: underline;
+}
+
+.admin-breadcrumb span.separator {
+  color: var(--admin-text-muted);
+  font-size: var(--text-xs);
+  margin: 0 var(--space-1);
+}
+
+@media (max-width: 768px) {
+  .admin-breadcrumb {
+    padding: var(--space-2) var(--space-4);
+  }
+}

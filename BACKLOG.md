@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:47:43 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:52:05 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **38%** completado (153/407)
+`████████░░░░░░░░░░░░` **38%** completado (154/407)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -26,7 +26,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 1 | 25 | 4% |
 | ⏸ Sprint 13 | 1 | 20 | 5% |
-| ⏸ Sprint UI | 6 | 14 | 30% |
+| ⏸ Sprint UI | 7 | 13 | 35% |
 | ⏸ Sprint 14 | 0 | 14 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -218,7 +218,7 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S12-17** `[S12]` → _Codex-erosero558558_ (expira en 230min)
+- **S12-17** `[S12]` → _Codex-erosero558558_ (expira en 225min)
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
@@ -235,9 +235,9 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 | ... | | _+15 más_ |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
-_Esperando que Sprint anterior esté completo. 14 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 
-### 🟢 Disponibles (14)
+### 🟢 Disponibles (13)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -246,7 +246,7 @@ _Esperando que Sprint anterior esté completo. 14 tareas pendientes._
 | **UI3-09** | `[UI3]` | S |
 | **UI3-10** | `[UI3]` | M |
 | **UI3-11** | `[UI3]` | L |
-| ... | | _+9 más_ |
+| ... | | _+8 más_ |
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 14 tareas pendientes._
