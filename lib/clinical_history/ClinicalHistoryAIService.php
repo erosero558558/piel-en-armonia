@@ -2,193 +2,160 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../common.php';
+
 final class ClinicalHistoryAIService
 {
-    public function requestEnvelope(array $session, array $draft, string $messageText, array $payload = []): array
+    private const FALLBACK_TRIAGE = [
+        'urgency' => 3,
+        'differential_diagnosis' => ['Requiere evaluación médica directa'],
+        'recommended_consultation' => 'consulta_presencial',
+        'is_fallback' => true
+    ];
+
+    /**
+     * Analiza texto y/o fotos para sugerir triage.
+     * Retorna ['urgency' => 1-5, 'differential_diagnosis' => [], 'recommended_consultation' => '...']
+     * 
+     * @param string $description Síntomas o motivo de consulta descrito por el paciente.
+     * @param array $base64Images Arreglo de strings en base64 de las lesiones (opcional).
+     * @return array
+     */
+    public static function suggestTriage(string $description, array $base64Images = []): array
     {
-        $fake = $this->readFakeResponse();
-        if ($fake !== null) {
-            return [
-                'mode' => 'live',
-                'provider' => 'test_fake',
-                'envelope' => ClinicalHistoryGuardrails::normalizeEnvelope($fake),
-            ];
+        $apiKey = app_env('OPENAI_API_KEY');
+        if (!is_string($apiKey) || trim($apiKey) === '') {
+            error_log('ClinicalHistoryAIService: OPENAI_API_KEY not found. Using fallback.');
+            return self::FALLBACK_TRIAGE;
         }
 
-        if (!figo_queue_enabled()) {
-            return [
-                'mode' => 'fallback',
-                'provider' => 'local_fallback',
-                'reason' => 'provider_mode_disabled',
-                'envelope' => ClinicalHistoryGuardrails::heuristicEnvelopeFromText($session, $draft, $messageText, 'provider_mode_disabled'),
-            ];
-        }
+        $messages = self::buildPromptMessages($description, $base64Images);
 
-        $bridgePayload = [
-            'model' => 'clinical-intake',
-            'messages' => $this->buildMessages($session, $draft, $messageText),
-            'max_tokens' => 1400,
-            'temperature' => 0.2,
-            'sessionId' => (string) ($session['sessionId'] ?? ''),
-            'metadata' => [
-                'source' => 'clinical_intake',
-                'sessionId' => (string) ($session['sessionId'] ?? ''),
-                'caseId' => (string) ($session['caseId'] ?? ''),
-                'surface' => (string) ($session['surface'] ?? ''),
-            ],
+        $payload = [
+            'model' => 'gpt-4o',
+            'messages' => $messages,
+            'response_format' => ['type' => 'json_object'],
+            'max_tokens' => 800,
+            'temperature' => 0.2
         ];
 
-        $bridgeResult = figo_queue_bridge_result($bridgePayload);
-        $bridgeResponse = isset($bridgeResult['payload']) && is_array($bridgeResult['payload'])
-            ? $bridgeResult['payload']
-            : [];
-
-        if (isset($bridgeResponse['choices'][0]['message']['content']) && is_string($bridgeResponse['choices'][0]['message']['content'])) {
-            $parsed = $this->decodeEnvelope((string) $bridgeResponse['choices'][0]['message']['content']);
-            if ($parsed !== null) {
-                return [
-                    'mode' => 'live',
-                    'provider' => 'openclaw_queue',
-                    'jobId' => (string) ($bridgeResponse['jobId'] ?? ''),
-                    'envelope' => ClinicalHistoryGuardrails::normalizeEnvelope($parsed),
-                ];
-            }
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        if ($ch === false) {
+            return self::FALLBACK_TRIAGE;
         }
 
-        $reason = (string) ($bridgeResponse['reason'] ?? $bridgeResponse['errorCode'] ?? 'queue_bridge_unavailable');
-        $mode = (string) ($bridgeResponse['mode'] ?? 'fallback');
-        if ($mode !== 'queued') {
-            $mode = 'fallback';
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . trim($apiKey)
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false || $httpCode >= 400) {
+            error_log("ClinicalHistoryAIService: OpenAI API Error: HTTP $httpCode - " . ($error ?: $response));
+            return self::FALLBACK_TRIAGE;
         }
 
-        return [
-            'mode' => $mode,
-            'provider' => 'openclaw_queue',
-            'reason' => $reason,
-            'jobId' => (string) ($bridgeResponse['jobId'] ?? ''),
-            'pollAfterMs' => isset($bridgeResponse['pollAfterMs']) && is_numeric($bridgeResponse['pollAfterMs'])
-                ? (int) $bridgeResponse['pollAfterMs']
-                : 0,
-            'envelope' => ClinicalHistoryGuardrails::heuristicEnvelopeFromText($session, $draft, $messageText, $reason),
-        ];
+        $decoded = json_decode((string) $response, true);
+        if (!is_array($decoded) || !isset($decoded['choices'][0]['message']['content'])) {
+            error_log("ClinicalHistoryAIService: Invalid OpenAI response format.");
+            return self::FALLBACK_TRIAGE;
+        }
+
+        $content = json_decode($decoded['choices'][0]['message']['content'], true);
+        if (!is_array($content)) {
+            error_log("ClinicalHistoryAIService: Content is not valid JSON.");
+            return self::FALLBACK_TRIAGE;
+        }
+
+        return self::normalizeResponse($content);
     }
 
-    public function envelopeFromCompletion(array $completion): ?array
+    private static function buildPromptMessages(string $description, array $base64Images): array
     {
-        if (!isset($completion['choices'][0]['message']['content']) || !is_string($completion['choices'][0]['message']['content'])) {
-            return null;
-        }
+        $systemPrompt = "Eres un asistente médico dermatológico experto diseñado para realizar Triage clínico inicial. "
+            . "Basado en la descripción de los síntomas y las imágenes proporcionadas por el paciente (si las hay), "
+            . "debes devolver un JSON estricto con la siguiente estructura:\n"
+            . "{\n"
+            . "  \"urgency\": (entero del 1 al 5, donde 5 es muy urgente/riesgo de vida o secuela severa aguda y 1 es rutina/cosmético),\n"
+            . "  \"differential_diagnosis\": [\"condición 1\", \"condición 2\"],\n"
+            . "  \"recommended_consultation\": (debe ser exactamente uno de estos tres valores: \"urgencia\", \"consulta_presencial\", \"telemedicina\")\n"
+            . "}\n"
+            . "Reglas: prioriza 'urgencia' para sangrados incontrolables, infecciones graves o anafilaxia. "
+            . "Prioriza 'consulta_presencial' para biopsias, palpación necesaria o lesiones dudosas. "
+            . "Prioriza 'telemedicina' para revisiones simples o consultas de skincare.";
 
-        $parsed = $this->decodeEnvelope((string) $completion['choices'][0]['message']['content']);
-        return is_array($parsed) ? ClinicalHistoryGuardrails::normalizeEnvelope($parsed) : null;
-    }
+        $messages = [
+            [
+                'role' => 'system',
+                'content' => $systemPrompt
+            ]
+        ];
 
-    private function buildMessages(array $session, array $draft, string $messageText): array
-    {
-        $messages = [[
-            'role' => 'system',
-            'content' => $this->buildSystemPrompt(),
-        ]];
+        $userContent = [];
+        $userContent[] = [
+            'type' => 'text',
+            'text' => "Motivo de consulta y síntomas: " . (trim($description) ?: "No proporcionado.")
+        ];
 
-        $recentTranscript = array_slice(is_array($session['transcript'] ?? null) ? $session['transcript'] : [], -6);
-        foreach ($recentTranscript as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $role = in_array(($item['role'] ?? ''), ['system', 'user', 'assistant'], true)
-                ? (string) $item['role']
-                : 'user';
-            $content = ClinicalHistoryRepository::trimString($item['content'] ?? '');
-            if ($content === '') {
-                continue;
-            }
-
-            $messages[] = [
-                'role' => $role,
-                'content' => $content,
+        foreach ($base64Images as $b64) {
+            $cleaned = preg_replace('/^data:image\/\w+;base64,/', '', $b64);
+            // Defaulting to jpeg for simplicity if mime type header was stripped
+            $userContent[] = [
+                'type' => 'image_url',
+                'image_url' => [
+                    'url' => "data:image/jpeg;base64," . $cleaned
+                ]
             ];
         }
-
-        $context = [
-            'session' => [
-                'sessionId' => (string) ($session['sessionId'] ?? ''),
-                'caseId' => (string) ($session['caseId'] ?? ''),
-                'surface' => (string) ($session['surface'] ?? ''),
-                'appointmentId' => $session['appointmentId'] ?? null,
-            ],
-            'patient' => $session['patient'] ?? [],
-            'draft' => [
-                'intake' => $draft['intake'] ?? [],
-                'clinicianDraft' => $draft['clinicianDraft'] ?? [],
-                'reviewStatus' => $draft['reviewStatus'] ?? '',
-                'requiresHumanReview' => $draft['requiresHumanReview'] ?? true,
-            ],
-            'newPatientMessage' => trim($messageText),
-        ];
 
         $messages[] = [
             'role' => 'user',
-            'content' => 'Contexto clinico actual en JSON: ' . json_encode(
-                $context,
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            ),
+            'content' => $userContent
         ];
 
         return $messages;
     }
 
-    private function buildSystemPrompt(): string
+    private static function normalizeResponse(array $rawContent): array
     {
-        return implode("\n", [
-            'Eres el motor de historia clinica conversacional para Aurora Derm.',
-            'Objetivo paciente: responder con tono empatico, breve y natural, y hacer solo una pregunta concreta por turno.',
-            'Objetivo medico: sintetizar anamnesis estructurada, preguntas faltantes, red flags, CIE-10 sugeridos, tratamiento borrador, posologia con incertidumbre explicita y el bloque HCU-005 semantico.',
-            'Nunca expongas diagnostico, tratamiento, dosis ni CIE-10 en los campos reply ni nextQuestion.',
-            'Devuelve solo JSON valido, sin markdown, sin texto adicional.',
-            'Usa exactamente esta forma:',
-            '{"reply":"","nextQuestion":"","intakePatch":{"motivoConsulta":"","enfermedadActual":"","antecedentes":"","alergias":"","medicacionActual":"","rosRedFlags":[],"adjuntos":[],"resumenClinico":"","cie10Sugeridos":[],"tratamientoBorrador":"","posologiaBorrador":{"texto":"","baseCalculo":"","pesoKg":null,"edadAnios":null,"units":"","ambiguous":true},"preguntasFaltantes":[],"datosPaciente":{"edadAnios":null,"pesoKg":null,"sexoBiologico":"","embarazo":null}},"missingFields":[],"redFlags":[],"clinicianDraft":{"resumen":"","preguntasFaltantes":[],"cie10Sugeridos":[],"tratamientoBorrador":"","posologiaBorrador":{"texto":"","baseCalculo":"","pesoKg":null,"edadAnios":null,"units":"","ambiguous":true},"hcu005":{"evolutionNote":"","diagnosticImpression":"","therapeuticPlan":"","careIndications":"","prescriptionItems":[]}},"requiresHumanReview":false,"confidence":0.0}',
-        ]);
-    }
+        $urgency = isset($rawContent['urgency']) && is_numeric($rawContent['urgency']) ? (int) $rawContent['urgency'] : 3;
+        if ($urgency < 1) $urgency = 1;
+        if ($urgency > 5) $urgency = 5;
 
-    private function readFakeResponse(): ?array
-    {
-        $raw = getenv('PIELARMONIA_CLINICAL_HISTORY_FAKE_RESPONSE');
-        if (!is_string($raw) || trim($raw) === '') {
-            return null;
+        $ddx = [];
+        if (isset($rawContent['differential_diagnosis']) && is_array($rawContent['differential_diagnosis'])) {
+            foreach ($rawContent['differential_diagnosis'] as $item) {
+                if (is_string($item) && trim($item) !== '') {
+                    $ddx[] = trim($item);
+                }
+            }
+        }
+        if (empty($ddx)) {
+            $ddx = ['Evaluación clínica diferida'];
         }
 
-        $decoded = json_decode($raw, true);
-        return is_array($decoded) ? $decoded : null;
-    }
-
-    private function decodeEnvelope(string $content): ?array
-    {
-        $content = trim($content);
-        if ($content === '') {
-            return null;
+        $validConsultations = ['urgencia', 'consulta_presencial', 'telemedicina'];
+        $recommended = 'consulta_presencial';
+        if (isset($rawContent['recommended_consultation']) && is_string($rawContent['recommended_consultation'])) {
+            $val = strtolower(trim($rawContent['recommended_consultation']));
+            if (in_array($val, $validConsultations, true)) {
+                $recommended = $val;
+            }
         }
 
-        $decoded = json_decode($content, true);
-        if (is_array($decoded)) {
-            return $decoded;
-        }
-
-        $content = preg_replace('/^```(?:json)?/i', '', $content);
-        $content = preg_replace('/```$/', '', (string) $content);
-        $decoded = json_decode(trim((string) $content), true);
-        if (is_array($decoded)) {
-            return $decoded;
-        }
-
-        $start = strpos((string) $content, '{');
-        $end = strrpos((string) $content, '}');
-        if ($start === false || $end === false || $end <= $start) {
-            return null;
-        }
-
-        $slice = substr((string) $content, $start, ($end - $start + 1));
-        $decoded = json_decode($slice, true);
-        return is_array($decoded) ? $decoded : null;
+        return [
+            'urgency' => $urgency,
+            'differential_diagnosis' => $ddx,
+            'recommended_consultation' => $recommended,
+            'is_fallback' => false
+        ];
     }
 }
