@@ -1157,7 +1157,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 4.2 Multi-clínica SaaS
 
-- [ ] **S4-06** `[L]` Tenant isolation audit — verificar que `lib/tenants.php` aísla datos entre clínicas: pacientes, agenda, turnero, pagos. Cada clínica tiene namespace propio.
+- [x] **S4-06** `[L]` Tenant isolation audit — verificar que `lib/tenants.php` aísla datos entre clínicas: pacientes, agenda, turnero, pagos. Cada clínica tiene namespace propio.
 - [ ] **S4-07** `[XL]` Onboarding de clínica — flujo: registrar clínica → `TurneroClinicProfile` → cargar staff → activar servicios → generar URL.
 - [ ] **S4-08** `[L]` Pricing page — `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor), Pro ($49/mes, 5 doctores), Enterprise (contactar). Design premium con comparativa.
 - [ ] **S4-09** `[L]` Demo interactiva mejorada — `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. El visitante experimenta: kiosco → turno → operador lo llama.
@@ -1448,4 +1448,3 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### UI2-G Robustez del Sistema UI
 
 - [ ] **UI2-20** `[S]` `[UI]` Extender `bin/verify.js` con checks de Fase 2 — añadir verificaciones automáticas para los gaps críticos encontrados: (1) `es/servicios/*/index.html` todos importan `aurora-service.css` — count debe ser ≥20; (2) `sala-turnos.html` tiene `aria-live`; (3) `styles/base.css` tiene `prefers-reduced-motion`; (4) `manifest.json` tiene `shortcuts`; (5) `es/portal/index.html` tiene `fetch(` (datos reales). Esto convierte cada follow-up del audit en una verificación automática que detecta regresiones en el futuro.
-
