@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 9:06:47 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 9:09:24 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -233,7 +233,7 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S13-19** `[S13]` → _Codex-erosero558558_ (expira en 231min)
+- **S13-19** `[S13]` → _Codex-erosero558558_ (expira en 229min)
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 5 tareas pendientes._
@@ -264,7 +264,7 @@ _Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S14-03** `[S14]` → _antigravity_ (expira en 231min)
+- **S14-03** `[S14]` → _antigravity_ (expira en 229min)
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
 _Esperando que Sprint anterior esté completo. 13 tareas pendientes._

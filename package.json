@@ -263,7 +263,9 @@
     "dispatch:ui": "node bin/dispatch.js --role ui",
     "dispatch:ui:all": "node bin/dispatch.js --role ui --all",
     "verify:scripts": "node bin/verify-scripts.js",
-    "gen:sitemap": "node bin/gen-sitemap.js"
+    "gen:sitemap": "node bin/gen-sitemap.js",
+    "inject:css": "node bin/inject-css.js",
+    "inject:css:dry": "node bin/inject-css.js --dry-run"
   },
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",
