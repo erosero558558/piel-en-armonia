@@ -57,7 +57,17 @@ class FeatureFlags
         }
 
         self::$useRedis = false;
-        self::$filePath = __DIR__ . '/../data/features.json';
+
+        $storePathsFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'StorePaths.php';
+        if (is_file($storePathsFile) && !class_exists('StorePaths', false)) {
+            require_once $storePathsFile;
+        }
+        if (class_exists('StorePaths', false)) {
+            self::$filePath = StorePaths::dataDirPath() . DIRECTORY_SEPARATOR . 'features.json';
+        } else {
+            self::$filePath = __DIR__ . '/../data/features.json';
+        }
+
         if (!is_dir(dirname(self::$filePath))) {
             @mkdir(dirname(self::$filePath), 0775, true);
         }

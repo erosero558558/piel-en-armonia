@@ -75,6 +75,7 @@ const initialState = {
         mediaFlowMeta: null,
         telemedicineMeta: null,
         checkoutReviewMeta: null,
+        paymentAccountMeta: null,
         internalConsoleMeta: null,
         funnelMetrics: null,
         health: null,

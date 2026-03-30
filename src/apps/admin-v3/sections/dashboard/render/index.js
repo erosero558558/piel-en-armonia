@@ -309,6 +309,96 @@ function normalizeCheckoutReviewMeta(rawSnapshot) {
     };
 }
 
+function normalizePaymentAccountOrder(item) {
+    const source = item && typeof item === 'object' ? item : {};
+
+    return {
+        id: normalizeString(source.id),
+        receiptNumber: normalizeString(source.receiptNumber),
+        concept: normalizeString(source.concept),
+        amountLabel: normalizeString(source.amountLabel),
+        paymentMethod: normalizeString(source.paymentMethod),
+        paymentMethodLabel: normalizeString(source.paymentMethodLabel),
+        paymentStatus: normalizeString(source.paymentStatus),
+        paymentStatusLabel: normalizeString(source.paymentStatusLabel),
+        statusBucket: normalizeString(source.statusBucket),
+        dueAt: normalizeString(source.dueAt),
+        dueState: normalizeString(source.dueState),
+        issuedAt: normalizeString(source.issuedAt),
+        createdAt: normalizeString(source.createdAt),
+        updatedAt: normalizeString(source.updatedAt),
+        activityAt: normalizeString(source.activityAt),
+        transferReference: normalizeString(source.transferReference),
+    };
+}
+
+function normalizePaymentAccountPatient(item) {
+    const source = item && typeof item === 'object' ? item : {};
+
+    return {
+        id: normalizeString(source.id),
+        patientKey: normalizeString(source.patientKey),
+        patientName: normalizeString(source.patientName),
+        patientEmail: normalizeString(source.patientEmail),
+        patientWhatsapp: normalizeString(source.patientWhatsapp),
+        orderCount: normalizeNumber(source.orderCount),
+        outstandingCount: normalizeNumber(source.outstandingCount),
+        reconciliatingCount: normalizeNumber(source.reconciliatingCount),
+        settledCount: normalizeNumber(source.settledCount),
+        dueSoonCount: normalizeNumber(source.dueSoonCount),
+        overdueCount: normalizeNumber(source.overdueCount),
+        outstandingBalanceCents: normalizeNumber(source.outstandingBalanceCents),
+        reconciliatingBalanceCents: normalizeNumber(
+            source.reconciliatingBalanceCents
+        ),
+        settledBalanceCents: normalizeNumber(source.settledBalanceCents),
+        outstandingBalanceLabel: normalizeString(source.outstandingBalanceLabel),
+        reconciliatingBalanceLabel: normalizeString(
+            source.reconciliatingBalanceLabel
+        ),
+        settledBalanceLabel: normalizeString(source.settledBalanceLabel),
+        nextDueAt: normalizeString(source.nextDueAt),
+        lastActivityAt: normalizeString(source.lastActivityAt),
+        orders: normalizeList(source.orders).map(normalizePaymentAccountOrder),
+    };
+}
+
+function normalizePaymentAccountMeta(rawSnapshot) {
+    const snapshot =
+        rawSnapshot && typeof rawSnapshot === 'object' ? rawSnapshot : {};
+    const summary =
+        snapshot.summary && typeof snapshot.summary === 'object'
+            ? snapshot.summary
+            : {};
+
+    return {
+        summary: {
+            patientCount: normalizeNumber(summary.patientCount),
+            outstandingCount: normalizeNumber(summary.outstandingCount),
+            reconciliatingCount: normalizeNumber(summary.reconciliatingCount),
+            dueSoonCount: normalizeNumber(summary.dueSoonCount),
+            overdueCount: normalizeNumber(summary.overdueCount),
+            outstandingBalanceCents: normalizeNumber(
+                summary.outstandingBalanceCents
+            ),
+            outstandingBalanceLabel: normalizeString(
+                summary.outstandingBalanceLabel
+            ),
+            reconciliatingBalanceCents: normalizeNumber(
+                summary.reconciliatingBalanceCents
+            ),
+            reconciliatingBalanceLabel: normalizeString(
+                summary.reconciliatingBalanceLabel
+            ),
+            settledBalanceCents: normalizeNumber(summary.settledBalanceCents),
+            settledBalanceLabel: normalizeString(summary.settledBalanceLabel),
+        },
+        patients: normalizeList(snapshot.patients).map(
+            normalizePaymentAccountPatient
+        ),
+    };
+}
+
 function resolveCheckoutReviewTone(meta) {
     const summary = meta?.summary || {};
     if (Number(summary.pendingCount || 0) > 0) {
@@ -366,6 +456,222 @@ function resolveCheckoutReviewMetaLine(meta) {
     ]
         .filter(Boolean)
         .join(' • ') || 'Comprobantes recibidos desde /es/pago/.';
+}
+
+function resolvePaymentAccountTone(meta) {
+    const summary = meta?.summary || {};
+    if (Number(summary.overdueCount || 0) > 0) {
+        return 'warning';
+    }
+    if (
+        Number(summary.dueSoonCount || 0) > 0 ||
+        Number(summary.outstandingCount || 0) > 0
+    ) {
+        return 'neutral';
+    }
+    if (Number(summary.patientCount || 0) > 0) {
+        return 'success';
+    }
+    return 'neutral';
+}
+
+function resolvePaymentAccountChipLabel(meta) {
+    const summary = meta?.summary || {};
+    if (Number(summary.overdueCount || 0) > 0) {
+        return `${Number(summary.overdueCount || 0)} vencido(s)`;
+    }
+    if (Number(summary.dueSoonCount || 0) > 0) {
+        return `${Number(summary.dueSoonCount || 0)} por vencer`;
+    }
+    if (Number(summary.outstandingCount || 0) > 0) {
+        return `${Number(summary.outstandingCount || 0)} pendiente(s)`;
+    }
+    if (Number(summary.patientCount || 0) > 0) {
+        return 'Al dia';
+    }
+    return 'Sin deuda';
+}
+
+function resolvePaymentAccountSummary(meta) {
+    const summary = meta?.summary || {};
+    if (Number(summary.patientCount || 0) === 0) {
+        return 'Cuando existan cobros en checkout, aqui veras saldos pendientes y proximos vencimientos por paciente.';
+    }
+
+    const balances = [
+        Number(summary.outstandingBalanceCents || 0) > 0
+            ? `Saldo pendiente ${summary.outstandingBalanceLabel || '$0.00'}`
+            : '',
+        Number(summary.reconciliatingBalanceCents || 0) > 0
+            ? `${summary.reconciliatingBalanceLabel || '$0.00'} por aplicar`
+            : '',
+        Number(summary.settledBalanceCents || 0) > 0
+            ? `${summary.settledBalanceLabel || '$0.00'} ya cobrados`
+            : '',
+    ]
+        .filter(Boolean)
+        .join(' • ');
+
+    if (Number(summary.overdueCount || 0) > 0) {
+        return `${balances}. Hay ${Number(summary.overdueCount || 0)} cobro(s) vencido(s) que requieren seguimiento hoy.`;
+    }
+    if (Number(summary.dueSoonCount || 0) > 0) {
+        return `${balances}. ${Number(summary.dueSoonCount || 0)} cobro(s) vencen dentro de las proximas 72h.`;
+    }
+    return (
+        balances ||
+        'Todas las ordenes del checkout digital estan conciliadas o al dia.'
+    );
+}
+
+function resolvePaymentAccountMetaLine(meta) {
+    const summary = meta?.summary || {};
+    return [
+        Number(summary.patientCount || 0) > 0
+            ? `${Number(summary.patientCount || 0)} paciente(s) con historial`
+            : '',
+        Number(summary.reconciliatingCount || 0) > 0
+            ? `${Number(summary.reconciliatingCount || 0)} por aplicar`
+            : '',
+    ]
+        .filter(Boolean)
+        .join(' • ') || 'Historial agrupado por paciente desde checkout.';
+}
+
+function buildPaymentAccountBadges(patient) {
+    const badges = [];
+    if (Number(patient.outstandingBalanceCents || 0) > 0) {
+        badges.push(
+            `<span class="dashboard-payment-account__badge" data-tone="${escapeHtml(
+                patient.overdueCount > 0
+                    ? 'warning'
+                    : patient.dueSoonCount > 0
+                      ? 'neutral'
+                      : 'ready'
+            )}">Saldo ${escapeHtml(
+                patient.outstandingBalanceLabel || '$0.00'
+            )}</span>`
+        );
+    } else {
+        badges.push(
+            '<span class="dashboard-payment-account__badge" data-tone="success">Sin saldo pendiente</span>'
+        );
+    }
+
+    if (Number(patient.reconciliatingBalanceCents || 0) > 0) {
+        badges.push(
+            `<span class="dashboard-payment-account__badge" data-tone="neutral">${escapeHtml(
+                patient.reconciliatingBalanceLabel || '$0.00'
+            )} por aplicar</span>`
+        );
+    }
+
+    if (Number(patient.settledBalanceCents || 0) > 0) {
+        badges.push(
+            `<span class="dashboard-payment-account__badge" data-tone="success">${escapeHtml(
+                patient.settledBalanceLabel || '$0.00'
+            )} cobrados</span>`
+        );
+    }
+
+    return badges.join('');
+}
+
+function buildPaymentAccountOrderLine(order) {
+    const dueLabel =
+        order.statusBucket === 'outstanding' && order.dueAt
+            ? `${
+                  order.dueState === 'overdue'
+                      ? 'Vencido'
+                      : order.dueState === 'due_soon'
+                        ? 'Vence pronto'
+                        : 'Vence'
+              } ${formatDateTime(order.dueAt)}`
+            : order.activityAt
+              ? `Ult. mov. ${formatDateTime(order.activityAt)}`
+              : '';
+
+    return [
+        order.receiptNumber || 'PAY',
+        order.amountLabel || '$0.00',
+        order.paymentStatusLabel || 'Pendiente',
+        order.concept || '',
+        dueLabel,
+    ]
+        .filter(Boolean)
+        .join(' • ');
+}
+
+function buildPaymentAccountItems(meta) {
+    const patients = Array.isArray(meta?.patients) ? meta.patients : [];
+    if (!patients.length) {
+        return `
+            <li class="dashboard-attention-item" data-tone="neutral">
+                <div class="dashboard-payment-account__copy">
+                    <strong>Sin historial de checkout</strong>
+                    <small>Los recibos emitidos desde /es/pago/ apareceran aqui agrupados por paciente cuando exista actividad.</small>
+                </div>
+            </li>
+        `;
+    }
+
+    return patients
+        .slice(0, 5)
+        .map((patient) => {
+            const contactLine = [
+                patient.patientName || 'Paciente',
+                patient.patientWhatsapp || patient.patientEmail || '',
+            ]
+                .filter(Boolean)
+                .join(' • ');
+            const dueLine = patient.nextDueAt
+                ? `${
+                      patient.overdueCount > 0
+                          ? 'Vencido'
+                          : 'Proximo vencimiento'
+                  } ${formatDateTime(patient.nextDueAt)}`
+                : patient.lastActivityAt
+                  ? `Ultimo movimiento ${formatDateTime(
+                        patient.lastActivityAt
+                    )}`
+                  : 'Sin vencimiento operativo';
+            const recentOrders = patient.orders
+                .slice(0, 3)
+                .map(
+                    (order) =>
+                        `<small>${escapeHtml(
+                            buildPaymentAccountOrderLine(order)
+                        )}</small>`
+                )
+                .join('');
+
+            return `
+                <li class="dashboard-attention-item dashboard-payment-account__item" data-tone="${escapeHtml(
+                    patient.overdueCount > 0
+                        ? 'warning'
+                        : patient.dueSoonCount > 0
+                          ? 'neutral'
+                          : Number(patient.outstandingCount || 0) > 0
+                            ? 'ready'
+                            : 'success'
+                )}">
+                    <div class="dashboard-payment-account__copy">
+                        <strong>${escapeHtml(
+                            patient.patientName || 'Paciente'
+                        )}</strong>
+                        <small>${escapeHtml(contactLine || '-')}</small>
+                        <small>${escapeHtml(dueLine)}</small>
+                    </div>
+                    <div class="dashboard-payment-account__balances">
+                        ${buildPaymentAccountBadges(patient)}
+                    </div>
+                    <div class="dashboard-payment-account__orders">
+                        ${recentOrders}
+                    </div>
+                </li>
+            `;
+        })
+        .join('');
 }
 
 function buildCheckoutReviewItems(meta) {
@@ -460,6 +766,33 @@ function setCheckoutReviewState(meta) {
         resolveCheckoutReviewChipLabel(meta)
     );
     chip?.setAttribute('data-state', resolveCheckoutReviewTone(meta));
+}
+
+function setPaymentAccountState(meta) {
+    const summary = meta?.summary || {};
+    const chip = document.getElementById('dashboardPaymentAccountChip');
+
+    setText(
+        '#dashboardPaymentAccountMeta',
+        resolvePaymentAccountMetaLine(meta)
+    );
+    setText('#paymentAccountPatientCount', Number(summary.patientCount || 0));
+    setText(
+        '#paymentAccountOutstandingCount',
+        Number(summary.outstandingCount || 0)
+    );
+    setText('#paymentAccountDueSoonCount', Number(summary.dueSoonCount || 0));
+    setText('#paymentAccountOverdueCount', Number(summary.overdueCount || 0));
+    setText(
+        '#dashboardPaymentAccountSummary',
+        resolvePaymentAccountSummary(meta)
+    );
+    setHtml('#dashboardPaymentAccountList', buildPaymentAccountItems(meta));
+    setText(
+        '#dashboardPaymentAccountChip',
+        resolvePaymentAccountChipLabel(meta)
+    );
+    chip?.setAttribute('data-state', resolvePaymentAccountTone(meta));
 }
 
 function buildWhatsappOpsActionPayload(button) {
@@ -632,6 +965,9 @@ export function renderDashboard(state) {
         checkoutReviewMeta: normalizeCheckoutReviewMeta(
             state?.data?.checkoutReviewMeta
         ),
+        paymentAccountMeta: normalizePaymentAccountMeta(
+            state?.data?.paymentAccountMeta
+        ),
         whatsappOpenclawOps: normalizeWhatsappOpenclawOps(
             state?.data?.whatsappOpenclawOps
         ),
@@ -663,6 +999,7 @@ export function renderDashboard(state) {
         buildClinicalHistoryEventItems(dashboardState.clinicalHistoryMeta)
     );
     setCheckoutReviewState(dashboardState.checkoutReviewMeta);
+    setPaymentAccountState(dashboardState.paymentAccountMeta);
     setHtml('#dashboardAttentionList', buildAttentionItems(dashboardState));
     const queueAssistant = setFunnelMetrics(dashboardState.funnel);
     renderDashboardCharts(queueAssistant);

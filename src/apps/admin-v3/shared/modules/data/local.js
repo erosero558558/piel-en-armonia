@@ -32,6 +32,10 @@ export function persistLocalAdminData(data) {
         data.checkoutReviewMeta || null
     );
     setStorageJson(
+        LOCAL_DATA_KEYS.paymentAccountMeta,
+        data.paymentAccountMeta || null
+    );
+    setStorageJson(
         LOCAL_DATA_KEYS.queueSurfaceStatus,
         data.queueSurfaceStatus || null
     );
@@ -86,6 +90,10 @@ export function loadLocalAdminFallback() {
         ),
         checkoutReviewMeta: getStorageJson(
             LOCAL_DATA_KEYS.checkoutReviewMeta,
+            null
+        ),
+        paymentAccountMeta: getStorageJson(
+            LOCAL_DATA_KEYS.paymentAccountMeta,
             null
         ),
         queueSurfaceStatus: getStorageJson(

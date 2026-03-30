@@ -13,6 +13,7 @@ export const LOCAL_DATA_KEYS = {
     mediaFlowMeta: 'media-flow-meta',
     telemedicineMeta: 'telemedicine-meta',
     checkoutReviewMeta: 'checkout-review-meta',
+    paymentAccountMeta: 'payment-account-meta',
     queueSurfaceStatus: 'queue-surface-status',
     appDownloads: 'app-downloads',
     turneroClinicProfile: 'turnero-clinic-profile',

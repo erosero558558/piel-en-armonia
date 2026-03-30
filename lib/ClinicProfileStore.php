@@ -4,8 +4,16 @@ declare(strict_types=1);
 
 function clinic_profile_config_path(): string
 {
-    $dir = defined('APP_DATA_DIR') ? APP_DATA_DIR . '/config' : __DIR__ . '/../data/config';
-    return $dir . '/clinic-profile.json';
+    $storePathsFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'StorePaths.php';
+    if (is_file($storePathsFile) && !class_exists('StorePaths', false)) {
+        require_once $storePathsFile;
+    }
+    if (class_exists('StorePaths', false)) {
+        $dir = StorePaths::dataDirPath() . DIRECTORY_SEPARATOR . 'config';
+    } else {
+        $dir = defined('APP_DATA_DIR') ? APP_DATA_DIR . DIRECTORY_SEPARATOR . 'config' : __DIR__ . '/../data/config';
+    }
+    return $dir . DIRECTORY_SEPARATOR . 'clinic-profile.json';
 }
 
 function read_clinic_profile(): array

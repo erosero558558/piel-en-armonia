@@ -39,7 +39,17 @@ class Metrics
         }
 
         self::$useRedis = false;
-        self::$filePath = __DIR__ . '/../data/metrics.json';
+        
+        $storePathsFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'StorePaths.php';
+        if (is_file($storePathsFile) && !class_exists('StorePaths', false)) {
+            require_once $storePathsFile;
+        }
+        if (class_exists('StorePaths', false)) {
+            self::$filePath = StorePaths::dataDirPath() . DIRECTORY_SEPARATOR . 'metrics.json';
+        } else {
+            self::$filePath = __DIR__ . '/../data/metrics.json';
+        }
+
         if (!is_dir(dirname(self::$filePath))) {
             @mkdir(dirname(self::$filePath), 0775, true);
         }

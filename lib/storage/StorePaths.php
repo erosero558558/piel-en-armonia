@@ -165,7 +165,31 @@ final class StorePaths
     public static function dataDirPath(): string
     {
         $resolved = self::resolveDataDir();
-        return (string) ($resolved['path'] ?? DATA_DIR);
+        $base = (string) ($resolved['path'] ?? DATA_DIR);
+
+        if (!function_exists('get_current_tenant_id')) {
+            $tenantFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'tenants.php';
+            if (is_file($tenantFile)) {
+                require_once $tenantFile;
+            }
+        }
+
+        $rawTenantId = function_exists('get_current_tenant_id') ? get_current_tenant_id() : 'pielarmonia';
+        $tenantId = preg_replace('/[^a-zA-Z0-9_\-]/', '', $rawTenantId);
+        if ($tenantId === '') {
+            $tenantId = 'pielarmonia';
+        }
+
+        if ($tenantId !== 'pielarmonia') {
+            $path = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'tenants' . DIRECTORY_SEPARATOR . $tenantId;
+            if (!is_dir($path)) {
+                @mkdir($path, 0775, true);
+                self::ensureDataHtaccess($path);
+            }
+            return $path;
+        }
+
+        return $base;
     }
 
     public static function dataDirSource(): string

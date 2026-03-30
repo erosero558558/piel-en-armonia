@@ -1399,3 +1399,53 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI-18** `[M]` `[UI]` Template HTML de receta — crear `templates/pdf/prescription.html`: membrete con logo de clínica (de `ClinicProfileStore`), nombre y MSP del médico (de `DoctorProfileStore`), tabla de medicamentos con tipografía clara y legible, instrucciones en lenguaje simple, QR de verificación en esquina. Diseño que el paciente puede imprimir o guardar sin vergüenza.
 - [x] **UI-19** `[M]` `[UI]` Template HTML de certificado médico — crear `templates/pdf/certificate.html`: membrete oficial, firma digital del médico como imagen, datos del paciente, diagnóstico en bloque visual, firmas y sellos. Estilo documento legal pero legible. El médico puede firmarlo digitalmente sin imprimir.
+
+---
+
+### 🎨 Sprint UI — Fase 2: Follow-ups del Audit
+
+> **Contexto:** Sprint UI Fase 1 entregó los 19 archivos base. El audit exhaustivo del 30-mar-2026 reveló 6 brechas reales entre "archivo creado" y "aplicado y funcional". Esta fase cierra esas brechas con evidencia verificable.
+>
+> **Regla de oro:** Cada tarea tiene un check en `bin/verify.js` o `bin/gate.js`. No hay done sin evidencia medible.
+
+#### UI2-A Propagación del Design System
+
+- [ ] **UI2-01** `[M]` `[UI]` Propagar template de servicio a los 19 servicios — `es/servicios/laser-dermatologico/index.html` es el único con `aurora-service.css`. Los otros 19 (acné, botox, mesoterapia, etc.) siguen con CSS legacy. Actualizar cada uno: añadir `<link href="/styles/tokens.css">`, `<link href="/styles/base.css">`, `<link href="/styles/aurora-service.css">`. Estructura HTML igual al template de laser. Verificable: `grep -rl "aurora-service.css" es/servicios/ | wc -l` → 20.
+- [ ] **UI2-02** `[S]` `[UI]` Conectar tokens en páginas transaccionales — `es/primera-consulta/index.html`, `es/pre-consulta/index.html`, `es/agendar/index.html`, `es/pago/index.html`, `es/telemedicina/consulta/index.html`. Añadir imports de `tokens.css` + `base.css` + `components.css`. Sin cambiar contenido — solo conectar el sistema visual. Verificable: `grep -l "tokens.css" es/primera-consulta/index.html` → match.
+
+#### UI2-B Accesibilidad (WCAG AA)
+
+- [ ] **UI2-03** `[S]` `[UI]` `prefers-reduced-motion` en todos los CSS nuevos — actualmente CERO archivos en `styles/` lo implementan (solo el legacy archivado lo tenía). Añadir al final de `styles/base.css`: `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }`. Replicar en `aurora-kiosk.css`, `aurora-tv.css`, `aurora-public.css`. Verificable: `grep -l "prefers-reduced-motion" styles/base.css` → match.
+- [ ] **UI2-04** `[S]` `[UI]` Print styles en CSS clínico — sin `@media print` en ningún CSS de la Fase 1. Añadir en `aurora-clinical.css`: ocultar sidebar, nav y botones; mostrar solo datos del paciente con fuente 12pt. Añadir en `aurora-admin.css`: ocultar menú lateral, impresión limpia de fichas. Esto permite que el médico imprima la HCE directamente desde el admin.
+- [ ] **UI2-05** `[M]` `[UI]` ARIA en sala de espera TV — `sala-turnos.html` no tiene atributos de accesibilidad. Añadir: `aria-live="polite"` en el contenedor del turno actual, `role="status"` en el número llamado, `aria-label` descriptivo en cada zona. Un usuario con lector de pantalla debe poder saber qué turno fue llamado. Verificable: `grep -c "aria-live" sala-turnos.html` → ≥1.
+- [ ] **UI2-06** `[S]` `[UI]` Audio announce en kiosco de turnos — `kiosco-turnos.html` sin síntesis de voz. Usar `window.speechSynthesis.speak()` para anunciar "Turno número X, diríjase al consultorio Y" al emitir el ticket. Fallback: tono de confirmación con `AudioContext`. Toggle ON/OFF accesible en el panel de configuración. Pacientes con discapacidad visual lo necesitan.
+
+#### UI2-C Admin UX Real
+
+- [ ] **UI2-07** `[M]` `[UI]` Toast notification system — `admin.html` no tiene ningún sistema de notificación visual. Crear `js/aurora-toast.js`: `showToast(message, type, duration)` — tipos success/error/warning/info con colores de tokens. Posición: esquina superior derecha, auto-dismiss 4s, stack máx 3. Conectar en `admin.html`. Aplicar en: guardar evolución clínica, emitir receta, generar certificado, error de API. Sin esto el médico no sabe si la acción funcionó.
+- [ ] **UI2-08** `[S]` `[UI]` Keyboard shortcuts para admin — crear `js/aurora-shortcuts.js` con: `Ctrl+N` nueva cita, `Ctrl+O` abrir OpenClaw, `Ctrl+K` búsqueda global, `Ctrl+P` imprimir ficha activa, `?` abrir modal de ayuda con lista de shortcuts. Badge `⌘K` dentro del input de búsqueda. No hacer nada si el foco está en un `<input>` o `<textarea>`. Cargar en `admin.html`.
+- [ ] **UI2-09** `[M]` `[UI]` Panel de protocolo clínico — backend existe: `GET /api.php?resource=openclaw-protocol&code=L20.0`. Falta el UI. Cuando el médico selecciona un CIE-10 en la HCE, abrir un slide-in panel desde la derecha: primera línea de tratamiento, lista de medicamentos con botón "Agregar a receta", instrucciones para el paciente en lenguaje simple. Animación `transform: translateX(100%) → 0`. CSS en `aurora-clinical.css`. JS en `js/protocol-panel.js`. Cargar en `admin.html`.
+- [ ] **UI2-10** `[S]` `[UI]` Botón "Emitir certificado" directo en admin — backend existe: `POST /api.php?resource=certificate`. Falta el botón en la vista de caso. En el panel del paciente: botón "📋 Certificado" que abre modal con campos (tipo, días de reposo, diagnóstico CIE-10 con autocomplete, observaciones). Al confirmar → POST → mostrar folio en pantalla + link descarga PDF + botón WhatsApp listo. El médico no debe salir del admin.
+- [ ] **UI2-11** `[M]` `[UI]` `dev/components.html` exhaustiva — actualmente 188 líneas, incompleta. Expandir a storybook funcional: todos los estados de `.btn-*` (normal/hover/loading/disabled), todos tipos de `.card`, `.badge` (cada color), `.modal` con ejemplo abierto, `.toast` los 4 tipos, `.input` (default/error/success/disabled), `.select`, `.avatar`, `.skeleton` shimmer. Cada componente con nombre visible y notas de uso. Es la referencia visual para el arquitecto de UI.
+
+#### UI2-D PWA y Portal Funcional
+
+- [ ] **UI2-12** `[M]` `[UI]` Portal del paciente — datos reales — `es/portal/index.html` tiene 120 líneas de shell estático. Conectar con endpoints reales: próxima cita desde `GET /api.php?resource=appointment`, última evolución desde `GET /api.php?resource=clinical-history`. Skeleton loaders mientras carga. Estado vacío elegante si no hay datos. La card de "Próxima cita" debe mostrar fecha, hora, doctor y tipo con botón "Reagendar". Sin esto el portal es solo HTML sin valor.
+- [ ] **UI2-13** `[S]` `[UI]` manifest.json — PWA completa — añadir array `"shortcuts"`: `[{name:"Agendar cita", url:"/es/agendar/"}, {name:"Ver mis recetas", url:"/es/portal/historial/"}, {name:"WhatsApp", url:"https://wa.me/593982453672"}]`. Verificar `"theme_color"` usa hex de `--color-aurora-600` (#248a65). Verificar `"display": "standalone"` e icono 512×512. Esto hace instalable la PWA desde Android/iOS.
+- [ ] **UI2-14** `[S]` `[UI]` Historial del paciente — polish UI — `es/portal/historial/index.html` existe (creado en UI-17) pero necesita polish post-audit: skeleton loader, card expandible al tap (accordion con animación), chip con CIE-10 en color aurora, botón "Descargar receta" si hay receta adjunta. Diseño "Clinical Luxury" consistente con el portal base.
+
+#### UI2-E Performance y Calidad
+
+- [ ] **UI2-15** `[M]` `[UI]` Core Web Vitals audit post-UI — medir LCP, CLS en `index.html` y `es/servicios/laser-dermatologico/index.html` con `npx lighthouse --output json`. Si LCP > 2.5s: añadir `fetchpriority="high"` en imagen hero y `<link rel="preload">` para fonts. Entregable: `docs/WEB_VITALS_AUDIT.md` con valores antes/después. Target: LCP <2.5s, CLS <0.1, FID <100ms.
+- [ ] **UI2-16** `[S]` `[UI]` Skeleton loaders en admin dashboard — al abrir el admin, las KPI cards cargan desde API y muestran vacío o flash de contenido. Añadir en `aurora-admin.css`: `.skeleton` con shimmer animation (`background: linear-gradient(90deg, #1a1a2e 25%, #23234a 50%, #1a1a2e 75%); background-size: 200%; animation: shimmer 1.5s infinite`). Aplicar en: las 4 KPI cards de dashboard, lista de pacientes, agenda del día durante la carga.
+- [ ] **UI2-17** `[M]` `[UI]` Consistency pass de formularios — auditar todos los `<form>` en: agendar, pre-consulta, portal, admin. Garantizar que usan `.input`, `.select`, `.btn-primary` de `components.css`. Error states: `aria-describedby` apuntando al mensaje. Success state: border con `--color-aurora-600`. Placeholder: `--color-neutral-500`. Sin colores hardcodeados. Verificable visualmente y con grep de `color:#`.
+
+#### UI2-F Páginas Detectadas Faltantes por verify.js
+
+- [ ] **UI2-18** `[M]` `[UI]` Pricing page del Turnero (S4-08) — `verify.js` detecta que `es/software/turnero-clinicas/precios/index.html` no existe. Crear con design system completo: 3 tiers (Gratis/Pro/Enterprise), tabla comparativa de features, CTA por tier, FAQ de precios. "Clinical Luxury" aplicado: gradiente dark en el tier destacado, colores aurora para features incluidos, gold para premium. Verificable: `node bin/gate.js S4-08`.
+- [ ] **UI2-19** `[M]` `[UI]` Página de paquetes clínicos (S4-13) — `verify.js` detecta que `es/paquetes/index.html` no existe. Crear página de paquetes dermatológicos: Básico (limpieza + consulta), Premium (tratamiento completo), VIP (acceso total + seguimiento). Cards con lista de inclusiones, precio, botón "Agendar". Header coherente con design system.
+
+#### UI2-G Robustez del Sistema UI
+
+- [ ] **UI2-20** `[S]` `[UI]` Extender `bin/verify.js` con checks de Fase 2 — añadir verificaciones automáticas para los gaps críticos encontrados: (1) `es/servicios/*/index.html` todos importan `aurora-service.css` — count debe ser ≥20; (2) `sala-turnos.html` tiene `aria-live`; (3) `styles/base.css` tiene `prefers-reduced-motion`; (4) `manifest.json` tiene `shortcuts`; (5) `es/portal/index.html` tiene `fetch(` (datos reales). Esto convierte cada follow-up del audit en una verificación automática que detecta regresiones en el futuro.
+

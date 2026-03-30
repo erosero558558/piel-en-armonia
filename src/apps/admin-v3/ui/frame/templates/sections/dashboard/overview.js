@@ -80,6 +80,32 @@ export function renderDashboardOperationsGrid() {
                 ></ul>
             </article>
 
+            <article class="sony-panel dashboard-card-account-state">
+                <header>
+                    <div>
+                        <h3>Estado de cuenta</h3>
+                        <small id="dashboardPaymentAccountMeta">Historial agrupado por paciente desde checkout.</small>
+                    </div>
+                    <span
+                        class="dashboard-signal-chip"
+                        id="dashboardPaymentAccountChip"
+                        data-state="neutral"
+                    >
+                        Sin deuda
+                    </span>
+                </header>
+                <div class="sony-panel-stats">
+                    <div><span>Pacientes</span><strong id="paymentAccountPatientCount">0</strong></div>
+                    <div><span>Pendientes</span><strong id="paymentAccountOutstandingCount">0</strong></div>
+                    <div><span>Por vencer</span><strong id="paymentAccountDueSoonCount">0</strong></div>
+                    <div><span>Vencidos</span><strong id="paymentAccountOverdueCount">0</strong></div>
+                </div>
+                <p id="dashboardPaymentAccountSummary">
+                    Cuando existan cobros en checkout, aqui veras saldos pendientes y proximos vencimientos por paciente.
+                </p>
+                <ul id="dashboardPaymentAccountList" class="sony-list dashboard-attention-list"></ul>
+            </article>
+
             <article class="sony-panel dashboard-card-assistant" id="dashboardAssistantUtility">
                 <header>
                     <div>

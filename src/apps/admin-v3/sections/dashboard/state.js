@@ -51,6 +51,11 @@ export function getDashboardCollections(state) {
             typeof state.data.checkoutReviewMeta === 'object'
                 ? state.data.checkoutReviewMeta
                 : null,
+        paymentAccountMeta:
+            state?.data?.paymentAccountMeta &&
+            typeof state.data.paymentAccountMeta === 'object'
+                ? state.data.paymentAccountMeta
+                : null,
         funnel: state?.data?.funnelMetrics || {},
     };
 }
@@ -68,6 +73,7 @@ export function getDashboardDerivedState(state) {
         reviews,
         telemedicineMeta,
         checkoutReviewMeta,
+        paymentAccountMeta,
     } = getDashboardCollections(state);
 
     const todayAppointments = countTodayAppointments(appointments);
@@ -111,6 +117,7 @@ export function getDashboardDerivedState(state) {
         reviews,
         telemedicineMeta,
         checkoutReviewMeta,
+        paymentAccountMeta,
         todayAppointments,
         urgentCallbacks,
         waitingTickets,
