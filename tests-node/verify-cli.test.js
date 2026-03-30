@@ -21,7 +21,7 @@ test('parseTaskLines captures OpenClaw task ids from AGENTS.md', () => {
 
     assert.equal(taskLines['S3-OC1'].done, true);
     assert.equal(taskLines['S3-OC4'].done, true);
-    assert.equal(taskLines['S7-22'].done, false);
+    assert.equal(taskLines['S7-22'].done, true);
 });
 
 test('routeExists validates Sprint 3 controller routes with controller actions', () => {
