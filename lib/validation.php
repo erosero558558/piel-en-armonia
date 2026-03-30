@@ -138,6 +138,15 @@ function map_appointment_status(string $status): string
         : 'confirmed';
 }
 
+function map_waitlist_status(string $status): string
+{
+    $normalized = strtolower(trim($status));
+
+    return in_array($normalized, ['pending', 'notified', 'cancelled', 'claimed'], true)
+        ? $normalized
+        : 'pending';
+}
+
 /**
  * Validates date format (YYYY-MM-DD).
  */
@@ -322,4 +331,59 @@ function validate_reschedule_payload(string $token, string $newDate, string $new
     }
 
     return validate_future_date($newDate, $newTime);
+}
+
+/**
+ * Validates a booking waitlist payload.
+ *
+ * @param array $payload
+ * @param array $options
+ * @return array ['ok' => bool, 'error' => string|null]
+ */
+function validate_booking_waitlist_payload(array $payload, array $options = []): array
+{
+    $name = trim((string) ($payload['name'] ?? ''));
+    $email = trim((string) ($payload['email'] ?? ''));
+    $phone = trim((string) ($payload['phone'] ?? ''));
+    $date = trim((string) ($payload['date'] ?? ''));
+    $service = trim((string) ($payload['service'] ?? ''));
+    $doctor = trim((string) ($payload['doctor'] ?? 'indiferente'));
+
+    if ($name === '' || $email === '' || $phone === '' || $date === '' || $service === '') {
+        return ['ok' => false, 'error' => 'Nombre, email, teléfono, fecha y servicio son obligatorios'];
+    }
+
+    if (!validate_email($email)) {
+        return ['ok' => false, 'error' => 'El formato del email no es válido'];
+    }
+
+    if (!validate_phone($phone)) {
+        return ['ok' => false, 'error' => 'El formato del teléfono no es válido'];
+    }
+
+    if (!validate_date_format($date)) {
+        return ['ok' => false, 'error' => 'La fecha debe usar formato YYYY-MM-DD'];
+    }
+
+    if ($date < local_date('Y-m-d')) {
+        return ['ok' => false, 'error' => 'No puedes unirte a la lista de espera para una fecha pasada'];
+    }
+
+    if (isset($options['validServices']) && is_array($options['validServices'])) {
+        if (!validate_service_exists($service, $options['validServices'])) {
+            return ['ok' => false, 'error' => 'Servicio inválido'];
+        }
+    }
+
+    if (isset($options['validDoctors']) && is_array($options['validDoctors'])) {
+        if ($doctor !== '' && $doctor !== 'indiferente' && !validate_doctor_exists($doctor, $options['validDoctors'])) {
+            return ['ok' => false, 'error' => 'Doctor inválido'];
+        }
+    }
+
+    if (!isset($payload['privacyConsent']) || parse_bool($payload['privacyConsent']) !== true) {
+        return ['ok' => false, 'error' => 'Debes aceptar el tratamiento de datos para unirte a la lista de espera'];
+    }
+
+    return ['ok' => true, 'error' => null];
 }

@@ -12,10 +12,22 @@ export function initCalendar() {
 }
 
 export async function updateAvailableTimes(deps, elements) {
-    const { dateInput, timeSelect, doctorSelect, serviceSelect, t } = elements;
+    const {
+        dateInput,
+        timeSelect,
+        doctorSelect,
+        serviceSelect,
+        t,
+        setWaitlistState,
+    } = elements;
 
     const selectedDate = dateInput ? dateInput.value : '';
-    if (!selectedDate || !timeSelect) return;
+    if (!selectedDate || !timeSelect) {
+        if (typeof setWaitlistState === 'function') {
+            setWaitlistState({ visible: false });
+        }
+        return;
+    }
 
     const selectedDoctor = doctorSelect ? doctorSelect.value : '';
     const selectedService = serviceSelect ? serviceSelect.value : 'consulta';
@@ -49,6 +61,14 @@ export async function updateAvailableTimes(deps, elements) {
     if (freeSlots.length === 0) {
         timeSelect.innerHTML +=
             '<option value="" disabled>No hay horarios disponibles</option>';
+        if (typeof setWaitlistState === 'function') {
+            setWaitlistState({
+                visible: true,
+                date: selectedDate,
+                doctor: selectedDoctor || 'indiferente',
+                service: selectedService || 'consulta',
+            });
+        }
         deps.showToast(
             t(
                 'No hay horarios disponibles para esta fecha',
@@ -57,6 +77,10 @@ export async function updateAvailableTimes(deps, elements) {
             'warning'
         );
         return;
+    }
+
+    if (typeof setWaitlistState === 'function') {
+        setWaitlistState({ visible: false });
     }
 
     freeSlots.forEach((time) => {

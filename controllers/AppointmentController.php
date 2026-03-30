@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/BookingService.php';
+require_once __DIR__ . '/../lib/BookingWaitlistService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 class AppointmentController
@@ -355,11 +356,19 @@ class AppointmentController
         }
 
         $cancelledAppointment = $result['cancelled'];
+        $cancelledAppointmentFreedSlot = null;
         if (is_array($cancelledAppointment)) {
+            $cancelledAppointmentFreedSlot = [
+                'date' => (string) ($cancelledAppointment['date'] ?? ''),
+                'time' => (string) ($cancelledAppointment['time'] ?? ''),
+                'doctor' => (string) ($cancelledAppointment['doctor'] ?? ''),
+                'service' => (string) ($cancelledAppointment['service'] ?? ''),
+            ];
             $calendarBooking = CalendarBookingService::fromEnv();
             if ($calendarBooking->isGoogleActive()) {
                 $cancelResult = $calendarBooking->cancelCalendarEvent($cancelledAppointment);
                 if (($cancelResult['ok'] ?? false) !== true) {
+                    $cancelledAppointmentFreedSlot = null;
                     audit_log_event('calendar.error', [
                         'operation' => 'events_delete',
                         'reason' => (string) ($cancelResult['error'] ?? 'cancel_failed'),
@@ -375,6 +384,10 @@ class AppointmentController
             if ($cancelEvent === null) {
                 maybe_send_cancellation_email((array) $result['updated']);
             }
+        }
+
+        if (is_array($cancelledAppointmentFreedSlot)) {
+            self::notifyWaitlistForFreedSlot($cancelledAppointmentFreedSlot);
         }
 
         json_response([
@@ -539,6 +552,14 @@ class AppointmentController
         }
 
         $appointment = $result['data'];
+        $freedSlot = isset($result['meta']['previousCalendarState']) && is_array($result['meta']['previousCalendarState'])
+            ? [
+                'date' => (string) ($result['meta']['previousCalendarState']['date'] ?? ''),
+                'time' => (string) ($result['meta']['previousCalendarState']['time'] ?? ''),
+                'doctor' => (string) ($result['meta']['previousCalendarState']['doctor'] ?? ''),
+                'service' => (string) ($appointment['service'] ?? ''),
+            ]
+            : null;
 
         // Redundant checks removed
         if (!isset($appointment['slotDurationMin']) || (int) $appointment['slotDurationMin'] <= 0) {
@@ -549,6 +570,17 @@ class AppointmentController
         $rescheduleEvent = self::dispatchEventSafely('BookingRescheduled', $appointment);
         if ($rescheduleEvent === null) {
             maybe_send_reschedule_email($appointment);
+        }
+
+        if (
+            is_array($freedSlot) &&
+            (
+                (string) ($freedSlot['date'] ?? '') !== (string) ($appointment['date'] ?? '') ||
+                (string) ($freedSlot['time'] ?? '') !== (string) ($appointment['time'] ?? '') ||
+                (string) ($freedSlot['doctor'] ?? '') !== (string) ($appointment['doctor'] ?? '')
+            )
+        ) {
+            self::notifyWaitlistForFreedSlot($freedSlot);
         }
 
         json_response([
@@ -585,6 +617,55 @@ class AppointmentController
         } catch (Throwable $e) {
             error_log('Aurora Derm: event dispatch fallback - ' . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * @param array<string,string> $slot
+     */
+    private static function notifyWaitlistForFreedSlot(array $slot): void
+    {
+        $slotDate = trim((string) ($slot['date'] ?? ''));
+        $slotTime = trim((string) ($slot['time'] ?? ''));
+        $slotDoctor = trim((string) ($slot['doctor'] ?? ''));
+        $slotService = trim((string) ($slot['service'] ?? ''));
+
+        if ($slotDate === '' || $slotTime === '' || $slotDoctor === '' || $slotService === '') {
+            return;
+        }
+
+        $service = new BookingWaitlistService();
+        $lockResult = with_store_lock(static function () use ($service, $slot): array {
+            $store = read_store();
+            $result = $service->notifyFreedSlot($store, $slot);
+            if (($result['ok'] ?? false) !== true || ($result['notified'] ?? false) !== true) {
+                return $result;
+            }
+
+            if (!write_store($result['store'], false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo guardar la actualización de lista de espera',
+                    'code' => 503,
+                ];
+            }
+
+            return $result;
+        });
+
+        if (($lockResult['ok'] ?? false) !== true) {
+            return;
+        }
+
+        $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : [];
+        if (($result['notified'] ?? false) === true) {
+            audit_log_event('booking_waitlist.notified', [
+                'date' => $slotDate,
+                'time' => $slotTime,
+                'doctor' => $slotDoctor,
+                'service' => $slotService,
+                'waitlistId' => (int) (($result['data']['id'] ?? 0)),
+            ]);
         }
     }
 

@@ -213,6 +213,42 @@ function normalize_appointment(array $appointment): array
     ];
 }
 
+function normalize_booking_waitlist_entry(array $entry): array
+{
+    $privacyConsent = isset($entry['privacyConsent']) ? parse_bool($entry['privacyConsent']) : false;
+
+    return [
+        'id' => isset($entry['id']) ? (int) $entry['id'] : (int) round(microtime(true) * 1000),
+        'tenantId' => isset($entry['tenantId']) && is_string($entry['tenantId']) && trim($entry['tenantId']) !== ''
+            ? trim($entry['tenantId'])
+            : get_current_tenant_id(),
+        'name' => truncate_field(sanitize_xss(trim((string) ($entry['name'] ?? ''))), 150),
+        'email' => truncate_field(trim((string) ($entry['email'] ?? '')), 254),
+        'phone' => truncate_field(sanitize_phone((string) ($entry['phone'] ?? '')), 20),
+        'date' => truncate_field(trim((string) ($entry['date'] ?? '')), 20),
+        'service' => truncate_field(strtolower(trim((string) ($entry['service'] ?? 'consulta'))), 50),
+        'doctor' => truncate_field(strtolower(trim((string) ($entry['doctor'] ?? 'indiferente'))), 100),
+        'reason' => truncate_field(sanitize_xss(trim((string) ($entry['reason'] ?? ''))), 1000),
+        'affectedArea' => truncate_field(sanitize_xss(trim((string) ($entry['affectedArea'] ?? ''))), 100),
+        'evolutionTime' => truncate_field(sanitize_xss(trim((string) ($entry['evolutionTime'] ?? ''))), 100),
+        'privacyConsent' => $privacyConsent,
+        'privacyConsentAt' => truncate_field(trim((string) ($entry['privacyConsentAt'] ?? ($privacyConsent ? local_date('c') : ''))), 30),
+        'status' => map_waitlist_status((string) ($entry['status'] ?? 'pending')),
+        'createdAt' => truncate_field(trim((string) ($entry['createdAt'] ?? local_date('c'))), 30),
+        'updatedAt' => truncate_field(trim((string) ($entry['updatedAt'] ?? local_date('c'))), 30),
+        'notifiedAt' => truncate_field(trim((string) ($entry['notifiedAt'] ?? '')), 30),
+        'notificationChannel' => truncate_field(trim((string) ($entry['notificationChannel'] ?? '')), 30),
+        'offeredSlot' => isset($entry['offeredSlot']) && is_array($entry['offeredSlot'])
+            ? [
+                'date' => truncate_field(trim((string) ($entry['offeredSlot']['date'] ?? '')), 20),
+                'time' => truncate_field(trim((string) ($entry['offeredSlot']['time'] ?? '')), 10),
+                'doctor' => truncate_field(trim((string) ($entry['offeredSlot']['doctor'] ?? '')), 100),
+                'service' => truncate_field(trim((string) ($entry['offeredSlot']['service'] ?? '')), 50),
+            ]
+            : [],
+    ];
+}
+
 function normalize_queue_ticket(array $ticket): array
 {
     $queueType = strtolower(trim((string) ($ticket['queueType'] ?? 'walk_in')));

@@ -22,6 +22,7 @@ import {
 } from './analytics.js';
 import {
     createAppointmentRecord,
+    createBookingWaitlistEntry,
     uploadTransferProof,
     loadAvailabilityData,
     getBookedSlots,
@@ -34,10 +35,10 @@ const BOOKING_ENGINE_URL = withDeployAssetVersion(
     '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
 );
 const BOOKING_UI_URL = withDeployAssetVersion(
-    '/js/engines/booking-ui.js?v=figo-booking-ui-20260222-slotservicefix1'
+    '/js/engines/booking-ui.js?v=figo-booking-ui-20260329-waitlist1'
 );
 const BOOKING_UTILS_URL = withDeployAssetVersion(
-    '/js/engines/booking-utils.js'
+    '/js/engines/booking-utils.js?v=20260329-waitlist1'
 );
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 let successModalRuntimePromise = null;
@@ -175,6 +176,7 @@ function getBookingEngineDeps() {
         buildAppointmentPayload,
         stripTransientAppointmentFields,
         createAppointmentRecord,
+        createBookingWaitlistEntry,
         uploadTransferProof,
         getCaptchaToken,
         showSuccessModal,
@@ -280,6 +282,7 @@ function getBookingUiDeps() {
     return {
         loadAvailabilityData,
         getBookedSlots,
+        createBookingWaitlistEntry,
         updateAvailableTimes,
         getDefaultTimeSlots,
         showToast,

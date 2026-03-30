@@ -80,6 +80,7 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'appointments', [AppointmentController::class, 'store']);
     $router->add('PATCH', 'appointments', [AppointmentController::class, 'update']);
     $router->add('PUT', 'appointments', [AppointmentController::class, 'update']);
+    $router->add('POST', 'booking-waitlist', [BookingWaitlistController::class, 'store']);
 
     $router->add('GET', 'callbacks', [CallbackController::class, 'index']);
     $router->add('POST', 'callbacks', [CallbackController::class, 'store']);

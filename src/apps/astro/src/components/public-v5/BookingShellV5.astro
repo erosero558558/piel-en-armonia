@@ -108,6 +108,18 @@ const companionTelemedicineHref =
 const companionTelemedicineLabel =
     locale === 'en' ? 'Open telemedicine' : 'Abrir telemedicina';
 const companionWhatsAppLabel = 'WhatsApp';
+const waitlistEyebrow =
+    locale === 'en' ? 'Priority waitlist' : 'Lista de espera prioritaria';
+const waitlistTitle =
+    locale === 'en'
+        ? 'If this day fills up, we can hold your place in the queue.'
+        : 'Si este día se llenó, podemos dejarte en la fila prioritaria.';
+const waitlistButtonLabel =
+    locale === 'en' ? 'Join waitlist' : 'Unirme a la lista de espera';
+const waitlistInitialStatus =
+    locale === 'en'
+        ? 'Choose a full date, complete your contact details, and we will notify you on WhatsApp if a slot opens.'
+        : 'Elige una fecha sin cupo, completa tus datos y te avisaremos por WhatsApp si se libera un espacio.';
 
 const bookingAssuranceTitle =
     locale === 'en'
@@ -380,6 +392,20 @@ const evolutionOptions = [
                 </div>
             </div>
 
+            <section id="bookingWaitlistCard" class="booking-waitlist-card is-hidden">
+                <div class="booking-waitlist-card__copy">
+                    <p class="booking-waitlist-card__eyebrow">{waitlistEyebrow}</p>
+                    <h4>{waitlistTitle}</h4>
+                    <p id="bookingWaitlistSummary">{waitlistInitialStatus}</p>
+                </div>
+                <div class="booking-waitlist-card__actions">
+                    <button type="button" id="bookingWaitlistBtn" class="btn btn-secondary">
+                        {waitlistButtonLabel}
+                    </button>
+                    <small id="bookingWaitlistStatus" class="booking-waitlist-card__status is-hidden"></small>
+                </div>
+            </section>
+
             <div class="form-group">
                 <label for="appointmentName" data-i18n="label_name">{dict.label_name}</label>
                 <input type="text" id="appointmentName" name="name" required />
@@ -511,4 +537,3 @@ const evolutionOptions = [
         </form>
     </div>
 </div>
-

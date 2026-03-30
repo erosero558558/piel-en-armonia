@@ -16,7 +16,7 @@ import {
 import { getCaptchaToken } from './captcha.js';
 
 const DATA_ENGINE_URL = withDeployAssetVersion(
-    '/js/engines/data-bundle.js?v=20260225-data-consolidation1'
+    '/js/engines/data-bundle.js?v=20260329-booking-waitlist1'
 );
 
 function getBookingSectionElement() {
@@ -118,6 +118,12 @@ export async function getBookedSlots(date, doctor = '', service = '') {
 export async function createAppointmentRecord(appointment, options = {}) {
     return withDeferredModule(loadDataEngine, (engine) =>
         engine.createAppointmentRecord(appointment, options)
+    );
+}
+
+export async function createBookingWaitlistEntry(entry, options = {}) {
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.createBookingWaitlistEntry(entry, options)
     );
 }
 

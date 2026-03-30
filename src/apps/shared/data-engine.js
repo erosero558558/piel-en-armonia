@@ -686,6 +686,61 @@
         }
     }
 
+    async function createBookingWaitlistEntry(entry, options = {}) {
+        const allowLocalFallback = options.allowLocalFallback !== false;
+        try {
+            const payload = await apiRequest('booking-waitlist', {
+                method: 'POST',
+                body: entry,
+            });
+            const localWaitlist = storageGetJSON('booking_waitlist', []);
+            const normalizedEntry =
+                payload && payload.data && typeof payload.data === 'object'
+                    ? payload.data
+                    : entry;
+            const created = payload && payload.created === true;
+
+            if (created) {
+                localWaitlist.push(normalizedEntry);
+            } else {
+                const existingIndex = localWaitlist.findIndex((candidate) => {
+                    if (!candidate || typeof candidate !== 'object') return false;
+                    return Number(candidate.id || 0) === Number(normalizedEntry.id || 0);
+                });
+                if (existingIndex >= 0) {
+                    localWaitlist[existingIndex] = normalizedEntry;
+                } else {
+                    localWaitlist.push(normalizedEntry);
+                }
+            }
+
+            storageSetJSON('booking_waitlist', localWaitlist);
+            return {
+                entry: normalizedEntry,
+                created,
+            };
+        } catch (error) {
+            if (!LOCAL_FALLBACK_ENABLED || !allowLocalFallback) {
+                throw error;
+            }
+
+            const localWaitlist = storageGetJSON('booking_waitlist', []);
+            const fallback = {
+                ...entry,
+                id: Date.now(),
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+            localWaitlist.push(fallback);
+            storageSetJSON('booking_waitlist', localWaitlist);
+            return {
+                entry: fallback,
+                created: true,
+            };
+        }
+    }
+
     async function createCallbackRecord(callback) {
         try {
             await apiRequest('callbacks', {
@@ -729,6 +784,7 @@
         loadAvailabilityData,
         getBookedSlots,
         createAppointmentRecord,
+        createBookingWaitlistEntry,
         createCallbackRecord,
         createReviewRecord,
     };

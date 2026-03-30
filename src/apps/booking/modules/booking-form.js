@@ -34,6 +34,16 @@ function getBookingElement(primaryId, legacyId) {
     );
 }
 
+function getSelectedOptionLabel(select, fallback = '') {
+    if (!select || !select.options || select.selectedIndex < 0) {
+        return fallback;
+    }
+
+    const option = select.options[select.selectedIndex];
+    const label = option ? String(option.textContent || '').trim() : '';
+    return label || fallback;
+}
+
 function setBookingFeedback(message, type = 'info') {
     const feedback = getBookingFeedbackEl();
     if (!feedback) return;
@@ -348,6 +358,10 @@ export function init(inputDeps) {
         'v5-booking-form',
         'appointmentForm'
     );
+    const waitlistCard = document.getElementById('bookingWaitlistCard');
+    const waitlistSummary = document.getElementById('bookingWaitlistSummary');
+    const waitlistStatus = document.getElementById('bookingWaitlistStatus');
+    const waitlistBtn = document.getElementById('bookingWaitlistBtn');
 
     if (
         !serviceSelect ||
@@ -365,6 +379,68 @@ export function init(inputDeps) {
     formEngagementState.submitted = false;
     formEngagementState.abandonedTracked = false;
     formEngagementState.lastStep = '';
+    let waitlistContext = {
+        visible: false,
+        date: '',
+        doctor: '',
+        service: '',
+    };
+
+    function setWaitlistStatus(message = '', tone = 'info') {
+        if (!waitlistStatus) return;
+        waitlistStatus.textContent = String(message || '').trim();
+        waitlistStatus.dataset.tone = tone;
+        waitlistStatus.classList.toggle(
+            'is-hidden',
+            waitlistStatus.textContent === ''
+        );
+    }
+
+    function setWaitlistState(nextState = {}) {
+        waitlistContext = {
+            ...waitlistContext,
+            ...nextState,
+        };
+
+        if (!waitlistCard) {
+            return;
+        }
+
+        const visible = waitlistContext.visible === true;
+        waitlistCard.classList.toggle('is-hidden', !visible);
+
+        if (!visible) {
+            if (waitlistBtn) {
+                waitlistBtn.disabled = false;
+                waitlistBtn.removeAttribute('data-done');
+                if (waitlistBtn.dataset.defaultLabel) {
+                    waitlistBtn.textContent = waitlistBtn.dataset.defaultLabel;
+                }
+            }
+            setWaitlistStatus('');
+            return;
+        }
+
+        const serviceLabel = getSelectedOptionLabel(
+            serviceSelect,
+            t('la ruta seleccionada', 'the selected route')
+        );
+        const doctorLabel =
+            waitlistContext.doctor &&
+            waitlistContext.doctor !== 'indiferente'
+                ? getSelectedOptionLabel(
+                      doctorSelect,
+                      t('el especialista elegido', 'the selected specialist')
+                  )
+                : t('cualquiera disponible', 'any available specialist');
+
+        if (waitlistSummary) {
+            waitlistSummary.textContent = t(
+                `No vemos horarios libres el ${waitlistContext.date}. Déjanos tus datos y te avisamos por WhatsApp si se libera un espacio para ${serviceLabel} con ${doctorLabel}.`,
+                `We do not see open slots on ${waitlistContext.date}. Leave your details and we will message you on WhatsApp if a space opens for ${serviceLabel} with ${doctorLabel}.`
+            );
+        }
+    }
 
     async function updateAvailableTimes() {
         try {
@@ -374,8 +450,10 @@ export function init(inputDeps) {
                 doctorSelect,
                 serviceSelect,
                 t,
+                setWaitlistState,
             });
         } catch (error) {
+            setWaitlistState({ visible: false });
             if (deps && typeof deps.debugLog === 'function') {
                 deps.debugLog('Failed to load booking-calendar.js', error);
             }
@@ -511,6 +589,7 @@ export function init(inputDeps) {
         timeSelect.addEventListener('change', () => {
             if (timeSelect.value) {
                 trackFormStep('time_selected');
+                setWaitlistState({ visible: false });
             }
         });
     }
@@ -601,6 +680,180 @@ export function init(inputDeps) {
     }
     ensureReschedulePolicyHint(appointmentForm);
     bindInlineErrorReset(appointmentForm);
+
+    if (waitlistBtn) {
+        const originalWaitlistLabel = waitlistBtn.textContent || '';
+        waitlistBtn.dataset.defaultLabel = originalWaitlistLabel;
+        waitlistBtn.addEventListener('click', async () => {
+            clearBookingFeedback();
+            clearBookingValidationState(appointmentForm);
+
+            const nameField = findFieldByName(appointmentForm, 'name');
+            const emailField = findFieldByName(appointmentForm, 'email');
+            const phoneField = findFieldByName(appointmentForm, 'phone');
+            const consentField = findFieldByName(
+                appointmentForm,
+                'privacyConsent'
+            );
+
+            const name = String(nameField?.value || '').trim();
+            const email = String(emailField?.value || '').trim();
+            const normalizedPhone = normalizeEcuadorPhone(phoneField?.value);
+            const hasConsent = !!(consentField && consentField.checked);
+
+            if (!waitlistContext.date || !waitlistContext.service) {
+                const message = t(
+                    'Selecciona una fecha sin cupo para activar la lista de espera.',
+                    'Select a full date to enable the waitlist.'
+                );
+                setBookingFeedback(message, 'error');
+                setWaitlistStatus(message, 'error');
+                return;
+            }
+
+            if (name.length < 2) {
+                const message = t(
+                    'Necesitamos tu nombre para la lista de espera.',
+                    'We need your name for the waitlist.'
+                );
+                if (nameField) {
+                    markFieldErrorState(nameField);
+                    focusFieldForCorrection(nameField);
+                }
+                setBookingFeedback(message, 'error');
+                setWaitlistStatus(message, 'error');
+                return;
+            }
+
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                const message = t(
+                    'Ingresa un email válido para avisarte si se libera un cupo.',
+                    'Enter a valid email so we can alert you if a slot opens.'
+                );
+                if (emailField) {
+                    markFieldErrorState(emailField);
+                    focusFieldForCorrection(emailField);
+                }
+                setBookingFeedback(message, 'error');
+                setWaitlistStatus(message, 'error');
+                return;
+            }
+
+            if (!hasValidPhoneLength(normalizedPhone)) {
+                const message = t(
+                    'Ingresa un teléfono válido para enviarte el aviso por WhatsApp.',
+                    'Enter a valid phone number so we can notify you on WhatsApp.'
+                );
+                if (phoneField) {
+                    markFieldErrorState(phoneField);
+                    focusFieldForCorrection(phoneField);
+                }
+                setBookingFeedback(message, 'error');
+                setWaitlistStatus(message, 'error');
+                return;
+            }
+
+            if (!hasConsent) {
+                const message = t(
+                    'Debes aceptar el tratamiento de datos para unirte a la lista de espera.',
+                    'You must accept data processing to join the waitlist.'
+                );
+                if (consentField) {
+                    markFieldErrorState(consentField);
+                    focusFieldForCorrection(consentField);
+                }
+                setBookingFeedback(message, 'error');
+                setWaitlistStatus(message, 'error');
+                return;
+            }
+
+            waitlistBtn.disabled = true;
+            waitlistBtn.dataset.loading = 'true';
+            waitlistBtn.textContent = t(
+                'Guardando en lista...',
+                'Saving to waitlist...'
+            );
+            setWaitlistStatus(
+                t(
+                    'Estamos guardando tu solicitud.',
+                    'We are saving your request.'
+                ),
+                'info'
+            );
+
+            try {
+                if (phoneField) {
+                    phoneField.value = normalizedPhone;
+                }
+
+                const payload = {
+                    service:
+                        waitlistContext.service ||
+                        String(serviceSelect?.value || ''),
+                    doctor:
+                        waitlistContext.doctor ||
+                        String(doctorSelect?.value || 'indiferente'),
+                    date: waitlistContext.date,
+                    name,
+                    email,
+                    phone: normalizedPhone,
+                    reason: String(reasonInput?.value || '').trim(),
+                    affectedArea: String(areaSelect?.value || '').trim(),
+                    evolutionTime: String(evolutionSelect?.value || '').trim(),
+                    privacyConsent: true,
+                };
+
+                const result = await deps.createBookingWaitlistEntry(payload);
+                const created = result && result.created === true;
+                const successMessage = created
+                    ? t(
+                          'Te sumamos a la lista de espera. Si se libera un espacio, te escribiremos por WhatsApp.',
+                          'You are on the waitlist. If a slot opens, we will message you on WhatsApp.'
+                      )
+                    : t(
+                          'Ya tenías una solicitud activa para ese día. Te avisaremos por WhatsApp si se libera un espacio.',
+                          'You already had an active request for that day. We will message you on WhatsApp if a slot opens.'
+                      );
+
+                trackFormStep(
+                    'waitlist_joined',
+                    {
+                        service: payload.service,
+                        doctor: payload.doctor,
+                    },
+                    { once: false }
+                );
+                deps.trackEvent('booking_waitlist_joined', {
+                    source: 'booking_form',
+                    service: payload.service,
+                    doctor: payload.doctor,
+                    date: payload.date,
+                    state: created ? 'new' : 'existing',
+                });
+                setBookingFeedback(successMessage, 'success');
+                setWaitlistStatus(successMessage, 'success');
+                waitlistBtn.setAttribute('data-done', 'true');
+                waitlistBtn.textContent = t(
+                    'En lista de espera',
+                    'On the waitlist'
+                );
+            } catch (error) {
+                const message =
+                    (error && error.message) ||
+                    t(
+                        'No pudimos registrar tu solicitud en este momento.',
+                        'We could not register your waitlist request right now.'
+                    );
+                waitlistBtn.disabled = false;
+                waitlistBtn.textContent = originalWaitlistLabel;
+                setBookingFeedback(message, 'error');
+                setWaitlistStatus(message, 'error');
+                deps.showToast(message, 'error');
+            } finally {
+                delete waitlistBtn.dataset.loading;
+            }
+        });
+    }
 
     if (serviceSelect.value) {
         serviceSelect.dispatchEvent(new Event('change'));

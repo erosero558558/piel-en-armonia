@@ -79,6 +79,7 @@ final class StorageConfig
     {
         return [
             'appointments' => [],
+            'booking_waitlist' => [],
             'callbacks' => [],
             'reviews' => [],
             'queue_tickets' => [],
@@ -153,6 +154,7 @@ final class StorageConfig
         $store = is_array($rawStore) ? $rawStore : [];
 
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
+        $bookingWaitlist = isset($store['booking_waitlist']) && is_array($store['booking_waitlist']) ? $store['booking_waitlist'] : [];
         $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
         $reviews = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
         $queueTickets = isset($store['queue_tickets']) && is_array($store['queue_tickets']) ? $store['queue_tickets'] : [];
@@ -201,6 +203,7 @@ final class StorageConfig
             : local_date('c');
 
         $appointments = self::normalizeStoreRecordsWithNumericId($appointments, 'appointments');
+        $bookingWaitlist = self::normalizeStoreRecordsWithNumericId($bookingWaitlist, 'booking_waitlist');
         $callbacks = self::normalizeStoreRecordsWithNumericId($callbacks, 'callbacks');
         $reviews = self::normalizeStoreRecordsWithNumericId($reviews, 'reviews');
         $queueTickets = self::normalizeStoreRecordsWithNumericId($queueTickets, 'queue_tickets');
@@ -216,6 +219,7 @@ final class StorageConfig
 
         return [
             'appointments' => array_values($appointments),
+            'booking_waitlist' => array_values($bookingWaitlist),
             'callbacks' => array_values($callbacks),
             'reviews' => array_values($reviews),
             'queue_tickets' => array_values($queueTickets),

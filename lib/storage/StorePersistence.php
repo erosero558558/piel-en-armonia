@@ -10,6 +10,7 @@ final class StorePersistence
     private static function kvStoreJsonCollections(): array
     {
         return [
+            'booking_waitlist' => 'booking_waitlist_json',
             'queue_help_requests' => 'queue_help_requests_json',
             'patient_cases' => 'patient_cases_json',
             'patient_case_links' => 'patient_case_links_json',

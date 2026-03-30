@@ -246,6 +246,26 @@ body[data-public-shell-version='v5'] .booking-bridge__mount .booking-pricing-mod
     color: #0f4dc0;
 }
 
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-waitlist-card {
+    border-color: rgba(27, 84, 160, 0.16);
+    background:
+        radial-gradient(circle at top right, rgba(124, 211, 255, 0.22), transparent 34%),
+        linear-gradient(180deg, #f4fbff 0%, #edf7ff 100%);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-waitlist-card__eyebrow {
+    color: #13608a;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-waitlist-card__copy p,
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-waitlist-card__status {
+    color: #48607d;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-waitlist-card__status[data-tone='success'] {
+    color: #0f766e;
+}
+
 body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-group {
     gap: 7px;
 }
