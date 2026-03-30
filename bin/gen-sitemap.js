@@ -2,7 +2,7 @@
 /**
  * bin/gen-sitemap.js — S13-16: Generador automático de sitemap.xml
  *
- * Recorre es/**/index.html y genera sitemap.xml con lastmod real
+ * Recorre es/[**]/index.html y genera sitemap.xml con lastmod real
  * (fecha del último commit de git para ese archivo).
  *
  * npm run gen:sitemap

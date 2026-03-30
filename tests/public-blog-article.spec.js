@@ -8,7 +8,7 @@ const {
 } = require('./helpers/public-v6');
 
 test.describe('Public blog article', () => {
-    test('renders the Quito dermatologist guide with internal links and WhatsApp CTA', async ({
+    test('renders the Quito dermatologist guide with internal links and pre-consult CTA', async ({
         page,
     }) => {
         await gotoPublicRoute(page, '/es/blog/como-elegir-dermatologo-quito/');
@@ -41,11 +41,15 @@ test.describe('Public blog article', () => {
             );
         expect(internalServiceLinks.length).toBeGreaterThanOrEqual(6);
 
-        const whatsappHref = await page
+        const preConsultHref = await page
             .locator('[data-v6-booking-status] a')
             .getAttribute('href');
-        expect(whatsappHref || '').toContain('wa.me/593982453672');
-        expect(whatsappHref || '').toContain('text=');
+        expect(preConsultHref).toBe('/es/pre-consulta/');
+        await expect(
+            page.locator('[data-v6-booking-status]').getByRole('link', {
+                name: 'Abrir pre-consulta',
+            })
+        ).toBeVisible();
 
         await waitForBookingStatus(
             page,
@@ -53,7 +57,7 @@ test.describe('Public blog article', () => {
         );
     });
 
-    test('renders the mole warning signs guide with oncology routing and WhatsApp CTA', async ({
+    test('renders the mole warning signs guide with oncology routing and pre-consult CTA', async ({
         page,
     }) => {
         await gotoPublicRoute(page, '/es/blog/senales-alarma-lunares/');
@@ -89,11 +93,15 @@ test.describe('Public blog article', () => {
         expect(serviceLinks).toContain('/es/servicios/tamizaje-oncologico/');
         expect(serviceLinks).toContain('/es/servicios/cancer-piel/');
 
-        const whatsappHref = await page
+        const preConsultHref = await page
             .locator('[data-v6-booking-status] a')
             .getAttribute('href');
-        expect(whatsappHref || '').toContain('wa.me/593982453672');
-        expect(whatsappHref || '').toContain('text=');
+        expect(preConsultHref).toBe('/es/pre-consulta/');
+        await expect(
+            page.locator('[data-v6-booking-status]').getByRole('link', {
+                name: 'Abrir pre-consulta',
+            })
+        ).toBeVisible();
 
         await waitForBookingStatus(
             page,
@@ -101,7 +109,7 @@ test.describe('Public blog article', () => {
         );
     });
 
-    test('renders the Quito photoprotection guide with altitude-specific routing and WhatsApp CTA', async ({
+    test('renders the Quito photoprotection guide with altitude-specific routing and pre-consult CTA', async ({
         page,
     }) => {
         await gotoPublicRoute(page, '/es/blog/proteccion-solar-ecuador/');
@@ -138,11 +146,15 @@ test.describe('Public blog article', () => {
         expect(serviceLinks).toContain('/es/servicios/acne-rosacea/');
         expect(serviceLinks).toContain('/es/servicios/laser-dermatologico/');
 
-        const whatsappHref = await page
+        const preConsultHref = await page
             .locator('[data-v6-booking-status] a')
             .getAttribute('href');
-        expect(whatsappHref || '').toContain('wa.me/593982453672');
-        expect(whatsappHref || '').toContain('text=');
+        expect(preConsultHref).toBe('/es/pre-consulta/');
+        await expect(
+            page.locator('[data-v6-booking-status]').getByRole('link', {
+                name: 'Abrir pre-consulta',
+            })
+        ).toBeVisible();
 
         await waitForBookingStatus(
             page,
@@ -150,7 +162,7 @@ test.describe('Public blog article', () => {
         );
     });
 
-    test('renders the adult acne guide with acne-rosacea routing and WhatsApp CTA', async ({
+    test('renders the adult acne guide with acne-rosacea routing and pre-consult CTA', async ({
         page,
     }) => {
         await gotoPublicRoute(page, '/es/blog/acne-adulto/');
@@ -187,11 +199,15 @@ test.describe('Public blog article', () => {
         expect(serviceLinks).toContain('/es/servicios/cicatrices/');
         expect(serviceLinks).toContain('/es/servicios/manchas/');
 
-        const whatsappHref = await page
+        const preConsultHref = await page
             .locator('[data-v6-booking-status] a')
             .getAttribute('href');
-        expect(whatsappHref || '').toContain('wa.me/593982453672');
-        expect(whatsappHref || '').toContain('text=');
+        expect(preConsultHref).toBe('/es/pre-consulta/');
+        await expect(
+            page.locator('[data-v6-booking-status]').getByRole('link', {
+                name: 'Abrir pre-consulta',
+            })
+        ).toBeVisible();
 
         await waitForBookingStatus(
             page,
@@ -199,7 +215,7 @@ test.describe('Public blog article', () => {
         );
     });
 
-    test('renders the pregnancy melasma guide with manchas routing and WhatsApp CTA', async ({
+    test('renders the pregnancy melasma guide with manchas routing and pre-consult CTA', async ({
         page,
     }) => {
         await gotoPublicRoute(page, '/es/blog/melasma-embarazo/');
@@ -236,11 +252,15 @@ test.describe('Public blog article', () => {
         expect(serviceLinks).toContain('/es/servicios/diagnostico-integral/');
         expect(serviceLinks).toContain('/es/telemedicina/');
 
-        const whatsappHref = await page
+        const preConsultHref = await page
             .locator('[data-v6-booking-status] a')
             .getAttribute('href');
-        expect(whatsappHref || '').toContain('wa.me/593982453672');
-        expect(whatsappHref || '').toContain('text=');
+        expect(preConsultHref).toBe('/es/pre-consulta/');
+        await expect(
+            page.locator('[data-v6-booking-status]').getByRole('link', {
+                name: 'Abrir pre-consulta',
+            })
+        ).toBeVisible();
 
         await waitForBookingStatus(
             page,
@@ -248,7 +268,7 @@ test.describe('Public blog article', () => {
         );
     });
 
-    test('renders the injectables comparison guide with both service routes and WhatsApp CTA', async ({
+    test('renders the injectables comparison guide with both service routes and pre-consult CTA', async ({
         page,
     }) => {
         await gotoPublicRoute(page, '/es/blog/bioestimuladores-vs-rellenos/');
@@ -285,11 +305,15 @@ test.describe('Public blog article', () => {
         expect(serviceLinks).toContain('/es/servicios/rellenos-hialuronico/');
         expect(serviceLinks).toContain('/es/servicios/diagnostico-integral/');
 
-        const whatsappHref = await page
+        const preConsultHref = await page
             .locator('[data-v6-booking-status] a')
             .getAttribute('href');
-        expect(whatsappHref || '').toContain('wa.me/593982453672');
-        expect(whatsappHref || '').toContain('text=');
+        expect(preConsultHref).toBe('/es/pre-consulta/');
+        await expect(
+            page.locator('[data-v6-booking-status]').getByRole('link', {
+                name: 'Abrir pre-consulta',
+            })
+        ).toBeVisible();
 
         await waitForBookingStatus(
             page,

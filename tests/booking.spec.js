@@ -99,7 +99,7 @@ test.describe('Reserva online en mantenimiento', () => {
         );
     });
 
-    test('detalle de servicio muestra fallback a WhatsApp en lugar del formulario legacy', async ({
+    test('detalle de servicio abre la reserva enfocada de la especialidad en lugar del formulario legacy', async ({
         page,
     }) => {
         await openPublicRoute(page, '/es/servicios/acne-rosacea/');
@@ -120,14 +120,16 @@ test.describe('Reserva online en mantenimiento', () => {
         await expect(bookingStatus).toContainText(
             'Reserva online en mantenimiento'
         );
-        await expect(bookingStatus).toContainText('escribanos por WhatsApp');
+        await expect(bookingStatus).toContainText(
+            'abrir la reserva enfocada en esta especialidad'
+        );
 
-        const whatsappLink = bookingStatus.getByRole('link', {
-            name: 'Escribir por WhatsApp',
+        const serviceBookingLink = bookingStatus.getByRole('link', {
+            name: 'Abrir reserva de esta especialidad',
         });
-        await expect(whatsappLink).toHaveAttribute(
+        await expect(serviceBookingLink).toHaveAttribute(
             'href',
-            /wa\.me\/593982453672/
+            /\/es\/\?service=acne#citas$/
         );
     });
 

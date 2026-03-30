@@ -4,6 +4,10 @@ import '../../styles/public-v6/internal.css';
 import BookingStatusV6 from './BookingStatusV6.astro';
 import InternalStatementBandV6 from './InternalStatementBandV6.astro';
 import PageHeadV6 from './PageHeadV6.astro';
+import {
+    getBookingStatusCta,
+    resolveBookingStatus,
+} from '../../lib/public-v6-booking-status.js';
 
 const { page = {}, locale = 'es', navModel = {} } = Astro.props;
 
@@ -42,6 +46,14 @@ const bookingStatus =
     page?.bookingStatus && typeof page.bookingStatus === 'object'
         ? page.bookingStatus
         : {};
+const resolvedBookingStatus = resolveBookingStatus(bookingStatus, {
+    locale,
+    surface: 'first-consultation',
+});
+const bookingStatusCta = getBookingStatusCta(bookingStatus, {
+    locale,
+    surface: 'first-consultation',
+});
 const ui = page?.ui && typeof page.ui === 'object' ? page.ui : {};
 const menuUi = ui?.menu && typeof ui.menu === 'object' ? ui.menu : {};
 const logistics = page?.logistics && typeof page.logistics === 'object' ? page.logistics : {};
@@ -131,9 +143,9 @@ const pageMenuItems = [
                 ) : null
             }
             {
-                bookingStatus.ctaLabel && bookingStatus.ctaHref ? (
-                    <a class="v6-first-hero__cta" href={bookingStatus.ctaHref}>
-                        {bookingStatus.ctaLabel}
+                bookingStatusCta.label && bookingStatusCta.href ? (
+                    <a class="v6-first-hero__cta" href={bookingStatusCta.href}>
+                        {bookingStatusCta.label}
                         <span aria-hidden="true">></span>
                     </a>
                 ) : null
@@ -260,7 +272,11 @@ const pageMenuItems = [
     </div>
 </div>
 
-<BookingStatusV6 status={bookingStatus} sectionId="v6-booking-status" />
+        <BookingStatusV6
+            status={resolvedBookingStatus}
+            locale={locale}
+            sectionId="v6-booking-status"
+        />
 
 <style>
     .v6-first-hero {

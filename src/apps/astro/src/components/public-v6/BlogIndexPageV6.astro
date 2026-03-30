@@ -286,7 +286,12 @@ const heroStats = Array.isArray(hero?.stats)
     </div>
 </div>
 
-<BookingStatusV6 status={bookingStatus} sectionId="v6-blog-cta" />
+<BookingStatusV6
+    status={bookingStatus}
+    locale={locale}
+    sectionId="v6-blog-cta"
+    surface="blog"
+/>
 
 <style>
     #v6-blog-grid,

@@ -68,11 +68,15 @@ test.describe('Public blog index', () => {
             page.locator('[data-v6-blog-card]').nth(5).locator('strong')
         ).toContainText('Leer articulo');
 
-        const whatsappHref = await page
+        const bookingHref = await page
             .locator('[data-v6-booking-status] a')
             .getAttribute('href');
-        expect(whatsappHref || '').toContain('wa.me/593982453672');
-        expect(whatsappHref || '').toContain('text=');
+        expect(bookingHref).toBe('/es/pre-consulta/');
+        await expect(
+            page.locator('[data-v6-booking-status]').getByRole('link', {
+                name: 'Abrir pre-consulta',
+            })
+        ).toBeVisible();
 
         await waitForBookingStatus(
             page,
