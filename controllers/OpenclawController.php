@@ -264,6 +264,8 @@ final class OpenclawController
         if (!empty($result['degraded_mode'])) {
             $response['degraded']        = true;
             $response['degraded_notice'] = $result['degraded_notice'];
+            $response['offline_badge']   = $result['offline_badge'] ?? '';
+            $response['offline_mode']    = $result['offline_mode'] ?? 'local_heuristic';
         }
 
         json_response($response);

@@ -18,6 +18,26 @@ class QueueController
         ]);
     }
 
+    public static function publicTicket(array $context): void
+    {
+        $ticketCode = trim((string) (
+            $_GET['ticket']
+            ?? ($_GET['ticketCode'] ?? ($_GET['ticket_code'] ?? ''))
+        ));
+        $service = new QueueService();
+        $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
+        $result = $service->getPublicTicketStatus($store, $ticketCode);
+
+        if (($result['ok'] ?? false) !== true) {
+            self::emitError($result);
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => $result['data'] ?? [],
+        ]);
+    }
+
     public static function checkin(array $context): void
     {
         $payload = require_json_body();

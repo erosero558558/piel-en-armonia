@@ -539,6 +539,159 @@ final class ClinicalHistoryService
         ];
     }
 
+    public function getPatientHistory(array $store, string $patientId): array
+    {
+        $patientId = ClinicalHistoryRepository::trimString($patientId);
+        if ($patientId === '') {
+            return [];
+        }
+
+        $episodes = [];
+        $prescriptions = [];
+        $allergies = [];
+        $aiSummary = '';
+        $lastEvolution = '';
+        $photos = [];
+
+        foreach (($store['clinical_history_events'] ?? []) as $event) {
+            $epCaseId = ClinicalHistoryRepository::trimString($event['caseId'] ?? '');
+            $epPatientId = ClinicalHistoryRepository::trimString($event['patient']['id'] ?? '');
+
+            if ($epCaseId === $patientId || $epPatientId === $patientId) {
+                if ($event['type'] === 'openclaw_diagnosis') {
+                    $episodes[] = [
+                        'cie10_code' => $event['metadata']['cie10Code'] ?? '',
+                        'cie10_description' => $event['metadata']['cie10Description'] ?? '',
+                        'date' => $event['occurredAt'] ?? $event['createdAt'] ?? '',
+                        'doctor' => $event['metadata']['doctor'] ?? '',
+                        'reason' => $event['metadata']['notes'] ?? '',
+                    ];
+                } elseif ($event['type'] === 'openclaw_evolution') {
+                    $lastEvolution = $event['message'] ?? '';
+                    $aiSummary = $event['message'] ?? '';
+                } elseif ($event['type'] === 'issue_prescription') {
+                     $prescriptions[] = [
+                         'status' => 'active',
+                         'medications' => array_map(function ($i) { return $i['medication'] ?? ''; }, $event['metadata']['items'] ?? []),
+                     ];
+                }
+            }
+        }
+
+        $session = ClinicalHistoryRepository::findSessionByCaseId($store, $patientId);
+        if ($session) {
+            $draft = ClinicalHistoryRepository::findDraftBySessionId($store, $session['sessionId'] ?? '');
+            if ($draft) {
+                $rawAllergies = ClinicalHistoryRepository::trimString($draft['intake']['alergias'] ?? '');
+                if ($rawAllergies !== '' && strtolower($rawAllergies) !== 'no' && strtolower($rawAllergies) !== 'ninguna') {
+                    $allergies[] = $rawAllergies;
+                }
+            }
+        }
+
+        usort($episodes, static function ($a, $b) {
+            return strcmp($b['date'] ?? '', $a['date'] ?? '');
+        });
+
+        return [
+            'episodes' => $episodes,
+            'prescriptions' => $prescriptions,
+            'allergies' => $allergies,
+            'ai_summary' => $aiSummary,
+            'last_evolution' => $lastEvolution,
+            'photos' => $photos,
+        ];
+    }
+
+    public function saveDiagnosis(array $store, array $payload): array
+    {
+        $caseId = ClinicalHistoryRepository::trimString($payload['caseId'] ?? '');
+        $cie10Code = ClinicalHistoryRepository::trimString($payload['cie10Code'] ?? '');
+        
+        if ($caseId === '' || $cie10Code === '') {
+            return ['ok' => false, 'error' => 'caseId y cie10Code son requeridos'];
+        }
+
+        $session = ClinicalHistoryRepository::findSessionByCaseId($store, $caseId);
+        if (!$session) {
+            $session = ['sessionId' => ''];
+        }
+
+        $event = [
+            'type' => 'openclaw_diagnosis',
+            'caseId' => $caseId,
+            'sessionId' => $session['sessionId'] ?? '',
+            'message' => 'Diagnóstico: ' . $cie10Code . ' - ' . ($payload['cie10Description'] ?? ''),
+            'metadata' => [
+                'cie10Code' => $cie10Code,
+                'cie10Description' => $payload['cie10Description'] ?? '',
+                'notes' => $payload['notes'] ?? '',
+                'doctor' => $payload['doctorId'] ?? 'System',
+                'source' => $payload['source'] ?? 'openclaw',
+            ],
+            'status' => 'closed',
+        ];
+
+        $upsertEvent = ClinicalHistoryRepository::upsertEvent($store, $event);
+        $store = $upsertEvent['store'];
+
+        return [
+            'ok' => true,
+            'store' => $store,
+            'id' => $upsertEvent['event']['id'] ?? 0,
+            'eventId' => $upsertEvent['event']['eventId'] ?? '',
+        ];
+    }
+
+    public function saveEvolutionNote(array $store, array $payload): array
+    {
+        $caseId = ClinicalHistoryRepository::trimString($payload['caseId'] ?? '');
+        $text = ClinicalHistoryRepository::trimString($payload['text'] ?? '');
+        
+        if ($caseId === '' || $text === '') {
+            return ['ok' => false, 'error' => 'caseId y text son requeridos'];
+        }
+
+        $session = ClinicalHistoryRepository::findSessionByCaseId($store, $caseId);
+        $sessionId = $session ? ($session['sessionId'] ?? '') : '';
+
+        if ($session) {
+            $draft = ClinicalHistoryRepository::findDraftBySessionId($store, $sessionId);
+            if ($draft) {
+                $currentLiveNote = ClinicalHistoryRepository::trimString($draft['clinicianDraft']['liveNote'] ?? '');
+                $draft['clinicianDraft']['liveNote'] = $currentLiveNote !== '' 
+                    ? $currentLiveNote . "\n\n" . $text 
+                    : $text;
+                
+                $upsertDraft = ClinicalHistoryRepository::upsertDraft($store, $draft);
+                $store = $upsertDraft['store'];
+            }
+        }
+
+        $event = [
+            'type' => 'openclaw_evolution',
+            'caseId' => $caseId,
+            'sessionId' => $sessionId,
+            'message' => $text,
+            'metadata' => [
+                'cie10Code' => $payload['cie10Code'] ?? '',
+                'doctor' => $payload['doctorId'] ?? 'System',
+                'source' => $payload['source'] ?? 'openclaw',
+            ],
+            'status' => 'closed',
+        ];
+
+        $upsertEvent = ClinicalHistoryRepository::upsertEvent($store, $event);
+        $store = $upsertEvent['store'];
+
+        return [
+            'ok' => true,
+            'store' => $store,
+            'id' => $upsertEvent['event']['id'] ?? 0,
+            'eventId' => $upsertEvent['event']['eventId'] ?? '',
+        ];
+    }
+
     public function reconcilePendingSessions(array $store, array $options = []): array
     {
         $sessions = isset($store['clinical_history_sessions']) && is_array($store['clinical_history_sessions'])

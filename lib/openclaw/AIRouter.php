@@ -47,6 +47,9 @@ require_once __DIR__ . '/../storage.php';
 
 final class OpenclawAIRouter
 {
+    private const LOCAL_OFFLINE_BADGE = '🔴 IA sin conexión — modo local';
+    private const LOCAL_OFFLINE_NOTICE = '🔴 IA sin conexión — modo local. OpenClaw está respondiendo con plantillas locales mientras se recupera la IA.';
+
     // Modelos free/económicos de OpenRouter en orden de preferencia
     // Ver la lista actualizada en: https://openrouter.ai/models?order=pricing-asc
     private const OPENROUTER_MODEL_CHAIN = [
@@ -115,7 +118,10 @@ final class OpenclawAIRouter
         }
 
         // All providers failed → local heuristic
-        return $this->localHeuristicFallback($payload);
+        $fallback = $this->localHeuristicFallback($payload);
+        $fallback['provider_used'] = 'local_heuristic';
+        $fallback['provider_tier'] = 'tier_3';
+        return $fallback;
     }
 
     /**
@@ -142,10 +148,15 @@ final class OpenclawAIRouter
 
         $active = array_values(array_filter($providerStatus, fn($p) => $p['active']));
 
+        $isLocalFallback = ($active[0]['provider'] ?? 'local_heuristic') === 'local_heuristic';
+
         return [
             'router_mode' => $this->routerMode,
             'active_provider' => $active[0]['provider'] ?? 'local_heuristic',
             'active_tier' => $active[0]['tier'] ?? 'tier_3',
+            'degraded' => $isLocalFallback,
+            'offline_badge' => $isLocalFallback ? self::LOCAL_OFFLINE_BADGE : '',
+            'degraded_notice' => $isLocalFallback ? self::LOCAL_OFFLINE_NOTICE : '',
             'providers' => $providerStatus,
             'last_updated' => gmdate('c'),
         ];
@@ -399,7 +410,7 @@ final class OpenclawAIRouter
         $userMessage = '';
         foreach (array_reverse($payload['messages'] ?? []) as $msg) {
             if (($msg['role'] ?? '') === 'user') {
-                $userMessage = strtolower((string) ($msg['content'] ?? ''));
+                $userMessage = (string) ($msg['content'] ?? '');
                 break;
             }
         }
@@ -418,34 +429,165 @@ final class OpenclawAIRouter
             ]],
             'provider_tier' => 'tier_3',
             'degraded_mode' => true,
-            'degraded_notice' => '⚠️ Modo sin conexión. Respuesta local limitada. La IA estará disponible en breve.',
+            'degraded_notice' => self::LOCAL_OFFLINE_NOTICE,
+            'offline_badge' => self::LOCAL_OFFLINE_BADGE,
+            'offline_mode' => 'local_heuristic',
         ];
     }
 
     private function matchLocalPattern(string $query): string
     {
+        $query = $this->normalizeLocalQuery($query);
+
+        if ($this->isDiagnosticDifferentialPrompt($query)) {
+            return $this->formatLocalTemplate(
+                "### Plantilla offline de diagnóstico diferencial\n"
+                . "- Morfología: mácula, pápula, placa, nódulo, vesícula, costra o descamación.\n"
+                . "- Distribución: localizada/generalizada, unilateral/bilateral, flexuras, extensores o zonas fotoexpuestas.\n"
+                . "- Síntomas clave: prurito, dolor, ardor, secreción, fiebre y tiempo de evolución.\n"
+                . "- Diagnóstico diferencial inicial:\n"
+                . "  - dermatitis de contacto o eczema\n"
+                . "  - tiña o infección superficial\n"
+                . "  - psoriasis o dermatitis seborreica\n"
+                . "  - acné inflamatorio o foliculitis\n"
+                . "  - urticaria o reacción medicamentosa\n"
+                . "- Signos de alarma: compromiso mucoso, ampollas extensas, necrosis, dolor intenso o fiebre.\n"
+                . "- Siguiente paso: correlacionar con examen físico, dermatoscopía y estudios dirigidos si aplica."
+            );
+        }
+
+        if ($this->isPrescriptionPrompt($query)) {
+            return $this->formatLocalTemplate(
+                "### Plantilla offline de receta en blanco\n"
+                . "- Medicamento:\n"
+                . "- Presentación:\n"
+                . "- Dosis:\n"
+                . "- Vía:\n"
+                . "- Frecuencia:\n"
+                . "- Duración:\n"
+                . "- Indicaciones al paciente:\n\n"
+                . "Completa la plantilla y luego usa la receta digital del paciente para emitirla."
+            );
+        }
+
+        if ($this->isCertificatePrompt($query)) {
+            return $this->formatLocalTemplate(
+                "Para emitir el certificado, usa el botón **Generar Certificado** del caso actual.\n"
+                . "Mientras vuelve la IA puedes completar el motivo, los días de reposo y las indicaciones manualmente."
+            );
+        }
+
         // CIE-10 shortcuts
-        if (str_contains($query, 'dermatitis atópica')) {
-            return "**L20 — Dermatitis atópica**\nPrimera línea: emolientes + hidrocortisona 1% tópica bid × 14 días.\nEvitar jabones irritantes.\n\n⚠️ *Respuesta offline — confirme con criterio clínico*";
+        if (str_contains($query, 'dermatitis atopica')) {
+            return $this->formatLocalTemplate(
+                "**L20 — Dermatitis atópica**\n"
+                . "Primera línea: emolientes + hidrocortisona 1% tópica bid × 14 días.\n"
+                . "Evitar jabones irritantes."
+            );
         }
         if (str_contains($query, 'acné') || str_contains($query, 'acne')) {
-            return "**L70.0 — Acné vulgar**\nLeve: peróxido de benzoilo 5% + adapaleno 0.1%.\nModerado: eritromicina tópica + gel peróxido.\nSeguimiento: 8 semanas.\n\n⚠️ *Respuesta offline*";
+            return $this->formatLocalTemplate(
+                "**L70.0 — Acné vulgar**\n"
+                . "Leve: peróxido de benzoilo 5% + adapaleno 0.1%.\n"
+                . "Moderado: eritromicina tópica + gel peróxido.\n"
+                . "Seguimiento: 8 semanas."
+            );
         }
         if (str_contains($query, 'psoriasis')) {
-            return "**L40 — Psoriasis**\nPlaques leves: betametasona 0.05% + calcipotriol.\nFotobioterapia si >30% superficie corporal.\nDerivación si requiere biológico.\n\n⚠️ *Respuesta offline*";
+            return $this->formatLocalTemplate(
+                "**L40 — Psoriasis**\n"
+                . "Placas leves: betametasona 0.05% + calcipotriol.\n"
+                . "Fotobioterapia si >30% superficie corporal.\n"
+                . "Derivación si requiere biológico."
+            );
         }
         if (str_contains($query, 'urticaria')) {
-            return "**L50 — Urticaria**\nAguda: cetirizina 10mg/día. Si angioedema: adrenalina 0.3mg IM.\nCrónica: loratadina 10mg + ranitidina 150mg bis.\n\n⚠️ *Respuesta offline*";
-        }
-        if (str_contains($query, 'certificado') || str_contains($query, 'reposo')) {
-            return "Para emitir el certificado, usa el botón **Generar Certificado** en la historia clínica del paciente.\n\n⚠️ *IA no disponible temporalmente — funciones básicas activas*";
-        }
-        if (str_contains($query, 'receta') || str_contains($query, 'medicamento')) {
-            return "La IA no está disponible ahora mismo. Por favor documenta los medicamentos manualmente en la receta digital del paciente.\n\n⚠️ *Modo offline — conexión se restaurará automáticamente*";
+            return $this->formatLocalTemplate(
+                "**L50 — Urticaria**\n"
+                . "Aguda: cetirizina 10mg/día. Si angioedema: adrenalina 0.3mg IM.\n"
+                . "Crónica: loratadina 10mg + ranitidina 150mg bis."
+            );
         }
 
         // Generic fallback
-        return "⚠️ **OpenClaw en modo offline temporal**\n\nTodos los proveedores de IA están en descanso. Funciones disponibles:\n- Historia clínica: activa\n- Receta digital: activa\n- Certificados: activos\n- Turnero: activo\n\nLa IA se restaurará automáticamente. Puedes continuar la consulta manualmente.";
+        return $this->formatLocalTemplate(
+            "### OpenClaw en modo offline temporal\n"
+            . "Funciones disponibles mientras vuelve la IA:\n"
+            . "- Historia clínica manual\n"
+            . "- Receta digital\n"
+            . "- Certificados\n"
+            . "- Botones clínicos del caso\n\n"
+            . "Puedes continuar la consulta y registrar la decisión clínica manualmente."
+        );
+    }
+
+    private function normalizeLocalQuery(string $query): string
+    {
+        $normalized = strtolower(trim($query));
+        $normalized = strtr($normalized, [
+            'á' => 'a',
+            'é' => 'e',
+            'í' => 'i',
+            'ó' => 'o',
+            'ú' => 'u',
+            'ü' => 'u',
+            'ñ' => 'n',
+        ]);
+        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
+        return $normalized;
+    }
+
+    private function isDiagnosticDifferentialPrompt(string $query): bool
+    {
+        if (str_contains($query, 'diagnostico diferencial')) {
+            return true;
+        }
+
+        $asksWhatItIs = str_contains($query, 'que es esto en la piel')
+            || str_contains($query, 'que puede ser esto en la piel')
+            || str_contains($query, 'que puede ser en la piel')
+            || str_contains($query, 'que es esta lesion')
+            || str_contains($query, 'que puede ser esta lesion');
+
+        $mentionsSkinFinding = str_contains($query, 'piel')
+            || str_contains($query, 'lesion')
+            || str_contains($query, 'mancha')
+            || str_contains($query, 'placa')
+            || str_contains($query, 'roncha')
+            || str_contains($query, 'rash')
+            || str_contains($query, 'erupcion')
+            || str_contains($query, 'sarpullido');
+
+        $asksForDx = str_contains($query, 'diagnostico')
+            || str_contains($query, 'diferencial')
+            || str_contains($query, 'que es')
+            || str_contains($query, 'que puede ser');
+
+        return $asksWhatItIs || ($mentionsSkinFinding && $asksForDx);
+    }
+
+    private function isPrescriptionPrompt(string $query): bool
+    {
+        return str_contains($query, 'genera receta')
+            || str_contains($query, 'genera una receta')
+            || str_contains($query, 'hacer receta')
+            || str_contains($query, 'prescripcion')
+            || str_contains($query, 'receta en blanco')
+            || str_contains($query, 'receta');
+    }
+
+    private function isCertificatePrompt(string $query): bool
+    {
+        return str_contains($query, 'genera certificado')
+            || str_contains($query, 'generar certificado')
+            || str_contains($query, 'certificado')
+            || str_contains($query, 'reposo')
+            || str_contains($query, 'constancia medica');
+    }
+
+    private function formatLocalTemplate(string $body): string
+    {
+        return trim($body) . "\n\n⚠️ *Plantilla offline local: confirma con criterio clínico y examen físico.*";
     }
 
     // ── Cooldown management ───────────────────────────────────────────────────

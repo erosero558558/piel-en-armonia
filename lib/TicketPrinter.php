@@ -8,6 +8,8 @@ require_once __DIR__ . '/models.php';
 
 class TicketPrinter
 {
+    private const PUBLIC_QUEUE_STATUS_BASE_URL = 'https://pielarmonia.com/es/software/turnero-clinicas/estado-turno/';
+
     private bool $enabled;
     private string $host;
     private int $port;
@@ -107,6 +109,7 @@ class TicketPrinter
             ?? queue_ticket_visit_reason_label((string) ($ticket['visitReason'] ?? ''))
         );
         $consultorio = $ticket['assignedConsultorio'] ?? null;
+        $statusUrl = $this->buildPublicQueueStatusUrl($ticketCode);
 
         $lines = [
             'PIEL EN ARMONIA',
@@ -122,8 +125,6 @@ class TicketPrinter
             str_repeat('-', 32),
             'Espere su llamado en pantalla',
             'TV: ticket + iniciales',
-            '',
-            '',
         ];
 
         $esc = chr(27);
@@ -142,8 +143,42 @@ class TicketPrinter
             $payload .= $this->line($lines[$i]);
         }
 
+        $payload .= $esc . 'a' . chr(1); // center
+        $payload .= $this->line('Escanea QR para ver tu posicion');
+        $payload .= $this->line('desde tu telefono');
+        $payload .= $this->buildQrCodePayload($statusUrl);
+        $payload .= $this->line('');
+        $payload .= $this->line('Estado turno: ' . ($ticketCode !== '' ? $ticketCode : 'A-000'));
+        $payload .= $esc . 'a' . chr(0); // left
+        $payload .= $this->line('');
+        $payload .= $this->line('');
         $payload .= $gs . 'V' . chr(66) . chr(0); // full cut
         return $payload;
+    }
+
+    private function buildPublicQueueStatusUrl(string $ticketCode): string
+    {
+        $safeCode = strtoupper(trim($ticketCode));
+        if ($safeCode === '') {
+            $safeCode = 'A-000';
+        }
+
+        return self::PUBLIC_QUEUE_STATUS_BASE_URL . '?ticket=' . rawurlencode($safeCode);
+    }
+
+    private function buildQrCodePayload(string $data): string
+    {
+        $gs = chr(29);
+        $length = strlen($data) + 3;
+        $pL = chr($length % 256);
+        $pH = chr((int) floor($length / 256));
+
+        return ''
+            . $gs . '(k' . chr(4) . chr(0) . chr(49) . chr(65) . chr(50) . chr(0)
+            . $gs . '(k' . chr(3) . chr(0) . chr(49) . chr(67) . chr(6)
+            . $gs . '(k' . chr(3) . chr(0) . chr(49) . chr(69) . chr(48)
+            . $gs . '(k' . $pL . $pH . chr(49) . chr(80) . chr(48) . $data
+            . $gs . '(k' . chr(3) . chr(0) . chr(49) . chr(81) . chr(48);
     }
 
     private function line(string $text): string

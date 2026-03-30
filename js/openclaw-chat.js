@@ -67,6 +67,7 @@ Contexto del paciente se te dará como sistema de contexto.`,
           <span class="oc-status" id="oc-status">listo</span>
         </div>
         <div class="oc-header-right">
+          <span class="oc-runtime-badge" id="oc-offline-badge" hidden></span>
           <button class="oc-btn-icon" id="oc-new-session" title="Nueva consulta">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -330,6 +331,41 @@ Contexto del paciente se te dará como sistema de contexto.`,
     banner.style.display = 'none';
   }
 
+  function clearRuntimeBadge() {
+    const badge = document.getElementById('oc-offline-badge');
+    if (!(badge instanceof HTMLElement)) return;
+    badge.hidden = true;
+    badge.textContent = '';
+    badge.removeAttribute('title');
+  }
+
+  function applyRuntimeState(meta) {
+    const badge = document.getElementById('oc-offline-badge');
+    if (!(badge instanceof HTMLElement)) return;
+
+    const isLocalMode =
+      meta?.degraded === true ||
+      meta?.tier === 'tier_3' ||
+      meta?.provider === 'local_heuristic' ||
+      meta?.offlineMode === 'local_heuristic';
+
+    const label = String(meta?.offlineBadge || '').trim();
+    if (!isLocalMode || !label) {
+      clearRuntimeBadge();
+      return;
+    }
+
+    badge.hidden = false;
+    badge.textContent = label;
+
+    const notice = String(meta?.degradedNotice || '').trim();
+    if (notice) {
+      badge.title = notice;
+    } else {
+      badge.removeAttribute('title');
+    }
+  }
+
   function renderInteractionBanner(payload) {
     const banner = document.getElementById('oc-interaction-banner');
     if (!(banner instanceof HTMLElement)) return;
@@ -428,6 +464,37 @@ Contexto del paciente se te dará como sistema de contexto.`,
     } catch { return null; }
   }
 
+  function extractChatText(payload) {
+    const content = payload?.choices?.[0]?.message?.content;
+    if (typeof content === 'string' && content.trim()) {
+      return content;
+    }
+
+    return String(payload?.text || payload?.content || '').trim();
+  }
+
+  function extractRuntimeMeta(payload) {
+    const provider = String(payload?.provider || payload?.provider_used || '').trim();
+    const tier = String(payload?.tier || payload?.provider_tier || '').trim();
+    const degraded = payload?.degraded === true || payload?.degraded_mode === true;
+    const offlineBadge = String(payload?.offline_badge || '').trim();
+    const degradedNotice = String(payload?.degraded_notice || '').trim();
+    const offlineMode = String(payload?.offline_mode || '').trim();
+
+    if (!provider && !tier && !degraded && !offlineBadge && !degradedNotice && !offlineMode) {
+      return null;
+    }
+
+    return {
+      provider,
+      tier,
+      degraded,
+      offlineBadge,
+      degradedNotice,
+      offlineMode,
+    };
+  }
+
   async function* streamChat(messages, patientContext) {
     const systemCtx = patientContext ? `
 CONTEXTO DEL PACIENTE:
@@ -453,6 +520,27 @@ CONTEXTO DEL PACIENTE:
 
     if (!res.ok) { yield { error: `Error ${res.status}: ${await res.text()}` }; return; }
 
+    const contentType = String(res.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.includes('text/event-stream')) {
+      const payload = await res.json().catch(() => null);
+      if (!payload) {
+        yield { error: 'Respuesta inválida del asistente.' };
+        return;
+      }
+
+      const text = extractChatText(payload);
+      if (!text) {
+        yield { error: payload.error || 'Respuesta vacía del asistente.' };
+        return;
+      }
+
+      yield {
+        token: text,
+        meta: extractRuntimeMeta(payload),
+      };
+      return;
+    }
+
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -471,7 +559,8 @@ CONTEXTO DEL PACIENTE:
         try {
           const parsed = JSON.parse(data);
           const delta = parsed.choices?.[0]?.delta?.content;
-          if (delta) yield { token: delta };
+          const meta = extractRuntimeMeta(parsed);
+          if (delta || meta) yield { token: delta || '', meta };
         } catch { /* ignore malformed chunks */ }
       }
     }
@@ -604,15 +693,21 @@ CONTEXTO DEL PACIENTE:
 
     const msgEl = addStreamingPlaceholder();
     let fullText = '';
+    let runtimeMeta = null;
 
     try {
       for await (const chunk of streamChat(state.messages, state.patientContext)) {
         if (chunk.error) { updateStreamingMessage(msgEl, `Error: ${chunk.error}`); break; }
+        if (chunk.meta) {
+          runtimeMeta = { ...(runtimeMeta || {}), ...chunk.meta };
+        }
         if (chunk.token) {
           fullText += chunk.token;
           updateStreamingMessage(msgEl, fullText);
         }
       }
+
+      applyRuntimeState(runtimeMeta);
 
       // Finalize message
       const actions = extractActions(fullText);
@@ -885,6 +980,18 @@ CONTEXTO DEL PACIENTE:
         font-size: 11px; color: var(--oc-text-dim);
         background: var(--oc-surface-2);
         padding: 2px 8px; border-radius: 20px;
+      }
+      .oc-runtime-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(239, 68, 68, 0.48);
+        background: rgba(239, 68, 68, 0.18);
+        color: #fecaca;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
       }
 
       /* Layout */

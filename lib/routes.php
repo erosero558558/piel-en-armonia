@@ -60,6 +60,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'public-case-media-file', [CaseMediaFlowController::class, 'publicMediaFile']);
 
     $router->add('GET', 'queue-state', [QueueController::class, 'state']);
+    $router->add('GET', 'queue-public-ticket', [QueueController::class, 'publicTicket']);
     $router->add('POST', 'queue-surface-heartbeat', [QueueController::class, 'surfaceHeartbeat']);
     $router->add('POST', 'queue-checkin', [QueueController::class, 'checkin']);
     $router->add('POST', 'queue-ticket', [QueueController::class, 'ticket']);
