@@ -39,6 +39,7 @@ const CLAIMS_DIR = resolve(ROOT, 'data/claims/tasks');
 const BLOCKERS_FILE = resolve(ROOT, 'BLOCKERS.md');
 const AUTO_BLOCKERS_START = '<!-- AUTO-BLOCKERS:START -->';
 const AUTO_BLOCKERS_END = '<!-- AUTO-BLOCKERS:END -->';
+const TASK_ID_PATTERN = /^(S\d+|UI\d*)-[A-Z0-9]+$/;
 
 function read(filePath) {
   return existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
@@ -59,6 +60,10 @@ function loadStuck() {
 
 function claimFilePath(taskId) {
   return resolve(CLAIMS_DIR, `${taskId}.json`);
+}
+
+function isValidTaskId(taskId) {
+  return TASK_ID_PATTERN.test(String(taskId || '').trim());
 }
 
 function loadClaim(taskId) {
@@ -290,8 +295,9 @@ function clearBlocker(taskId) {
 }
 
 function markStuck(taskId, reason) {
-  // Fix: acepta S3-09, UI-01, UI2-20, UI3-15, S14-00 — todos los formatos del board
-  if (!taskId.match(/^(S\d+|UI\d*)-[A-Z0-9]+$/)) {
+  const normalizedTaskId = String(taskId || '').trim();
+
+  if (!isValidTaskId(normalizedTaskId)) {
     console.error('\nUsage: node bin/stuck.js <TASK-ID> "<razón>"');
     console.error('       node bin/stuck.js list');
     console.error('       node bin/stuck.js clear <TASK-ID>');
@@ -304,21 +310,21 @@ function markStuck(taskId, reason) {
 
   if (!reason) {
     console.error('\nError: debes explicar por qué estás bloqueado.');
-    console.error(`Ejemplo: node bin/stuck.js ${taskId} "Falta variable de entorno STRIPE_KEY"`);
+    console.error(`Ejemplo: node bin/stuck.js ${normalizedTaskId} "Falta variable de entorno STRIPE_KEY"`);
     process.exit(1);
   }
 
   ensureBlockersFile();
 
-  const claim = loadClaim(taskId);
+  const claim = loadClaim(normalizedTaskId);
   const agent = claim?.agent || process.env.AGENT_NAME || 'unknown';
   if (claim) {
-    deleteClaim(taskId);
-    console.log(`🔓 Claim released for ${taskId}`);
+    deleteClaim(normalizedTaskId);
+    console.log(`🔓 Claim released for ${normalizedTaskId}`);
   }
 
   const stuck = loadStuck();
-  stuck[taskId] = {
+  stuck[normalizedTaskId] = {
     agent,
     reason,
     stuckAt: new Date().toISOString(),
@@ -329,9 +335,9 @@ function markStuck(taskId, reason) {
   writeJson(STUCK_FILE, stuck);
   updateBlockersMarkdown(stuck);
 
-  const commit = autoCommit(taskId, reason, 'stuck');
+  const commit = autoCommit(normalizedTaskId, reason, 'stuck');
 
-  console.log(`\n🚧 Bloqueado registrado: ${taskId}`);
+  console.log(`\n🚧 Bloqueado registrado: ${normalizedTaskId}`);
   console.log(`   Razón: ${reason}`);
   console.log(`   BLOCKERS.md actualizado con tarea, fecha, agente y razón.`);
   if (commit.committed) {
@@ -369,5 +375,7 @@ module.exports = {
   AUTO_BLOCKERS_START,
   buildAutoBlockersSection,
   injectAutoBlockersSection,
+  isValidTaskId,
+  TASK_ID_PATTERN,
   updateBlockersMarkdown,
 };
