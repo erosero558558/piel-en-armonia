@@ -495,6 +495,14 @@ final class ClinicalHistoryService
             return $this->mutateClinicalRecord($store, $payload, 'follow-up');
         }
 
+        if ($action === 'schedule_follow_up') {
+            return $this->mutateClinicalRecord($store, $payload, 'schedule-follow-up');
+        }
+
+        if ($action === 'deliver_care_plan') {
+            return $this->mutateClinicalRecord($store, $payload, 'deliver-care-plan');
+        }
+
         if ($action === 'mark_review_required') {
             return $this->mutateClinicalRecord($store, $payload, 'review-required');
         }
@@ -1062,6 +1070,12 @@ final class ClinicalHistoryService
         $question = ClinicalHistoryRepository::trimString(
             $payload['requestAdditionalQuestion'] ?? $payload['followUpQuestion'] ?? ''
         );
+        if ($question === '' && $mode === 'schedule-follow-up') {
+            $question = 'Coordinar la siguiente cita de seguimiento post-consulta.';
+        }
+        if ($question === '' && $mode === 'deliver-care-plan') {
+            $question = 'Enviar guia e indicaciones post-consulta al paciente.';
+        }
         if ($mode === 'follow-up' && $question !== '') {
             $session = ClinicalHistoryRepository::appendTranscriptMessage($session, [
                 'role' => 'assistant',
@@ -1076,6 +1090,20 @@ final class ClinicalHistoryService
             $draft['reviewStatus'] = 'review_required';
             $draft['status'] = 'review_required';
             $session['status'] = 'review_required';
+        } elseif (
+            in_array($mode, ['schedule-follow-up', 'deliver-care-plan'], true)
+            && $question !== ''
+        ) {
+            $session = ClinicalHistoryRepository::appendTranscriptMessage($session, [
+                'role' => 'assistant',
+                'actor' => 'queue_operator',
+                'content' => ClinicalHistoryGuardrails::sanitizePatientText($question),
+                'surface' => 'queue_operator',
+                'meta' => [
+                    'requestedBy' => $this->currentClinicalActor(),
+                    'operatorAction' => $this->accessAuditActionForMode($mode),
+                ],
+            ]);
         }
 
         if ($mode === 'copy-request') {
@@ -1291,7 +1319,7 @@ final class ClinicalHistoryService
                 'finalDraftVersion' => (int) ($draft['approval']['finalDraftVersion'] ?? 0),
             ]);
         } else {
-            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'receive-interconsult-report', 'create-lab-order', 'issue-lab-order', 'cancel-lab-order', 'create-imaging-order', 'issue-imaging-order', 'cancel-imaging-order', 'receive-imaging-report', 'prescription', 'certificate'], true)
+            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'receive-interconsult-report', 'create-lab-order', 'issue-lab-order', 'cancel-lab-order', 'create-imaging-order', 'issue-imaging-order', 'cancel-imaging-order', 'receive-imaging-report', 'prescription', 'certificate', 'schedule-follow-up', 'deliver-care-plan'], true)
                 && ((bool) ($draft['requiresHumanReview'] ?? true) === false);
             $store = $this->touchSessionEventsForReview($store, $session, $resolveEvents);
 
@@ -1302,6 +1330,18 @@ final class ClinicalHistoryService
                 ]);
             } elseif ($mode === 'follow-up') {
                 audit_log_event('clinical_history.follow_up_requested', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'question' => $question,
+                ]);
+            } elseif ($mode === 'schedule-follow-up') {
+                audit_log_event('clinical_history.follow_up_scheduling_requested', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'question' => $question,
+                ]);
+            } elseif ($mode === 'deliver-care-plan') {
+                audit_log_event('clinical_history.care_plan_delivery_requested', [
                     'sessionId' => (string) ($session['sessionId'] ?? ''),
                     'caseId' => (string) ($session['caseId'] ?? ''),
                     'question' => $question,
@@ -3678,6 +3718,8 @@ final class ClinicalHistoryService
             'save' => 'edit_record',
             'approve' => 'approve_final_note',
             'follow-up' => 'request_missing_data',
+            'schedule-follow-up' => 'schedule_follow_up',
+            'deliver-care-plan' => 'deliver_care_plan',
             'review-required' => 'mark_review_required',
             'create-consent-packet' => 'create_consent_packet',
             'select-consent-packet' => 'select_consent_packet',

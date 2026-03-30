@@ -16639,6 +16639,102 @@ body[data-ops-family='command'][data-ops-tone='light']
     margin-top: 0.35rem;
 }
 
+.queue-operator-current-ticket__actions {
+    margin-top: 1rem;
+    padding: 0.95rem 1rem;
+    border-radius: 18px;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(125, 211, 252, 0.18);
+}
+
+.queue-operator-current-ticket__actions-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: baseline;
+}
+
+.queue-operator-current-ticket__actions-head span {
+    display: block;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(148, 163, 184, 0.96);
+}
+
+.queue-operator-current-ticket__actions-head strong {
+    color: #f8fafc;
+}
+
+.queue-operator-current-ticket__actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.queue-operator-current-ticket__action-btn {
+    appearance: none;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 16px;
+    min-height: 3rem;
+    padding: 0.75rem 0.9rem;
+    background: rgba(15, 23, 42, 0.48);
+    color: #f8fafc;
+    font-weight: 700;
+    text-align: left;
+    transition:
+        transform 140ms ease,
+        border-color 140ms ease,
+        background 140ms ease,
+        opacity 140ms ease;
+}
+
+.queue-operator-current-ticket__action-btn[data-state='primary'] {
+    border-color: rgba(56, 189, 248, 0.34);
+    background: rgba(14, 165, 233, 0.18);
+}
+
+.queue-operator-current-ticket__action-btn[data-state='accent'] {
+    border-color: rgba(251, 191, 36, 0.34);
+    background: rgba(250, 204, 21, 0.12);
+}
+
+.queue-operator-current-ticket__action-btn:hover:not(:disabled),
+.queue-operator-current-ticket__action-btn:focus-visible:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(236, 253, 245, 0.42);
+}
+
+.queue-operator-current-ticket__action-btn:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+}
+
+.queue-operator-current-ticket__action-feedback {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 0.9rem 0 0;
+    color: rgba(226, 232, 240, 0.86);
+}
+
+.queue-operator-current-ticket__action-feedback strong {
+    color: #f8fafc;
+}
+
+.queue-operator-current-ticket__action-feedback[data-state='success'] {
+    color: rgba(187, 247, 208, 0.96);
+}
+
+.queue-operator-current-ticket__action-feedback[data-state='warning'] {
+    color: rgba(253, 224, 71, 0.96);
+}
+
+.queue-operator-current-ticket__action-feedback[data-state='danger'] {
+    color: rgba(254, 202, 202, 0.96);
+}
+
 body[data-ops-tone='light'] .queue-operator-current-ticket__shell {
     border-color: rgba(148, 163, 184, 0.32);
     background:
@@ -16683,9 +16779,45 @@ body[data-ops-tone='light'] .queue-operator-current-ticket__alerts {
     border-color: rgba(250, 204, 21, 0.24);
 }
 
+body[data-ops-tone='light'] .queue-operator-current-ticket__actions {
+    background: rgba(186, 230, 253, 0.28);
+    border-color: rgba(14, 165, 233, 0.24);
+}
+
+body[data-ops-tone='light'] .queue-operator-current-ticket__actions-head strong,
+body[data-ops-tone='light'] .queue-operator-current-ticket__action-btn,
+body[data-ops-tone='light'] .queue-operator-current-ticket__action-feedback strong {
+    color: #0f172a;
+}
+
+body[data-ops-tone='light'] .queue-operator-current-ticket__action-btn {
+    background: rgba(255, 255, 255, 0.78);
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+body[data-ops-tone='light']
+    .queue-operator-current-ticket__action-btn[data-state='primary'] {
+    border-color: rgba(14, 165, 233, 0.28);
+    background: rgba(186, 230, 253, 0.52);
+}
+
+body[data-ops-tone='light']
+    .queue-operator-current-ticket__action-btn[data-state='accent'] {
+    border-color: rgba(245, 158, 11, 0.24);
+    background: rgba(254, 240, 138, 0.52);
+}
+
+body[data-ops-tone='light'] .queue-operator-current-ticket__action-feedback {
+    color: rgba(51, 65, 85, 0.86);
+}
+
 @media (max-width: 960px) {
     .queue-operator-current-ticket__facts {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .queue-operator-current-ticket__actions-grid {
+        grid-template-columns: 1fr;
     }
 }
 

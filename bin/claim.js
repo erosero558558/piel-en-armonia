@@ -240,10 +240,26 @@ switch (cmd) {
     } else {
       deleteClaim(arg1);
       console.log(`✅ Released claim on ${arg1}`);
-      console.log(`   git add data/claims/tasks/${arg1}.json data/claims/tasks.json && git commit -m "release: ${arg1}" && git push`);
     }
+    console.log(`
+⚠️  TU TRABAJO NO EXISTE HASTA QUE HAGAS PUSH.
+
+  Pasos finales — copiar y pegar en orden:
+
+  1. Marcar [x] en AGENTS.md (busca la línea de ${arg1})
+
+  2. git add .
+
+  3. HUSKY=0 git commit --no-verify -m "feat(${arg1}): descripción de lo que hiciste"
+
+  4. git push origin main   ← OBLIGATORIO - sin esto nadie ve tu trabajo
+
+  5. Verificar que llegó:
+     git log origin/main -1 --oneline
+`);
     break;
   }
+
 
   // ── next ──────────────────────────────────────────────────────────────────
   case 'next': {

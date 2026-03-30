@@ -25,9 +25,10 @@ const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 const taskId = process.argv[2];
 const fix = process.argv.includes('--fix');
 
-if (!taskId || !taskId.match(/^S\d+-\d+$/)) {
+if (!taskId || !taskId.match(/^S\d+-[A-Z0-9]+$/)) {
   console.error('Usage: node bin/gate.js <TASK-ID> [--fix]');
-  console.error('Example: node bin/gate.js S2-18');
+  console.error('Example: node bin/gate.js S3-19');
+  console.error('Example: node bin/gate.js S3-OC3');
   process.exit(1);
 }
 
@@ -233,12 +234,31 @@ console.log(`\n   ${passed} passed, ${warnings} warnings, ${failed} failed`);
 
 if (failed === 0) {
   console.log(`\n✅ GATE PASSED — ${taskId} is ready to mark [x]\n`);
-  console.log(`   Next steps:`);
-  console.log(`   1. node bin/claim.js release ${taskId}`);
-  console.log(`   2. [mark [x] in AGENTS.md]`);
-  console.log(`   3. HUSKY=0 git commit --no-verify -m "feat(${taskId}): ..." && git push\n`);
+  console.log(`╔══════════════════════════════════════════════════════════════╗`);
+  console.log(`║  PASOS OBLIGATORIOS — HACERLOS EN ORDEN                     ║`);
+  console.log(`╚══════════════════════════════════════════════════════════════╝`);
+  console.log();
+  console.log(`  1. Liberar el claim:`);
+  console.log(`     node bin/claim.js release ${taskId}`);
+  console.log();
+  console.log(`  2. Marcar [x] en AGENTS.md:`);
+  console.log(`     (editar manualmente la línea de ${taskId} en AGENTS.md)`);
+  console.log(`     O ejecutar: sed -i '' 's/^- \\[ \\] \\*\\*${taskId}\\*\\*/- [x] **${taskId}**/' AGENTS.md`);
+  console.log();
+  console.log(`  3. Commit + PUSH A ORIGIN MAIN (⚠️ SIN ESTO NADIE VE TU TRABAJO):`);
+  console.log(`     git add .`);
+  console.log(`     HUSKY=0 git commit --no-verify -m "feat(${taskId}): descripción de lo que hiciste"`);
+  console.log(`     git push origin main`);
+  console.log();
+  console.log(`  4. Verificar que llegó:`);
+  console.log(`     git log origin/main -1 --oneline`);
+  console.log();
+  console.log(`⚠️  git push origin main ES OBLIGATORIO.`);
+  console.log(`   Si no haces push, tu trabajo no existe para nadie más.`);
+  console.log(`   El director usa 'npm run merge-ready' para ver ramas listas.\n`);
   process.exit(0);
 } else {
   console.log(`\n❌ GATE FAILED — Fix the issues above before marking ${taskId} as done\n`);
+  console.log(`   No hagas push hasta que todos los checks pasen.\n`);
   process.exit(1);
 }

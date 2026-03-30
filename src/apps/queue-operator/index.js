@@ -30,6 +30,7 @@ import {
     pollOperatorAuthStatus,
     startOperatorAuth,
 } from './pin-auth.js';
+import { apiRequest } from '../admin-v3/shared/core/api-client.js';
 import {
     refreshAdminData,
     refreshStatusLabel,
@@ -162,6 +163,37 @@ let operatorHeartbeat = null;
 let operatorAuthPollPromise = null;
 let lastOperatorGuardToastAt = 0;
 let lastOperatorGuardToastKey = '';
+const OPERATOR_POST_CONSULT_ACTIONS = Object.freeze({
+    schedule_follow_up: {
+        action: 'schedule_follow_up',
+        label: 'Agendar siguiente',
+        tone: 'primary',
+        successMessage: 'Seguimiento listo para coordinar.',
+    },
+    deliver_care_plan: {
+        action: 'deliver_care_plan',
+        label: 'Enviar guia',
+        tone: 'secondary',
+        successMessage: 'Guia post-consulta lista para compartir.',
+    },
+    issue_prescription: {
+        action: 'issue_prescription',
+        label: 'Generar receta',
+        tone: 'secondary',
+        successMessage: 'Receta clinica regenerada.',
+    },
+    create_interconsultation: {
+        action: 'create_interconsultation',
+        label: 'Derivar a procedimiento',
+        tone: 'accent',
+        successMessage: 'Derivacion clinica creada para el caso.',
+    },
+});
+const operatorPostConsultState = {
+    pendingTicketId: 0,
+    pendingActionId: '',
+    feedbackByTicketId: Object.create(null),
+};
 
 function hideOperatorSurfaceOpsPanel(panel) {
     if (!panel || typeof panel !== 'object') {
@@ -3747,6 +3779,303 @@ function getOperatorTicketPatientCaseSnapshot(ticket) {
     };
 }
 
+function getOperatorPostConsultActionConfig(actionId) {
+    const normalized = String(actionId || '').trim();
+    if (!normalized) {
+        return null;
+    }
+
+    return OPERATOR_POST_CONSULT_ACTIONS[normalized] || null;
+}
+
+function getOperatorPostConsultFeedback(ticketId) {
+    const normalizedTicketId = Number(ticketId || 0) || 0;
+    if (normalizedTicketId <= 0) {
+        return null;
+    }
+
+    const feedback = operatorPostConsultState.feedbackByTicketId[normalizedTicketId];
+    return feedback && typeof feedback === 'object' ? feedback : null;
+}
+
+function setOperatorPostConsultFeedback(ticketId, feedback) {
+    const normalizedTicketId = Number(ticketId || 0) || 0;
+    if (normalizedTicketId <= 0) {
+        return;
+    }
+
+    operatorPostConsultState.feedbackByTicketId[normalizedTicketId] =
+        feedback && typeof feedback === 'object'
+            ? {
+                  ...feedback,
+                  at: String(feedback.at || new Date().toISOString()),
+              }
+            : null;
+}
+
+function resolveOperatorPostConsultPatientLabel(ticket, snapshot = null) {
+    const currentSnapshot = snapshot || getOperatorTicketPatientCaseSnapshot(ticket);
+    return (
+        String(currentSnapshot?.patientLabel || '').trim() ||
+        String(ticket?.patientInitials || '').trim() ||
+        String(ticket?.ticketCode || '').trim() ||
+        'Paciente sin nombre'
+    );
+}
+
+function buildOperatorPostConsultActionButtons(ticket, snapshot = null) {
+    const ticketId = Number(ticket?.id || 0) || 0;
+    const patientCaseId = String(ticket?.patientCaseId || '').trim();
+    const pendingTicketId = Number(operatorPostConsultState.pendingTicketId || 0) || 0;
+    const pendingActionId = String(operatorPostConsultState.pendingActionId || '').trim();
+    const feedback = getOperatorPostConsultFeedback(ticketId);
+    const patientLabel = resolveOperatorPostConsultPatientLabel(ticket, snapshot);
+    const actionButtons = Object.values(OPERATOR_POST_CONSULT_ACTIONS)
+        .map((config) => {
+            const isPending =
+                pendingTicketId === ticketId && pendingActionId === config.action;
+            const disabled = patientCaseId === '' || isPending;
+            const title =
+                patientCaseId === ''
+                    ? 'El turno necesita un patientCaseId antes de disparar acciones post-consulta.'
+                    : '';
+
+            return `
+                <button
+                    type="button"
+                    class="queue-operator-current-ticket__action-btn"
+                    data-action="operator-post-consult-action"
+                    data-post-consult-action="${escapeHtml(config.action)}"
+                    data-ticket-id="${escapeHtml(String(ticketId))}"
+                    data-state="${escapeHtml(config.tone)}"
+                    ${disabled ? 'disabled' : ''}
+                    ${title ? `title="${escapeHtml(title)}"` : ''}
+                >
+                    ${escapeHtml(isPending ? 'Procesando...' : config.label)}
+                </button>
+            `;
+        })
+        .join('');
+    const feedbackMarkup = feedback
+        ? `
+            <p class="queue-operator-current-ticket__action-feedback" data-state="${escapeHtml(
+                String(feedback.state || 'neutral')
+            )}">
+                <strong>${escapeHtml(patientLabel)}</strong>
+                <span>${escapeHtml(String(feedback.message || '').trim())}</span>
+            </p>
+        `
+        : `
+            <p class="queue-operator-current-ticket__action-feedback" data-state="neutral">
+                <strong>${escapeHtml(patientLabel)}</strong>
+                <span>Dispara el siguiente paso clinico sin salir del operador.</span>
+            </p>
+        `;
+
+    return `
+        <section class="queue-operator-current-ticket__actions" aria-label="Acciones post-consulta">
+            <div class="queue-operator-current-ticket__actions-head">
+                <span>Acciones post-consulta</span>
+                <strong>${escapeHtml(
+                    patientCaseId
+                        ? 'Listas para este caso'
+                        : 'Falta vincular el caso clinico'
+                )}</strong>
+            </div>
+            <div class="queue-operator-current-ticket__actions-grid">
+                ${actionButtons}
+            </div>
+            ${feedbackMarkup}
+        </section>
+    `;
+}
+
+function buildOperatorPostConsultActionError(actionId, error) {
+    const config = getOperatorPostConsultActionConfig(actionId);
+    const fallback =
+        error?.message || 'No se pudo ejecutar la accion post-consulta.';
+    const errorCode = String(
+        error?.payload?.code || error?.payload?.errorCode || ''
+    )
+        .trim()
+        .toLowerCase();
+
+    if (errorCode === 'clinical_history_not_found') {
+        return 'No encontramos el episodio clinico del caso. Reintenta cuando la historia clinica este vinculada.';
+    }
+
+    if (
+        config?.action === 'issue_prescription' &&
+        errorCode === 'clinical_history_approval_blocked'
+    ) {
+        return 'La receta requiere completar HCU-005 y la nota clinica antes de emitirse.';
+    }
+
+    return fallback;
+}
+
+function buildOperatorPostConsultActionMessage(
+    actionId,
+    ticket,
+    responseData = {}
+) {
+    const config = getOperatorPostConsultActionConfig(actionId);
+    const patientLabel = resolveOperatorPostConsultPatientLabel(ticket);
+
+    if (!config) {
+        return {
+            state: 'neutral',
+            message: 'Accion post-consulta preparada.',
+            toastTone: 'info',
+        };
+    }
+
+    if (config.action === 'issue_prescription') {
+        const prescriptionStatus = String(
+            responseData?.documents?.prescription?.status || ''
+        )
+            .trim()
+            .toLowerCase();
+        if (prescriptionStatus === 'issued') {
+            return {
+                state: 'success',
+                message: `${config.successMessage}`,
+                toastTone: 'success',
+            };
+        }
+
+        return {
+            state: 'warning',
+            message:
+                'La receta se regenero, pero todavia faltan prescripciones completas en HCU-005.',
+            toastTone: 'warning',
+        };
+    }
+
+    if (config.action === 'create_interconsultation') {
+        const items = Array.isArray(responseData?.interconsultations)
+            ? responseData.interconsultations
+            : [];
+        if (items.length > 0) {
+            return {
+                state: 'success',
+                message: config.successMessage,
+                toastTone: 'success',
+            };
+        }
+
+        return {
+            state: 'warning',
+            message: 'La derivacion se preparo, pero todavia falta completar el destino del procedimiento.',
+            toastTone: 'warning',
+        };
+    }
+
+    return {
+        state: 'success',
+        message: config.successMessage,
+        toastTone: 'success',
+    };
+}
+
+async function ensureOperatorClinicalEpisode(ticket, snapshot = null) {
+    const patientCaseId = String(ticket?.patientCaseId || '').trim();
+    if (!patientCaseId) {
+        throw new Error(
+            'El turno necesita un caso clinico vinculado antes de disparar acciones post-consulta.'
+        );
+    }
+
+    const patientLabel = resolveOperatorPostConsultPatientLabel(ticket, snapshot);
+    const response = await apiRequest('clinical-episode-action', {
+        method: 'POST',
+        body: {
+            action: 'open_episode',
+            caseId: patientCaseId,
+            appointmentId: Number(ticket?.appointmentId || 0) || undefined,
+            surface: 'queue_operator',
+            source: 'operator_post_consult',
+            patient: {
+                name: patientLabel,
+            },
+        },
+    });
+
+    return response?.data || {};
+}
+
+async function handleOperatorPostConsultAction(actionNode) {
+    const actionId = String(actionNode?.dataset?.postConsultAction || '').trim();
+    const config = getOperatorPostConsultActionConfig(actionId);
+    if (!config) {
+        return;
+    }
+
+    const activeTicket = getActiveCalledTicketForStation();
+    if (!activeTicket) {
+        createToast(
+            'Llama un turno antes de disparar acciones post-consulta.',
+            'warning'
+        );
+        return;
+    }
+
+    const ticketId = Number(activeTicket.id || 0) || 0;
+    const snapshot = getOperatorTicketPatientCaseSnapshot(activeTicket);
+
+    operatorPostConsultState.pendingTicketId = ticketId;
+    operatorPostConsultState.pendingActionId = config.action;
+    updateOperatorChrome();
+
+    try {
+        const episode = await ensureOperatorClinicalEpisode(activeTicket, snapshot);
+        const response = await apiRequest('clinical-episode-action', {
+            method: 'POST',
+            body: {
+                action: config.action,
+                sessionId: String(episode?.session?.sessionId || '').trim(),
+                caseId: String(activeTicket.patientCaseId || '').trim(),
+                appointmentId:
+                    Number(activeTicket?.appointmentId || 0) || undefined,
+                surface: 'queue_operator',
+                source: 'operator_post_consult',
+            },
+        });
+        const feedback = buildOperatorPostConsultActionMessage(
+            config.action,
+            activeTicket,
+            response?.data || {}
+        );
+
+        setOperatorPostConsultFeedback(ticketId, {
+            actionId: config.action,
+            state: feedback.state,
+            message: feedback.message,
+        });
+        createToast(
+            `${resolveOperatorPostConsultPatientLabel(activeTicket, snapshot)}: ${
+                feedback.message
+            }`,
+            feedback.toastTone
+        );
+    } catch (error) {
+        const message = buildOperatorPostConsultActionError(config.action, error);
+        setOperatorPostConsultFeedback(ticketId, {
+            actionId: config.action,
+            state: 'danger',
+            message,
+        });
+        createToast(
+            `${resolveOperatorPostConsultPatientLabel(activeTicket, snapshot)}: ${message}`,
+            'error'
+        );
+    } finally {
+        operatorPostConsultState.pendingTicketId = 0;
+        operatorPostConsultState.pendingActionId = '';
+        updateOperatorChrome();
+    }
+}
+
 function renderOperatorCurrentTicketPanel() {
     const host = getById('operatorCurrentTicketPanel');
     if (!(host instanceof HTMLElement)) {
@@ -3884,12 +4213,13 @@ function renderOperatorCurrentTicketPanel() {
                                   .map(
                                       (alert) =>
                                           `<li>${escapeHtml(alert)}</li>`
-                                  )
+                        )
                                   .join('')
                             : '<li>Sin alertas activas para este turno.</li>'
                     }
                 </ul>
             </div>
+            ${buildOperatorPostConsultActionButtons(activeTicket, snapshot)}
         </article>
     `;
 }
@@ -4239,6 +4569,7 @@ function isMutatingOperatorAction(action) {
         'queue-call-next',
         'queue-ticket-action',
         'queue-sensitive-confirm',
+        'operator-post-consult-action',
         'queue-reprint-ticket',
         'queue-bulk-action',
         'queue-bulk-reprint',
@@ -4980,6 +5311,11 @@ async function handleDocumentClick(event) {
     if (blocker) {
         notifyOperatorMutationBlocked(blocker);
         updateOperatorChrome();
+        return;
+    }
+
+    if (action === 'operator-post-consult-action') {
+        await handleOperatorPostConsultAction(actionNode);
         return;
     }
 
