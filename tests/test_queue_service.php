@@ -46,6 +46,26 @@ $walkin = $service->createWalkInTicket(qs_base_store(), ['patientInitials' => 'E
 qs_assert_true(($walkin['ok'] ?? false) === true, 'walk-in should be created');
 qs_assert_equals('A-001', (string) ($walkin['ticket']['ticketCode'] ?? ''), 'first walk-in should be A-001');
 qs_assert_equals('waiting', (string) ($walkin['ticket']['status'] ?? ''), 'walk-in status should be waiting');
+qs_assert_equals('consulta_general', (string) ($walkin['ticket']['visitReason'] ?? ''), 'default walk-in reason should be consulta_general');
+
+$walkinReasonStore = qs_base_store();
+$walkinGeneral = $service->createWalkInTicket($walkinReasonStore, [
+    'patientInitials' => 'GN',
+    'visitReason' => 'consulta_general',
+], 'kiosk');
+qs_assert_true(($walkinGeneral['ok'] ?? false) === true, 'general walk-in should be created');
+
+$walkinUrgent = $service->createWalkInTicket(($walkinGeneral['store'] ?? []), [
+    'patientInitials' => 'UR',
+    'visitReason' => 'urgencia',
+], 'kiosk');
+qs_assert_true(($walkinUrgent['ok'] ?? false) === true, 'urgent walk-in should be created');
+qs_assert_equals(true, (bool) ($walkinUrgent['ticket']['specialPriority'] ?? false), 'urgent walk-in should mark special priority');
+qs_assert_equals('Urgencia', (string) ($walkinUrgent['ticket']['visitReasonLabel'] ?? ''), 'urgent walk-in should expose reason label');
+
+$walkinUrgentCall = $service->callNext(($walkinUrgent['store'] ?? []), 1);
+qs_assert_true(($walkinUrgentCall['ok'] ?? false) === true, 'urgent walk-in call should succeed');
+qs_assert_equals('UR', (string) ($walkinUrgentCall['ticket']['patientInitials'] ?? ''), 'urgent walk-in should be called before general walk-in');
 
 // 2) Appointment check-in should avoid duplicates
 $today = date('Y-m-d');

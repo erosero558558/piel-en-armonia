@@ -3314,7 +3314,7 @@ function stopVoiceGuide({ source = 'manual' } = {}) {
 function buildVoiceGuideText() {
     const flowHint =
         state.selectedFlow === 'walkin'
-            ? 'Si no tienes cita, escribe iniciales y pulsa Generar turno.'
+            ? 'Si no tienes cita, elige el motivo, escribe iniciales y pulsa Generar turno.'
             : 'Si tienes cita, escanea tu QR o escribe telefono, fecha y hora y pulsa Confirmar check in.';
     const clinicName = getTurneroClinicBrandName(state.clinicProfile);
     return `Bienvenida al kiosco de turnos de ${clinicName}. ${flowHint} Si necesitas ayuda, pulsa Necesito apoyo y recepcion te asistira. Conserva tu ticket y espera el llamado en la pantalla de sala.`;
@@ -3601,6 +3601,18 @@ function resolveCheckinQrToken(rawValue) {
     return compactValue;
 }
 
+function walkInVisitReasonLabel(reason) {
+    return (
+        {
+            consulta_general: 'Consulta general',
+            control: 'Control',
+            procedimiento: 'Procedimiento',
+            urgencia: 'Urgencia',
+        }[String(reason || 'consulta_general').trim().toLowerCase()] ||
+        'Consulta general'
+    );
+}
+
 function focusFlowTarget(target, { announce = true } = {}) {
     const normalized =
         String(target || '').toLowerCase() === 'walkin' ? 'walkin' : 'checkin';
@@ -3632,16 +3644,19 @@ function focusFlowTarget(target, { announce = true } = {}) {
     }
 
     const targetInputId =
-        normalized === 'walkin' ? 'walkinInitials' : 'checkinQrCode';
+        normalized === 'walkin' ? 'walkinVisitReason' : 'checkinQrCode';
     const targetInput = getById(targetInputId);
-    if (targetInput instanceof HTMLInputElement) {
+    if (
+        targetInput instanceof HTMLInputElement ||
+        targetInput instanceof HTMLSelectElement
+    ) {
         targetInput.focus({ preventScroll: false });
     }
 
     if (announce) {
         setKioskProgressHint(
             normalized === 'walkin'
-                ? 'Paso 2: escribe iniciales y pulsa "Generar turno".'
+                ? 'Paso 2: elige motivo e iniciales y pulsa "Generar turno".'
                 : 'Paso 2: escanea tu QR o escribe telefono, fecha y hora.',
             'info'
         );
@@ -4965,6 +4980,12 @@ function renderTicketResult(payload, originLabel) {
         queueType: String(
             rawTicket?.queueType || rawTicket?.queue_type || 'walk_in'
         ),
+        visitReason: String(
+            rawTicket?.visitReason || rawTicket?.visit_reason || ''
+        ),
+        visitReasonLabel: String(
+            rawTicket?.visitReasonLabel || rawTicket?.visit_reason_label || ''
+        ),
         createdAt: String(
             rawTicket?.createdAt ||
                 rawTicket?.created_at ||
@@ -4984,6 +5005,12 @@ function renderTicketResult(payload, originLabel) {
     const printState = payload?.printed
         ? 'Impresion enviada a termica'
         : `Ticket generado sin impresion (${escapeHtml(print.message || 'sin detalle')})`;
+    const visitReasonLabel =
+        ticket.queueType === 'walk_in' &&
+        (ticket.visitReasonLabel || ticket.visitReason)
+            ? ticket.visitReasonLabel ||
+              walkInVisitReasonLabel(ticket.visitReason)
+            : '';
 
     container.innerHTML = `
         <article class="ticket-result-card">
@@ -4996,6 +5023,11 @@ function renderTicketResult(payload, originLabel) {
             <dl>
                 <div><dt>Posicion</dt><dd>#${escapeHtml(currentPosition)}</dd></div>
                 <div><dt>Tipo</dt><dd>${escapeHtml(ticket.queueType || '--')}</dd></div>
+                ${
+                    visitReasonLabel
+                        ? `<div><dt>Motivo</dt><dd>${escapeHtml(visitReasonLabel)}</dd></div>`
+                        : ''
+                }
                 <div><dt>Creado</dt><dd>${escapeHtml(formatIsoDateTime(ticket.createdAt))}</dd></div>
             </dl>
             <p class="ticket-result-print">${printState}</p>
@@ -5007,6 +5039,7 @@ function renderPendingTicketResult({
     originLabel,
     patientInitials,
     queueType,
+    visitReasonLabel = '',
     queuedAt,
 }) {
     const container = getById('ticketResult');
@@ -5023,6 +5056,11 @@ function renderPendingTicketResult({
             <dl>
                 <div><dt>Posicion</dt><dd>Pendiente sync</dd></div>
                 <div><dt>Tipo</dt><dd>${escapeHtml(queueType || '--')}</dd></div>
+                ${
+                    visitReasonLabel
+                        ? `<div><dt>Motivo</dt><dd>${escapeHtml(visitReasonLabel)}</dd></div>`
+                        : ''
+                }
                 <div><dt>Guardado</dt><dd>${escapeHtml(formatIsoDateTime(queuedAt))}</dd></div>
             </dl>
             <p class="ticket-result-print">Se sincronizara automaticamente al recuperar conexion.</p>
@@ -5396,12 +5434,17 @@ async function submitWalkIn(event) {
         return;
     }
     const nameInput = getById('walkinName');
+    const visitReasonInput = getById('walkinVisitReason');
     const initialsInput = getById('walkinInitials');
     const phoneInput = getById('walkinPhone');
     const submitBtn = getById('walkinSubmit');
 
     const name =
         nameInput instanceof HTMLInputElement ? nameInput.value.trim() : '';
+    const visitReason =
+        visitReasonInput instanceof HTMLSelectElement
+            ? visitReasonInput.value.trim()
+            : '';
     const initialsRaw =
         initialsInput instanceof HTMLInputElement
             ? initialsInput.value.trim()
@@ -5409,6 +5452,19 @@ async function submitWalkIn(event) {
     const patientInitials = initialsRaw || deriveInitials(name);
     const phone =
         phoneInput instanceof HTMLInputElement ? phoneInput.value.trim() : '';
+    const visitReasonLabel = walkInVisitReasonLabel(visitReason);
+
+    if (!visitReason) {
+        setKioskStatus(
+            'Elige el motivo de la visita antes de generar el turno',
+            'error'
+        );
+        setKioskProgressHint(
+            'Selecciona motivo e iniciales para generar tu turno.',
+            'warn'
+        );
+        return;
+    }
 
     if (!patientInitials) {
         setKioskStatus(
@@ -5416,7 +5472,7 @@ async function submitWalkIn(event) {
             'error'
         );
         setKioskProgressHint(
-            'Escribe iniciales para generar tu turno.',
+            'Selecciona motivo y escribe iniciales para generar tu turno.',
             'warn'
         );
         return;
@@ -5431,6 +5487,7 @@ async function submitWalkIn(event) {
             patientInitials,
             name,
             phone,
+            visitReason,
         };
         const payload = await apiRequest('queue-ticket', {
             method: 'POST',
@@ -5441,7 +5498,7 @@ async function submitWalkIn(event) {
             'Turno generado. Conserva tu ticket y espera llamado.',
             'success'
         );
-        renderTicketResult(payload, 'Turno sin cita');
+        renderTicketResult(payload, `Turno sin cita · ${visitReasonLabel}`);
         state.queueFailureStreak = 0;
         const refreshResult = await refreshQueueState();
         if (!refreshResult.ok) {
@@ -5458,8 +5515,9 @@ async function submitWalkIn(event) {
                     patientInitials,
                     name,
                     phone,
+                    visitReason,
                 },
-                originLabel: 'Turno sin cita',
+                originLabel: `Turno sin cita · ${visitReasonLabel}`,
                 patientInitials,
                 queueType: 'walk_in',
             });
@@ -5472,6 +5530,7 @@ async function submitWalkIn(event) {
                     originLabel: queued.originLabel,
                     patientInitials: queued.patientInitials,
                     queueType: queued.queueType,
+                    visitReasonLabel,
                     queuedAt: queued.queuedAt,
                 });
                 setKioskStatus(
@@ -5650,7 +5709,7 @@ function buildAssistantNextStepMessage() {
         return `Tu ticket ${ticket.ticketCode} ya esta generado. Espera mirando la pantalla de sala hasta que te llamen al consultorio indicado.`;
     }
     if (state.selectedFlow === 'walkin') {
-        return 'Completa tus iniciales y pulsa "Generar turno". Luego espera el llamado en la pantalla de sala.';
+        return 'Elige motivo, completa tus iniciales y pulsa "Generar turno". Luego espera el llamado en la pantalla de sala.';
     }
     return 'Escanea tu QR o completa telefono, fecha y hora y pulsa "Confirmar check-in". Luego espera el llamado en la pantalla de sala.';
 }
@@ -5670,7 +5729,7 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             recordAssistantMetric(intent, 'resolved', startedAt, {
                 action: 'focus_walkin',
             });
-            return 'Te llevo a No tengo cita. Escribe tus iniciales y pulsa "Generar turno".';
+            return 'Te llevo a No tengo cita. Elige el motivo, escribe tus iniciales y pulsa "Generar turno".';
         case 'where_wait':
             recordAssistantMetric(intent, 'resolved', startedAt, {
                 action: 'waiting_room_guidance',

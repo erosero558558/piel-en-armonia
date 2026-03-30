@@ -274,6 +274,8 @@ test.describe('Kiosco turnos', () => {
     });
 
     test('genera walk-in y responde asistente de sala', async ({ page }) => {
+        let walkinBody = null;
+
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
             const resource = url.searchParams.get('resource') || '';
@@ -309,6 +311,7 @@ test.describe('Kiosco turnos', () => {
             }
 
             if (resource === 'queue-ticket') {
+                walkinBody = route.request().postDataJSON();
                 return json(
                     route,
                     {
@@ -318,6 +321,8 @@ test.describe('Kiosco turnos', () => {
                             ticketCode: 'A-101',
                             patientInitials: 'EP',
                             queueType: 'walk_in',
+                            visitReason: 'urgencia',
+                            visitReasonLabel: 'Urgencia',
                             createdAt: new Date().toISOString(),
                         },
                         printed: false,
@@ -384,16 +389,24 @@ test.describe('Kiosco turnos', () => {
             ''
         );
 
+        await page.selectOption('#walkinVisitReason', 'urgencia');
         await page.fill('#walkinInitials', 'EP');
         await page.click('#walkinSubmit');
 
         await expect(page.locator('#ticketResult')).toContainText('A-101');
+        await expect(page.locator('#ticketResult')).toContainText('Urgencia');
         await expect(page.locator('#kioskSetupTitle')).toContainText(
             'Revisa la impresora'
         );
         await expect(page.locator('#kioskSetupChecks')).toContainText(
             'printer_disabled'
         );
+        expect(walkinBody).toEqual({
+            patientInitials: 'EP',
+            name: '',
+            phone: '',
+            visitReason: 'urgencia',
+        });
         await expect(page.locator('#queueWaitingCount')).toHaveText('2');
         await expect(page.locator('#queueConnectionState')).toContainText(
             'Cola conectada'
@@ -453,7 +466,7 @@ test.describe('Kiosco turnos', () => {
         await page.goto('/kiosco-turnos.html');
 
         await page.click('#kioskQuickWalkin');
-        await expect(page.locator('#walkinInitials')).toBeFocused();
+        await expect(page.locator('#walkinVisitReason')).toBeFocused();
         expect(chatCalls).toBe(0);
     });
 
