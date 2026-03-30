@@ -41,11 +41,31 @@ function normalizeDoctorProfile(data, fallbackState) {
     };
 }
 
+function normalizeReviews(data, fallbackState) {
+    const source = Array.isArray(data.reviews) ? data.reviews : (fallbackState?.reviews || []);
+    const totalReviews = source.length;
+    let averageRating = 0;
+    if (totalReviews > 0) {
+        let sum = 0;
+        for (const review of source) {
+            sum += Number(review.rating || 0);
+        }
+        averageRating = sum / totalReviews;
+    }
+    
+    return {
+        items: source,
+        totalReviews,
+        averageRating: Number(averageRating.toFixed(1)),
+        last5Reviews: source.slice(0, 5),
+    };
+}
+
 export function normalizeAdminDataPayload(data, healthPayload, fallbackState) {
     return {
         appointments: Array.isArray(data.appointments) ? data.appointments : [],
         callbacks: Array.isArray(data.callbacks) ? data.callbacks : [],
-        reviews: Array.isArray(data.reviews) ? data.reviews : [],
+        reviewsMeta: normalizeReviews(data, fallbackState),
         availability:
             data.availability && typeof data.availability === 'object'
                 ? data.availability
@@ -151,7 +171,7 @@ export function normalizeAdminStorePayload(payload, currentFunnelMetrics) {
     return {
         appointments: payload.appointments || [],
         callbacks: normalizeCallbacks(payload.callbacks || []),
-        reviews: payload.reviews || [],
+        reviewsMeta: payload.reviewsMeta || { items: [], totalReviews: 0, averageRating: 0, last5Reviews: [] },
         availability: payload.availability || {},
         availabilityMeta: payload.availabilityMeta || {},
         doctorProfile: payload.doctorProfile || null,

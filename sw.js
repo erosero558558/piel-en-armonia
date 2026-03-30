@@ -1,12 +1,10 @@
-const CACHE_NAME = 'aurora-derm-v22-portal-pwa-20260330';
+const CACHE_NAME = 'aurora-derm-v20-portal-pwa-20260330';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/en/index.html',
     '/es/portal/',
     '/es/portal/index.html',
-    '/es/portal/login/',
-    '/es/portal/login/index.html',
     '/es/portal/historial/',
     '/es/portal/historial/index.html',
     '/admin.html',
@@ -21,11 +19,7 @@ const STATIC_ASSETS = [
     '/js/nueva-web-main.js?v=6.0.2',
     '/js/public-v6-shell.js',
     '/js/portal-dashboard.js',
-    '/js/portal-history.js',
-    '/js/portal-login.js',
     '/js/portal-pwa.js',
-    '/js/portal-session.js',
-    '/js/portal-shell.js',
     '/admin-v3.css?v=admin-v3-20260314-sony150',
     '/admin.js?v=admin-20260320-mainpublish1',
     '/queue-ops.css?v=queue-ops-20260314-sony150',

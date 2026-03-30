@@ -29,7 +29,7 @@ test.describe('Patient portal login page', () => {
                     ok: true,
                     data: {
                         challengeId: 'ppc_demo_001',
-                        maskedPhone: '******4567',
+                        maskedPhone: '*******4567',
                         debugCode: '123456',
                         patient: {
                             patientId: 'pt_lucia_001',
@@ -57,41 +57,7 @@ test.describe('Patient portal login page', () => {
                         patient: {
                             patientId: 'pt_lucia_001',
                             name: 'Lucia Portal',
-                            phoneMasked: '******4567',
-                        },
-                    },
-                }),
-            });
-        });
-
-        await page.route('**/api.php?resource=patient-portal-dashboard', async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    ok: true,
-                    data: {
-                        authenticated: true,
-                        patient: {
-                            patientId: 'pt_lucia_001',
-                            name: 'Lucia Portal',
-                        },
-                        nextAppointment: {
-                            id: 101,
-                            dateLabel: 'jue 2 abr 2026',
-                            timeLabel: '10:30',
-                            doctorName: 'Dra Ana Rosero',
-                            appointmentTypeLabel: 'Consulta presencial',
-                            serviceName: 'Consulta Dermatológica',
-                            preparation: 'Llega 10 minutos antes y trae tus medicamentos a la consulta.',
-                            rescheduleUrl: '/?reschedule=tok_demo_001',
-                            whatsappUrl: 'https://wa.me/593982453672?text=hola',
-                            locationLabel: 'Consultorio Aurora Derm',
-                        },
-                        support: {
-                            bookingUrl: '/#citas',
-                            historyUrl: '/es/portal/historial/',
-                            whatsappUrl: 'https://wa.me/593982453672?text=hola',
+                            phoneMasked: '*******4567',
                         },
                     },
                 }),
@@ -105,7 +71,7 @@ test.describe('Patient portal login page', () => {
         await page.locator('[data-portal-login-request-form] button[type="submit"]').click();
 
         await expect(page.locator('[data-portal-login-verify-stage]')).toBeVisible();
-        await expect(page.locator('[data-portal-login-phone]')).toContainText('******4567');
+        await expect(page.locator('[data-portal-login-phone]')).toContainText('*******4567');
         await expect(page.locator('[data-portal-login-debug-code]')).toContainText('123456');
 
         await page.locator('input[name="otp"]').fill('123456');

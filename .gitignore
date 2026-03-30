@@ -76,3 +76,7 @@ php_server.log
 %TEMP%/
 !data/claims/
 !data/claims/tasks.json
+
+# Logs del servidor local (generados por START-SERVER-SILENT.ps1)
+logs/
+!logs/.gitkeep

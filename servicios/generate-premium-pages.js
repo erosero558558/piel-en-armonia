@@ -71,6 +71,22 @@ function buildPage(title, description, canonical, content) {
         <link rel="stylesheet" href="/styles-deferred.css?v=ui-20260227-deferredfix1" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <script src="/js/service-navigation-analytics.js?v=${escapeHtml(SERVICE_ANALYTICS_VERSION)}" defer></script>
+        <script>
+          (function() {
+            var variant = localStorage.getItem('cro_variant_s12_16');
+            if (!variant) {
+              variant = Math.random() < 0.5 ? 'control' : 'challenger';
+              localStorage.setItem('cro_variant_s12_16', variant);
+            }
+            window.__CRO_VARIANT = variant;
+            document.documentElement.setAttribute('data-cro-variant', variant);
+          })();
+        </script>
+        <style>
+          [data-cro-variant="control"] .cro-variant-challenger { display: none !important; }
+          [data-cro-variant="challenger"] .cro-variant-control { display: none !important; }
+          html:not([data-cro-variant]) .cro-variant-challenger { display: none !important; }
+        </style>
     </head>
     <body class="service-page-premium">
         <header class="service-header">
@@ -128,19 +144,83 @@ function buildServiceContent(service, serviceHrefPath) {
         .trim()
         .toLowerCase();
 
+    let socialProofHtml = '';
+    if (service.social_proof) {
+        const ratingStars = Array.from({length: service.social_proof.rating || 5})
+            .map(() => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`)
+            .join('');
+
+        const beforeImg = service.social_proof.before_img || "https://placehold.co/400x500/29323c/FFF?text=Antes";
+        const afterImg = service.social_proof.after_img || "https://placehold.co/400x500/185a9d/FFF?text=Despues";
+        
+        socialProofHtml = `
+<section class="service-panel service-social-proof">
+    <h2>Lo que dicen nuestros pacientes</h2>
+    <article class="social-proof-widget">
+        <div class="testimony-content">
+            <div class="testimony-rating" aria-label="Calificación de ${service.social_proof.rating} estrellas">
+                ${ratingStars}
+            </div>
+            <blockquote>
+                "${escapeHtml(service.social_proof.testimonial_text)}"
+            </blockquote>
+            <cite>
+                <span class="author">${escapeHtml(service.social_proof.author)}</span>
+                <span class="badge badge-primary">${escapeHtml(service.hero || service.slug)}</span>
+            </cite>
+        </div>
+        <details class="before-after-collapse">
+            <summary>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Ver caso clínico antes y después
+            </summary>
+            <div class="before-after-grid">
+                <figure>
+                    <img src="${escapeHtml(beforeImg)}" alt="Estado de la piel antes del tratamiento" loading="lazy" />
+                    <figcaption>Antes</figcaption>
+                </figure>
+                <figure>
+                    <img src="${escapeHtml(afterImg)}" alt="Estado de la piel después del tratamiento" loading="lazy" />
+                    <figcaption>Después</figcaption>
+                </figure>
+            </div>
+        </details>
+    </article>
+</section>`;
+    }
+
     return `
 <section class="service-hero-card" data-service-slug="${escapeHtml(slug)}" data-service-category="${escapeHtml(category)}">
-    <p class="service-hero-kicker">${escapeHtml(getCategoryLabel(category))}</p>
-    <h1>${escapeHtml(service.hero || service.slug)}</h1>
-    <p>${escapeHtml(service.summary || '')}</p>
-    <div class="service-meta-row">
-        <span>Duración estimada: ${escapeHtml(service.duration || '30 min')}</span>
-        <span>Desde $${escapeHtml(service.price_from)}</span>
-        <span>${escapeHtml(ivaLabel)}</span>
+    <div class="cro-variant cro-variant-control">
+        <p class="service-hero-kicker">${escapeHtml(getCategoryLabel(category))}</p>
+        <h1>${escapeHtml(service.hero || service.slug)}</h1>
+        <p>${escapeHtml(service.summary || '')}</p>
+        <div class="service-meta-row">
+            <span>Duración estimada: ${escapeHtml(service.duration || '30 min')}</span>
+            <span>Desde $${escapeHtml(service.price_from)}</span>
+            <span>${escapeHtml(ivaLabel)}</span>
+        </div>
+        <div class="service-actions">
+            <a class="btn btn-primary" href="${escapeHtml(bookingHref)}" data-analytics-event="start_booking_from_service" data-service-slug="${escapeHtml(slug)}" data-service-category="${escapeHtml(category)}">${escapeHtml(ctaLabel)}</a>
+            <a class="btn btn-secondary" href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
+        </div>
     </div>
-    <div class="service-actions">
-        <a class="btn btn-primary" href="${escapeHtml(bookingHref)}" data-analytics-event="start_booking_from_service" data-service-slug="${escapeHtml(slug)}" data-service-category="${escapeHtml(category)}">${escapeHtml(ctaLabel)}</a>
-        <a class="btn btn-secondary" href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
+    <div class="cro-variant cro-variant-challenger">
+        <p class="service-hero-kicker">Medicina Clínica Especializada</p>
+        <h1>Tratamiento Médico: ${escapeHtml(service.hero || service.slug)}</h1>
+        <p>Resultados reales y duraderos basados en diagnóstico clínico avanzado. Cuidado integral, sin promesas cosméticas vacías.</p>
+        <div class="service-meta-row">
+            <span>Duración clínica: ${escapeHtml(service.duration || '30 min')}</span>
+            <span>Desde $${escapeHtml(service.price_from)} (incluye valoración inicial en plan)</span>
+            <span>${escapeHtml(ivaLabel)}</span>
+        </div>
+        <div class="service-actions">
+            <a class="btn btn-primary" href="${escapeHtml(bookingHref)}" data-analytics-event="start_booking_from_service" data-service-slug="${escapeHtml(slug)}" data-service-category="${escapeHtml(category)}">Programar inicio de tratamiento médica</a>
+            <a class="btn btn-secondary" href="https://wa.me/593982453672?text=Necesito%20ayuda%20m%C3%A9dica%20para%20${encodeURIComponent(service.hero || service.slug)}" target="_blank" rel="noopener noreferrer">Consulta Express WhatsApp</a>
+        </div>
     </div>
 </section>
 
@@ -159,15 +239,29 @@ function buildServiceContent(service, serviceHrefPath) {
     <h2>Preguntas frecuentes</h2>
     ${faq}
 </section>
+${socialProofHtml}
 <section class="service-panel">
-    <h2>Siguiente paso recomendado</h2>
-    <p>
-        Reserva una valoración médica para confirmar diagnóstico, prioridad y plan personalizado.
-        Si ya tienes exámenes o fotos clínicas, llévalas a consulta.
-    </p>
-    <div class="service-actions">
-        <a class="btn btn-primary" href="${escapeHtml(bookingHref)}" data-analytics-event="start_booking_from_service" data-service-slug="${escapeHtml(slug)}" data-service-category="${escapeHtml(category)}">Reservar ahora</a>
-        <a class="btn btn-secondary" href="${escapeHtml(serviceHrefPath)}">Compartir este servicio</a>
+    <div class="cro-variant cro-variant-control">
+        <h2>Siguiente paso recomendado</h2>
+        <p>
+            Reserva una valoración médica para confirmar diagnóstico, prioridad y plan personalizado.
+            Si ya tienes exámenes o fotos clínicas, llévalas a consulta.
+        </p>
+        <div class="service-actions">
+            <a class="btn btn-primary" href="${escapeHtml(bookingHref)}" data-analytics-event="start_booking_from_service" data-service-slug="${escapeHtml(slug)}" data-service-category="${escapeHtml(category)}">Reservar ahora</a>
+            <a class="btn btn-secondary" href="${escapeHtml(serviceHrefPath)}">Compartir este servicio</a>
+        </div>
+    </div>
+    <div class="cro-variant cro-variant-challenger">
+        <h2>Inicie su recuperación clínica hoy</h2>
+        <p>
+            Miles de pacientes ya confían la salud de su piel en nuestro criterio médico riguroso. 
+            Dé el primer paso y reserve para que nuestros especialistas diagnostiquen su nivel de afección hoy mismo.
+        </p>
+        <div class="service-actions">
+            <a class="btn btn-primary" href="${escapeHtml(bookingHref)}" data-analytics-event="start_booking_from_service" data-service-slug="${escapeHtml(slug)}" data-service-category="${escapeHtml(category)}">Aceptar tratamiento e iniciar registro</a>
+            <a class="btn btn-secondary" href="${escapeHtml(serviceHrefPath)}">Guardar evidencia</a>
+        </div>
     </div>
 </section>`;
 }

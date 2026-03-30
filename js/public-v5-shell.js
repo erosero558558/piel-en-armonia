@@ -1,56 +1,6 @@
 (function () {
     'use strict';
 
-    function ensurePageLoaderBridge() {
-        if (
-            typeof window === 'undefined' ||
-            typeof document === 'undefined'
-        ) {
-            return;
-        }
-
-        var loader = document.getElementById('aurora-loader');
-        if (!loader) {
-            loader = document.createElement('div');
-            loader.id = 'aurora-loader';
-            loader.hidden = true;
-            loader.style.height = '3px';
-            loader.setAttribute('aria-hidden', 'true');
-            loader.setAttribute('data-state', 'idle');
-            (document.body || document.documentElement).appendChild(loader);
-        }
-
-        if (
-            !window.__auroraPageLoader ||
-            typeof window.__auroraPageLoader.start !== 'function' ||
-            typeof window.__auroraPageLoader.finish !== 'function'
-        ) {
-            window.__auroraPageLoader = {
-                start: function () {
-                    loader.hidden = false;
-                    loader.setAttribute('data-state', 'active');
-                },
-                finish: function () {
-                    loader.setAttribute('data-state', 'complete');
-                    window.setTimeout(function () {
-                        loader.hidden = true;
-                        loader.setAttribute('data-state', 'idle');
-                    }, 180);
-                },
-            };
-        }
-
-        if (document.querySelector('script[data-aurora-page-loader="true"]')) {
-            return;
-        }
-
-        var script = document.createElement('script');
-        script.src = '/js/aurora-nprogress.js?v=aurora-nprogress-20260330-v1';
-        script.defer = true;
-        script.dataset.auroraPageLoader = 'true';
-        document.head.appendChild(script);
-    }
-
     function bootHeroStage() {
         var roots = Array.from(
             document.querySelectorAll('[data-stage-carousel]')
@@ -892,7 +842,6 @@
     }
 
     function bootAll() {
-        ensurePageLoaderBridge();
         bootHeroStage();
         bootFamilyTabs();
         bootServiceGrid();

@@ -187,6 +187,32 @@ export function renderDashboardOperationsGrid() {
                 <ul id="dashboardClinicalEventFeed" class="sony-list dashboard-attention-list"></ul>
             </article>
 
+            <article class="sony-panel dashboard-card-reputation">
+                <header>
+                    <div>
+                        <h3>Reputación (Google)</h3>
+                        <small id="dashboardReputationMeta">Calificaciones y feedback de pacientes.</small>
+                    </div>
+                    <span
+                        class="dashboard-signal-chip"
+                        id="dashboardReputationChip"
+                        data-state="neutral"
+                    >
+                        Estable
+                    </span>
+                </header>
+                <div class="sony-panel-stats">
+                    <div><span>Reseñas</span><strong id="reputationTotalReviews">0</strong></div>
+                    <div><span>Promedio</span><strong id="reputationAverageRating">0.0</strong><small style="color:var(--color-gold-400)"> ★</small></div>
+                    <div><span>Req 7d</span><strong id="reputationRequestsSent">12</strong></div>
+                    <div><span>Tasa Req</span><strong id="reputationRequestsRate">24%</strong></div>
+                </div>
+                <p id="dashboardReputationSummary">
+                    Últimas 5 valoraciones recibidas en Google My Business.
+                </p>
+                <ul id="dashboardReputationQueue" class="sony-list dashboard-attention-list"></ul>
+            </article>
+
             <article class="sony-panel dashboard-card-conversion" id="funnelSummary">
                 <header>
                     <div>

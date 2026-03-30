@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Configurar OpenClaw — Aurora Derm</title>
+  <meta name="description" content="Guía paso a paso para conectar el Copiloto Clínico OpenClaw con ChatGPT en Aurora Derm." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Tokens ─────────────────────────────────────────────── */
+    :root {
+      --bg:         #0a0d14;
+      --bg-panel:   #111520;
+      --bg-card:    #181d2a;
+      --bg-hover:   #1f2535;
+      --border:     rgba(255,255,255,0.08);
+      --border-hi:  rgba(255,255,255,0.16);
+      --ink:        #e8ecf2;
+      --ink-muted:  rgba(232,236,242,0.5);
+      --ink-dim:    rgba(232,236,242,0.28);
+      --accent:     #6366f1;
+      --accent-hi:  #818cf8;
+      --accent-glow:rgba(99,102,241,0.22);
+      --success:    #22c55e;
+      --warn:       #f59e0b;
+      --r:          16px;
+      --r-lg:       24px;
+    }
+
+    /* ── Base ────────────────────────────────────────────────── */
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    /* ── Back link ────────────────────────────────────────────── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-decoration: none;
+      margin-bottom: 40px;
+      transition: color 0.18s;
+    }
+    .back-link:hover { color: var(--ink); }
+
+    /* ── Hero ──────────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .hero-kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-hi);
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 400;
+      line-height: 1.12;
+      color: var(--ink);
+      margin-bottom: 18px;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent-hi);
+    }
+    .hero-sub {
+      font-size: 16px;
+      color: var(--ink-muted);
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    /* ── What is OpenClaw box ─────────────────────────────────── */
+    .what-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 32px;
+      display: grid;
+      gap: 12px;
+      margin-bottom: 56px;
+    }
+    .what-box-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      margin-bottom: 4px;
+    }
+    .what-box-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .what-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .what-item-icon { font-size: 22px; }
+    .what-item-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .what-item-desc {
+      font-size: 12px;
+      color: var(--ink-muted);
+      line-height: 1.5;
+    }
+
+    /* ── Steps ─────────────────────────────────────────────────── */
+    .steps-heading {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      margin-bottom: 24px;
+    }
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 56px;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      left: 24px;
+      top: 48px;
+      bottom: 48px;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--accent-glow), transparent);
+      pointer-events: none;
+    }
+    .step {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 28px 28px 28px 80px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .step:hover { border-color: var(--border-hi); }
+    .step.done { border-color: rgba(34,197,94,0.25); }
+    .step-num {
+      position: absolute;
+      left: 20px;
+      top: 24px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-hover);
+      border: 1px solid var(--border-hi);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-hi);
+    }
+    .step-num.done-icon {
+      background: rgba(34,197,94,0.15);
+      border-color: rgba(34,197,94,0.3);
+      color: var(--success);
+    }
+    .step h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .step p {
+      font-size: 14px;
+      color: var(--ink-muted);
+      margin-bottom: 8px;
+    }
+    .step p:last-child { margin-bottom: 0; }
+    .step-code {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: 'Roboto Mono', 'Menlo', monospace;
+      font-size: 12px;
+      color: #a5b4fc;
+      margin: 12px 0;
+      word-break: break-all;
+      user-select: all;
+    }
+    .step-code .copy-hint {
+      font-size: 11px;
+      color: var(--ink-dim);
+      font-family: 'Inter', sans-serif;
+      float: right;
+      margin-top: 2px;
+    }
+    .step-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--accent-glow);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: var(--accent-hi);
+      margin-bottom: 12px;
+    }
+    .step-tag.green {
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.22);
+      color: var(--success);
+    }
+
+    /* ── Status Check ─────────────────────────────────────────── */
+    .status-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 28px;
+      margin-bottom: 56px;
+    }
+    .status-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .status-card-sub {
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-bottom: 20px;
+    }
+    .status-rows { display: flex; flex-direction: column; gap: 10px; }
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .status-row-label { color: var(--ink-muted); }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .pill-loading { background: rgba(255,255,255,0.07); color: var(--ink-dim); }
+    .pill-ok      { background: rgba(34,197,94,0.14);   color: var(--success); }
+    .pill-warn    { background: rgba(245,158,11,0.14);   color: var(--warn); }
+    .pill-err     { background: rgba(239,68,68,0.12);    color: #f87171; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    .check-btn {
+      margin-top: 16px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-hi);
+      background: rgba(255,255,255,0.05);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .check-btn:hover { background: rgba(255,255,255,0.10); }
+
+    /* ── Quick commands ────────────────────────────────────────── */
+    .commands-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      margin-bottom: 56px;
+    }
+    .commands-box-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .commands-box-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .commands-box-header p {
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+    .commands-list { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+    .command-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .command-desc { font-size: 12px; color: var(--ink-muted); min-width: 140px; }
+    .command-code {
+      flex: 1;
+      font-family: 'Roboto Mono', 'Menlo', monospace;
+      font-size: 12px;
+      color: #a5b4fc;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── CTA ───────────────────────────────────────────────────── */
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .cta-btn {
+      flex: 1;
+      min-width: 160px;
+      padding: 14px 20px;
+      border-radius: 14px;
+      border: 1px solid var(--border-hi);
+      background: rgba(255,255,255,0.05);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .cta-btn:hover { background: rgba(255,255,255,0.10); }
+    .cta-btn.primary {
+      background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+      border-color: transparent;
+      color: #fff;
+    }
+    .cta-btn.primary:hover { filter: brightness(1.1); }
+
+    /* ── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 560px) {
+      .what-box-grid { grid-template-columns: 1fr; }
+      .step { padding-left: 72px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Back -->
+  <a class="back-link" href="admin.html" id="back-to-admin">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Volver al panel
+  </a>
+
+  <!-- Hero -->
+  <div class="hero">
+    <p class="hero-kicker">🤖 Copiloto Clínico</p>
+    <h1>Configura <em>OpenClaw</em><br>para la consulta</h1>
+    <p class="hero-sub">
+      OpenClaw es tu asistente de IA durante la consulta médica. Carga automáticamente el historial del paciente en ChatGPT para que puedas enfocarte en el diagnóstico.
+    </p>
+  </div>
+
+  <!-- Qué hace OpenClaw -->
+  <div class="what-box">
+    <p class="what-box-title">¿Para qué sirve OpenClaw?</p>
+    <div class="what-box-grid">
+      <div class="what-item">
+        <span class="what-item-icon">📋</span>
+        <span class="what-item-label">Historial automático</span>
+        <span class="what-item-desc">Carga alergias, diagnósticos y medicamentos del paciente sin que copie y pegue nada.</span>
+      </div>
+      <div class="what-item">
+        <span class="what-item-icon">💊</span>
+        <span class="what-item-label">Recetas digitales</span>
+        <span class="what-item-desc">Dicta los medicamentos al chat. OpenClaw genera el PDF y lo envía por WhatsApp.</span>
+      </div>
+      <div class="what-item">
+        <span class="what-item-icon">🏷️</span>
+        <span class="what-item-label">Códigos CIE-10</span>
+        <span class="what-item-desc">Describe el diagnóstico en lenguaje natural y OpenClaw sugiere el código correcto.</span>
+      </div>
+      <div class="what-item">
+        <span class="what-item-icon">📝</span>
+        <span class="what-item-label">Notas de evolución</span>
+        <span class="what-item-desc">El médico habla, OpenClaw redacta la nota estructurada para la historia clínica.</span>
+      </div>
+      <div class="what-item">
+        <span class="what-item-icon">⚡</span>
+        <span class="what-item-label">Interacciones</span>
+        <span class="what-item-desc">Antes de prescribir, avisa si hay conflictos con los medicamentos activos del paciente.</span>
+      </div>
+      <div class="what-item">
+        <span class="what-item-icon">📄</span>
+        <span class="what-item-label">Certificados</span>
+        <span class="what-item-label">Reposo laboral, aptitud médica, constancia de tratamiento — en segundos.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pasos de configuración -->
+  <p class="steps-heading">Configuración paso a paso</p>
+  <div class="steps" id="setup-steps">
+
+    <div class="step done" id="step-1">
+      <div class="step-num done-icon">✅</div>
+      <span class="step-tag green">✔ Ya está listo</span>
+      <h2>Backend de Aurora Derm</h2>
+      <p>La API clínica ya está activa en <strong>pielarmonia.com</strong>. OpenClaw puede consultar el historial de cualquier paciente registrado en el sistema.</p>
+    </div>
+
+    <div class="step" id="step-2">
+      <div class="step-num">2</div>
+      <span class="step-tag">Requerido una vez</span>
+      <h2>Iniciar el servidor local</h2>
+      <p>Para que OpenClaw pueda autenticarte al entrar al admin, necesita un "helper" corriendo en tu computadora. Solo debes iniciarlo una vez y quedará en background sin ventanas molestas.</p>
+      <p>Abre una terminal en la carpeta del proyecto y ejecuta:</p>
+      <div class="step-code">npm run server:start</div>
+      <p>Verifica que todo esté bien:</p>
+      <div class="step-code">npm run server:status</div>
+    </div>
+
+    <div class="step" id="step-3">
+      <div class="step-num">3</div>
+      <span class="step-tag">Solo la primera vez</span>
+      <h2>Abre el Custom GPT en ChatGPT</h2>
+      <p>Ve a <a href="https://chat.openai.com" target="_blank" rel="noopener" style="color:var(--accent-hi)">chat.openai.com</a>, busca el GPT llamado <strong>"Aurora Derm Clinical"</strong> o usa el enlace directo que te dio el administrador.</p>
+      <p>La primera vez que lo uses, ChatGPT te pedirá que inicies sesión con tu cuenta de Aurora Derm. Ese proceso dura menos de 30 segundos.</p>
+    </div>
+
+    <div class="step" id="step-4">
+      <div class="step-num">4</div>
+      <span class="step-tag">Durante la consulta</span>
+      <h2>Úsalo en la consulta</h2>
+      <p>Con el paciente en consulta, dile a OpenClaw:</p>
+      <div class="step-code">"Carga al paciente Juan Pérez, caso activo de hoy"</div>
+      <p>OpenClaw cargará automáticamente el historial, alergias y diagnósticos previos. Desde ahí puedes pedirle que sugiera un diagnóstico, redacte la nota de evolución o genere la receta.</p>
+    </div>
+
+    <div class="step" id="step-5">
+      <div class="step-num">5</div>
+      <span class="step-tag">Al terminar la consulta</span>
+      <h2>Genera el resumen de cierre</h2>
+      <p>Al final, pídele:</p>
+      <div class="step-code">"Cierra la consulta y envía el resumen al paciente por WhatsApp"</div>
+      <p>OpenClaw generará la nota de evolución, el resumen para el paciente en lenguaje simple, y preparará el enlace de WhatsApp listo para enviar.</p>
+    </div>
+
+  </div>
+
+  <!-- Verificación de estado -->
+  <div class="status-card" id="status-card">
+    <p class="status-card-title">Estado del sistema ahora mismo</p>
+    <p class="status-card-sub">Verificando conexión con los servicios de OpenClaw…</p>
+    <div class="status-rows" id="status-rows">
+      <div class="status-row">
+        <span class="status-row-label">Servidor PHP (API)</span>
+        <span class="status-pill pill-loading" id="pill-php"><span class="dot"></span>Verificando</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row-label">Helper OpenClaw local</span>
+        <span class="status-pill pill-loading" id="pill-helper"><span class="dot"></span>Verificando</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row-label">AI Router (Tier activo)</span>
+        <span class="status-pill pill-loading" id="pill-router"><span class="dot"></span>Verificando</span>
+      </div>
+    </div>
+    <button class="check-btn" id="check-status-btn" onclick="checkAllStatus()">🔄 Verificar conexión ahora</button>
+  </div>
+
+  <!-- Comandos útiles -->
+  <div class="commands-box">
+    <div class="commands-box-header">
+      <h3>Comandos rápidos desde terminal</h3>
+      <p>Estos comandos están disponibles desde la carpeta raíz del proyecto</p>
+    </div>
+    <div class="commands-list">
+      <div class="command-item">
+        <span class="command-desc">Iniciar todo el stack local</span>
+        <span class="command-code">npm run server:start</span>
+      </div>
+      <div class="command-item">
+        <span class="command-desc">Verificar que está corriendo</span>
+        <span class="command-code">npm run server:status</span>
+      </div>
+      <div class="command-item">
+        <span class="command-desc">Detener servidores</span>
+        <span class="command-code">npm run server:stop</span>
+      </div>
+      <div class="command-item">
+        <span class="command-desc">Ver logs del servidor</span>
+        <span class="command-code">Get-Content logs/server.log -Wait</span>
+      </div>
+      <div class="command-item">
+        <span class="command-desc">Ver logs del helper</span>
+        <span class="command-code">Get-Content logs/openclaw-helper.log -Wait</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTAs -->
+  <div class="cta-row">
+    <a class="cta-btn" href="admin.html" id="cta-admin">← Volver al panel</a>
+    <a class="cta-btn primary" href="https://chat.openai.com" target="_blank" rel="noopener" id="cta-chatgpt">
+      Abrir ChatGPT →
+    </a>
+  </div>
+
+</div>
+
+<script>
+  // ── Status checker ───────────────────────────────────────────────────────────
+  function setPill(id, state, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = `status-pill pill-${state}`;
+    el.innerHTML = `<span class="dot"></span>${text}`;
+  }
+
+  async function checkEndpoint(url) {
+    try {
+      const resp = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+      return { ok: resp.ok, status: resp.status };
+    } catch {
+      return { ok: false, status: 0 };
+    }
+  }
+
+  async function checkAllStatus() {
+    setPill('pill-php',    'loading', 'Verificando…');
+    setPill('pill-helper', 'loading', 'Verificando…');
+    setPill('pill-router', 'loading', 'Verificando…');
+
+    // PHP API
+    const php = await checkEndpoint('/api.php?resource=health');
+    setPill('pill-php', php.ok ? 'ok' : 'err', php.ok ? 'Operativo' : 'Sin respuesta');
+
+    // Helper (local)
+    const helper = await checkEndpoint('http://127.0.0.1:4173/health');
+    setPill('pill-helper', helper.ok ? 'ok' : 'warn', helper.ok ? 'Corriendo' : 'No iniciado');
+
+    // AI Router
+    try {
+      const resp = await fetch('/api.php?resource=openclaw-router-status', {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(4000),
+      });
+      const data = await resp.json();
+      const router = data.router || data;
+      const tier = router.activeTier || router.tier || null;
+      const ok   = router.ok !== false;
+      setPill('pill-router', ok ? 'ok' : 'warn', ok
+        ? (tier ? `Tier ${tier.replace('tier', '')} activo` : 'Activo')
+        : 'Degradado');
+    } catch {
+      setPill('pill-router', 'err', 'Sin respuesta');
+    }
+  }
+
+  // Verificar al cargar la página
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAllStatus);
+  } else {
+    checkAllStatus();
+  }
+</script>
+</body>
+</html>

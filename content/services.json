@@ -52,6 +52,13 @@
                 "¿Cuándo se ven resultados?",
                 "¿Se combina con peeling o láser?"
             ],
+            "social_proof": {
+                "testimonial_text": "Llevaba años intentando de todo para la rosácea. El tratamiento me cambió la vida, ahora salgo sin maquillaje y sin miedo a que mi piel arda.",
+                "author": "María C.",
+                "rating": 5,
+                "before_img": "https://placehold.co/400x500/29323c/FFF?text=Antes",
+                "after_img": "https://placehold.co/400x500/185a9d/FFF?text=Despues"
+            },
             "cta": {
                 "type": "booking",
                 "service_hint": "acne",
@@ -277,6 +284,13 @@
                 "¿Cuándo se ven los resultados?",
                 "¿Cada cuánto debo repetirlo?"
             ],
+            "social_proof": {
+                "testimonial_text": "Tenía mucho miedo de quedar inexpresiva, pero el resultado con la Dra. Rosero fue súper natural. Me veo descansada, no diferente.",
+                "author": "Laura V.",
+                "rating": 5,
+                "before_img": "https://placehold.co/400x500/29323c/FFF?text=Antes",
+                "after_img": "https://placehold.co/400x500/185a9d/FFF?text=Despues"
+            },
             "cta": {
                 "type": "booking",
                 "service_hint": "rejuvenecimiento",

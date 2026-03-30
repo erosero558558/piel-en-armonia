@@ -165,8 +165,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aurora Derm | Dermatología Médica y Estética en Quito</title>
 <meta name="description" content="Aurora Derm: dermatología médica precisa en Quito. Diagnóstico integral, láser clínico, teledermatología y bioestimuladores. Solicite evaluación por WhatsApp.">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/favicon.svg">
+<link rel="icon" href="/images/icon-192.png">
 <meta property="og:type" content="website"><meta property="og:url" content="https://pielarmonia.com/">
 <meta property="og:title" content="Aurora Derm | Dermatología Médica en Quito">
 <meta property="og:description" content="Diagnóstico integral, láser clínico y teledermatología en Quito.">
@@ -177,14 +176,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://www.clarity.ms">
 
-<!-- Google Analytics GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-2DWZ5PJ4MC');
-</script>
 <!-- Preload Critical Above The Fold Media -->
 <link rel="preload" as="image" href="/images/optimized/v6-clinic-brand-hero-wide-1400.webp" imagesrcset="/images/optimized/v6-clinic-brand-hero-wide-800.webp 800w,/images/optimized/v6-clinic-brand-hero-wide-1200.webp 1200w,/images/optimized/v6-clinic-brand-hero-wide-1400.webp 1400w" imagesizes="(min-width: 1024px) 50vw, 100vw" fetchpriority="high">
 
@@ -196,6 +187,25 @@
 <link rel="stylesheet" href="/styles/base.css">
 <link rel="stylesheet" href="/styles/components.css">
 <link rel="stylesheet" href="/styles/aurora-public.css">
+
+<!-- CRO A/B Testing Snippet -->
+<script>
+  (function() {
+    var variant = localStorage.getItem('cro_variant_s12_16');
+    if (!variant) {
+      variant = Math.random() < 0.5 ? 'control' : 'challenger';
+      localStorage.setItem('cro_variant_s12_16', variant);
+    }
+    window.__CRO_VARIANT = variant;
+    document.documentElement.setAttribute('data-cro-variant', variant);
+  })();
+</script>
+<style>
+  [data-cro-variant="control"] .cro-variant-challenger { display: none !important; }
+  [data-cro-variant="challenger"] .cro-variant-control { display: none !important; }
+  /* Fallback without JS */
+  html:not([data-cro-variant]) .cro-variant-challenger { display: none !important; }
+</style>
 </head>
 <body>
 <a href="#main-content" class="skip-link">Ir al contenido principal</a>
@@ -248,12 +258,26 @@
     <img src="/images/optimized/v6-clinic-brand-hero-wide-1400.webp" srcset="/images/optimized/v6-clinic-brand-hero-wide-800.webp 800w,/images/optimized/v6-clinic-brand-hero-wide-1200.webp 1200w,/images/optimized/v6-clinic-brand-hero-wide-1400.webp 1400w" sizes="(min-width: 1024px) 50vw, 100vw" alt="Aurora Derm — Dermatología en Quito" fetchpriority="high">
   </div>
   <div class="hero-content">
-    <h1 class="hero-headline">Primero entendemos<br>su piel. <br><em>Luego actuamos.</em></h1>
-    <p class="hero-subheadline">Su clínica en Quito especializada en regeneración cutánea. Diagnóstico profundo y seguimiento estricto liderado por la Dra. Rosero y el Dr. Narváez.</p>
-    
-    <div class="hero-ctas">
-      <a href="https://wa.me/593982453672?text=Hola%2C%20quisiera%20agendar%20una%20evaluaci%C3%B3n" class="btn-primary">Agendar evaluación clínica</a>
-      <a href="/es/servicios/index.html" class="btn-ghost">Conoce nuestros tratamientos</a>
+    <!-- Variant: Control -->
+    <div class="cro-variant cro-variant-control">
+      <h1 class="hero-headline">Primero entendemos<br>su piel. <br><em>Luego actuamos.</em></h1>
+      <p class="hero-subheadline">Su clínica en Quito especializada en regeneración cutánea. Diagnóstico profundo y seguimiento estricto liderado por la Dra. Rosero y el Dr. Narváez.</p>
+      
+      <div class="hero-ctas">
+        <a href="https://wa.me/593982453672?text=Hola%2C%20quisiera%20agendar%20una%20evaluaci%C3%B3n" class="btn-primary" data-analytics-event="start_booking_from_home">Agendar evaluación clínica</a>
+        <a href="/es/servicios/index.html" class="btn-ghost">Conoce nuestros tratamientos</a>
+      </div>
+    </div>
+
+    <!-- Variant: Challenger -->
+    <div class="cro-variant cro-variant-challenger">
+      <h1 class="hero-headline">Medicina real<br>para problemas<br><em>reales de su piel.</em></h1>
+      <p class="hero-subheadline">Resultados clínicos medibles sin falsas promesas cosméticas. Cuidado dermatológico avanzado en Quito guiado por la ciencia.</p>
+      
+      <div class="hero-ctas">
+        <a href="https://wa.me/593982453672?text=Hola%2C%20quisiera%20empezar%20un%20tratamiento%20m%C3%A9dico" class="btn-primary" data-analytics-event="start_booking_from_home">Iniciar tratamiento médico</a>
+        <a href="/es/servicios/index.html" class="btn-ghost">Ver procedimientos médicos</a>
+      </div>
     </div>
 
     <div class="trust-badges-bar">
@@ -447,6 +471,7 @@
 <footer class="site-footer container"><div class="footer-grid reveal"><div class="footer-brand"><h3>Aurora Derm</h3><p>Dermatología que le explica cómo sanar y qué esperar, sin vueltas innecesarias ni presión comercial. Quito, Ecuador.</p></div><nav><h4>Servicios</h4><a href="/es/servicios/acne-rosacea/index.html">Acné y Rosácea</a><a href="/es/servicios/laser-dermatologico/index.html">Láser Dermatológico</a><a href="/es/servicios/bioestimuladores-colageno/index.html">Bioestimuladores</a><a href="/es/servicios/cancer-piel/index.html">Tamizaje Oncológico</a><a href="/es/servicios/teledermatologia/index.html">Teledermatología</a></nav><nav><h4>Legal</h4><a href="/es/legal/aviso-medico/index.html">Aviso Médico</a><a href="/es/legal/privacidad/index.html">Privacidad</a><a href="/es/legal/terminos/index.html">Términos</a></nav><div class="footer-contact"><h4>Contacto</h4><p>Av. República de El Salvador, Quito, Ecuador</p><iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3989.79153549723!2d-78.4678!3d-0.1807!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMCExMCc1MC41IlMgNzjCsDI4JzA0LjEiVw!5e0!3m2!1sen!2sec!4v1" width="100%" height="150" style="border:0; border-radius: 8px; margin-top: 16px; min-width: 200px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa de ubicación de la clínica"></iframe></div></div><div class="footer-bottom"><p>&copy; 2026 Aurora Derm — Quito, Ecuador</p><p>Información de carácter médico. Consulte siempre a un especialista.</p></div></footer>
 <script src="/js/aurora-nprogress.js" defer></script>
 <script src="/js/public-v6-shell.js?v=public-v6-shell-20260315-r3" defer></script>
+<script src="/js/aurora-header.js" defer></script>
 <script src="/js/aurora-counters.js" defer></script>
 <script src="/js/nueva-web-main.js?v=6.0.2" defer></script>
 </body></html>

@@ -450,7 +450,7 @@ body[data-theme="admin"] .empty-state h3 {
 .empty-state--default svg { stroke: var(--pub-text-muted); }
 
 /* ==========================================================================
-   Social Proof Widget (UI-07)
+   Social Proof Widget (S12-26)
    ========================================================================== */
 
 .social-proof-widget {
@@ -458,116 +458,119 @@ body[data-theme="admin"] .empty-state h3 {
   border: 1px solid var(--pub-border);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
-  margin-top: var(--space-6);
-  margin-bottom: var(--space-6);
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  transition: box-shadow var(--transition-normal);
 }
 
-.social-proof-quote {
+.social-proof-widget:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.testimony-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+}
+
+.testimony-rating {
+  display: flex;
+  gap: var(--space-1);
+  color: var(--color-gold-400);
+}
+
+.testimony-rating svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.testimony-content blockquote {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  line-height: var(--leading-tight);
-  color: var(--color-gold-700);
-  margin: 0 0 var(--space-4) 0;
-  padding: 0 0 0 var(--space-4);
-  border-left: 3px solid var(--color-gold-500);
+  font-size: var(--text-lg);
+  color: var(--pub-text-primary);
+  line-height: var(--leading-relaxed);
+  margin: 0;
   font-style: italic;
 }
 
-.social-proof-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin-bottom: var(--space-6);
-}
-
-.social-proof-author {
-  font-weight: 600;
-  color: var(--pub-text-primary);
-  font-size: var(--text-base);
-}
-
-.social-proof-service {
+.testimony-content cite {
   font-size: var(--text-sm);
   color: var(--pub-text-muted);
+  font-style: normal;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-.social-proof-service span {
+.testimony-content cite .author {
+  font-weight: 600;
   color: var(--pub-text-primary);
-  font-weight: 500;
 }
 
-.social-proof-before-after {
-  background: var(--pub-bg-warm);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--pub-border);
-  overflow: hidden;
+.before-after-collapse {
+  border-top: 1px solid var(--pub-border);
+  padding-top: var(--space-4);
 }
 
-.social-proof-before-after summary {
-  padding: var(--space-4);
+.before-after-collapse summary {
   cursor: pointer;
   font-weight: 500;
   font-size: var(--text-sm);
-  color: var(--pub-text-primary);
-  user-select: none;
+  color: var(--color-aurora-600);
+  outline: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  transition: background var(--transition-fast);
+  gap: var(--space-2);
+  user-select: none;
 }
 
-.social-proof-before-after summary:hover {
-  background: var(--color-stone-100);
+.before-after-collapse summary::marker {
+  color: var(--pub-text-muted);
 }
 
-.social-proof-before-after summary::after {
-  content: "+";
-  font-size: var(--text-xl);
-  color: var(--color-gold-500);
+.before-after-collapse summary:hover {
+  color: var(--color-aurora-500);
 }
 
-.social-proof-before-after[open] summary {
-  border-bottom: 1px solid var(--pub-border);
-  background: var(--pub-bg-surface);
-}
-
-.social-proof-before-after[open] summary::after {
-  content: "−";
-}
-
-.social-proof-images {
+.before-after-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
-  padding: var(--space-4);
+  margin-top: var(--space-4);
+  animation: fadeIn var(--transition-normal) ease-in-out;
 }
 
-@media (min-width: 768px) {
-  .social-proof-images {
-    grid-template-columns: 1fr 1fr;
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.social-proof-images .image-box {
+.before-after-grid figure {
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.social-proof-images .image-box span {
+.before-after-grid img {
+  width: 100%;
+  aspect-ratio: 4/5;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--pub-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.before-after-grid figcaption {
   font-size: var(--text-xs);
+  color: var(--pub-text-muted);
+  text-align: center;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
-  color: var(--pub-text-muted);
   font-weight: 600;
-  text-align: center;
 }
-
-.social-proof-images img {
-  width: 100%;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  border: 1px solid var(--pub-border);
-}
-

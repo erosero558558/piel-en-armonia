@@ -451,6 +451,9 @@
         if (!params.template_id) {
             params.template_id = resolveTemplateId();
         }
+        if (typeof window.__CRO_VARIANT === 'string' && !params.cro_variant) {
+            params.cro_variant = window.__CRO_VARIANT;
+        }
         return params;
     }
 

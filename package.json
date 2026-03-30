@@ -3,6 +3,11 @@
   "private": true,
   "scripts": {
     "dev": "php -S 0.0.0.0:8000 api.php",
+    "server:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/START-SERVER-SILENT.ps1",
+    "server:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/STOP-SERVER.ps1",
+    "server:status": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/STATUS-SERVER.ps1",
+    "server:logs": "powershell -NoProfile -Command \"Get-Content logs/server.log -Wait\"",
+    "server:logs:helper": "powershell -NoProfile -Command \"Get-Content logs/openclaw-helper.log -Wait\"",
     "test": "php vendor/bin/phpunit --testsuite Smoke && node bin/conflict.js",
     "gov:status": "node bin/claim.js status && node bin/report.js",
     "gov:dispatch": "node bin/dispatch.js --role fullstack",

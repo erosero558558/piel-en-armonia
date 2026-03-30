@@ -956,6 +956,47 @@ function bindCheckoutReviewActions() {
     root.dataset.checkoutReviewBound = 'true';
 }
 
+function buildReputationItems(meta) {
+    const list = Array.isArray(meta?.last5Reviews) ? meta.last5Reviews : [];
+    if (!list.length) {
+        return `
+            <li class="dashboard-attention-item" data-tone="neutral">
+                 <div>
+                    <strong>Sin reseñas</strong>
+                    <br><small>Aún no se han recibido valoraciones.</small>
+                </div>
+            </li>
+        `;
+    }
+    return list.map(item => `
+        <li class="dashboard-attention-item" data-tone="${item.rating >= 4 ? 'success' : item.rating <= 2 ? 'warning' : 'neutral'}">
+            <div>
+                <strong>${escapeHtml(item.name || 'Anónimo')}</strong><small style="color:var(--color-gold-400); margin-left: 8px;">★ ${Number(item.rating || 0).toFixed(1)}</small>
+                <br><small>${escapeHtml(item.text || '')}</small>
+                <br><small>${escapeHtml(item.date || '')}</small>
+            </div>
+        </li>
+    `).join('');
+}
+
+function setReputationState(meta) {
+    const chip = document.getElementById('dashboardReputationChip');
+    const total = Number(meta?.totalReviews || 0);
+    const avg = Number(meta?.averageRating || 0);
+    
+    setText('#reputationTotalReviews', total);
+    setText('#reputationAverageRating', avg.toFixed(1));
+    setText('#reputationRequestsSent', 12); // Mocked per S2-20
+    setText('#reputationRequestsRate', '24%');
+    
+    setHtml('#dashboardReputationQueue', buildReputationItems(meta));
+    
+    if (chip) {
+        setText('#dashboardReputationChip', total > 0 ? (avg >= 4.0 ? 'Excelente' : 'Atención') : 'Sin datos');
+        chip.setAttribute('data-state', total > 0 ? (avg >= 4.0 ? 'success' : avg <= 3.0 ? 'warning' : 'neutral') : 'neutral');
+    }
+}
+
 export function renderDashboard(state) {
     const dashboardState = {
         ...getDashboardDerivedState(state),
@@ -1000,6 +1041,7 @@ export function renderDashboard(state) {
     );
     setCheckoutReviewState(dashboardState.checkoutReviewMeta);
     setPaymentAccountState(dashboardState.paymentAccountMeta);
+    setReputationState(state?.data?.reviewsMeta);
     setHtml('#dashboardAttentionList', buildAttentionItems(dashboardState));
     const queueAssistant = setFunnelMetrics(dashboardState.funnel);
     renderDashboardCharts(queueAssistant);

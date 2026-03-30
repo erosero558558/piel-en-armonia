@@ -14,6 +14,12 @@ function normalizeList(value) {
     return Array.isArray(value) ? value : [];
 }
 
+async function fetchReviews(data) {
+    if (data.reviews) return data.reviews;
+    const reviewsPayload = await apiRequest('reviews').catch(() => null);
+    return reviewsPayload?.data || [];
+}
+
 function normalizeNumber(value) {
     const num = Number(value || 0);
     return Number.isFinite(num) ? Math.max(0, num) : 0;
@@ -116,6 +122,7 @@ export async function refreshAdminData() {
             {
                 ...data,
                 funnelMetrics: await fetchFunnelMetrics(data),
+                reviews: await fetchReviews(data),
             },
             healthPayload,
             fallbackState

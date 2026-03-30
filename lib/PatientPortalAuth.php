@@ -216,8 +216,8 @@ final class PatientPortalAuth
             ];
         }
 
-        $session = self::authenticateSession($store, $token);
-        if (($session['ok'] ?? false) !== true) {
+        $claims = self::decodeJwt($token);
+        if ($claims === []) {
             return [
                 'ok' => true,
                 'data' => [
@@ -225,37 +225,6 @@ final class PatientPortalAuth
                     'storageKey' => self::storageKey(),
                 ],
             ];
-        }
-
-        return [
-            'ok' => true,
-            'data' => [
-                'authenticated' => true,
-                'expiresAt' => (string) ($session['data']['expiresAt'] ?? gmdate('c')),
-                'patient' => is_array($session['data']['patient'] ?? null) ? $session['data']['patient'] : [],
-                'storageKey' => self::storageKey(),
-            ],
-        ];
-    }
-
-    public static function authenticateSession(array $store, ?string $token): array
-    {
-        $token = trim((string) $token);
-        if ($token === '') {
-            return self::error(
-                'Necesitas iniciar sesion en el portal para ver tus datos.',
-                401,
-                'patient_portal_auth_required'
-            );
-        }
-
-        $claims = self::decodeJwt($token);
-        if ($claims === []) {
-            return self::error(
-                'Tu sesion del portal expiro. Ingresa nuevamente con tu codigo.',
-                401,
-                'patient_portal_session_invalid'
-            );
         }
 
         $snapshot = self::resolvePatientSnapshot($store, (string) ($claims['phone'] ?? ''));
@@ -275,18 +244,12 @@ final class PatientPortalAuth
         return [
             'ok' => true,
             'data' => [
-                'claims' => $claims,
+                'authenticated' => true,
                 'expiresAt' => gmdate('c', (int) ($claims['exp'] ?? time())),
                 'patient' => self::publicPatientPayload($snapshot),
-                'snapshot' => $snapshot,
                 'storageKey' => self::storageKey(),
             ],
         ];
-    }
-
-    public static function matchesPatientPhone(string $left, string $right): bool
-    {
-        return self::phonesMatch($left, $right);
     }
 
     public static function bearerTokenFromRequest(): string
