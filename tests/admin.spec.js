@@ -1237,6 +1237,165 @@ test.describe('Panel de administracion', () => {
         );
     });
 
+    test('dashboard muestra estado de cuenta por paciente con saldos y vencimientos', async ({
+        page,
+    }) => {
+        const now = Date.now();
+        const overdueAt = new Date(now - 6 * 60 * 60 * 1000).toISOString();
+        const dueSoonAt = new Date(now + 20 * 60 * 60 * 1000).toISOString();
+        const settledAt = new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString();
+
+        await setupAuthenticatedAdminMocks(page, {
+            paymentAccountMeta: {
+                summary: {
+                    patientCount: 2,
+                    outstandingCount: 2,
+                    reconciliatingCount: 1,
+                    dueSoonCount: 1,
+                    overdueCount: 1,
+                    outstandingBalanceCents: 15500,
+                    outstandingBalanceLabel: '$155.00',
+                    reconciliatingBalanceCents: 4000,
+                    reconciliatingBalanceLabel: '$40.00',
+                    settledBalanceCents: 4500,
+                    settledBalanceLabel: '$45.00',
+                },
+                patients: [
+                    {
+                        id: 'acct_ana',
+                        patientKey: 'email:ana@example.com',
+                        patientName: 'Ana Test',
+                        patientEmail: 'ana@example.com',
+                        patientWhatsapp: '+593999000111',
+                        orderCount: 2,
+                        outstandingCount: 1,
+                        reconciliatingCount: 0,
+                        settledCount: 1,
+                        dueSoonCount: 0,
+                        overdueCount: 1,
+                        outstandingBalanceCents: 8000,
+                        outstandingBalanceLabel: '$80.00',
+                        reconciliatingBalanceCents: 0,
+                        reconciliatingBalanceLabel: '$0.00',
+                        settledBalanceCents: 4500,
+                        settledBalanceLabel: '$45.00',
+                        nextDueAt: overdueAt,
+                        lastActivityAt: overdueAt,
+                        orders: [
+                            {
+                                id: 'co_ana_pending',
+                                receiptNumber: 'PAY-ANA-001',
+                                concept: 'Saldo peeling',
+                                amountLabel: '$80.00',
+                                paymentMethod: 'transfer',
+                                paymentMethodLabel: 'Transferencia',
+                                paymentStatus: 'pending_transfer',
+                                paymentStatusLabel: 'Pendiente de verificacion',
+                                statusBucket: 'outstanding',
+                                dueAt: overdueAt,
+                                dueState: 'overdue',
+                                activityAt: overdueAt,
+                            },
+                            {
+                                id: 'co_ana_paid',
+                                receiptNumber: 'PAY-ANA-002',
+                                concept: 'Control laser',
+                                amountLabel: '$45.00',
+                                paymentMethod: 'card',
+                                paymentMethodLabel: 'Tarjeta',
+                                paymentStatus: 'paid',
+                                paymentStatusLabel: 'Pagado',
+                                statusBucket: 'settled',
+                                activityAt: settledAt,
+                            },
+                        ],
+                    },
+                    {
+                        id: 'acct_luis',
+                        patientKey: 'email:luis@example.com',
+                        patientName: 'Luis Mora',
+                        patientEmail: 'luis@example.com',
+                        patientWhatsapp: '+593999000222',
+                        orderCount: 2,
+                        outstandingCount: 1,
+                        reconciliatingCount: 1,
+                        settledCount: 0,
+                        dueSoonCount: 1,
+                        overdueCount: 0,
+                        outstandingBalanceCents: 7500,
+                        outstandingBalanceLabel: '$75.00',
+                        reconciliatingBalanceCents: 4000,
+                        reconciliatingBalanceLabel: '$40.00',
+                        settledBalanceCents: 0,
+                        settledBalanceLabel: '$0.00',
+                        nextDueAt: dueSoonAt,
+                        lastActivityAt: dueSoonAt,
+                        orders: [
+                            {
+                                id: 'co_luis_pending',
+                                receiptNumber: 'PAY-LUI-001',
+                                concept: 'Control acne',
+                                amountLabel: '$75.00',
+                                paymentMethod: 'cash',
+                                paymentMethodLabel: 'Efectivo en consultorio',
+                                paymentStatus: 'pending_cash',
+                                paymentStatusLabel: 'Pendiente de pago en consultorio',
+                                statusBucket: 'outstanding',
+                                dueAt: dueSoonAt,
+                                dueState: 'due_soon',
+                                activityAt: dueSoonAt,
+                            },
+                            {
+                                id: 'co_luis_verified',
+                                receiptNumber: 'PAY-LUI-002',
+                                concept: 'Reserva procedimiento',
+                                amountLabel: '$40.00',
+                                paymentMethod: 'transfer',
+                                paymentMethodLabel: 'Transferencia',
+                                paymentStatus: 'verified_transfer',
+                                paymentStatusLabel: 'Verificado',
+                                statusBucket: 'reconciliating',
+                                activityAt: overdueAt,
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+        await openDashboardSection(page);
+
+        await expect(page.locator('#paymentAccountPatientCount')).toHaveText(
+            '2'
+        );
+        await expect(page.locator('#paymentAccountOutstandingCount')).toHaveText(
+            '2'
+        );
+        await expect(page.locator('#paymentAccountOverdueCount')).toHaveText(
+            '1'
+        );
+        await expect(page.locator('#dashboardPaymentAccountChip')).toContainText(
+            '1 vencido'
+        );
+        await expect(page.locator('#dashboardPaymentAccountSummary')).toContainText(
+            'Saldo pendiente $155.00'
+        );
+        await expect(page.locator('#dashboardPaymentAccountList')).toContainText(
+            'Ana Test'
+        );
+        await expect(page.locator('#dashboardPaymentAccountList')).toContainText(
+            'Luis Mora'
+        );
+        await expect(page.locator('#dashboardPaymentAccountList')).toContainText(
+            'PAY-ANA-001'
+        );
+        await expect(page.locator('#dashboardPaymentAccountList')).toContainText(
+            '$40.00 por aplicar'
+        );
+    });
+
     test('dashboard muestra el timeline reciente de Flow OS por paciente', async ({
         page,
     }) => {

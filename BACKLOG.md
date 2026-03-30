@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:01:45 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:04:47 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **53%** completado (133/252)
+`███████████░░░░░░░░░` **53%** completado (134/252)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 58 | 9 | 87% |
+| 🎯 Sprint 3 | 59 | 8 | 88% |
 | ⏸ Sprint 4 | 13 | 13 | 50% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -33,11 +33,10 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (7)
+### 🟢 Disponibles (6)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S3-34** | `[S3]` | M |
 | **S3-38** | `[S3]` | M |
 | **S3-43** | `[S3]` | S |
 | **S3-44** | `[S3]` | S |
@@ -47,7 +46,7 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-42** `[S3]` → _Antigravity_ (expira en 233min)
+- **S3-42** `[S3]` → _Antigravity_ (expira en 230min)
 
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
 
@@ -150,7 +149,7 @@ _Sprint completado. 19/19 tareas._
 ## ⏸ Sprint UI — Fase 2: Follow-ups del Audit
 _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 
-### 🟢 Disponibles (20)
+### 🟢 Disponibles (19)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -159,7 +158,11 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 | **UI2-03** | `[UI2]` | S |
 | **UI2-04** | `[UI2]` | S |
 | **UI2-05** | `[UI2]` | M |
-| ... | | _+15 más_ |
+| ... | | _+14 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **UI2-20** `[UI2]` → _Codex-erosero558558_ (expira en 117min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

@@ -1084,7 +1084,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S3-32** `[L]` Checkout integrado — `es/pago/index.html`: monto, concepto, métodos (Stripe, transferencia, efectivo). Generar recibo digital.
 - [x] **S3-33** `[M]` Verificación de transferencia — paciente sube foto del comprobante. Admin verifica y aprueba. Status: pendiente → verificado → aplicado.
-- [ ] **S3-34** `[M]` Estado de cuenta — vista en admin: historial de pagos por paciente, saldos pendientes, próximos vencimientos.
+- [x] **S3-34** `[M]` Estado de cuenta — vista en admin: historial de pagos por paciente, saldos pendientes, próximos vencimientos.
 - [ ] **S3-35** `[L]` `[HUMAN]` Factura SRI — integrar con facturación electrónica del SRI Ecuador. **BLOQUEADO hasta junio 2026:** El médico titular (Dr. Hermano) aún no se gradúa. Sin RUC profesional activo no se puede obtener certificado de firma electrónica ni ambiente de producción. **No tocar hasta julio 2026.** Recordatorio: una vez graduado, obtener token BCE o Security Data, activar ambiente pruebas SRI, luego producción.
 
 #### 3.7 Perfil del médico y configuración clínica
