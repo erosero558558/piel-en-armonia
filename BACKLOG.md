@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 2:24:06 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 3:01:41 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████░░░░░░░░░░░` **47%** completado (211/449)
+`█████████░░░░░░░░░░░` **47%** completado (212/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -26,7 +26,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 2 | 24 | 8% |
 | ⏸ Sprint 13 | 3 | 18 | 14% |
-| ⏸ Sprint UI | 15 | 5 | 75% |
+| ⏸ Sprint UI | 16 | 4 | 80% |
 | ⏸ Sprint 14 | 2 | 12 | 14% |
 | ⏸ Sprint 15 | 1 | 12 | 8% |
 | ⏸ Sprint 16 | 0 | 13 | 0% |
@@ -205,17 +205,19 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 | ... | | _+13 más_ |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
-_Esperando que Sprint anterior esté completo. 5 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 
-### 🟢 Disponibles (5)
+### 🟢 Disponibles (3)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **UI3-15** | `[UI3]` | M |
 | **UI3-16** | `[UI3]` | M |
-| **UI3-18** | `[UI3]` | S |
-| **UI3-19** | `[UI3]` | M |
 | **UI3-20** | `[UI3]` | M |
+
+### 🔒 En progreso — NO tomar
+
+- **UI3-18** `[UI3]` → _codex_ (expira en 118min)
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._

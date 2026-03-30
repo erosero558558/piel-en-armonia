@@ -32,7 +32,7 @@ function syncBacklog() {
 const taskId = process.argv[2];
 const fix = process.argv.includes('--fix');
 
-if (!taskId || !taskId.match(/^(S\d+|UI)-[A-Z0-9]+$/)) {
+if (!taskId || !taskId.match(/^(S\d+|UI\d*)-[A-Z0-9]+$/)) {
   console.error('Usage: node bin/gate.js <TASK-ID> [--fix]');
   console.error('Example: node bin/gate.js S3-19');
   console.error('Example: node bin/gate.js S3-OC3');

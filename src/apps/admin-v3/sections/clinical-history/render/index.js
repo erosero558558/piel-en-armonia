@@ -838,10 +838,14 @@ function emptyDraft() {
             motivoConsulta: '',
             enfermedadActual: '',
             antecedentes: '',
+            antecedentesPersonales: '',
+            antecedentesFamiliares: '',
             alergias: '',
             medicacionActual: '',
             fototipoFitzpatrick: '',
             habitos: '',
+            habitosSol: '',
+            habitosTabaco: '',
             rosRedFlags: [],
             adjuntos: [],
             resumenClinico: '',
@@ -4183,6 +4187,7 @@ function normalizeDraftSnapshot(draft) {
             alergias: normalizeString(intakeSource.alergias),
             medicacionActual: normalizeString(intakeSource.medicacionActual),
             fototipoFitzpatrick: normalizedAnamnesis.fototipoFitzpatrick,
+            habitos: normalizedAnamnesis.habitos,
             habitosSol: normalizedAnamnesis.habitosSol,
             habitosTabaco: normalizedAnamnesis.habitosTabaco,
             rosRedFlags: normalizeStringList(intakeSource.rosRedFlags),
@@ -11725,17 +11730,31 @@ function serializeDraftForm(form, baseDraft) {
     snapshot.intake.enfermedadActual = normalizeString(
         readValue('intake_enfermedad_actual')
     );
-    snapshot.intake.antecedentes = normalizeString(
-        readValue('intake_antecedentes')
+    snapshot.intake.antecedentesPersonales = normalizeString(
+        readValue('intake_antecedentes_personales')
+    );
+    snapshot.intake.antecedentesFamiliares = normalizeString(
+        readValue('intake_antecedentes_familiares')
+    );
+    snapshot.intake.antecedentes = buildLegacyAntecedentesSummary(
+        snapshot.intake.antecedentesPersonales,
+        snapshot.intake.antecedentesFamiliares
     );
     snapshot.intake.alergias = normalizeString(readValue('intake_alergias'));
     snapshot.intake.medicacionActual = normalizeString(
         readValue('intake_medicacion_actual')
     );
-    snapshot.intake.fototipoFitzpatrick = normalizeString(
+    snapshot.intake.fototipoFitzpatrick = normalizeFitzpatrickValue(
         readValue('intake_fototipo_fitzpatrick')
     );
-    snapshot.intake.habitos = normalizeString(readValue('intake_habitos'));
+    snapshot.intake.habitosSol = normalizeString(readValue('intake_habitos_sol'));
+    snapshot.intake.habitosTabaco = normalizeString(
+        readValue('intake_habitos_tabaco')
+    );
+    snapshot.intake.habitos = buildLegacyHabitosSummary(
+        snapshot.intake.habitosSol,
+        snapshot.intake.habitosTabaco
+    );
     snapshot.intake.rosRedFlags = serializeTextareaLines(
         readValue('intake_ros_red_flags')
     );
@@ -13532,10 +13551,14 @@ function buildReviewPatch(mode, question) {
                 motivoConsulta: draft.intake.motivoConsulta,
                 enfermedadActual: draft.intake.enfermedadActual,
                 antecedentes: draft.intake.antecedentes,
+                antecedentesPersonales: draft.intake.antecedentesPersonales,
+                antecedentesFamiliares: draft.intake.antecedentesFamiliares,
                 alergias: draft.intake.alergias,
                 medicacionActual: draft.intake.medicacionActual,
                 fototipoFitzpatrick: draft.intake.fototipoFitzpatrick,
                 habitos: draft.intake.habitos,
+                habitosSol: draft.intake.habitosSol,
+                habitosTabaco: draft.intake.habitosTabaco,
                 rosRedFlags: cloneValue(draft.intake.rosRedFlags),
                 resumenClinico: draft.intake.resumenClinico,
                 preguntasFaltantes: cloneValue(draft.intake.preguntasFaltantes),
