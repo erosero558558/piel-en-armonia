@@ -1386,7 +1386,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### UI-4 Turnero — "La sala de espera del siglo XXI"
 
-- [ ] **UI-13** `[L]` `[UI]` Kiosco de turnos — rediseño de `kiosco-turnos.html`: pantalla táctil 1080×1920 (o 16:9), grande y legible desde 1 metro, touch targets mínimo 120px, selección de servicio con iconos grandes, confirmación con QR animado. Dark theme clínico. Sin scroll — todo en una pantalla.
+- [x] **UI-13** `[L]` `[UI]` Kiosco de turnos — rediseño de `kiosco-turnos.html`: pantalla táctil 1080×1920 (o 16:9), grande y legible desde 1 metro, touch targets mínimo 120px, selección de servicio con iconos grandes, confirmación con QR animado. Dark theme clínico. Sin scroll — todo en una pantalla.
 - [ ] **UI-14** `[M]` `[UI]` Sala de espera TV — rediseño de `sala-turnos.html`: display en pantalla TV 16:9, turnos llamados con animación de entrada, número actual GRANDE, próximos 3 turnos en gris, hora en esquina, branding discreta de Aurora Derm. Transiciones suaves. Nunca debe haber un estado "en blanco".
 - [ ] **UI-15** `[M]` `[UI]` Operador de turnos — rediseño de `operador-turnos.html`: interfaz compacta para escritorio, lista de turnos en espera con drag-to-call, botón LLAMAR prominente, historial de turnos del día, alertas de espera larga. Dark theme denso pero legible.
 

@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 12:44:27 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 12:55:20 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -32,7 +32,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (15)
+### 🟢 Disponibles (14)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -49,8 +49,11 @@ _Sprint completado. 24/24 tareas._
 | **S3-42** | `[M]` | Panel de protocolo clínico — cuando el médico selecciona un código CIE... |
 | **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
-| **S3-60** | `[L]` | Split  (4.198 líneas) — separar en repositorios por agregado:  (sesion... |
 | **S3-61** | `[L]` | Split  (24.990 líneas) — módulo de admin más grande del repo. Separar ... |
+
+### 🔒 En progreso — NO tomar
+
+- **S3-60** `[L]` → _Antigravity_ (expira en 478min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
