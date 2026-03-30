@@ -20,7 +20,9 @@ final class AdminDoctorProfileTest extends TestCase
             'REMOTE_ADDR' => '127.0.0.1',
             'REQUEST_METHOD' => 'GET',
         ];
-        $_SESSION = [];
+        $_SESSION = [
+            'admin_logged_in' => true,
+        ];
 
         $this->tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'doctor-profile-' . bin2hex(random_bytes(6));
         mkdir($this->tempDir, 0777, true);

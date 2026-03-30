@@ -12,7 +12,9 @@ import {
 } from '../../../shared/ui/render.js';
 
 let activeSignatureImage = '';
-let saving = false;
+let activeLogoImage = '';
+let savingDoctor = false;
+let savingClinic = false;
 
 function normalizeDoctorProfile(profile) {
     const source = profile && typeof profile === 'object' ? profile : {};
@@ -27,6 +29,21 @@ function normalizeDoctorProfile(profile) {
 
 function getDoctorProfileFromState() {
     return normalizeDoctorProfile(getState()?.data?.doctorProfile || {});
+}
+
+function normalizeClinicProfile(profile) {
+    const source = profile && typeof profile === 'object' ? profile : {};
+    return {
+        clinicName: String(source.clinicName || '').trim(),
+        address: String(source.address || '').trim(),
+        phone: String(source.phone || '').trim(),
+        logoImage: String(source.logoImage || '').trim(),
+        updatedAt: String(source.updatedAt || '').trim(),
+    };
+}
+
+function getClinicProfileFromState() {
+    return normalizeClinicProfile(getState()?.data?.clinicProfile || {});
 }
 
 function countCompletedFields(profile) {
@@ -56,6 +73,20 @@ function readProfileFromForm(root) {
     });
 }
 
+function readClinicProfileFromForm(root) {
+    const clinicName = qs('#clinicProfileName', root);
+    const address = qs('#clinicProfileAddress', root);
+    const phone = qs('#clinicProfilePhone', root);
+
+    return normalizeClinicProfile({
+        clinicName: clinicName instanceof HTMLInputElement ? clinicName.value : '',
+        address: address instanceof HTMLInputElement ? address.value : '',
+        phone: phone instanceof HTMLInputElement ? phone.value : '',
+        logoImage: activeLogoImage,
+        updatedAt: getClinicProfileFromState().updatedAt,
+    });
+}
+
 function renderSignaturePreview(root, signatureImage) {
     if (signatureImage) {
         setHtml(
@@ -69,6 +100,22 @@ function renderSignaturePreview(root, signatureImage) {
             '<div class="settings-signature-placeholder">Sin firma digital</div>'
         );
         setText('#doctorProfileSignatureState', 'Sin firma cargada');
+    }
+}
+
+function renderLogoPreview(root, logoImage) {
+    if (logoImage) {
+        setHtml(
+            '#clinicProfileLogoPreview',
+            `<img src="${escapeHtml(logoImage)}" alt="Logo Institucional">`
+        );
+        setText('#clinicProfileLogoState', 'Logo cargado');
+    } else {
+        setHtml(
+            '#clinicProfileLogoPreview',
+            '<div class="settings-signature-placeholder">Sin logo digital</div>'
+        );
+        setText('#clinicProfileLogoState', 'Sin logo cargado');
     }
 }
 
@@ -146,6 +193,49 @@ function applyProfileToForm(root, profile) {
     syncPreview(root);
 }
 
+function applyClinicProfileToForm(root, profile) {
+    const form = qs('#clinicProfileForm', root);
+    const clinicName = qs('#clinicProfileName', root);
+    const address = qs('#clinicProfileAddress', root);
+    const phone = qs('#clinicProfilePhone', root);
+    const logoFile = qs('#clinicProfileLogoFile', root);
+
+    if (clinicName instanceof HTMLInputElement) {
+        clinicName.value = profile.clinicName;
+    }
+    if (address instanceof HTMLInputElement) {
+        address.value = profile.address;
+    }
+    if (phone instanceof HTMLInputElement) {
+        phone.value = profile.phone;
+    }
+    if (logoFile instanceof HTMLInputElement) {
+        logoFile.value = '';
+    }
+    if (form instanceof HTMLFormElement) {
+        form.dataset.dirty = 'false';
+    }
+
+    activeLogoImage = profile.logoImage;
+    syncClinicPreview(root);
+}
+
+function syncClinicPreview(root) {
+    const form = qs('#clinicProfileForm', root);
+    const profile = readClinicProfileFromForm(root);
+    const dirty = form instanceof HTMLFormElement && form.dataset.dirty === 'true';
+
+    setText(
+        '#clinicProfileSaveMeta',
+        dirty
+            ? 'Cambios sin guardar.'
+            : profile.updatedAt
+              ? `Actualizado ${formatDateTime(profile.updatedAt)}`
+              : 'Sin cambios guardados todavia.'
+    );
+    renderLogoPreview(root, profile.logoImage);
+}
+
 function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -160,6 +250,16 @@ function saveProfileInState(profile) {
     const nextData = {
         ...currentState.data,
         doctorProfile: profile,
+    };
+    writeAdminDataInStore(nextData);
+    persistLocalAdminData(nextData);
+}
+
+function saveClinicProfileInState(profile) {
+    const currentState = getState();
+    const nextData = {
+        ...currentState.data,
+        clinicProfile: profile,
     };
     writeAdminDataInStore(nextData);
     persistLocalAdminData(nextData);
@@ -224,13 +324,13 @@ function attachListeners(root) {
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (saving) {
+        if (savingDoctor) {
             return;
         }
 
         const saveButton = qs('#doctorProfileSaveBtn', root);
         const nextProfile = readProfileFromForm(root);
-        saving = true;
+        savingDoctor = true;
 
         if (saveButton instanceof HTMLButtonElement) {
             saveButton.disabled = true;
@@ -254,7 +354,7 @@ function attachListeners(root) {
                 'error'
             );
         } finally {
-            saving = false;
+            savingDoctor = false;
             if (saveButton instanceof HTMLButtonElement) {
                 saveButton.disabled = false;
                 saveButton.textContent = 'Guardar perfil';
@@ -270,6 +370,7 @@ export function renderSettingsSection(options = {}) {
     }
 
     attachListeners(root);
+    attachClinicListeners(root);
 
     const currentProfile = getDoctorProfileFromState();
     const form = qs('#doctorProfileForm', root);
@@ -290,4 +391,115 @@ export function renderSettingsSection(options = {}) {
             ? formatDateTime(currentProfile.updatedAt)
             : 'Sin guardar'
     );
+
+    const currentClinic = getClinicProfileFromState();
+    const clinicForm = qs('#clinicProfileForm', root);
+    const shouldHydrateClinic =
+        options.force === true ||
+        !(clinicForm instanceof HTMLFormElement) ||
+        clinicForm.dataset.dirty !== 'true';
+
+    if (shouldHydrateClinic) {
+        applyClinicProfileToForm(root, currentClinic);
+    } else {
+        syncClinicPreview(root);
+    }
+
+    setText(
+        '#clinicProfileUpdatedAt',
+        currentClinic.updatedAt
+            ? formatDateTime(currentClinic.updatedAt)
+            : 'Sin guardar'
+    );
+}
+
+function attachClinicListeners(root) {
+    const form = qs('#clinicProfileForm', root);
+    if (!(form instanceof HTMLFormElement) || form.dataset.bound === 'true') {
+        return;
+    }
+
+    form.dataset.bound = 'true';
+    form.addEventListener('input', () => {
+        form.dataset.dirty = 'true';
+        syncClinicPreview(root);
+    });
+
+    const logoFile = qs('#clinicProfileLogoFile', root);
+    if (logoFile instanceof HTMLInputElement) {
+        logoFile.addEventListener('change', async () => {
+            const file = logoFile.files?.[0];
+            if (!file) return;
+            if (!['image/png', 'image/jpeg'].includes(file.type)) {
+                createToast('El logo debe ser PNG o JPG.', 'warning');
+                logoFile.value = '';
+                return;
+            }
+            if (file.size > 512 * 1024) {
+                createToast('El logo supera el maximo de 512 KB.', 'warning');
+                logoFile.value = '';
+                return;
+            }
+            try {
+                activeLogoImage = String(await readFileAsDataUrl(file));
+                form.dataset.dirty = 'true';
+                syncClinicPreview(root);
+            } catch (error) {
+                createToast(
+                    error?.message || 'No se pudo procesar el logo.',
+                    'error'
+                );
+            }
+        });
+    }
+
+    const clearLogoBtn = qs('#clinicProfileLogoClearBtn', root);
+    if (clearLogoBtn instanceof HTMLButtonElement) {
+        clearLogoBtn.addEventListener('click', () => {
+            activeLogoImage = '';
+            if (logoFile instanceof HTMLInputElement) {
+                logoFile.value = '';
+            }
+            form.dataset.dirty = 'true';
+            syncClinicPreview(root);
+        });
+    }
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (savingClinic) return;
+
+        const saveButton = qs('#clinicProfileSaveBtn', root);
+        const nextProfile = readClinicProfileFromForm(root);
+        savingClinic = true;
+
+        if (saveButton instanceof HTMLButtonElement) {
+            saveButton.disabled = true;
+            saveButton.textContent = 'Guardando...';
+        }
+
+        try {
+            const response = await apiRequest('clinic-profile', {
+                method: 'POST',
+                body: { clinicProfile: nextProfile },
+            });
+            const savedProfile = normalizeClinicProfile(response?.data || {});
+            saveClinicProfileInState(savedProfile);
+            form.dataset.dirty = 'false';
+            activeLogoImage = savedProfile.logoImage;
+            renderSettingsSection({ force: true });
+            createToast('Perfil de la clinica guardado.', 'success');
+        } catch (error) {
+            createToast(
+                error?.message || 'No se pudo guardar el perfil de la clinica.',
+                'error'
+            );
+        } finally {
+            savingClinic = false;
+            if (saveButton instanceof HTMLButtonElement) {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Guardar perfil';
+            }
+        }
+    });
 }

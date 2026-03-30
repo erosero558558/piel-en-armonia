@@ -3147,6 +3147,29 @@ function evaluateConsentPacket(packet) {
     };
 }
 
+function complianceMspStatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'complete':
+            return {
+                status: 'complete',
+                label: 'Compliance MSP OK',
+                summary: 'Cumple con los campos mínimos requeridos.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'Faltan campos MSP',
+                summary: 'Faltan campos obligatorios para cerrar el registro.',
+            };
+        default:
+            return {
+                status: 'incomplete',
+                label: 'Faltan campos MSP',
+                summary: 'Validación MSP pendiente.',
+            };
+    }
+}
+
 function hcu024StatusMeta(status) {
     switch (normalizeString(status)) {
         case 'accepted':
@@ -3868,6 +3891,7 @@ function normalizeLegalReadiness(readiness) {
             source?.hcu012AReportStatus?.status
         ),
         hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
+        complianceMspStatus: complianceMspStatusMeta(source?.complianceMspStatus?.status),
     };
 }
 
@@ -6634,6 +6658,7 @@ function buildLegalReadinessPanel(review) {
     const hcu010AStatus = hcu010AStatusMeta(readiness.hcu010AStatus?.status);
     const hcu012AStatus = hcu012AStatusMeta(readiness.hcu012AStatus?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
+    const complianceMspStatus = complianceMspStatusMeta(readiness.complianceMspStatus?.status);
     const checklist = normalizeList(readiness.checklist);
 
     if (checklist.length === 0) {
@@ -6679,6 +6704,10 @@ function buildLegalReadinessPanel(review) {
                     <span class="clinical-history-mini-chip">
                         ${escapeHtml(hcu024Status.label)}
                     </span>
+                    ${complianceMspStatus.status === 'incomplete' ? `
+                    <span class="clinical-history-mini-chip" data-tone="danger">
+                        ${escapeHtml(complianceMspStatus.label)}
+                    </span>` : ''}
                 </div>
             </header>
             <div class="clinical-history-events">

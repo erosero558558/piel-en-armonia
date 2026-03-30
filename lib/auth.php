@@ -214,6 +214,18 @@ function legacy_admin_is_authenticated(): bool
     return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 }
 
+function require_admin_auth(): void
+{
+    if (legacy_admin_is_authenticated() || operator_auth_is_authenticated()) {
+        return;
+    }
+
+    json_response([
+        'ok' => false,
+        'error' => 'No autorizado',
+    ], 401);
+}
+
 function operator_auth_mode(): string
 {
     $raw = app_env('AURORADERM_OPERATOR_AUTH_MODE');

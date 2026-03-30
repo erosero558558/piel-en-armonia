@@ -764,6 +764,7 @@ function build_cancellation_email_text(array $appointment): string
     $body .= "- Equipo " . AppConfig::BRAND_NAME;
 
     return $body;
+}
 /**
  * Sends patient confirmation WhatsApp.
  *

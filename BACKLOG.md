@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:00:39 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:02:11 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -30,10 +30,11 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (33)
+### 🟢 Disponibles (35)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
+| **S3-37** | `[S]` | Perfil de clínica — nombre clínica, dirección, teléfono, logo (imagen)... |
 | **S3-41** | `[S]` | CIE-10 autocomplete widget — el backend  ya existe. Falta el frontend:... |
 | **S3-43** | `[S]` | Botón "Emitir certificado" en admin — en la vista del caso del pacient... |
 | **S3-44** | `[S]` | Historial de certificados en admin — en el perfil del paciente, pestañ... |
@@ -46,6 +47,7 @@ _Sprint completado. 24/24 tareas._
 | **S3-57** | `[S]` | gate.js — check  automático — antes de mostrar GATE PASSED, ejecutar  ... |
 | **S3-63** | `[S]` | Tabla de comandos oficiales — en  (o  sección Desarrollo), agregar tab... |
 | **S3-13** | `[M]` | Sala inteligente — en , entre llamadas mostrar: tips de cuidado de pie... |
+| **S3-23** | `[M]` | Compliance MSP Ecuador — el formulario oficial es SNS-MSP/HCU-form.002... |
 | **S3-28** | `[M]` | Vista de agenda diaria — en admin: agenda del día con pacientes confir... |
 | **S3-33** | `[M]` | Verificación de transferencia — paciente sube foto del comprobante. Ad... |
 | **S3-34** | `[M]` | Estado de cuenta — vista en admin: historial de pagos por paciente, sa... |
@@ -70,9 +72,7 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-23** `[M]` → _unknown-agent_ (expira en 234min)
-- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 89min)
-- **S3-37** `[S]` → _antigravity_ (expira en 113min)
+- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 88min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

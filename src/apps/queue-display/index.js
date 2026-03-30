@@ -106,6 +106,88 @@ const DISPLAY_BELL_FLASH_DURATION_MS = 1300;
 const DISPLAY_BELL_COOLDOWN_MS = 1200;
 const DISPLAY_BELL_BLOCKED_HINT_COOLDOWN_MS = 20000;
 const DISPLAY_HEARTBEAT_MS = 15000;
+const DISPLAY_SMART_ROTATE_DEFAULT_MS = 12000;
+const DISPLAY_SMART_TIPS = Object.freeze([
+    Object.freeze({
+        title: 'Fotoproteccion antes de salir',
+        copy: 'Si luego de tu cita vas a estar al aire libre, reaplica protector solar en rostro, cuello y manos.',
+        meta: ['Cada 2-3 horas', 'FPS 50+', 'Rostro y cuello'],
+        chip: 'Tip de cuidado',
+    }),
+    Object.freeze({
+        title: 'Piel sensible: menos es mas',
+        copy: 'Evita probar varios activos nuevos el mismo dia. Una rutina corta ayuda a identificar mejor irritaciones.',
+        meta: ['Limpieza suave', 'Hidratante simple', 'Sin friccion'],
+        chip: 'Tip de sala',
+    }),
+    Object.freeze({
+        title: 'Despues de procedimientos',
+        copy: 'No te exfolies ni apliques calor directo sin indicacion medica. La piel recien tratada necesita calma.',
+        meta: ['Sin vapor', 'Sin scrubs', 'Sigue indicaciones'],
+        chip: 'Recuperacion',
+    }),
+    Object.freeze({
+        title: 'Acne y manchas: constancia',
+        copy: 'Los cambios visibles suelen requerir semanas. Llevar fotos de referencia ayuda a comparar progreso.',
+        meta: ['Fotos previas', 'Rutina constante', 'Control evolutivo'],
+        chip: 'Seguimiento',
+    }),
+]);
+const DISPLAY_SMART_VIDEOS = Object.freeze([
+    Object.freeze({
+        title: 'Rutina basica para piel sensible',
+        copy: 'Capsula breve sobre limpieza, hidratacion y fotoproteccion sin sobrecargar la barrera cutanea.',
+        meta: ['1:20 min', 'Sin audio', 'Educativo'],
+    }),
+    Object.freeze({
+        title: 'Como prepararte para un procedimiento dermatologico',
+        copy: 'Repasa cuidados simples antes de peeling, laser o procedimientos menores para llegar lista a la consulta.',
+        meta: ['1:45 min', 'Preconsulta', 'Checklist'],
+    }),
+    Object.freeze({
+        title: 'Senales para consultar lunares y manchas',
+        copy: 'Resumen visual de cambios de color, borde o sangrado que merecen una evaluacion oportuna.',
+        meta: ['1:10 min', 'Prevencion', 'Dermatoscopia'],
+    }),
+]);
+const DISPLAY_SMART_TREATMENT_VARIANTS = Object.freeze({
+    appointment: Object.freeze({
+        title: 'Cita agendada en curso',
+        copy: 'Tu atencion ya esta reservada. Recepcion confirmara el box y cualquier preparacion final antes del ingreso.',
+        meta: ['Cita confirmada', 'Llamado por ticket', 'Recepcion coordina'],
+        chip: 'Agenda',
+    }),
+    consulta_general: Object.freeze({
+        title: 'Consulta general dermatologica',
+        copy: 'La cita suele enfocarse en evaluar sintomas, revisar antecedentes y definir si hace falta tratamiento o estudios complementarios.',
+        meta: ['Evaluacion clinica', 'Antecedentes', 'Plan inicial'],
+        chip: 'Consulta',
+    }),
+    control: Object.freeze({
+        title: 'Control y seguimiento',
+        copy: 'El siguiente paso suele revisar respuesta al tratamiento, tolerancia y pequenos ajustes de la rutina o medicacion.',
+        meta: ['Revision de evolucion', 'Ajustes', 'Seguimiento'],
+        chip: 'Control',
+    }),
+    procedimiento: Object.freeze({
+        title: 'Procedimiento dermatologico',
+        copy: 'Antes de pasar, el equipo confirmara zona a tratar, cuidados previos y las indicaciones inmediatas para la salida.',
+        meta: ['Preparacion breve', 'Cuidados posteriores', 'Explicacion guiada'],
+        chip: 'Procedimiento',
+    }),
+    urgencia: Object.freeze({
+        title: 'Valoracion prioritaria',
+        copy: 'Si el motivo es urgente, el equipo agiliza el triage y define si requiere atencion inmediata o derivacion clinica.',
+        meta: ['Triage rapido', 'Prioridad clinica', 'Definicion segura'],
+        chip: 'Prioridad',
+    }),
+    generic: Object.freeze({
+        title: 'Siguiente paso por confirmar',
+        copy: 'Cuando el motivo aun no esta tipificado, recepcion te indicara si sigue consulta, control o preparacion breve.',
+        meta: ['Recepcion guia', 'Llamado por ticket', 'Privacidad activa'],
+        chip: 'Orientacion',
+    }),
+});
 
 function hideDisplaySurfaceOpsPanel(panel) {
     if (!panel || typeof panel !== 'object') {
@@ -163,6 +245,8 @@ const state = {
     surfaceRenewalPack: null,
     surfaceSuccessPack: null,
     surfaceExpansionPack: null,
+    smartRotationId: 0,
+    smartRotationIndex: 0,
 };
 
 let displayHeartbeat = null;
@@ -243,6 +327,14 @@ function getDisplaySurfaceCurrentRoute() {
     return `${window.location.pathname || ''}${window.location.search || ''}${
         window.location.hash || ''
     }`;
+}
+
+function getDisplaySmartRotateMs() {
+    const override = Number(window.__PIEL_DISPLAY_SMART_ROTATE_MS || 0);
+    if (Number.isFinite(override) && override >= 50) {
+        return override;
+    }
+    return DISPLAY_SMART_ROTATE_DEFAULT_MS;
 }
 
 function getDisplayCommercialScope() {
@@ -3097,6 +3189,20 @@ function normalizeQueueStatePayload(rawState) {
                           0
                   ) || null,
               calledAt: String(ticket?.calledAt || ticket?.called_at || ''),
+              queueType: String(
+                  ticket?.queueType || ticket?.queue_type || 'walk_in'
+              ).trim(),
+              priorityClass: String(
+                  ticket?.priorityClass || ticket?.priority_class || ''
+              ).trim(),
+              visitReason: String(
+                  ticket?.visitReason || ticket?.visit_reason || ''
+              ).trim(),
+              visitReasonLabel: String(
+                  ticket?.visitReasonLabel ||
+                      ticket?.visit_reason_label ||
+                      ''
+              ).trim(),
           }))
         : [];
     const normalizedNextTickets = Array.isArray(nextTickets)
@@ -3115,6 +3221,20 @@ function normalizeQueueStatePayload(rawState) {
                       ticket?.estimatedWaitMin ?? ticket?.estimated_wait_min ?? 0
                   ) || 0
               ),
+              queueType: String(
+                  ticket?.queueType || ticket?.queue_type || 'walk_in'
+              ).trim(),
+              priorityClass: String(
+                  ticket?.priorityClass || ticket?.priority_class || ''
+              ).trim(),
+              visitReason: String(
+                  ticket?.visitReason || ticket?.visit_reason || ''
+              ).trim(),
+              visitReasonLabel: String(
+                  ticket?.visitReasonLabel ||
+                      ticket?.visit_reason_label ||
+                      ''
+              ).trim(),
               position:
                   Number(ticket?.position || 0) > 0
                       ? Number(ticket.position)
