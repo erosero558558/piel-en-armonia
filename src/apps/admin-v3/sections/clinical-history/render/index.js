@@ -6376,10 +6376,11 @@ function openClinicalRecordExport(review) {
     return true;
 }
 
-function buildClinicalHistoryFieldHint(hint) {
+function buildClinicalHistoryFieldHint(id, hint) {
+    const hintId = `${normalizeString(id) || 'clinical-field'}-hint`;
     return hint
-        ? `<small>${escapeHtml(hint)}</small>`
-        : '<small>&nbsp;</small>';
+        ? `<small id="${escapeHtml(hintId)}" class="form-field-message">${escapeHtml(hint)}</small>`
+        : `<small id="${escapeHtml(hintId)}" class="form-field-message">&nbsp;</small>`;
 }
 
 function buildClinicalHistoryFieldShell(id, label, content, hint = '') {
@@ -6387,7 +6388,7 @@ function buildClinicalHistoryFieldShell(id, label, content, hint = '') {
         <label class="clinical-history-field" for="${escapeHtml(id)}">
             <span>${escapeHtml(label)}</span>
             ${content}
-            ${buildClinicalHistoryFieldHint(hint)}
+            ${buildClinicalHistoryFieldHint(id, hint)}
         </label>
     `;
 }
@@ -7864,6 +7865,7 @@ function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
 
 function textareaField(id, label, value, options = {}) {
     const { placeholder = '', rows = 4, hint = '', disabled = false } = options;
+    const hintId = `${normalizeString(id) || 'clinical-field'}-hint`;
 
     return buildClinicalHistoryFieldShell(
         id,
@@ -7872,8 +7874,10 @@ function textareaField(id, label, value, options = {}) {
             <textarea
                 id="${escapeHtml(id)}"
                 name="${escapeHtml(id)}"
+                class="textarea"
                 rows="${Number(rows) || 4}"
                 placeholder="${escapeHtml(placeholder)}"
+                aria-describedby="${escapeHtml(hintId)}"
                 ${disabled ? 'disabled' : ''}
             >${escapeHtml(value)}</textarea>
         `,
@@ -7890,6 +7894,7 @@ function inputField(id, label, value, options = {}) {
         min = '',
         disabled = false,
     } = options;
+    const hintId = `${normalizeString(id) || 'clinical-field'}-hint`;
 
     return buildClinicalHistoryFieldShell(
         id,
@@ -7898,9 +7903,11 @@ function inputField(id, label, value, options = {}) {
             <input
                 id="${escapeHtml(id)}"
                 name="${escapeHtml(id)}"
+                class="input"
                 type="${escapeHtml(type)}"
                 value="${escapeHtml(value)}"
                 placeholder="${escapeHtml(placeholder)}"
+                aria-describedby="${escapeHtml(hintId)}"
                 ${step !== '' ? `step="${escapeHtml(step)}"` : ''}
                 ${min !== '' ? `min="${escapeHtml(min)}"` : ''}
                 ${disabled ? 'disabled' : ''}
@@ -7931,6 +7938,7 @@ function checkboxField(id, label, checked, options = {}) {
 
 function selectField(id, label, value, choices, options = {}) {
     const { hint = '', disabled = false } = options;
+    const hintId = `${normalizeString(id) || 'clinical-field'}-hint`;
     return buildClinicalHistoryFieldShell(
         id,
         label,
@@ -7938,6 +7946,8 @@ function selectField(id, label, value, choices, options = {}) {
             <select
                 id="${escapeHtml(id)}"
                 name="${escapeHtml(id)}"
+                class="select"
+                aria-describedby="${escapeHtml(hintId)}"
                 ${disabled ? 'disabled' : ''}
             >
                 ${buildClinicalHistoryChoiceOptions(choices, value)}

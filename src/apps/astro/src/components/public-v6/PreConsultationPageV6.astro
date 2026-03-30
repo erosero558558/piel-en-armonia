@@ -164,7 +164,17 @@ const supportStatus = {
                 <form class="v6-pre-form" data-preconsultation-form novalidate>
                     <div class="v6-pre-form__field">
                         <label for="pre-name">Nombre y apellido</label>
-                        <input id="pre-name" name="name" type="text" maxlength="150" autocomplete="name" required />
+                        <input
+                            id="pre-name"
+                            name="name"
+                            class="input"
+                            type="text"
+                            maxlength="150"
+                            autocomplete="name"
+                            aria-describedby="pre-name-error"
+                            required
+                        />
+                        <small id="pre-name-error" class="form-field-message" hidden></small>
                     </div>
 
                     <div class="v6-pre-form__field">
@@ -172,18 +182,27 @@ const supportStatus = {
                         <input
                             id="pre-whatsapp"
                             name="whatsapp"
+                            class="input"
                             type="tel"
                             maxlength="20"
                             autocomplete="tel"
                             inputmode="tel"
                             pattern="[0-9+()\\s-]{7,20}"
+                            aria-describedby="pre-whatsapp-error"
                             required
                         />
+                        <small id="pre-whatsapp-error" class="form-field-message" hidden></small>
                     </div>
 
                     <div class="v6-pre-form__field">
                         <label for="pre-skin-type">Tipo de piel</label>
-                        <select id="pre-skin-type" name="skinType" required>
+                        <select
+                            id="pre-skin-type"
+                            name="skinType"
+                            class="select"
+                            aria-describedby="pre-skin-type-error"
+                            required
+                        >
                             <option value="">Seleccione una opcion</option>
                             <option value="seca">Seca</option>
                             <option value="mixta">Mixta</option>
@@ -193,6 +212,7 @@ const supportStatus = {
                             <option value="atopica">Atopica</option>
                             <option value="normal">Normal</option>
                         </select>
+                        <small id="pre-skin-type-error" class="form-field-message" hidden></small>
                     </div>
 
                     <div class="v6-pre-form__field is-full">
@@ -200,11 +220,14 @@ const supportStatus = {
                         <textarea
                             id="pre-condition"
                             name="condition"
+                            class="textarea"
                             rows="5"
                             maxlength="1000"
+                            aria-describedby="pre-condition-error"
                             placeholder="Cuente que nota, desde cuando empezo, si cambia, pica, duele o sangra."
                             required
                         ></textarea>
+                        <small id="pre-condition-error" class="form-field-message" hidden></small>
                     </div>
 
                     <div class="v6-pre-form__field is-full">
@@ -212,25 +235,36 @@ const supportStatus = {
                         <input
                             id="pre-photos"
                             name="photos"
+                            class="input"
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
+                            aria-describedby="pre-photos-hint pre-photos-error"
                             multiple
                         />
-                        <p class="v6-pre-form__hint" data-preconsultation-photo-note>{normalizeText(form.photoHint)}</p>
+                        <p id="pre-photos-hint" class="v6-pre-form__hint" data-preconsultation-photo-note>{normalizeText(form.photoHint)}</p>
+                        <small id="pre-photos-error" class="form-field-message" hidden></small>
                         <ul class="v6-pre-form__files" data-preconsultation-photo-list></ul>
                     </div>
 
                     <label class="v6-pre-form__consent">
-                        <input id="pre-consent" name="privacyConsent" type="checkbox" value="1" required />
-                        <span>
+                        <input
+                            id="pre-consent"
+                            name="privacyConsent"
+                            type="checkbox"
+                            value="1"
+                            aria-describedby="pre-consent-note pre-consent-error"
+                            required
+                        />
+                        <span id="pre-consent-note">
                             Acepto el tratamiento de datos clinicos para orientar el siguiente paso dermatologico.
                         </span>
                     </label>
+                    <p id="pre-consent-error" class="form-consent-message" hidden></p>
 
                     {normalizeText(form.disclaimer) ? <p class="v6-pre-form__disclaimer">{form.disclaimer}</p> : null}
 
                     <div class="v6-pre-form__actions">
-                        <button type="submit" data-preconsultation-submit>{normalizeText(form.submitLabel) || 'Enviar'}</button>
+                        <button type="submit" class="btn-primary" data-preconsultation-submit>{normalizeText(form.submitLabel) || 'Enviar'}</button>
                         {
                             supportStatus.ctaLabel && supportStatus.ctaHref ? (
                                 <a href={supportStatus.ctaHref} target="_blank" rel="noopener noreferrer">
@@ -338,6 +372,199 @@ const supportStatus = {
             'Hoy no podemos recibir fotos clinicas desde este formulario.';
         const defaultSubmitLabel = submitButton.textContent || 'Enviar';
         const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+        const getFieldContainer = (field) =>
+            field?.closest('.v6-pre-form__field') || field?.closest('.v6-pre-form__consent');
+
+        const fieldHasValue = (field) => {
+            if (field instanceof HTMLInputElement && field.type === 'checkbox') {
+                return field.checked;
+            }
+            if (field instanceof HTMLInputElement && field.type === 'file') {
+                return Array.from(field.files || []).length > 0;
+            }
+            return String(field?.value || '').trim() !== '';
+        };
+
+        const getFieldMessageNode = (field) => {
+            const cachedId = String(field?.dataset?.validationMessageId || '').trim();
+            if (cachedId) {
+                const cachedNode = document.getElementById(cachedId);
+                if (
+                    cachedNode &&
+                    (cachedNode.classList.contains('form-field-message') ||
+                        cachedNode.classList.contains('form-consent-message'))
+                ) {
+                    return cachedNode;
+                }
+            }
+
+            const ids = String(field?.getAttribute('aria-describedby') || '')
+                .split(/\s+/)
+                .map((value) => value.trim())
+                .filter(Boolean);
+
+            for (const id of ids) {
+                const node = document.getElementById(id);
+                if (
+                    node &&
+                    (node.classList.contains('form-field-message') ||
+                        node.classList.contains('form-consent-message'))
+                ) {
+                    field.dataset.validationMessageId = id;
+                    return node;
+                }
+            }
+
+            return null;
+        };
+
+        const readFieldBaseDescriptions = (field) => {
+            if (!(field instanceof HTMLElement)) {
+                return [];
+            }
+            if (field.dataset.baseDescribedByCached === 'true') {
+                return String(field.dataset.baseDescribedBy || '')
+                    .split(/\s+/)
+                    .map((value) => value.trim())
+                    .filter(Boolean);
+            }
+
+            const ids = String(field.getAttribute('aria-describedby') || '')
+                .split(/\s+/)
+                .map((value) => value.trim())
+                .filter(Boolean);
+            const baseIds = ids.filter((id) => {
+                const node = document.getElementById(id);
+                return !(
+                    node &&
+                    (node.classList.contains('form-field-message') ||
+                        node.classList.contains('form-consent-message'))
+                );
+            });
+
+            field.dataset.baseDescribedByCached = 'true';
+            field.dataset.baseDescribedBy = baseIds.join(' ');
+            return baseIds;
+        };
+
+        const syncFieldDescribedBy = (field, messageNode, includeMessage) => {
+            if (!(field instanceof HTMLElement) || !(messageNode instanceof HTMLElement)) {
+                return;
+            }
+
+            const baseIds = readFieldBaseDescriptions(field);
+            const nextIds = includeMessage
+                ? [...baseIds, messageNode.id].filter(Boolean)
+                : baseIds;
+
+            if (nextIds.length > 0) {
+                field.setAttribute('aria-describedby', nextIds.join(' '));
+            } else {
+                field.removeAttribute('aria-describedby');
+            }
+        };
+
+        const setFieldMessage = (field, message = '', state = '') => {
+            const messageNode = getFieldMessageNode(field);
+            if (!(messageNode instanceof HTMLElement)) {
+                return;
+            }
+
+            const safeMessage = String(message || '').trim();
+            if (!safeMessage) {
+                messageNode.hidden = true;
+                messageNode.textContent = '';
+                messageNode.removeAttribute('data-state');
+                syncFieldDescribedBy(field, messageNode, false);
+                return;
+            }
+
+            messageNode.hidden = false;
+            messageNode.textContent = safeMessage;
+            messageNode.dataset.state = state || 'error';
+            syncFieldDescribedBy(field, messageNode, true);
+        };
+
+        const getFieldErrorMessage = (field) => {
+            const fieldName = String(field?.getAttribute('name') || '').trim();
+            switch (fieldName) {
+                case 'name':
+                    return 'Escriba su nombre y apellido.';
+                case 'whatsapp':
+                    return 'Ingrese un WhatsApp valido para responderle.';
+                case 'skinType':
+                    return 'Seleccione el tipo de piel.';
+                case 'condition':
+                    return 'Cuente brevemente el motivo o condicion.';
+                case 'privacyConsent':
+                    return 'Debe aceptar el tratamiento de datos clinicos para continuar.';
+                case 'photos':
+                    return 'Revise el formato o el peso de las fotos clinicas.';
+                default:
+                    return field?.validationMessage || 'Revise este campo antes de enviar.';
+            }
+        };
+
+        const clearFieldState = (field) => {
+            if (!(field instanceof HTMLElement)) {
+                return;
+            }
+            field.removeAttribute('aria-invalid');
+            delete field.dataset.validationState;
+            setFieldMessage(field, '');
+
+            const container = getFieldContainer(field);
+            if (container instanceof HTMLElement) {
+                container.classList.remove('has-error');
+                container.classList.remove('has-success');
+            }
+        };
+
+        const markFieldError = (field, message = '') => {
+            if (!(field instanceof HTMLElement)) {
+                return;
+            }
+            field.setAttribute('aria-invalid', 'true');
+            field.dataset.validationState = 'error';
+            setFieldMessage(field, message || getFieldErrorMessage(field), 'error');
+
+            const container = getFieldContainer(field);
+            if (container instanceof HTMLElement) {
+                container.classList.remove('has-success');
+                container.classList.add('has-error');
+            }
+        };
+
+        const markFieldSuccess = (field) => {
+            if (!(field instanceof HTMLElement) || !fieldHasValue(field)) {
+                clearFieldState(field);
+                return;
+            }
+
+            if (typeof field.checkValidity === 'function' && !field.checkValidity()) {
+                clearFieldState(field);
+                return;
+            }
+
+            field.removeAttribute('aria-invalid');
+            field.dataset.validationState = 'success';
+            setFieldMessage(field, '');
+
+            const container = getFieldContainer(field);
+            if (container instanceof HTMLElement) {
+                container.classList.remove('has-error');
+                container.classList.add('has-success');
+            }
+        };
+
+        const focusField = (field) => {
+            if (!(field instanceof HTMLElement) || typeof field.focus !== 'function') {
+                return;
+            }
+            field.focus({ preventScroll: true });
+            field.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        };
 
         const setStatus = (state, message) => {
             if (!(statusNode instanceof HTMLElement)) {
@@ -485,8 +712,63 @@ const supportStatus = {
             fileInput.addEventListener('change', () => {
                 renderSelectedFiles();
                 setStatus('', '');
+                const fileError = validateFiles(listSelectedFiles());
+                if (fileError) {
+                    markFieldError(fileInput, fileError);
+                    return;
+                }
+                if (listSelectedFiles().length > 0) {
+                    markFieldSuccess(fileInput);
+                } else {
+                    clearFieldState(fileInput);
+                }
             });
         }
+
+        form.addEventListener('input', (event) => {
+            const target = event.target;
+            if (
+                target instanceof HTMLInputElement ||
+                target instanceof HTMLSelectElement ||
+                target instanceof HTMLTextAreaElement
+            ) {
+                if (target.checkValidity() && fieldHasValue(target)) {
+                    markFieldSuccess(target);
+                } else if (!fieldHasValue(target)) {
+                    clearFieldState(target);
+                }
+            }
+        });
+
+        form.addEventListener('change', (event) => {
+            const target = event.target;
+            if (
+                target instanceof HTMLInputElement ||
+                target instanceof HTMLSelectElement ||
+                target instanceof HTMLTextAreaElement
+            ) {
+                if (target.checkValidity() && fieldHasValue(target)) {
+                    markFieldSuccess(target);
+                } else if (!fieldHasValue(target)) {
+                    clearFieldState(target);
+                }
+            }
+        });
+
+        form.addEventListener('focusout', (event) => {
+            const target = event.target;
+            if (
+                target instanceof HTMLInputElement ||
+                target instanceof HTMLSelectElement ||
+                target instanceof HTMLTextAreaElement
+            ) {
+                if (target.checkValidity() && fieldHasValue(target)) {
+                    markFieldSuccess(target);
+                } else if (!fieldHasValue(target)) {
+                    clearFieldState(target);
+                }
+            }
+        });
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -495,14 +777,31 @@ const supportStatus = {
                 successNode.hidden = true;
             }
 
+            form
+                .querySelectorAll('input, select, textarea')
+                .forEach((field) => clearFieldState(field));
+
             const files = listSelectedFiles();
             const fileError = validateFiles(files);
             if (fileError) {
+                if (fileInput instanceof HTMLInputElement) {
+                    markFieldError(fileInput, fileError);
+                    focusField(fileInput);
+                }
                 setStatus('error', fileError);
                 return;
             }
 
             if (!form.reportValidity()) {
+                const invalidField = form.querySelector(':invalid');
+                if (
+                    invalidField instanceof HTMLInputElement ||
+                    invalidField instanceof HTMLSelectElement ||
+                    invalidField instanceof HTMLTextAreaElement
+                ) {
+                    markFieldError(invalidField, getFieldErrorMessage(invalidField));
+                    focusField(invalidField);
+                }
                 setStatus('error', 'Revise los campos obligatorios antes de enviar.');
                 return;
             }
@@ -515,6 +814,12 @@ const supportStatus = {
                 condition: String(formData.get('condition') || '').trim(),
                 privacyConsent: formData.get('privacyConsent') === '1',
             };
+
+            form.querySelectorAll('input, select, textarea').forEach((field) => {
+                if (fieldHasValue(field) && typeof field.checkValidity === 'function' && field.checkValidity()) {
+                    markFieldSuccess(field);
+                }
+            });
 
             setPending(true);
 

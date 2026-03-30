@@ -787,6 +787,15 @@ function createVerificationChecks() {
         },
 
         // ── Sprint UI Fase 2 ──────────────────────────────────────────────
+        'UI2-17': () =>
+            fileExists('tests/ui2-form-consistency.spec.js') &&
+            fileExists('tests-node/ui2-form-consistency-contract.test.js') &&
+            readRepoFile(
+                'src/apps/astro/src/components/public-v5/BookingShellV5.astro'
+            ).includes('class="select"') &&
+            readRepoFile(
+                'src/apps/astro/src/components/public-v6/PreConsultationPageV6.astro'
+            ).includes('form-consent-message'),
         'UI2-20': () =>
             PHASE_TWO_AUDIT_CHECK_KEYS.every(
                 (checkId) => typeof phaseTwoAuditChecks[checkId] === 'function'

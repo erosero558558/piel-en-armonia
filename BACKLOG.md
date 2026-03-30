@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:20:50 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:55:57 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **39%** completado (138/352)
+`████████░░░░░░░░░░░░` **39%** completado (139/352)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -20,7 +20,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 6 | 31 | 16% |
 | ✅ Sprint UI | 19 | 0 | 100% |
-| ⏸ Sprint UI | 2 | 18 | 10% |
+| ⏸ Sprint UI | 3 | 17 | 15% |
 | ⏸ Sprint 8 | 0 | 17 | 0% |
 | ⏸ Sprint 9 | 0 | 27 | 0% |
 | ⏸ Sprint 10 | 0 | 30 | 0% |
@@ -55,16 +55,20 @@ _Sprint completado. 24/24 tareas._
 ## ⏸ Sprint 4 — Escalar el negocio
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
-### 🟢 Disponibles (10)
+### 🟢 Disponibles (9)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S4-07** | `[S4]` | XL |
-| **S4-08** | `[S4]` | L |
 | **S4-09** | `[S4]` | L |
 | **S4-12** | `[S4]` | L |
 | **S4-14** | `[S4]` | M |
-| ... | | _+5 más_ |
+| **S4-15** | `[S4]` | M |
+| ... | | _+4 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S4-08** `[S4]` → _Codex-erosero558558_ (expira en 445min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -147,9 +151,9 @@ _Esperando que Sprint anterior esté completo. 31 tareas pendientes._
 _Sprint completado. 19/19 tareas._
 
 ## ⏸ Sprint UI — Fase 2: Follow-ups del Audit
-_Esperando que Sprint anterior esté completo. 18 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
 
-### 🟢 Disponibles (18)
+### 🟢 Disponibles (17)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -158,7 +162,7 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 | **UI2-03** | `[UI2]` | S |
 | **UI2-04** | `[UI2]` | S |
 | **UI2-05** | `[UI2]` | M |
-| ... | | _+13 más_ |
+| ... | | _+12 más_ |
 
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
 _Esperando que Sprint anterior esté completo. 17 tareas pendientes._

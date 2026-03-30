@@ -212,6 +212,7 @@ export function renderClinicalHistorySection() {
                     <form
                         id="clinicalHistoryDraftForm"
                         class="clinical-history-form"
+                        aria-describedby="clinicalHistoryDraftSummary clinicalHistoryDraftMeta"
                     ></form>
                 </article>
             </div>
@@ -246,8 +247,9 @@ export function renderClinicalHistorySection() {
                     </header>
                     <textarea
                         id="clinicalHistoryFollowUpInput"
-                        class="clinical-history-followup-input"
+                        class="clinical-history-followup-input textarea"
                         rows="4"
+                        aria-describedby="clinicalHistoryFollowUpMeta"
                         placeholder="Ej.: Confirma alergias, tiempo de evolucion o factor desencadenante relevante."
                     ></textarea>
                     <div class="toolbar-row clinical-history-actions-row">
@@ -278,6 +280,7 @@ export function renderClinicalHistorySection() {
                             type="submit"
                             id="clinicalHistorySaveBtn"
                             form="clinicalHistoryDraftForm"
+                            class="btn-primary"
                         >
                             Guardar borrador
                         </button>

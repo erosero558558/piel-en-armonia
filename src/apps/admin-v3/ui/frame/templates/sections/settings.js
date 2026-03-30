@@ -17,38 +17,46 @@ export function renderSettingsSection() {
                                 <span>Nombre completo</span>
                                 <input
                                     id="doctorProfileFullName"
+                                    class="input"
                                     name="fullName"
                                     type="text"
                                     autocomplete="name"
                                     placeholder="Dra. Nombre Apellido"
+                                    aria-describedby="doctorProfileSaveMeta"
                                 >
                             </label>
                             <label class="settings-field">
                                 <span>Especialidad</span>
                                 <input
                                     id="doctorProfileSpecialty"
+                                    class="input"
                                     name="specialty"
                                     type="text"
                                     autocomplete="organization-title"
                                     placeholder="Dermatologia clinica"
+                                    aria-describedby="doctorProfileSaveMeta"
                                 >
                             </label>
                             <label class="settings-field">
                                 <span>Registro MSP</span>
                                 <input
                                     id="doctorProfileMspNumber"
+                                    class="input"
                                     name="mspNumber"
                                     type="text"
                                     placeholder="MSP-000000"
+                                    aria-describedby="doctorProfileSaveMeta"
                                 >
                             </label>
                             <label class="settings-field">
                                 <span>Firma digital</span>
                                 <input
                                     id="doctorProfileSignatureFile"
+                                    class="input"
                                     name="signatureFile"
                                     type="file"
                                     accept="image/png,image/jpeg"
+                                    aria-describedby="doctorProfileSaveMeta"
                                 >
                                 <small>PNG o JPG. Se guarda como base64 en data/config/doctor-profile.json.</small>
                             </label>
@@ -62,7 +70,7 @@ export function renderSettingsSection() {
                                 <button
                                     type="button"
                                     id="doctorProfileSignatureClearBtn"
-                                    class="admin-theme-btn settings-secondary-btn"
+                                    class="admin-theme-btn settings-secondary-btn btn-secondary"
                                 >
                                     Eliminar firma
                                 </button>
@@ -74,7 +82,7 @@ export function renderSettingsSection() {
                             <button
                                 type="submit"
                                 id="doctorProfileSaveBtn"
-                                class="admin-v3-command-btn settings-primary-btn"
+                                class="admin-v3-command-btn settings-primary-btn btn-primary"
                             >
                                 Guardar perfil
                             </button>
@@ -96,39 +104,47 @@ export function renderSettingsSection() {
                                 <span>Nombre clínico</span>
                                 <input
                                     id="clinicProfileName"
+                                    class="input"
                                     name="clinicName"
                                     type="text"
                                     autocomplete="organization"
                                     placeholder="Aurora Derm"
+                                    aria-describedby="clinicProfileSaveMeta"
                                 >
                             </label>
                             <label class="settings-field">
                                 <span>Dirección Matriz</span>
                                 <input
                                     id="clinicProfileAddress"
+                                    class="input"
                                     name="address"
                                     type="text"
                                     autocomplete="street-address"
                                     placeholder="Quito, Ecuador"
+                                    aria-describedby="clinicProfileSaveMeta"
                                 >
                             </label>
                             <label class="settings-field">
                                 <span>Teléfono Contacto</span>
                                 <input
                                     id="clinicProfilePhone"
+                                    class="input"
                                     name="phone"
                                     type="text"
                                     autocomplete="tel"
                                     placeholder="+593 98 000 0000"
+                                    aria-describedby="clinicProfileSaveMeta"
                                 >
                             </label>
                             <label class="settings-field">
                                 <span>Logo Institucional</span>
                                 <input
                                     id="clinicProfileLogoFile"
+                                    class="input"
                                     name="logoFile"
                                     type="file"
                                     accept="image/png,image/jpeg"
+                                    aria-describedby="clinicProfileSaveMeta"
                                 >
                                 <small>PNG o JPG menores a 512KB. Recomendado diseño horizontal.</small>
                             </label>
@@ -142,7 +158,7 @@ export function renderSettingsSection() {
                                 <button
                                     type="button"
                                     id="clinicProfileLogoClearBtn"
-                                    class="admin-theme-btn settings-secondary-btn"
+                                    class="admin-theme-btn settings-secondary-btn btn-secondary"
                                 >
                                     Eliminar logo
                                 </button>
@@ -154,7 +170,7 @@ export function renderSettingsSection() {
                             <button
                                 type="submit"
                                 id="clinicProfileSaveBtn"
-                                class="admin-v3-command-btn settings-primary-btn"
+                                class="admin-v3-command-btn settings-primary-btn btn-primary"
                             >
                                 Guardar perfil
                             </button>

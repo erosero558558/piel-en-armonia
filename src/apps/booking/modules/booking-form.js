@@ -72,31 +72,223 @@ function getFieldErrorContainer(field) {
     return field.closest('.form-group') || field.closest('.form-consent');
 }
 
-function clearFieldErrorState(field) {
-    if (!field) return;
-    field.removeAttribute('aria-invalid');
-    const container = getFieldErrorContainer(field);
-    if (container) {
-        container.classList.remove('has-error');
+function getFieldMessageNode(field) {
+    if (!field) return null;
+
+    const cachedId = String(field.dataset.validationMessageId || '').trim();
+    if (cachedId) {
+        const cachedNode = document.getElementById(cachedId);
+        if (
+            cachedNode &&
+            (cachedNode.classList.contains('form-field-message') ||
+                cachedNode.classList.contains('form-consent-message'))
+        ) {
+            return cachedNode;
+        }
+    }
+
+    const ids = String(field.getAttribute('aria-describedby') || '')
+        .split(/\s+/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+    for (const id of ids) {
+        const node = document.getElementById(id);
+        if (
+            node &&
+            (node.classList.contains('form-field-message') ||
+                node.classList.contains('form-consent-message'))
+        ) {
+            field.dataset.validationMessageId = id;
+            return node;
+        }
+    }
+
+    return null;
+}
+
+function readFieldBaseDescriptions(field) {
+    if (!field) return [];
+    if (field.dataset.baseDescribedByCached === 'true') {
+        return String(field.dataset.baseDescribedBy || '')
+            .split(/\s+/)
+            .map((value) => value.trim())
+            .filter(Boolean);
+    }
+
+    const ids = String(field.getAttribute('aria-describedby') || '')
+        .split(/\s+/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+    const baseIds = ids.filter((id) => {
+        const node = document.getElementById(id);
+        return !(
+            node &&
+            (node.classList.contains('form-field-message') ||
+                node.classList.contains('form-consent-message'))
+        );
+    });
+
+    field.dataset.baseDescribedByCached = 'true';
+    field.dataset.baseDescribedBy = baseIds.join(' ');
+    return baseIds;
+}
+
+function syncFieldDescribedBy(field, messageNode, includeMessage) {
+    if (!field || !(messageNode instanceof HTMLElement)) return;
+
+    const baseIds = readFieldBaseDescriptions(field);
+    const nextIds = includeMessage
+        ? [...baseIds, messageNode.id].filter(Boolean)
+        : baseIds;
+
+    if (nextIds.length > 0) {
+        field.setAttribute('aria-describedby', nextIds.join(' '));
+    } else {
+        field.removeAttribute('aria-describedby');
     }
 }
 
-function markFieldErrorState(field) {
+function setFieldMessage(field, message = '', state = '') {
+    const messageNode = getFieldMessageNode(field);
+    if (!(messageNode instanceof HTMLElement)) {
+        return;
+    }
+
+    const safeMessage = String(message || '').trim();
+    if (!safeMessage) {
+        messageNode.hidden = true;
+        messageNode.textContent = '';
+        messageNode.removeAttribute('data-state');
+        syncFieldDescribedBy(field, messageNode, false);
+        return;
+    }
+
+    messageNode.hidden = false;
+    messageNode.textContent = safeMessage;
+    messageNode.dataset.state = state || 'error';
+    syncFieldDescribedBy(field, messageNode, true);
+}
+
+function fieldHasValue(field) {
+    if (!field) return false;
+    if (field instanceof HTMLInputElement && field.type === 'checkbox') {
+        return field.checked;
+    }
+    if (field instanceof HTMLInputElement && field.type === 'file') {
+        return (field.files?.length || 0) > 0;
+    }
+
+    return String(field.value || '').trim() !== '';
+}
+
+function getFieldErrorMessage(field) {
+    const fieldName = String(field?.name || '').trim();
+    switch (fieldName) {
+        case 'service':
+            return t(
+                'Selecciona el tipo de consulta para continuar.',
+                'Choose a care route to continue.'
+            );
+        case 'doctor':
+            return t(
+                'Selecciona el profesional que atendera tu caso.',
+                'Choose the clinician for this booking.'
+            );
+        case 'date':
+            return t(
+                'Elige una fecha disponible.',
+                'Choose an available date.'
+            );
+        case 'time':
+            return t(
+                'Selecciona un horario disponible.',
+                'Choose an available time slot.'
+            );
+        case 'name':
+            return t(
+                'Escribe tu nombre completo.',
+                'Enter your full name.'
+            );
+        case 'email':
+            return t(
+                'Ingresa un correo valido para la confirmacion.',
+                'Enter a valid email for the confirmation.'
+            );
+        case 'phone':
+            return t(
+                'Ingresa un telefono valido (ejemplo: +593 9XXXXXXXX).',
+                'Enter a valid phone number (example: +593 9XXXXXXXX).'
+            );
+        case 'privacyConsent':
+            return t(
+                'Debes aceptar el tratamiento de datos para continuar.',
+                'You must accept data processing to continue.'
+            );
+        case 'casePhotos':
+            return t(
+                'Revisa el formato o el peso de las fotos clinicas.',
+                'Review the format or size of the clinical photos.'
+            );
+        default:
+            return (
+                field?.validationMessage ||
+                t(
+                    'Revisa este campo antes de continuar.',
+                    'Review this field before continuing.'
+                )
+            );
+    }
+}
+
+function clearFieldErrorState(field) {
     if (!field) return;
-    field.setAttribute('aria-invalid', 'true');
+    field.removeAttribute('aria-invalid');
+    delete field.dataset.validationState;
+    setFieldMessage(field, '');
     const container = getFieldErrorContainer(field);
     if (container) {
+        container.classList.remove('has-error');
+        container.classList.remove('has-success');
+    }
+}
+
+function markFieldSuccessState(field) {
+    if (!field || !fieldHasValue(field) || !field.checkValidity()) {
+        clearFieldErrorState(field);
+        return;
+    }
+
+    field.removeAttribute('aria-invalid');
+    field.dataset.validationState = 'success';
+    setFieldMessage(field, '');
+    const container = getFieldErrorContainer(field);
+    if (container) {
+        container.classList.remove('has-error');
+        container.classList.add('has-success');
+    }
+}
+
+function markFieldErrorState(field, message = '') {
+    if (!field) return;
+    field.setAttribute('aria-invalid', 'true');
+    field.dataset.validationState = 'error';
+    setFieldMessage(field, message || getFieldErrorMessage(field), 'error');
+    const container = getFieldErrorContainer(field);
+    if (container) {
+        container.classList.remove('has-success');
         container.classList.add('has-error');
     }
 }
 
 function clearBookingValidationState(form) {
     if (!form) return;
-    form.querySelectorAll('[aria-invalid="true"]').forEach((field) => {
-        field.removeAttribute('aria-invalid');
+    form.querySelectorAll('input, select, textarea').forEach((field) => {
+        clearFieldErrorState(field);
     });
-    form.querySelectorAll('.has-error').forEach((node) => {
+    form.querySelectorAll('.has-error, .has-success').forEach((node) => {
         node.classList.remove('has-error');
+        node.classList.remove('has-success');
     });
 }
 
@@ -121,10 +313,14 @@ function bindInlineErrorReset(form) {
         const target = event && event.target;
         if (!(target instanceof Element)) return;
         if (!form.contains(target)) return;
-        if (!target.matches('input, select, textarea, button[type="submit"]')) {
+        if (!target.matches('input, select, textarea')) {
             return;
         }
-        clearFieldErrorState(target);
+        if (target.checkValidity() && fieldHasValue(target)) {
+            markFieldSuccessState(target);
+        } else if (!fieldHasValue(target)) {
+            clearFieldErrorState(target);
+        }
         const feedback = getBookingFeedbackEl();
         if (
             feedback &&
@@ -136,6 +332,7 @@ function bindInlineErrorReset(form) {
 
     form.addEventListener('input', clearField);
     form.addEventListener('change', clearField);
+    form.addEventListener('focusout', clearField);
     form.dataset.bookingInlineResetBound = 'true';
 }
 
@@ -617,7 +814,10 @@ export function init(inputDeps) {
             }
             const invalidField = this.querySelector(':invalid');
             if (invalidField) {
-                markFieldErrorState(invalidField);
+                markFieldErrorState(
+                    invalidField,
+                    getFieldErrorMessage(invalidField)
+                );
                 focusFieldForCorrection(invalidField);
             }
             setBookingFeedback(
@@ -650,7 +850,14 @@ export function init(inputDeps) {
         try {
             const formData = new FormData(this);
             const casePhotoFiles = deps.getCasePhotoFiles(this);
-            deps.validateCasePhotoFiles(casePhotoFiles);
+            try {
+                deps.validateCasePhotoFiles(casePhotoFiles);
+            } catch (error) {
+                if (error && !error.fieldName) {
+                    error.fieldName = 'casePhotos';
+                }
+                throw error;
+            }
             const privacyConsent = formData.get('privacyConsent') === 'on';
 
             if (!privacyConsent) {
@@ -695,6 +902,12 @@ export function init(inputDeps) {
                 checkoutEntry: 'booking_form',
                 price: totalEl.textContent,
             };
+
+            this.querySelectorAll('input, select, textarea').forEach((field) => {
+                if (field.checkValidity() && fieldHasValue(field)) {
+                    markFieldSuccessState(field);
+                }
+            });
 
             trackFormStep('form_submitted', {}, { once: false });
             if (appointment.service) {
@@ -785,7 +998,7 @@ export function init(inputDeps) {
             const fieldName = error && error.fieldName;
             const field = fieldName ? findFieldByName(this, fieldName) : null;
             if (field) {
-                markFieldErrorState(field);
+                markFieldErrorState(field, message);
                 focusFieldForCorrection(field);
             }
             deps.trackEvent('booking_error', {

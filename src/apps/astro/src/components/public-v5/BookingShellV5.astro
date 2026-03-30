@@ -257,7 +257,7 @@ const evolutionOptions = [
     </div>
 
     <div class="appointment-form-container">
-        <form id="v5-booking-form" class="appointment-form">
+        <form id="v5-booking-form" class="appointment-form" novalidate>
             <h3 data-i18n="form_title">{dict.form_title}</h3>
             <p class="booking-form-meta" data-i18n="booking_form_intro">
                 {dict.booking_form_intro}
@@ -286,7 +286,13 @@ const evolutionOptions = [
 
             <div class="form-group">
                 <label for="v5-service-select" data-i18n="label_service">{dict.label_service}</label>
-                <select name="service" id="v5-service-select" required>
+                <select
+                    name="service"
+                    id="v5-service-select"
+                    class="select"
+                    aria-describedby="v5-service-select-error"
+                    required
+                >
                     {serviceOptions.map((option) => (
                         <option
                             value={option.value}
@@ -304,6 +310,7 @@ const evolutionOptions = [
                         </option>
                     ))}
                 </select>
+                <small id="v5-service-select-error" class="form-field-message" hidden></small>
             </div>
 
             <section class="booking-pricing-model" aria-live="polite" aria-atomic="true">
@@ -353,21 +360,42 @@ const evolutionOptions = [
 
             <div class="form-group">
                 <label for="v5-doctor-select" data-i18n="label_doctor">{dict.label_doctor}</label>
-                <select name="doctor" id="v5-doctor-select" required>
+                <select
+                    name="doctor"
+                    id="v5-doctor-select"
+                    class="select"
+                    aria-describedby="v5-doctor-select-error"
+                    required
+                >
                     {doctorOptions.map((option) => (
                         <option value={option.value}>{option.label}</option>
                     ))}
                 </select>
+                <small id="v5-doctor-select-error" class="form-field-message" hidden></small>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label for="v5-date" data-i18n="label_date">{dict.label_date}</label>
-                    <input type="date" id="v5-date" name="date" required />
+                    <input
+                        type="date"
+                        id="v5-date"
+                        name="date"
+                        class="input"
+                        aria-describedby="v5-date-error"
+                        required
+                    />
+                    <small id="v5-date-error" class="form-field-message" hidden></small>
                 </div>
                 <div class="form-group">
                     <label for="v5-time" data-i18n="label_time">{dict.label_time}</label>
-                    <select name="time" id="v5-time" required>
+                    <select
+                        name="time"
+                        id="v5-time"
+                        class="select"
+                        aria-describedby="v5-time-error"
+                        required
+                    >
                         <option value="">{dict.select_time}</option>
                         <option value="09:00">09:00</option>
                         <option value="10:00">10:00</option>
@@ -377,17 +405,34 @@ const evolutionOptions = [
                         <option value="16:00">16:00</option>
                         <option value="17:00">17:00</option>
                     </select>
+                    <small id="v5-time-error" class="form-field-message" hidden></small>
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="appointmentName" data-i18n="label_name">{dict.label_name}</label>
-                <input type="text" id="appointmentName" name="name" required />
+                <input
+                    type="text"
+                    id="appointmentName"
+                    name="name"
+                    class="input"
+                    aria-describedby="appointmentNameError"
+                    required
+                />
+                <small id="appointmentNameError" class="form-field-message" hidden></small>
             </div>
 
             <div class="form-group">
                 <label for="appointmentEmail" data-i18n="label_email">{dict.label_email}</label>
-                <input type="email" id="appointmentEmail" name="email" required />
+                <input
+                    type="email"
+                    id="appointmentEmail"
+                    name="email"
+                    class="input"
+                    aria-describedby="appointmentEmailError"
+                    required
+                />
+                <small id="appointmentEmailError" class="form-field-message" hidden></small>
             </div>
 
             <div class="form-group">
@@ -396,9 +441,11 @@ const evolutionOptions = [
                     type="tel"
                     id="appointmentPhone"
                     name="phone"
+                    class="input"
                     required
                     inputmode="tel"
                     autocomplete="tel"
+                    aria-describedby="bookingPhoneFormatHelp appointmentPhoneError"
                     data-i18n="placeholder_phone"
                     placeholder={dict.placeholder_phone}
                 />
@@ -409,6 +456,7 @@ const evolutionOptions = [
                             : 'Formato recomendado: +593 9XXXXXXXX o 09XXXXXXXX.'
                     }
                 </small>
+                <small id="appointmentPhoneError" class="form-field-message" hidden></small>
             </div>
 
             <div class="form-group">
@@ -416,6 +464,7 @@ const evolutionOptions = [
                 <textarea
                     id="appointmentReason"
                     name="reason"
+                    class="textarea"
                     rows="3"
                     data-i18n="placeholder_reason"
                     placeholder={dict.placeholder_reason}
@@ -425,7 +474,7 @@ const evolutionOptions = [
             <div class="form-row">
                 <div class="form-group">
                     <label for="affectedAreaSelect" data-i18n="label_area">{dict.label_area}</label>
-                    <select name="affectedArea" id="affectedAreaSelect">
+                    <select name="affectedArea" id="affectedAreaSelect" class="select">
                         {areaOptions.map((option) => (
                             <option value={option.value}>{option.label}</option>
                         ))}
@@ -435,7 +484,7 @@ const evolutionOptions = [
                     <label for="evolutionTimeSelect" data-i18n="label_evolution">
                         {dict.label_evolution}
                     </label>
-                    <select name="evolutionTime" id="evolutionTimeSelect">
+                    <select name="evolutionTime" id="evolutionTimeSelect" class="select">
                         {evolutionOptions.map((option) => (
                             <option value={option.value}>{option.label}</option>
                         ))}
@@ -449,21 +498,31 @@ const evolutionOptions = [
                     type="file"
                     id="casePhotos"
                     name="casePhotos"
+                    class="input"
+                    aria-describedby="casePhotosHelp casePhotosError"
                     accept=".jpg,.jpeg,.png,.webp"
                     multiple
                 />
-                <small class="form-help" data-i18n="case_photos_help">{dict.case_photos_help}</small>
+                <small id="casePhotosHelp" class="form-help" data-i18n="case_photos_help">{dict.case_photos_help}</small>
+                <small id="casePhotosError" class="form-field-message" hidden></small>
             </div>
 
             <div class="form-consent">
                 <label class="checkbox-line" for="privacyConsent">
-                    <input type="checkbox" id="privacyConsent" name="privacyConsent" required />
+                    <input
+                        type="checkbox"
+                        id="privacyConsent"
+                        name="privacyConsent"
+                        aria-describedby="privacyConsentNote privacyConsentError"
+                        required
+                    />
                     <span data-i18n="privacy_consent_label">{dict.privacy_consent_label}</span>
                 </label>
-                <p class="form-privacy-note">
+                <p id="privacyConsentNote" class="form-privacy-note">
                     <span data-i18n="privacy_images_note">{dict.privacy_images_note}</span>
                     <a href={privacyHref} data-i18n="privacy_link_label">{dict.privacy_link_label}</a>
                 </p>
+                <p id="privacyConsentError" class="form-consent-message" hidden></p>
             </div>
             <p class="form-help booking-policy-note">
                 {
@@ -511,4 +570,3 @@ const evolutionOptions = [
         </form>
     </div>
 </div>
-

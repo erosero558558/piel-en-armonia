@@ -389,6 +389,69 @@ function createTaskCheckDefinitions(context) {
         },
       },
     ],
+    'UI2-17': [
+      {
+        name: 'Booking and pre-consultation shells use system form classes',
+        evaluate: () => {
+          const bookingV5 = fileIncludes(
+            'src/apps/astro/src/components/public-v5/BookingShellV5.astro',
+            ['class="select"', 'class="input"', 'class="textarea"', 'btn-primary', 'privacyConsentError'],
+            'BookingShellV5.astro expone clases de formulario del sistema y mensajes inline'
+          );
+          const preconsultation = fileIncludes(
+            'src/apps/astro/src/components/public-v6/PreConsultationPageV6.astro',
+            ['class="input"', 'class="select"', 'class="textarea"', 'form-consent-message', 'btn-primary'],
+            'PreConsultationPageV6.astro expone clases y mensajes inline para error/success'
+          );
+
+          if (bookingV5.ok && preconsultation.ok) {
+            return pass(`${bookingV5.detail}; ${preconsultation.detail}`);
+          }
+
+          return fail([bookingV5.detail, preconsultation.detail].filter(Boolean).join(' | '));
+        },
+      },
+      {
+        name: 'Admin forms adopt described-by wiring and system classes',
+        evaluate: () => {
+          const adminLogin = fileIncludes(
+            'src/apps/admin-v3/ui/frame/templates/login/panel.js',
+            ['class="input"', 'aria-describedby="adminLoginStatusMessage"', 'class="btn-primary"'],
+            'login/panel.js conecta el feedback del login con aria-describedby y botones del sistema'
+          );
+          const adminSettings = fileIncludes(
+            'src/apps/admin-v3/ui/frame/templates/sections/settings.js',
+            ['class="input"', 'aria-describedby="doctorProfileSaveMeta"', 'btn-primary'],
+            'settings.js usa clases del sistema y guarda metadata accesible en los forms'
+          );
+
+          if (adminLogin.ok && adminSettings.ok) {
+            return pass(`${adminLogin.detail}; ${adminSettings.detail}`);
+          }
+
+          return fail([adminLogin.detail, adminSettings.detail].filter(Boolean).join(' | '));
+        },
+      },
+      {
+        name: 'Form consistency tests and contract guard exist',
+        evaluate: () => {
+          const playwrightSpec = filePresence(
+            'tests/ui2-form-consistency.spec.js',
+            'Existe tests/ui2-form-consistency.spec.js'
+          );
+          const contractTest = filePresence(
+            'tests-node/ui2-form-consistency-contract.test.js',
+            'Existe tests-node/ui2-form-consistency-contract.test.js'
+          );
+
+          if (playwrightSpec.ok && contractTest.ok) {
+            return pass(`${playwrightSpec.detail}; ${contractTest.detail}`);
+          }
+
+          return fail([playwrightSpec.detail, contractTest.detail].filter(Boolean).join(' | '));
+        },
+      },
+    ],
   };
 }
 

@@ -26,12 +26,29 @@ export function renderLoginPanel() {
                 <div id="legacyLoginStage">
                     <label id="adminPasswordField" class="admin-login-field" for="adminPassword">
                         <span>Contrasena</span>
-                        <input id="adminPassword" type="password" required placeholder="Ingresa tu clave" autocomplete="current-password" />
+                        <input
+                            id="adminPassword"
+                            class="input"
+                            type="password"
+                            required
+                            placeholder="Ingresa tu clave"
+                            autocomplete="current-password"
+                            aria-describedby="adminLoginStatusMessage"
+                        />
                     </label>
                     <div id="group2FA" class="is-hidden">
                         <label id="admin2FAField" class="admin-login-field" for="admin2FACode">
                             <span>Codigo 2FA</span>
-                            <input id="admin2FACode" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456" />
+                            <input
+                                id="admin2FACode"
+                                class="input"
+                                type="text"
+                                inputmode="numeric"
+                                maxlength="6"
+                                autocomplete="one-time-code"
+                                placeholder="123456"
+                                aria-describedby="adminLoginStatusMessage"
+                            />
                         </label>
                     </div>
                 </div>
@@ -64,11 +81,11 @@ export function renderLoginPanel() {
                     </div>
                 </div>
                 <div class="admin-login-actions">
-                    <button id="loginBtn" type="submit">Ingresar</button>
+                    <button id="loginBtn" class="btn-primary" type="submit">Ingresar</button>
                     <button
                         id="loginReset2FABtn"
                         type="button"
-                        class="sony-login-reset is-hidden"
+                        class="sony-login-reset btn-ghost is-hidden"
                         data-action="reset-login-2fa"
                     >
                         Volver
@@ -78,7 +95,7 @@ export function renderLoginPanel() {
                     <button
                         id="loginFallbackToggleBtn"
                         type="button"
-                        class="admin-login-inline-link is-hidden"
+                        class="admin-login-inline-link btn-ghost is-hidden"
                         data-action="show-login-fallback"
                     >
                         Usar clave de contingencia
@@ -86,7 +103,7 @@ export function renderLoginPanel() {
                     <button
                         id="loginPrimaryToggleBtn"
                         type="button"
-                        class="admin-login-inline-link is-hidden"
+                        class="admin-login-inline-link btn-ghost is-hidden"
                         data-action="show-login-primary"
                     >
                         Volver a OpenClaw

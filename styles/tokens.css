@@ -27,6 +27,7 @@
   --color-stone-600: hsl(30, 10%, 40%);     /* #6b6460 */
   --color-stone-800: hsl(30, 12%, 20%);     /* #362f2a */
   --color-stone-900: hsl(30, 14%, 12%);     /* #211c19 */
+  --color-neutral-500: var(--color-stone-600);
 
   /* Semánticos clínicos */
   --color-success:  hsl(145, 55%, 40%);     /* verde clínico */

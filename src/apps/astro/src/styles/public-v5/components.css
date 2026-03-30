@@ -290,6 +290,65 @@ body[data-public-shell-version='v5'] .booking-bridge__mount .price-summary-hint 
     color: #48607d;
 }
 
+/* UI2-17 form-consistency:start */
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-group label,
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-consent .checkbox-line span {
+    color: var(--public-v5-muted);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .input,
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .select,
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .textarea {
+    color: var(--public-v5-ink);
+    border-color: var(--public-v5-line);
+    background: var(--public-v5-surface);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .input::placeholder,
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .textarea::placeholder {
+    color: var(--color-neutral-500);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .input[aria-invalid='true'],
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .select[aria-invalid='true'],
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .textarea[aria-invalid='true'] {
+    border-color: var(--color-danger);
+    outline: 2px solid hsla(4, 52%, 52%, 0.18);
+    outline-offset: 1px;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .input[data-validation-state='success'],
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .select[data-validation-state='success'],
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .textarea[data-validation-state='success'] {
+    border-color: var(--color-aurora-600);
+    outline: 2px solid hsla(158, 45%, 34%, 0.14);
+    outline-offset: 1px;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-group.has-error label,
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-consent.has-error .checkbox-line span {
+    color: var(--color-danger);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-group.has-success label,
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-consent.has-success .checkbox-line span {
+    color: var(--color-aurora-600);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-field-message,
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-consent-message {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--public-v5-muted);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-field-message[data-state='error'],
+body[data-public-shell-version='v5'] .booking-bridge__mount .appointment-form .form-consent-message[data-state='error'] {
+    color: var(--color-danger);
+}
+/* UI2-17 form-consistency:end */
+
 body[data-public-shell-version='v5'] .booking-bridge__mount .price-summary {
     border-radius: 14px;
     border: 1px solid rgba(13, 20, 32, 0.1);

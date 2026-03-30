@@ -20,6 +20,11 @@
     --public-v5-stage-soft: #10141d;
     --public-v5-accent: #2d5bff;
     --public-v5-accent-soft: rgba(45, 91, 255, 0.14);
+    --color-aurora-400: #4b9d7f;
+    --color-aurora-600: #2f7d61;
+    --color-danger: #c54d45;
+    --color-neutral-500: #6a7280;
+    --color-stone-50: #f8fafc;
     --public-v5-shadow: 0 28px 70px rgba(9, 10, 13, 0.14);
     --public-v5-radius-lg: 24px;
     --public-v5-radius-md: 16px;

@@ -315,6 +315,7 @@
     color: rgba(18, 24, 35, 0.76);
 }
 
+/* UI2-17 form-consistency:start */
 .v6-pre-form {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -342,9 +343,9 @@
     font-weight: 700;
 }
 
-.v6-pre-form input,
-.v6-pre-form select,
-.v6-pre-form textarea {
+.v6-pre-form .input,
+.v6-pre-form .select,
+.v6-pre-form .textarea {
     width: 100%;
     border: 1px solid rgba(18, 24, 35, 0.14);
     border-radius: 16px;
@@ -355,22 +356,70 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.v6-pre-form textarea {
+.v6-pre-form .input::placeholder,
+.v6-pre-form .textarea::placeholder {
+    color: var(--color-neutral-500);
+}
+
+.v6-pre-form .textarea {
     min-height: 152px;
     resize: vertical;
 }
 
-.v6-pre-form input:focus-visible,
-.v6-pre-form select:focus-visible,
-.v6-pre-form textarea:focus-visible {
+.v6-pre-form .input:focus-visible,
+.v6-pre-form .select:focus-visible,
+.v6-pre-form .textarea:focus-visible {
     outline: 2px solid rgba(199, 163, 109, 0.78);
     outline-offset: 2px;
     border-color: rgba(199, 163, 109, 0.82);
 }
 
-.v6-pre-form input[type='file'] {
+.v6-pre-form .input[type='file'] {
     padding: 14px;
     background: rgba(246, 249, 252, 0.9);
+}
+
+.v6-pre-form .input[aria-invalid='true'],
+.v6-pre-form .select[aria-invalid='true'],
+.v6-pre-form .textarea[aria-invalid='true'] {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 0 3px hsla(0, 65%, 52%, 0.12);
+}
+
+.v6-pre-form .input[data-validation-state='success'],
+.v6-pre-form .select[data-validation-state='success'],
+.v6-pre-form .textarea[data-validation-state='success'] {
+    border-color: var(--color-aurora-600);
+    box-shadow: 0 0 0 3px hsla(165, 60%, 36%, 0.12);
+}
+
+.v6-pre-form__field.has-error label,
+.v6-pre-form__consent.has-error span {
+    color: var(--color-danger);
+}
+
+.v6-pre-form__field.has-success label,
+.v6-pre-form__consent.has-success span {
+    color: var(--color-aurora-600);
+}
+
+.v6-pre-form .form-field-message,
+.v6-pre-form .form-consent-message {
+    display: block;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgba(18, 24, 35, 0.66);
+}
+
+.v6-pre-form .form-field-message[data-state='error'],
+.v6-pre-form .form-consent-message[data-state='error'] {
+    color: var(--color-danger);
+}
+
+.v6-pre-form .form-field-message[data-state='success'],
+.v6-pre-form .form-consent-message[data-state='success'] {
+    color: var(--color-aurora-600);
 }
 
 .v6-pre-form__files {
@@ -405,13 +454,33 @@
     flex-wrap: wrap;
 }
 
-.v6-pre-form__actions button {
+.v6-pre-form__actions .btn-primary {
     cursor: pointer;
+    min-height: 48px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0 20px;
+    background: var(--color-aurora-600);
+    color: var(--color-stone-50);
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+    transition:
+        transform 180ms ease,
+        box-shadow 180ms ease,
+        border-color 180ms ease,
+        background-color 180ms ease;
 }
 
-.v6-pre-form__actions button[disabled] {
+.v6-pre-form__actions .btn-primary[disabled] {
     cursor: progress;
     opacity: 0.78;
+}
+
+.v6-pre-form__actions .btn-primary:hover,
+.v6-pre-form__actions .btn-primary:focus-visible {
+    transform: translateY(-1px);
+    background: var(--color-aurora-400);
+    box-shadow: var(--shadow-md);
 }
 
 .v6-pre-form__actions a {
@@ -434,19 +503,19 @@
 .v6-pre-form__status[data-state='error'] {
     border-color: rgba(159, 52, 52, 0.24);
     background: rgba(252, 240, 240, 0.96);
-    color: #7b2020;
+    color: var(--color-danger);
 }
 
 .v6-pre-form__status[data-state='success'] {
     border-color: rgba(46, 109, 80, 0.24);
     background: rgba(240, 248, 243, 0.96);
-    color: #19573f;
+    color: var(--color-aurora-600);
 }
 
 .v6-pre-form__status[data-state='pending'] {
     border-color: rgba(199, 163, 109, 0.28);
     background: rgba(255, 248, 236, 0.96);
-    color: #6d4e15;
+    color: var(--v6-color-ink);
 }
 
 .v6-pre-form__success {
@@ -464,6 +533,7 @@
     margin: 10px 0 0;
     font-size: 15px;
 }
+/* UI2-17 form-consistency:end */
 
 .v6-pre-sidecar {
     align-self: start;

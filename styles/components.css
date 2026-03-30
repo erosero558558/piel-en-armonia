@@ -31,7 +31,7 @@
 
 .btn-primary {
   background: var(--color-aurora-600);
-  color: #ffffff; /* Token for white text on primary is usually purely `#ffffff` */
+  color: var(--color-stone-50);
   border: none;
   box-shadow: var(--shadow-sm);
 }
@@ -192,7 +192,7 @@ body[data-theme="admin"] .badge-primary {
 }
 
 .input::placeholder, .textarea::placeholder {
-  color: var(--pub-text-muted);
+  color: var(--color-neutral-500);
 }
 
 .select {
@@ -206,7 +206,10 @@ body[data-theme="admin"] .badge-primary {
 /* Admin Form Controls */
 body[data-theme="admin"] .input, 
 body[data-theme="admin"] .select, 
-body[data-theme="admin"] .textarea {
+body[data-theme="admin"] .textarea,
+body.admin-v3-mode .input,
+body.admin-v3-mode .select,
+body.admin-v3-mode .textarea {
   background: var(--admin-bg-elevated);
   border-color: var(--admin-border);
   color: var(--admin-text-primary);
@@ -214,9 +217,91 @@ body[data-theme="admin"] .textarea {
 
 body[data-theme="admin"] .input:focus, 
 body[data-theme="admin"] .select:focus, 
-body[data-theme="admin"] .textarea:focus {
+body[data-theme="admin"] .textarea:focus,
+body.admin-v3-mode .input:focus,
+body.admin-v3-mode .select:focus,
+body.admin-v3-mode .textarea:focus {
   border-color: var(--admin-accent);
   box-shadow: 0 0 0 3px var(--admin-accent-glow);
+}
+
+body.admin-v3-mode .input,
+body.admin-v3-mode .select,
+body.admin-v3-mode .textarea {
+  background: var(--admin3-surface);
+  border-color: var(--admin3-line);
+  color: var(--admin3-ink);
+}
+
+body.admin-v3-mode .input::placeholder,
+body.admin-v3-mode .textarea::placeholder {
+  color: var(--color-neutral-500);
+}
+
+.form-field-message,
+.form-consent-message,
+.form-help {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--pub-text-muted);
+}
+
+.form-field-message[hidden],
+.form-consent-message[hidden] {
+  display: none !important;
+}
+
+.form-field-message[data-state="error"],
+.form-consent-message[data-state="error"] {
+  color: var(--color-danger);
+}
+
+.form-field-message[data-state="success"],
+.form-consent-message[data-state="success"] {
+  color: var(--color-aurora-600);
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px hsla(0, 65%, 52%, 0.12);
+}
+
+.input[data-validation-state="success"],
+.select[data-validation-state="success"],
+.textarea[data-validation-state="success"] {
+  border-color: var(--color-aurora-600);
+  box-shadow: 0 0 0 3px hsla(165, 60%, 36%, 0.12);
+}
+
+body.admin-v3-mode .input[aria-invalid="true"],
+body.admin-v3-mode .select[aria-invalid="true"],
+body.admin-v3-mode .textarea[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px hsla(0, 65%, 52%, 0.14);
+}
+
+body.admin-v3-mode .input[data-validation-state="success"],
+body.admin-v3-mode .select[data-validation-state="success"],
+body.admin-v3-mode .textarea[data-validation-state="success"] {
+  border-color: var(--color-aurora-600);
+  box-shadow: 0 0 0 3px hsla(165, 60%, 36%, 0.16);
+}
+
+body.admin-v3-mode .btn-primary {
+  background: var(--admin3-stage);
+  color: var(--color-stone-50);
+  border-color: var(--admin3-stage);
+}
+
+body.admin-v3-mode .btn-secondary,
+body.admin-v3-mode .btn-ghost {
+  background: transparent;
+  color: var(--admin3-ink);
+  border-color: var(--admin3-line);
 }
 
 /* ==========================================================================

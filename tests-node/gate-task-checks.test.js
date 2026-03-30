@@ -60,3 +60,13 @@ test('S3-45 gate checks verify shared map wiring and test coverage evidence', ()
   assert.match(wiringResult.detail, /bin\/gate\.js/);
   assert.match(wiringResult.detail, /gate-task-checks\.test\.js/);
 });
+
+test('UI2-17 gate checks and CLI task id matcher support UI2 tasks', () => {
+  const gateScript = read(resolve(REPO_ROOT, 'bin', 'gate.js'));
+  const result = taskChecks['UI2-17'][0].evaluate();
+
+  assert.match(gateScript, /\^\(S\\d\+\|UI\\d\*\)-\[A-Z0-9\]\+\$/);
+  assert.equal(result.ok, true);
+  assert.match(result.detail, /BookingShellV5\.astro/);
+  assert.match(result.detail, /PreConsultationPageV6\.astro/);
+});
