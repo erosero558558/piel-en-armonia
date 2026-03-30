@@ -79,7 +79,7 @@ function parseTasks(md) {
     }
 
     // Captura: S3-09, S3-OC1, S2-14, S4-21, UI-01, UI-19, UI2-01, UI2-20, etc.
-    const m = line.match(/^- \[([ x])\] \*\*((S\d+|UI\d*)-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
+    const m = line.match(/^- \[([ x])\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
     if (m) {
       tasks.push({
         id:          m[2],

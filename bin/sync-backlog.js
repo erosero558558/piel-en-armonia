@@ -36,6 +36,12 @@ function loadClaims() {
   return claims;
 }
 function isExpired(c) { return c?.expiresAt && new Date(c.expiresAt) < new Date(); }
+function normalizeGeneratedStamp(markdown) {
+  return String(markdown || '').replace(
+    /^_Generado: .* \| Fuente: AGENTS\.md_$/m,
+    '_Generado: <normalized> | Fuente: AGENTS.md_'
+  );
+}
 
 const CHECK_MODE = process.argv.includes('--check');
 
@@ -266,7 +272,7 @@ const result = output.join('\n') + '\n';
 
 if (CHECK_MODE) {
   const current = read(BACKLOG_FILE);
-  if (current === result) {
+  if (normalizeGeneratedStamp(current) === normalizeGeneratedStamp(result)) {
     console.log('✅ BACKLOG.md is up to date');
     process.exit(0);
   } else {
