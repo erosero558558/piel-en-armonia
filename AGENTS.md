@@ -1397,5 +1397,5 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### UI-6 PDF y documentos — "Los documentos que la doctora firma con orgullo"
 
-- [ ] **UI-18** `[M]` `[UI]` Template HTML de receta — crear `templates/pdf/prescription.html`: membrete con logo de clínica (de `ClinicProfileStore`), nombre y MSP del médico (de `DoctorProfileStore`), tabla de medicamentos con tipografía clara y legible, instrucciones en lenguaje simple, QR de verificación en esquina. Diseño que el paciente puede imprimir o guardar sin vergüenza.
+- [x] **UI-18** `[M]` `[UI]` Template HTML de receta — crear `templates/pdf/prescription.html`: membrete con logo de clínica (de `ClinicProfileStore`), nombre y MSP del médico (de `DoctorProfileStore`), tabla de medicamentos con tipografía clara y legible, instrucciones en lenguaje simple, QR de verificación en esquina. Diseño que el paciente puede imprimir o guardar sin vergüenza.
 - [ ] **UI-19** `[M]` `[UI]` Template HTML de certificado médico — crear `templates/pdf/certificate.html`: membrete oficial, firma digital del médico como imagen, datos del paciente, diagnóstico en bloque visual, firmas y sellos. Estilo documento legal pero legible. El médico puede firmarlo digitalmente sin imprimir.
