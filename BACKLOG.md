@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:02:11 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:04:46 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,17 +7,18 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **38%** completado (66/176)
+`███████░░░░░░░░░░░░░` **34%** completado (69/202)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 28 | 39 | 42% |
+| 🎯 Sprint 3 | 31 | 36 | 46% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
+| ⏸ Sprint 7 | 0 | 26 | 0% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -30,11 +31,10 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (35)
+### 🟢 Disponibles (31)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S3-37** | `[S]` | Perfil de clínica — nombre clínica, dirección, teléfono, logo (imagen)... |
 | **S3-41** | `[S]` | CIE-10 autocomplete widget — el backend  ya existe. Falta el frontend:... |
 | **S3-43** | `[S]` | Botón "Emitir certificado" en admin — en la vista del caso del pacient... |
 | **S3-44** | `[S]` | Historial de certificados en admin — en el perfil del paciente, pestañ... |
@@ -43,11 +43,8 @@ _Sprint completado. 24/24 tareas._
 | **S3-48** | `[S]` | BLOCKERS.md auto-generado — modificar  para que además de liberar el c... |
 | **S3-49** | `[S]` | npm run status — comando que en una sola ejecución muestra: progreso d... |
 | **S3-50** | `[S]` | Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta ... |
-| **S3-55** | `[S]` | 🔴 CRÍTICO Fix parse error  —  falla con "Unclosed '{' on line 755 … o... |
 | **S3-57** | `[S]` | gate.js — check  automático — antes de mostrar GATE PASSED, ejecutar  ... |
 | **S3-63** | `[S]` | Tabla de comandos oficiales — en  (o  sección Desarrollo), agregar tab... |
-| **S3-13** | `[M]` | Sala inteligente — en , entre llamadas mostrar: tips de cuidado de pie... |
-| **S3-23** | `[M]` | Compliance MSP Ecuador — el formulario oficial es SNS-MSP/HCU-form.002... |
 | **S3-28** | `[M]` | Vista de agenda diaria — en admin: agenda del día con pacientes confir... |
 | **S3-33** | `[M]` | Verificación de transferencia — paciente sube foto del comprobante. Ad... |
 | **S3-34** | `[M]` | Estado de cuenta — vista en admin: historial de pagos por paciente, sa... |
@@ -72,7 +69,8 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 88min)
+- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 85min)
+- **S3-55** `[S]` → _antigravity_ (expira en 119min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -161,6 +159,20 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 - **S6-19** `[L]` — necesita: S6-18 primero
 - **S6-20** `[M]` — necesita: S6-18 primero
 - **S6-24** `[M]` — necesita: S6-23 primero
+
+## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
+_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
+
+### 🟢 Disponibles (26)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S7-02** | `[S]` | Hardening  — el archivo tiene  y  como placeholders. Un developer podr... |
+| **S7-04** | `[S]` | Rate limiting en endpoints sensibles —  no tiene rate limiting por IP ... |
+| **S7-05** | `[S]` | Auditar permisos por rol en endpoints OpenClaw —  tiene  pero no verif... |
+| **S7-08** | `[S]` | Backup y restore automatizado — no hay ninguna tarea que valide backup... |
+| **S7-09** | `[S]` | k8s readiness/liveness probes —  no tiene  ni . Kubernetes no puede de... |
+| ... | | _+21 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

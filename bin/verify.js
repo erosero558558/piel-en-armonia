@@ -262,6 +262,18 @@ const checks = {
             displayRuntime.includes('next-wait')
         );
     },
+    'S3-13': () => {
+        const displayHtml = read(resolve(ROOT, 'sala-turnos.html'));
+        const displayRuntime = read(resolve(ROOT, 'src/apps/queue-display/index.js'));
+        return (
+            displayHtml.includes('displaySmartLane') &&
+            displayHtml.includes('displaySmartTreatment') &&
+            displayRuntime.includes('DISPLAY_SMART_TIPS') &&
+            displayRuntime.includes('DISPLAY_SMART_VIDEOS') &&
+            displayRuntime.includes('renderDisplaySmartLane') &&
+            displayRuntime.includes('queueDisplaySmartRotation')
+        );
+    },
     'S3-24': () => fileExists('es/agendar/index.html'),
     'S3-30': () => fileExists('es/telemedicina/consulta/index.html'),
     'S3-32': () => fileExists('es/pago/index.html'),

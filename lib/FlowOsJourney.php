@@ -110,6 +110,78 @@ function flow_os_stage_rank_map(): array
 
 function flow_os_detect_stage(array $store): string
 {
+    $cases = isset($store['patient_cases']) && is_array($store['patient_cases']) ? $store['patient_cases'] : [];
+    $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
+    $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
+    $approvals = isset($store['patient_case_approvals']) && is_array($store['patient_case_approvals'])
+        ? $store['patient_case_approvals']
+        : [];
+
+    $hasOpenCase = false;
+    $hasClosedCase = false;
+    $hasCarePlanReady = false;
+    $hasFollowUpActive = false;
+
+    foreach ($cases as $case) {
+        if (!is_array($case)) {
+            continue;
+        }
+
+        $status = strtolower(trim((string) ($case['status'] ?? '')));
+        if ($status === '') {
+            continue;
+        }
+
+        if (in_array($status, ['resolved', 'closed', 'completed', 'archived'], true)) {
+            $hasClosedCase = true;
+            continue;
+        }
+
+        $hasOpenCase = true;
+        if (in_array($status, ['care_plan_ready', 'plan_ready', 'ready_for_plan'], true)) {
+            $hasCarePlanReady = true;
+        }
+        if (in_array($status, ['follow_up_active', 'under_followup', 'monitoring', 'treatment_started'], true)) {
+            $hasFollowUpActive = true;
+        }
+    }
+
+    foreach ($approvals as $approval) {
+        if (!is_array($approval)) {
+            continue;
+        }
+        $status = strtolower(trim((string) ($approval['status'] ?? '')));
+        if ($status === 'pending' || $status === 'approved') {
+            $hasCarePlanReady = true;
+            break;
+        }
+    }
+
+    if ($hasFollowUpActive) {
+        return 'follow_up_active';
+    }
+
+    if ($hasCarePlanReady || $hasOpenCase) {
+        return 'care_plan_ready';
+    }
+
+    if ($appointments !== []) {
+        return 'scheduled';
+    }
+
+    if ($callbacks !== []) {
+        return 'intake_completed';
+    }
+
+    if ($hasClosedCase) {
+        return 'resolved';
+    }
+
+    return 'lead_captured';
+}
+
+function flow_os_default_stage_map(): array
+{
     static $map = null;
     if ($map !== null) {
         return $map;

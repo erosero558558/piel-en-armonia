@@ -245,6 +245,66 @@ test.describe('Sala turnos display', () => {
         );
     });
 
+    test('muestra la sala inteligente con tip, proximo tratamiento y video rotativo', async ({
+        page,
+    }) => {
+        await page.addInitScript(() => {
+            window.__PIEL_DISPLAY_SMART_ROTATE_MS = 80;
+        });
+
+        await installTurneroQueueStateMock(page, {
+            queueState: {
+                waitingCount: 2,
+                callingNow: [
+                    {
+                        id: 1,
+                        ticketCode: 'A-061',
+                        patientInitials: 'JP',
+                        assignedConsultorio: 1,
+                        calledAt: new Date().toISOString(),
+                    },
+                ],
+                nextTickets: [
+                    {
+                        id: 2,
+                        ticketCode: 'A-062',
+                        patientInitials: 'LM',
+                        position: 1,
+                        estimatedWaitMin: 7,
+                        queueType: 'walk_in',
+                        visitReason: 'procedimiento',
+                        visitReasonLabel: 'Procedimiento',
+                    },
+                ],
+            },
+        });
+
+        await page.goto('/sala-turnos.html');
+
+        await expect(page.locator('#displaySmartLane')).toContainText(
+            'Sala inteligente'
+        );
+        await expect(page.locator('#displaySmartTip')).toContainText(
+            'Fotoproteccion antes de salir'
+        );
+        await expect(page.locator('#displaySmartTreatment')).toContainText(
+            'Procedimiento dermatologico'
+        );
+        await expect(page.locator('#displaySmartTreatment')).toContainText(
+            '7 min'
+        );
+        await expect(page.locator('#displaySmartVideo')).toContainText(
+            'Rutina basica para piel sensible'
+        );
+
+        await expect
+            .poll(async () => {
+                const text = await page.locator('#displaySmartVideo').textContent();
+                return text || '';
+            })
+            .toContain('Como prepararte para un procedimiento dermatologico');
+    });
+
     test('acepta queue-state snake_case para llamados y siguientes', async ({
         page,
     }) => {

@@ -1051,7 +1051,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S3-10** `[M]` Acciones post-consulta — botones en operador: "Agendar siguiente", "Enviar guía", "Generar receta", "Derivar a procedimiento". Cada uno dispara el action correspondiente.
 - [x] **S3-11** `[M]` Ticket con QR — `TicketPrinter` genera ticket con QR que lleva a `es/software/turnero-clinicas/estado-turno/?ticket=XXX`. Paciente ve su posición desde el teléfono.
 - [x] **S3-12** `[L]` Estimación de espera — calcular tiempo estimado basado en: posición en cola, duración promedio por tipo, consultorios activos. Mostrar en kiosco y sala. Actualizar en tiempo real.
-- [ ] **S3-13** `[M]` Sala inteligente — en `sala-turnos.html`, entre llamadas mostrar: tips de cuidado de piel, info del próximo tratamiento (si el turno es de tipo conocido), video educativo rotativo.
+- [x] **S3-13** `[M]` Sala inteligente — en `sala-turnos.html`, entre llamadas mostrar: tips de cuidado de piel, info del próximo tratamiento (si el turno es de tipo conocido), video educativo rotativo.
 - [x] **S3-14** `[S]` Métricas de espera — registrar tiempo real de espera por turno. Registrar throughput/hora. Alimentar `QueueAssistantMetricsStore`. Vista de gráficos en admin.
 
 #### 3.3 Historia Clínica Electrónica
@@ -1277,3 +1277,58 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S6-23** `[M]` Ticket de soporte — desde el admin de la clínica: "Crear ticket" → descripción + screenshot. Sistema interno. El equipo Flow OS lo ve en un dashboard de soporte.
 - [ ] **S6-24** `[M]` Base de conocimiento — `es/software/turnero-clinicas/ayuda/index.html`: artículos con capturas de pantalla. Búsqueda. "Cómo agregar un doctor", "Cómo configurar el turnero", etc.
 - [ ] **S6-25** `[L]` Monitoreo multi-tenant — alertas automáticas si una clínica tiene: 0 citas en 3 días, error 500 frecuente, tasa de no-show >50%. Dashboard interno de salud del ecosystem.
+
+---
+
+### ⚙️ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
+
+> **Meta:** Pasar de "funciona en dev" a "sobrevive en producción". Evidencia directa del repo: Dockerfile existe pero sin health checks, CSP en Caddy no cubre aurora-derm.com, legacy_password activo en lib/auth.php, 400 archivos en queue-shared, k8s/secret.yaml.example con change-me como valor.
+
+#### 7.1 Seguridad y autenticación
+
+- [ ] **S7-01** `[M]` Auditar y eliminar `legacy_password` de `lib/auth.php` — `grep -n 'legacy_password\|legacy_fallback'` devuelve 6 líneas activas (136, 146, 148, 172, 175, 1456). La función `internal_console_legacy_fallback_payload()` expone un mecanismo de autenticación alternativo sin rate-limit ni logging. Mapear: ¿quién llama a `internal_console_auth_fallbacks_payload()`? Si nadie en producción lo necesita ya, envolver en `if (app_env('INTERNAL_LEGACY_AUTH') === 'true')` para que esté desactivado por default. Documentar en SECURITY.md.
+- [ ] **S7-02** `[S]` Hardening `k8s/secret.yaml.example` — el archivo tiene `AURORADERM_ADMIN_PASSWORD: "change-me"` y `sk_live_...` como placeholders. Un developer podría deployar con valores por defecto. Agregar un script `ops/check-secrets.sh` que lea el secret real (via `kubectl get secret`) y falle si encuentra cualquier valor `change-me` o `...`. Incluirlo en el runbook de deploy.
+- [ ] **S7-03** `[M]` CSP `ops/caddy/Caddyfile` — el Content-Security-Policy en Caddy no incluye dominios de aurora-derm (solo pielarmonia.com). `grep 'aurora' ops/caddy/Caddyfile` devuelve 0 resultados. Añadir los dominios de Aurora Derm al CSP, al `@publicHost` y al bloque de headers. Verificar que el CSP no bloquea ningún asset del admin ni de OpenClaw. Herramienta: CSP Evaluator (csp-evaluator.withgoogle.com).
+- [ ] **S7-04** `[S]` Rate limiting en endpoints sensibles — `api.php` no tiene rate limiting por IP en rutas de auth. Agregar middleware en `lib/ApiKernel.php` o en el bloque Caddy: limitar `/api.php?resource=admin-login` a 5 intentos/minuto por IP. Usar header `X-RateLimit-*` en respuesta. Documentar en SECURITY.md.
+- [ ] **S7-05** `[S]` Auditar permisos por rol en endpoints OpenClaw — `OpenclawController` tiene `requireAuth()` pero no verifica el rol del usuario autenticado. Un recepcionista autenticado puede ejecutar `openclaw-chat`, `openclaw-prescription`, `openclaw-certificate`. Definir en `lib/auth.php` qué rol puede acceder a qué endpoint clínico. Mínimo: separar `doctor` de `receptionist` para endpoints de prescripción y certificado.
+
+#### 7.2 Operaciones y runtime
+
+- [ ] **S7-06** `[M]` Health checks en Dockerfile — el `Dockerfile` actual no tiene `HEALTHCHECK`. El load balancer no puede saber si el contenedor está sano. Agregar: `HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -fs http://localhost/api.php?resource=health || exit 1`. Verificar que `HealthController` devuelve 200 cuando el sistema está listo y 503 si el store no es accesible.
+- [ ] **S7-07** `[M]` Prometheus scraping real — `docker-compose.monitoring.yml` tiene Prometheus configurado, pero `prometheus.docker.yml` apunta a pielarmonia. Verificar que las métricas de Aurora Derm (`/api.php?resource=queue-state`) están en los targets de Prometheus. Crear al menos 1 regla de alerta en `prometheus.rules.yml` para: `queue_size > 20` y `api_error_rate_5m > 5%`. Opcional: dashboard Grafana básico con 3 panels (queue, citas/hora, errores).
+- [ ] **S7-08** `[S]` Backup y restore automatizado — no hay ninguna tarea que valide backup del store JSON. El store principal en `data/store.json` (y derivados) es el único estado del sistema. Crear `ops/backup.sh`: copiar a `data/backups/YYYY-MM-DD-HH.json.gz`, mantener últimos 7 días, rotar automáticamente. Agregar a cron o como script que el operador ejecuta vía `npm run backup`. Documentar el proceso de restore en `docs/RUNBOOK.md`.
+- [ ] **S7-09** `[S]` k8s readiness/liveness probes — `k8s/deployment.yaml` no tiene `readinessProbe` ni `livenessProbe`. Kubernetes no puede detectar pods zombies. Agregar ambos apuntando a `/api.php?resource=health`. `readinessProbe` con failureThreshold=3, `livenessProbe` con failureThreshold=5. Verificar que el `health` endpoint responde en <200ms bajo carga.
+- [ ] **S7-10** `[M]` Incident response playbook — no existe un runbook de "¿qué hago cuando el sistema falla en producción?". Crear `docs/INCIDENT.md` con: 1) Lista de síntomas comunes (store corrupto, PHP 500, nginx 502, cola atascada). 2) Comandos exactos de diagnóstico. 3) Procedimiento de rollback. 4) Contactos de escalación. Tiempo objetivo de resolución por severidad: P1=15min, P2=1h, P3=4h.
+
+#### 7.3 Dead code y superficie no usada
+
+- [ ] **S7-11** `[L]` Auditar 400 archivos en `src/apps/queue-shared/` — la mayoría son `turnero-surface-*.js` generados. Ejecutar: `grep -rL "import.*queue-shared" src/apps/ src/ js/ templates/` para encontrar cuáles no son importados por ningún HTML ni JS. Listar en `docs/DEAD_CODE.md`. NO eliminar en esta tarea, solo listar con tamaño. Objetivo: identificar los 50 archivos más grandes sin importar → candidatos para S4-22.
+- [ ] **S7-12** `[M]` Auditar scripts npm huérfanos — `package.json` tiene 273 scripts. Ejecutar: `node -e "const p=require('./package.json'); Object.keys(p.scripts).forEach(k=>{const v=p.scripts[k]; if(v.includes('generate-s211') || v.includes('archive')) console.log(k,v);})"` para identificar scripts que apuntan a archivos archivados. Generar lista en `docs/NPM_SCRIPTS_AUDIT.md`. Marcar cada script como: `[OFFICIAL]`, `[LEGACY]`, `[ORPHAN]`. No eliminar todavía.
+- [ ] **S7-13** `[S]` CSS huérfano en raíz — hay 8+ CSS en la raíz (`queue-display.css`, `legal.css`, `app-downloads.css`, etc.). Ejecutar: `for f in *.css; do echo "$f: $(grep -rl "$f" templates/ es/ en/ *.html 2>/dev/null | wc -l) refs"; done`. Listar los que tienen 0 referencias. Mover a `_archive/css/` si 0 refs confirmados.
+- [ ] **S7-14** `[M]` Eliminar rutas admin legacy no usadas — `lib/routes.php` tiene 120+ rutas. Ejecutar: `grep -v 'AGENTS\|done\|test' lib/routes.php | grep "router->add" | awk '{print $3}' | sort -u` para extraer todos los slugs. Luego verificar cuáles son llamados desde algún JS/HTML activo. Documentar huérfanos. Candidatos a eliminar en task separada.
+
+#### 7.4 Telemedicina legacy y media clínica
+
+- [ ] **S7-15** `[M]` Auditar `LegacyTelemedicineBridge.php` — tiene 34 líneas y delega a `TelemedicineIntakeService`. Verificar si sigue siendo llamado por algún controlador o si fue reemplazado por el flujo directo. `grep -rn 'LegacyTelemedicineBridge' controllers/ lib/` → listar callers. Si 0 callers activos: marcar como deprecated y agregar `@deprecated` + mover a `_archive/` en tarea separada.
+- [ ] **S7-16** `[M]` Normalizar Storage clínico — en `lib/telemedicine/` hay `ClinicalMediaService.php` y también `CaseMediaFlowService.php` en raíz `lib/`. Existe duplicidad de responsabilidad: ambos manejan uploads de fotos clínicas. Mapear qué rutas usan cuál. Elegir el canónico (`CaseMediaFlowService` es el más reciente). Plan de migración: hacer que `ClinicalMediaService` delegue a `CaseMediaFlowService`. Sin romper uploads existentes.
+- [ ] **S7-17** `[S]` Verificar que media privada nunca es pública — `CaseMediaFlowController` tiene un endpoint `publicMediaFile`. Confirmar que el archivo solo sirve fotos con `visibility: public`. Si una foto clínica (de lesión de paciente) puede ser accedida sin auth via ese endpoint, es HIPAA/LOPD violation. Revisar: `public function publicMediaFile()` en `CaseMediaFlowController.php` → qué filtro de visibilidad aplica.
+
+#### 7.5 Paridad EN/ES y web pública
+
+- [ ] **S7-18** `[M]` Paridad EN/ES — hay 39 páginas `index.html` en `es/` y 30 en `en/`. Identificar las 9 páginas ES sin equivalente EN. Crear lista en `docs/EN_ES_GAP.md`: página ES → existe EN? → prioridad de traducción. Alta prioridad para: servicios, booking, blog principal, pre-consulta.
+- [ ] **S7-19** `[S]` `manifest.json` apunta a Aurora Derm — verificar que `manifest.json` dice `"name": "Aurora Derm"` y no "Flow OS" o "Pielarmonia". `cat manifest.json | grep '"name"'`. Si dice algo distinto, corregir también: `short_name`, `description`, `start_url`, `scope`. Verificar en Chrome DevTools → Application → Manifest que no hay errores.
+- [ ] **S7-20** `[S]` `sitemap.xml` incluye `/es/agendar/` — S3-24 ya hizo el booking público. Verificar que `sitemap.xml` incluye la nueva URL. Si no, agregar. Verificar también que todas las URLs de `sitemap.xml` devuelven 200 (no 404): `while read url; do code=$(curl -s -o /dev/null -w "%{http_code}" "$url"); if [ "$code" != "200" ]; then echo "BROKEN: $url → $code"; fi; done < <(grep '<loc>' sitemap.xml | sed 's/<[^>]*>//g')`.
+
+#### 7.6 Observabilidad y reporting
+
+- [ ] **S7-21** `[M]` Status page de Flow OS — `S6-22` tiene la tarea de status page externa. Esta tarea es previa: crear el **endpoint interno** `/api.php?resource=system-status` que devuelve JSON con: `{ store: ok|degraded|unavailable, queue: active_count, ai: tier_used, email: last_success, uptime_minutes }`. Consumir desde la status page pública cuando exista.
+- [ ] **S7-22** `[S]` Mejorar `bin/verify.js` — actualmente verifica una fracción del backlog real (pocas tareas). Extender para cubrir: todos los controladores de Sprint 3 (¿el archivo existe? ¿la ruta está en routes.php?), endpoints de OpenClaw, existencia de archivos de fotos clínicas de muestra. Objetivo: que `node bin/verify.js` detecte en <10s si hay regresión estructural obvia.
+- [ ] **S7-23** `[S]` `npm run audit` wrapper — crear script que ejecute en secuencia: `node bin/velocity.js && node bin/verify.js && node bin/conflict.js --json && php -l lib/email.php && php -l controllers/OpenclawController.php`. Exit 0 solo si todos pasan. Agregar a `package.json` como `"gov:audit": "..."`. Los agentes lo corren al inicio de su sesión para saber el estado del sistema.
+
+#### 7.7 Distribución desktop y downloads
+
+- [ ] **S7-24** `[M]` Auditar canal `app-downloads/` y `desktop-updates/` — hay un `app-downloads/index.php` y una carpeta `desktop-updates/turnero-apps-pilot-local/`. Verificar: ¿qué versiones de la app desktop están siendo servidas? ¿El `index.php` tiene auth o es público? ¿Los checksums de los instaladores son correctos? Documentar en `docs/DESKTOP_DISTRIBUTION.md`: qué sirve cada endpoint, quién lo llama, si existe riesgo de servir un binario sin verificar.
+- [ ] **S7-25** `[S]` Validar `release/` — si existe directorio `release/`, verificar que no contiene binarios sin checksum o con secrets hardcodeados. `grep -rn 'API_KEY\|password\|secret\|sk_live' release/ 2>/dev/null`. Si encuentra algo, es P0 de seguridad. Documentar el proceso de generar un release limpio.
+- [ ] **S7-26** `[S]` Docs de ownership por zona — no existe un documento que diga "quien es responsable de qué archivo crítico". Crear `docs/OWNERSHIP.md` con tabla: zona del código → dueño humano (directora, doctor titular, etc.) → riesgo si ese dueño falta → handoff mínimo documentado. Cubrir al menos: `lib/auth.php`, `lib/clinical_history/`, `controllers/OpenclawController.php`, `k8s/`, `ops/caddy/`. Esto reduce el bus factor identificado en la auditoría.
+
+---

@@ -4113,9 +4113,15 @@ function ensureDisplaySnapshotClearButton() {
 }
 
 function renderNoDataFallback(message = 'No hay turnos pendientes.') {
+    const fallbackState = {
+        waitingCount: 0,
+        callingNow: [],
+        nextTickets: [],
+    };
     state.lastRenderedSignature = '';
     state.lastCalledSignature = '';
     state.callBaselineReady = true;
+    state.lastRenderedState = normalizeQueueStatePayload(fallbackState);
     renderCalledTicket(
         'displayConsultorio1',
         null,
@@ -4131,11 +4137,8 @@ function renderNoDataFallback(message = 'No hay turnos pendientes.') {
     if (list) {
         list.innerHTML = `<li class="display-empty">${escapeHtml(message)}</li>`;
     }
-    renderDisplayMetrics({
-        waitingCount: 0,
-        callingNow: [],
-        nextTickets: [],
-    });
+    renderDisplayMetrics(fallbackState);
+    renderDisplaySmartLane(state.lastRenderedState, null, { mode: 'idle' });
 }
 
 function renderDisplayPilotBlockedState() {
@@ -4167,6 +4170,7 @@ function renderDisplayPilotBlockedState() {
     });
     setConnectionStatus('paused', 'Pantalla bloqueada');
     setDisplayOpsHint(detail);
+    renderDisplaySmartLane(null, null, { mode: 'blocked', detail });
 }
 
 function clearLastSnapshot({ announce = false } = {}) {
@@ -4261,6 +4265,310 @@ function renderCalledTicket(containerId, ticket, consultorioLabel) {
             <span>${escapeHtml(ticket.patientInitials || '--')}</span>
         </article>
     `;
+}
+
+function buildDisplaySmartCardMarkup({
+    label,
+    chip,
+    title,
+    copy,
+    meta = [],
+    video = null,
+}) {
+    const safeMeta = Array.isArray(meta) ? meta.filter(Boolean).slice(0, 3) : [];
+    const videoMarkup =
+        video && typeof video === 'object'
+            ? `
+                <div class="display-smart-video-frame">
+                    <div class="display-smart-video-caption">
+                        <span class="display-smart-video-label">${escapeHtml(video.label || 'Video educativo')}</span>
+                        <strong class="display-smart-video-title">${escapeHtml(video.title || '')}</strong>
+                        <span class="display-smart-video-copy">${escapeHtml(video.copy || '')}</span>
+                    </div>
+                </div>
+            `
+            : '';
+
+    return `
+        <div class="display-smart-card-head">
+            <span class="display-smart-card-label">${escapeHtml(label || '')}</span>
+            ${chip ? `<span class="display-smart-card-chip">${escapeHtml(chip)}</span>` : ''}
+        </div>
+        <strong class="display-smart-card-title">${escapeHtml(title || '')}</strong>
+        <p class="display-smart-card-copy">${escapeHtml(copy || '')}</p>
+        ${videoMarkup}
+        <p class="display-smart-card-meta">
+            ${safeMeta
+                .map(
+                    (item) =>
+                        `<span class="display-smart-pill">${escapeHtml(item)}</span>`
+                )
+                .join('')}
+        </p>
+    `;
+}
+
+function renderDisplaySmartCard(id, payload, nextState = 'idle') {
+    const el = getById(id);
+    if (!(el instanceof HTMLElement)) return;
+    el.dataset.state = nextState;
+    el.innerHTML = buildDisplaySmartCardMarkup(payload);
+}
+
+function getDisplaySmartTip(index = 0) {
+    if (DISPLAY_SMART_TIPS.length === 0) {
+        return DISPLAY_SMART_TREATMENT_VARIANTS.generic;
+    }
+    const safeIndex =
+        ((Number(index || 0) % DISPLAY_SMART_TIPS.length) +
+            DISPLAY_SMART_TIPS.length) %
+        DISPLAY_SMART_TIPS.length;
+    return DISPLAY_SMART_TIPS[safeIndex];
+}
+
+function getDisplaySmartVideo(index = 0) {
+    if (DISPLAY_SMART_VIDEOS.length === 0) {
+        return null;
+    }
+    const safeIndex =
+        ((Number(index || 0) % DISPLAY_SMART_VIDEOS.length) +
+            DISPLAY_SMART_VIDEOS.length) %
+        DISPLAY_SMART_VIDEOS.length;
+    return DISPLAY_SMART_VIDEOS[safeIndex];
+}
+
+function resolveDisplayTreatmentVariant(ticket) {
+    if (!ticket || typeof ticket !== 'object') {
+        return {
+            label: '',
+            variant: DISPLAY_SMART_TREATMENT_VARIANTS.generic,
+        };
+    }
+
+    const queueType = String(ticket.queueType || '').trim().toLowerCase();
+    const visitReason = String(ticket.visitReason || '').trim().toLowerCase();
+    const visitReasonLabel = String(ticket.visitReasonLabel || '').trim();
+    const priorityClass = String(ticket.priorityClass || '').trim().toLowerCase();
+
+    if (
+        queueType === 'appointment' ||
+        priorityClass === 'appt_current' ||
+        priorityClass === 'appt_overdue'
+    ) {
+        return {
+            label: 'Cita programada',
+            variant: DISPLAY_SMART_TREATMENT_VARIANTS.appointment,
+        };
+    }
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            DISPLAY_SMART_TREATMENT_VARIANTS,
+            visitReason
+        )
+    ) {
+        return {
+            label: visitReasonLabel,
+            variant: DISPLAY_SMART_TREATMENT_VARIANTS[visitReason],
+        };
+    }
+
+    if (visitReasonLabel !== '') {
+        return {
+            label: visitReasonLabel,
+            variant: {
+                ...DISPLAY_SMART_TREATMENT_VARIANTS.generic,
+                title: visitReasonLabel,
+            },
+        };
+    }
+
+    return {
+        label: '',
+        variant: DISPLAY_SMART_TREATMENT_VARIANTS.generic,
+    };
+}
+
+function buildDisplayTreatmentCard(queueState) {
+    const normalizedState = normalizeQueueStatePayload(queueState);
+    const nextKnownTicket = Array.isArray(normalizedState.nextTickets)
+        ? normalizedState.nextTickets.find(Boolean) || null
+        : null;
+    const { label, variant } = resolveDisplayTreatmentVariant(nextKnownTicket);
+    const nextWaitText = formatTicketEstimatedWait(
+        nextKnownTicket?.estimatedWaitMin || 0
+    );
+    const positionText =
+        Number(nextKnownTicket?.position || 0) > 0
+            ? `#${Number(nextKnownTicket.position)} en cola`
+            : 'Siguiente llamado';
+    const meta = [positionText];
+    if (nextKnownTicket) {
+        meta.push(nextWaitText);
+    }
+    meta.push(...(Array.isArray(variant.meta) ? variant.meta : []));
+
+    return {
+        label: 'Proximo tratamiento',
+        chip: label || variant.chip,
+        title: variant.title,
+        copy: variant.copy,
+        meta: meta.slice(0, 3),
+    };
+}
+
+function renderDisplaySmartLane(queueState, primaryCallingTicket, options = {}) {
+    const panel = getById('displaySmartLane');
+    const summaryEl = getById('displaySmartSummary');
+    if (!(panel instanceof HTMLElement) || !(summaryEl instanceof HTMLElement)) {
+        return;
+    }
+
+    panel.style.setProperty(
+        '--display-smart-rotate-ms',
+        `${getDisplaySmartRotateMs()}ms`
+    );
+
+    const mode = String(options.mode || 'live').trim().toLowerCase();
+    const blockedDetail = String(options.detail || '').trim();
+    const rotationIndex = Number(state.smartRotationIndex || 0);
+    const tip = getDisplaySmartTip(rotationIndex);
+    const video = getDisplaySmartVideo(rotationIndex);
+
+    if (mode === 'blocked') {
+        panel.dataset.state = 'blocked';
+        summaryEl.textContent =
+            blockedDetail ||
+            'La sala esta bloqueada hasta corregir el perfil remoto de la clinica.';
+        renderDisplaySmartCard(
+            'displaySmartTip',
+            {
+                label: 'Tip de sala',
+                chip: 'Bloqueado',
+                title: 'Pantalla en pausa segura',
+                copy: 'Mientras se corrige la configuracion, evita usar esta TV para llamados clinicos.',
+                meta: ['Perfil remoto', 'Ruta canonica', 'Reintentar luego'],
+            },
+            'blocked'
+        );
+        renderDisplaySmartCard(
+            'displaySmartTreatment',
+            {
+                label: 'Proximo tratamiento',
+                chip: 'Pendiente',
+                title: 'Se reanudara al validar el piloto',
+                copy: 'El siguiente paso del paciente volvera a mostrarse cuando la pantalla recupere contrato y cola en vivo.',
+                meta: ['Sin datos clinicos', 'Privacidad activa', 'Soporte TV'],
+            },
+            'blocked'
+        );
+        renderDisplaySmartCard(
+            'displaySmartVideo',
+            {
+                label: 'Video educativo',
+                chip: 'Hold',
+                title: 'Contenido pausado',
+                copy: 'La capsula educativa se reanudara apenas el panel vuelva a estado operativo.',
+                meta: ['Sin reproduccion', 'Modo seguro', 'Esperando reconexion'],
+                video: {
+                    label: 'Sistema',
+                    title: 'Contenido temporalmente pausado',
+                    copy: 'Validando perfil y ruta del display.',
+                },
+            },
+            'blocked'
+        );
+        return;
+    }
+
+    const normalizedState = normalizeQueueStatePayload(queueState || {});
+    const waitingCount = Number(normalizedState.waitingCount || 0);
+    const callingText = primaryCallingTicket
+        ? `Mientras ${getDisplayConsultorioLabel(primaryCallingTicket.assignedConsultorio)} atiende el llamado actual, compartimos orientacion breve para la sala.`
+        : waitingCount > 0
+          ? 'Mientras avanza la cola, mostramos cuidados utiles y una guia breve del siguiente paso.'
+          : 'Sin espera activa, la pantalla mantiene consejos breves para pacientes y acompanantes.';
+    panel.dataset.state = waitingCount > 0 || primaryCallingTicket ? 'live' : 'idle';
+    summaryEl.textContent = callingText;
+
+    renderDisplaySmartCard(
+        'displaySmartTip',
+        {
+            label: 'Tip de cuidado',
+            chip: tip.chip,
+            title: tip.title,
+            copy: tip.copy,
+            meta: tip.meta,
+        },
+        waitingCount > 0 ? 'live' : 'idle'
+    );
+    renderDisplaySmartCard(
+        'displaySmartTreatment',
+        buildDisplayTreatmentCard(normalizedState),
+        waitingCount > 0 ? 'live' : 'idle'
+    );
+    renderDisplaySmartCard(
+        'displaySmartVideo',
+        {
+            label: 'Video educativo',
+            chip: 'Rotativo',
+            title: 'Capsula sugerida en sala',
+            copy: 'Contenido breve pensado para tiempos de espera cortos, sin exponer informacion del paciente.',
+            meta: Array.isArray(video?.meta) ? video.meta : [],
+            video: {
+                label: 'Ahora en pantalla',
+                title: video?.title || 'Contenido educativo',
+                copy: video?.copy || 'Orientacion breve para pacientes en sala.',
+            },
+        },
+        waitingCount > 0 ? 'live' : 'idle'
+    );
+}
+
+function clearDisplaySmartRotationTimer() {
+    if (state.smartRotationId) {
+        window.clearTimeout(state.smartRotationId);
+        state.smartRotationId = 0;
+    }
+}
+
+function queueDisplaySmartRotation() {
+    clearDisplaySmartRotationTimer();
+    state.smartRotationId = window.setTimeout(() => {
+        state.smartRotationIndex += 1;
+        if (isDisplayPilotBlocked()) {
+            renderDisplaySmartLane(null, null, {
+                mode: 'blocked',
+                detail: getDisplayPilotBlockDetail(),
+            });
+        } else {
+            const lastState =
+                state.lastRenderedState ||
+                normalizeQueueStatePayload({
+                    waitingCount: 0,
+                    callingNow: [],
+                    nextTickets: [],
+                });
+            const callingNow = Array.isArray(lastState.callingNow)
+                ? lastState.callingNow
+                : [];
+            const byConsultorio = {
+                1: null,
+                2: null,
+            };
+            for (const ticket of callingNow) {
+                const consultorio = Number(ticket?.assignedConsultorio || 0);
+                if (consultorio === 1 || consultorio === 2) {
+                    byConsultorio[consultorio] = ticket;
+                }
+            }
+            renderDisplaySmartLane(
+                lastState,
+                selectPrimaryCallingTicket(callingNow, byConsultorio)
+            );
+        }
+        queueDisplaySmartRotation();
+    }, getDisplaySmartRotateMs());
 }
 
 function renderNextTickets(nextTickets) {
@@ -4545,6 +4853,7 @@ function renderState(queueState) {
     }
     setDisplayAnnouncement(primaryCallingTicket);
     renderDisplayMetrics(normalizedState);
+    renderDisplaySmartLane(normalizedState, primaryCallingTicket);
     renderDisplaySurfaceSyncState();
     notifyDisplayHeartbeat('queue_state');
 
@@ -4812,6 +5121,16 @@ function initDisplay() {
     ensureDisplaySnapshotHintEl();
     ensureDisplayAnnouncementEl();
     ensureDisplayMetricsEl();
+    renderDisplaySmartLane(
+        {
+            waitingCount: 0,
+            callingNow: [],
+            nextTickets: [],
+        },
+        null,
+        { mode: 'idle' }
+    );
+    queueDisplaySmartRotation();
     const manualRefreshButton = ensureDisplayManualRefreshButton();
     if (manualRefreshButton instanceof HTMLButtonElement) {
         manualRefreshButton.addEventListener('click', () => {
@@ -4877,6 +5196,7 @@ function initDisplay() {
     window.addEventListener('beforeunload', () => {
         stopDisplayPolling({ reason: 'paused' });
         displayHeartbeat?.stop();
+        clearDisplaySmartRotationTimer();
         if (state.clockId) {
             window.clearInterval(state.clockId);
             state.clockId = 0;
