@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 12:43:55 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 12:44:27 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **42%** completado (89/213)
+`████████░░░░░░░░░░░░` **42%** completado (90/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 49 | 18 | 73% |
+| 🎯 Sprint 3 | 50 | 17 | 75% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -51,10 +51,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
 | **S3-60** | `[L]` | Split  (4.198 líneas) — separar en repositorios por agregado:  (sesion... |
 | **S3-61** | `[L]` | Split  (24.990 líneas) — módulo de admin más grande del repo. Separar ... |
-
-### 🔒 En progreso — NO tomar
-
-- **S3-59** `[L]` → _Antigravity_ (expira en 476min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
