@@ -20,8 +20,11 @@ const { readFileSync, existsSync } = require('fs');
 const { resolve } = require('path');
 const { createTaskCheckDefinitions } = require('./lib/gate-checks');
 
-const ROOT = resolve(__dirname, '..');
+const ROOT = process.env.AURORA_DERM_ROOT
+  ? resolve(process.env.AURORA_DERM_ROOT)
+  : resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
+const EXPLICIT_FILE_REF_PATTERN = /[`'"]([a-z][a-z/\-.]+\.[a-z]{2,5})[`'"]/g;
 
 function syncBacklog() {
   try {
@@ -45,6 +48,14 @@ function run(cmd) {
   catch (e) { return ''; }
 }
 function fileExists(p) { return existsSync(resolve(ROOT, p)); }
+
+function extractExplicitFileRefs(text) {
+  const refs = new Set();
+  for (const match of String(text || '').matchAll(EXPLICIT_FILE_REF_PATTERN)) {
+    refs.add(match[1]);
+  }
+  return [...refs];
+}
 
 const agentsMd = read(AGENTS_FILE);
 
@@ -184,6 +195,21 @@ check('PHPUnit Smoke Baseline', () => {
   }
   return true;
 });
+
+const explicitFileRefs = extractExplicitFileRefs(task.line);
+if (explicitFileRefs.length > 0) {
+  check('Explicit file refs exist', () => {
+    const missing = explicitFileRefs.filter(relativePath => !fileExists(relativePath));
+    if (missing.length > 0) {
+      return `Task references missing file(s): ${missing.join(', ')}`;
+    }
+
+    return {
+      ok: true,
+      detail: `${explicitFileRefs.length} explicit refs verified: ${explicitFileRefs.join(', ')}`,
+    };
+  });
+}
 
 // ── Task-specific checks ───────────────────────────────────────────────────────
 
