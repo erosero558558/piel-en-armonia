@@ -5,6 +5,13 @@
 
 ---
 
+## 🚧 Blockers activos
+<!-- AUTO-BLOCKERS:START -->
+_No hay blockers activos generados por `bin/stuck.js`._
+<!-- AUTO-BLOCKERS:END -->
+
+---
+
 ## ✅ S2-20 — Google Reviews embed — RESPONDIDO
 
 **Respuesta del dueño:**
@@ -40,13 +47,6 @@ La integración SRI formal es Sprint futuro cuando el negocio esté constituido.
 ```
 → **Agentes:** S3-35 convertido a "recibo digital PDF" sin integración SRI.
   Implementar usando `lib/pdf.php` o equivalente. Archivo: `es/recibo/index.html`.
-
----
-
-## Sin blockers activos
-
-No hay preguntas pendientes. Todos los blockers tienen respuesta.
-Los agentes pueden tomar cualquier tarea disponible en `BACKLOG.md`.
 
 ---
 
