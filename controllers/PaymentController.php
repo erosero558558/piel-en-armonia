@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/storage.php';
+require_once __DIR__ . '/../lib/CheckoutOrderService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 require_once __DIR__ . '/../lib/telemedicine/LegacyTelemedicineBridge.php';
 require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
@@ -22,6 +23,235 @@ class PaymentController
             'publishableKey' => payment_stripe_publishable_key(),
             'currency' => payment_currency()
         ]);
+    }
+
+    public static function checkoutConfig(array $context): void
+    {
+        json_response([
+            'ok' => true,
+            'data' => CheckoutOrderService::publicConfig(),
+        ]);
+    }
+
+    public static function checkoutIntent(array $context): void
+    {
+        if (!payment_gateway_enabled()) {
+            json_response([
+                'ok' => false,
+                'error' => 'Pasarela de pago no configurada'
+            ], 503);
+        }
+
+        $payload = require_json_body();
+        try {
+            $request = CheckoutOrderService::buildCardIntentRequest($payload);
+            $intent = stripe_create_custom_payment_intent(
+                $request['stripePayload'],
+                (string) $request['idempotencyKey']
+            );
+            $order = CheckoutOrderService::attachCardIntent(
+                $request['order'],
+                $intent
+            );
+        } catch (InvalidArgumentException $error) {
+            json_response([
+                'ok' => false,
+                'error' => $error->getMessage(),
+            ], 400);
+        } catch (RuntimeException $error) {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo iniciar el checkout con tarjeta'
+            ], 502);
+        }
+
+        $persisted = with_store_lock(static function () use ($order): array {
+            $store = read_store();
+            $store = CheckoutOrderService::upsertOrder($store, $order);
+            if (!write_store($store, false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo guardar el checkout',
+                    'code' => 503,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'order' => $order,
+            ];
+        });
+
+        if (($persisted['ok'] ?? false) !== true || !is_array($persisted['result'] ?? null) || (($persisted['result']['ok'] ?? false) !== true)) {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo guardar el checkout',
+            ], 503);
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => [
+                'order' => $order,
+                'receipt' => CheckoutOrderService::buildReceipt($order),
+                'clientSecret' => (string) ($intent['client_secret'] ?? ''),
+                'paymentIntentId' => (string) ($intent['id'] ?? ''),
+                'amount' => (int) ($intent['amount'] ?? 0),
+                'currency' => strtoupper((string) ($intent['currency'] ?? payment_currency())),
+                'publishableKey' => payment_stripe_publishable_key(),
+            ],
+        ], 201);
+    }
+
+    public static function checkoutConfirm(array $context): void
+    {
+        $payload = require_json_body();
+        $orderId = trim((string) ($payload['orderId'] ?? ''));
+        $paymentIntentId = trim((string) ($payload['paymentIntentId'] ?? ''));
+
+        if ($orderId === '' || $paymentIntentId === '') {
+            json_response([
+                'ok' => false,
+                'error' => 'orderId y paymentIntentId son obligatorios'
+            ], 400);
+        }
+
+        if (!payment_gateway_enabled()) {
+            json_response([
+                'ok' => false,
+                'error' => 'Pasarela de pago no configurada'
+            ], 503);
+        }
+
+        try {
+            $intent = stripe_get_payment_intent($paymentIntentId);
+        } catch (RuntimeException $error) {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo verificar el pago en este momento'
+            ], 502);
+        }
+
+        $persisted = with_store_lock(static function () use ($orderId, $intent): array {
+            $store = read_store();
+            $order = CheckoutOrderService::findOrder($store, $orderId);
+            if (!$order) {
+                return [
+                    'ok' => false,
+                    'error' => 'No encontramos ese checkout digital.',
+                    'code' => 404,
+                ];
+            }
+
+            if ((string) ($order['paymentStatus'] ?? '') === 'paid') {
+                return [
+                    'ok' => true,
+                    'order' => $order,
+                ];
+            }
+
+            try {
+                $order = CheckoutOrderService::confirmPaidCardOrder($order, $intent);
+            } catch (InvalidArgumentException $error) {
+                return [
+                    'ok' => false,
+                    'error' => $error->getMessage(),
+                    'code' => 400,
+                ];
+            }
+
+            $store = CheckoutOrderService::upsertOrder($store, $order);
+            if (!write_store($store, false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo guardar la confirmacion del pago',
+                    'code' => 503,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'order' => $order,
+            ];
+        });
+
+        if (($persisted['ok'] ?? false) !== true || !is_array($persisted['result'] ?? null)) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($persisted['error'] ?? 'No se pudo guardar la confirmacion del pago'),
+            ], (int) ($persisted['code'] ?? 503));
+        }
+
+        $result = $persisted['result'];
+        if (($result['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo guardar la confirmacion del pago'),
+            ], (int) ($result['code'] ?? 400));
+        }
+
+        $order = $result['order'];
+        json_response([
+            'ok' => true,
+            'data' => [
+                'order' => $order,
+                'receipt' => CheckoutOrderService::buildReceipt($order),
+            ],
+        ]);
+    }
+
+    public static function checkoutSubmit(array $context): void
+    {
+        $payload = require_json_body();
+        $method = strtolower(trim((string) ($payload['paymentMethod'] ?? '')));
+
+        if (!in_array($method, ['transfer', 'cash'], true)) {
+            json_response([
+                'ok' => false,
+                'error' => 'Debe elegir transferencia o efectivo para este flujo.'
+            ], 400);
+        }
+
+        try {
+            $order = CheckoutOrderService::buildOfflineMethodOrder($payload, $method);
+        } catch (InvalidArgumentException $error) {
+            json_response([
+                'ok' => false,
+                'error' => $error->getMessage(),
+            ], 400);
+        }
+
+        $persisted = with_store_lock(static function () use ($order): array {
+            $store = read_store();
+            $store = CheckoutOrderService::upsertOrder($store, $order);
+            if (!write_store($store, false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo guardar el checkout',
+                    'code' => 503,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'order' => $order,
+            ];
+        });
+
+        if (($persisted['ok'] ?? false) !== true || !is_array($persisted['result'] ?? null) || (($persisted['result']['ok'] ?? false) !== true)) {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo guardar el checkout',
+            ], 503);
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => [
+                'order' => $order,
+                'receipt' => CheckoutOrderService::buildReceipt($order),
+            ],
+        ], 201);
     }
 
     public static function createIntent(array $context): void

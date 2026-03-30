@@ -29,6 +29,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'health-diagnostics', [HealthController::class, 'diagnostics']);
 
     $router->add('GET', 'payment-config', [PaymentController::class, 'config']);
+    $router->add('GET', 'checkout-config', [PaymentController::class, 'checkoutConfig']);
 
     $router->add('GET', 'data', [AdminDataController::class, 'index']);
     $router->add('GET', 'doctor-profile', [DoctorProfileController::class, 'show']);
@@ -133,6 +134,9 @@ function register_api_routes(Router $router): void
 
     $router->add('POST', 'payment-intent', [PaymentController::class, 'createIntent']);
     $router->add('POST', 'payment-verify', [PaymentController::class, 'verify']);
+    $router->add('POST', 'checkout-intent', [PaymentController::class, 'checkoutIntent']);
+    $router->add('POST', 'checkout-confirm', [PaymentController::class, 'checkoutConfirm']);
+    $router->add('POST', 'checkout-submit', [PaymentController::class, 'checkoutSubmit']);
     $router->add('POST', 'transfer-proof', [PaymentController::class, 'transferProof']);
     $router->add('POST', 'stripe-webhook', [PaymentController::class, 'webhook']);
 

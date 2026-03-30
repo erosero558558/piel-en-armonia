@@ -13493,6 +13493,24 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'invoke-openclaw') {
+            const review = currentReviewSource();
+            if (!review || !review.patientRecordId || !review.caseId) {
+                createToast('Este caso clínico no admite interacción con OpenClaw', 'warning');
+                return;
+            }
+            const container = document.getElementById('openclaw-root-container');
+            if (container && window.OpenclawChat) {
+                container.dataset.patientId = review.patientRecordId;
+                container.dataset.caseId = review.caseId;
+                container.style.display = 'block';
+                window.OpenclawChat.mount('#openclaw-root-container');
+            } else {
+                createToast('El copiloto OpenClaw IA no está disponible en este momento', 'error');
+            }
+            return;
+        }
+
         if (action === 'send-follow-up') {
             const question = normalizeString(
                 getClinicalHistorySlice().followUpQuestion

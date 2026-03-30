@@ -253,6 +253,15 @@ export function renderClinicalHistorySection() {
                     <div class="toolbar-row clinical-history-actions-row">
                         <button
                             type="button"
+                            id="clinicalHistoryOpenclawBtn"
+                            data-clinical-review-action="invoke-openclaw"
+                            class="btn-openclaw"
+                            style="border-color: var(--color-aurora-500); background: rgba(106, 126, 150, 0.1);"
+                        >
+                            🩺 Copiloto OpenClaw
+                        </button>
+                        <button
+                            type="button"
                             id="clinicalHistorySendFollowUpBtn"
                             data-clinical-review-action="send-follow-up"
                         >

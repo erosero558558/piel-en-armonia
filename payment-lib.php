@@ -136,6 +136,59 @@ function stripe_create_payment_intent(array $appointment, string $idempotencyKey
     }
 }
 
+function stripe_create_custom_payment_intent(array $payment, string $idempotencyKey = ''): array
+{
+    if (!class_exists('\Stripe\StripeClient')) {
+        throw new RuntimeException('Stripe SDK no disponible en el servidor.');
+    }
+
+    $secret = payment_stripe_secret_key();
+    if ($secret === '') {
+        throw new RuntimeException('La pasarela de pagos no esta configurada.');
+    }
+
+    $amountCents = isset($payment['amountCents']) ? (int) $payment['amountCents'] : 0;
+    if ($amountCents <= 0) {
+        throw new RuntimeException('No se pudo calcular el monto del pago.');
+    }
+
+    $currency = strtolower(trim((string) ($payment['currency'] ?? payment_currency())));
+    if ($currency === '') {
+        $currency = strtolower(payment_currency());
+    }
+
+    $receiptEmail = trim((string) ($payment['payerEmail'] ?? ''));
+    $metadata = payment_normalize_stripe_metadata(
+        isset($payment['metadata']) && is_array($payment['metadata']) ? $payment['metadata'] : []
+    );
+    $description = trim((string) ($payment['description'] ?? 'Pago Aurora Derm'));
+
+    $params = [
+        'amount' => $amountCents,
+        'currency' => $currency,
+        'automatic_payment_methods' => ['enabled' => true],
+        'description' => $description,
+        'metadata' => $metadata,
+    ];
+
+    if ($receiptEmail !== '') {
+        $params['receipt_email'] = $receiptEmail;
+    }
+
+    $options = [];
+    if ($idempotencyKey !== '') {
+        $options['idempotency_key'] = $idempotencyKey;
+    }
+
+    try {
+        $stripe = new \Stripe\StripeClient($secret);
+        $intent = $stripe->paymentIntents->create($params, $options);
+        return $intent->toArray();
+    } catch (\Stripe\Exception\ApiErrorException $e) {
+        throw new RuntimeException($e->getMessage());
+    }
+}
+
 function stripe_create_checkout_session(
     array $appointment,
     string $successUrl,

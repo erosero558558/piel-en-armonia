@@ -81,6 +81,7 @@ final class StorageConfig
             'appointments' => [],
             'callbacks' => [],
             'reviews' => [],
+            'checkout_orders' => [],
             'queue_tickets' => [],
             'queue_help_requests' => [],
             'patient_cases' => [],
@@ -155,6 +156,7 @@ final class StorageConfig
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
         $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
         $reviews = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
+        $checkoutOrders = isset($store['checkout_orders']) && is_array($store['checkout_orders']) ? $store['checkout_orders'] : [];
         $queueTickets = isset($store['queue_tickets']) && is_array($store['queue_tickets']) ? $store['queue_tickets'] : [];
         $queueHelpRequests = isset($store['queue_help_requests']) && is_array($store['queue_help_requests'])
             ? $store['queue_help_requests']
@@ -218,6 +220,7 @@ final class StorageConfig
             'appointments' => array_values($appointments),
             'callbacks' => array_values($callbacks),
             'reviews' => array_values($reviews),
+            'checkout_orders' => array_values($checkoutOrders),
             'queue_tickets' => array_values($queueTickets),
             'queue_help_requests' => array_values($queueHelpRequests),
             'patient_cases' => array_values($patientCases),

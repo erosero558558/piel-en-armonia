@@ -1444,6 +1444,15 @@ public function  mutateClinicalRecord(array $store, array $payload, string $mode
             $draft = $this->applyClinicalApproval($session, $draft, $legalReadiness);
             $session['status'] = 'approved';
             $store = $this->touchSessionEventsForReview($store, $session, true);
+
+            // S4-04: Enviar resumen post-consulta por WhatsApp
+            if (!class_exists('LeadOpsService', false) && file_exists(__DIR__ . '/../LeadOpsService.php')) {
+                require_once __DIR__ . '/../LeadOpsService.php';
+            }
+            if (class_exists('LeadOpsService', false)) {
+                LeadOpsService::dispatchPostConsultationSummary($session, $draft);
+            }
+
             audit_log_event('clinical_history.approved', [
                 'sessionId' => (string) ($session['sessionId'] ?? ''),
                 'caseId' => (string) ($session['caseId'] ?? ''),

@@ -22,6 +22,46 @@ final class LeadOpsService
         return array_values(array_filter(self::OUTCOMES, static fn (string $value): bool => $value !== ''));
     }
 
+    public static function dispatchPostConsultationSummary(array $session, array $draft): void
+    {
+        $patient = $session['patient'] ?? [];
+        $phone = trim((string)($patient['contactNumber'] ?? ''));
+        if ($phone === '') {
+            $phone = trim((string)($patient['emergencyContactPhone'] ?? ''));
+        }
+        if ($phone === '') {
+            return; // No phone to send to
+        }
+
+        $firstName = trim((string)($patient['firstName'] ?? 'Paciente'));
+        $documents = $draft['documents'] ?? [];
+        $carePlan = $documents['carePlan'] ?? [];
+        
+        $diagnosis = trim((string)($carePlan['diagnosis'] ?? 'Evaluacion general'));
+        $treatments = trim((string)($carePlan['treatments'] ?? 'Sin indicaciones adicionales'));
+        $followUp = trim((string)($carePlan['followUpFrequency'] ?? 'A requerimiento'));
+
+        $text = "Hola *{$firstName}*, te compartimos un resumen de tu consulta medica hoy en Aurora Derm:\n\n";
+        $text .= "🔬 *Diagnóstico:* {$diagnosis}\n";
+        $text .= "📝 *Indicaciones / Receta:* {$treatments}\n";
+        $text .= "📅 *Próxima Cita:* {$followUp}\n\n";
+        $text .= "Si tienes dudas sobre tus medicamentos, puedes responder a este chat. ¡Cuidamos tu piel!";
+
+        if (class_exists('WhatsappOpenclawRepository', false) || file_exists(__DIR__ . '/whatsapp_openclaw/bootstrap.php')) {
+            if (!class_exists('WhatsappOpenclawRepository', false)) {
+                require_once __DIR__ . '/whatsapp_openclaw/bootstrap.php';
+            }
+            $repo = new WhatsappOpenclawRepository();
+            $repo->enqueueOutbox([
+                'phone' => $phone,
+                'source' => 'system',
+                'type' => 'text',
+                'text' => $text,
+                'priority' => 'high'
+            ]);
+        }
+    }
+
     public static function enrichCallbacks(array $callbacks, array $store, ?array $funnelMetrics = null): array
     {
         $enriched = [];
