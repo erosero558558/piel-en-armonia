@@ -2092,11 +2092,13 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     });
 
     await page.goto('/admin.html');
-    await waitForAdminRuntimeReady(page);
-
-    await page.keyboard.press('Control+K');
-    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
-    await page.keyboard.press('Enter');
+    await expect(
+        page.locator('.nav-item[data-section="clinical-history"]')
+    ).toBeVisible();
+    await page
+        .locator('.nav-item[data-section="clinical-history"]')
+        .click();
+    await page.locator('[data-clinical-session-id="chs-cie10-001"]').click();
 
     await expect(page.locator('#clinical-history')).toHaveClass(/active/);
     await expect(page).toHaveURL(/clinicalWorkspace=review/);
@@ -2530,11 +2532,14 @@ test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del epis
     });
 
     await page.goto('/admin.html');
-    await waitForAdminRuntimeReady(page);
+    await expect(
+        page.locator('.nav-item[data-section="clinical-history"]')
+    ).toBeVisible();
 
-    await page.keyboard.press('Control+K');
-    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
-    await page.keyboard.press('Enter');
+    await page
+        .locator('.nav-item[data-section="clinical-history"]')
+        .click();
+    await page.locator('[data-clinical-session-id="chs-cie10-001"]').click();
 
     await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
         'Interconsulta HCU-form.007/2008'
@@ -2927,9 +2932,12 @@ test('interconsulta HCU-007 permite recibir el informe del consultado y mostrar 
     });
 
     await page.goto('/admin.html');
-    await waitForAdminRuntimeReady(page);
+    await expect(
+        page.locator('.nav-item[data-section="clinical-history"]')
+    ).toBeVisible();
 
     await page.keyboard.press('Control+K');
+    await expect(page.locator('#adminQuickCommand')).toBeVisible();
     await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
     await page.keyboard.press('Enter');
 
@@ -4706,4 +4714,186 @@ test('exporta la HCE completa desde admin en una vista imprimible con readiness 
         'Dermatitis facial cronica en control con evolucion estable.'
     );
     await expect(popup.locator('body')).toContainText('Imprimir / Guardar PDF');
+});
+
+test('autocomplete CIE-10 llena el codigo y acompana el diagnostico en la HCE admin', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-cie10-001',
+        caseId: 'case-cie10-001',
+        patientName: 'Marta Leon',
+        clinicianSummary: 'Dermatosis inflamatoria pendiente de codificacion.',
+        legalReadiness: {
+            status: 'blocked',
+            ready: false,
+            label: 'Bloqueada',
+            summary: 'Falta completar el diagnostico CIE-10.',
+            checklist: [
+                {
+                    code: 'hcu001_admission',
+                    status: 'pass',
+                    label: 'HCU-001 admision',
+                    message:
+                        'La admision longitudinal ya sostiene identidad y contacto base.',
+                },
+                {
+                    code: 'hcu005_cie10',
+                    status: 'fail',
+                    label: 'HCU-005 CIE-10',
+                    message:
+                        'Todavia falta codificar el diagnostico principal del episodio.',
+                },
+            ],
+            blockingReasons: ['CIE-10 pendiente'],
+            hcu001Status: {
+                status: 'complete',
+                label: 'HCU-001 completa',
+                summary:
+                    'La admision longitudinal ya deja identidad y contacto base defendibles.',
+            },
+            hcu005Status: {
+                status: 'incomplete',
+                label: 'HCU-005 parcial',
+                summary:
+                    'La evolucion clinica existe, pero falta cerrar el diagnostico codificado.',
+            },
+        },
+        documents: {
+            finalNote: {
+                sections: {
+                    hcu005: {
+                        evolutionNote:
+                            'Dermatosis inflamatoria pendiente de codificacion.',
+                        diagnosticImpression: '',
+                        therapeuticPlan: '',
+                        careIndications: '',
+                        prescriptionItems: [],
+                    },
+                },
+            },
+        },
+    });
+
+    const cie10Queries = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    recordsGovernance: {
+                        pendingCopyRequests: 0,
+                        overdueCopyRequests: 0,
+                        disclosures: 0,
+                        archiveEligible: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-cie10-001',
+                        caseId: 'case-cie10-001',
+                        patientName: 'Marta Leon',
+                        summary:
+                            'Dermatosis inflamatoria pendiente de codificacion.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: false,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'blocked',
+                        legalReadinessLabel: 'Bloqueada',
+                        legalReadinessSummary:
+                            'Falta completar el diagnostico CIE-10.',
+                        approvalBlockedReasons: ['CIE-10 pendiente'],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            url,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'openclaw-cie10-suggest' && method === 'GET') {
+                cie10Queries.push(url.searchParams.get('q') || '');
+                await fulfillJson(route, {
+                    ok: true,
+                    suggestions: [
+                        {
+                            code: 'L71.9',
+                            description: 'Rosacea inflamatoria facial',
+                            category: 'Enfermedades de la piel',
+                            confidence: 0.98,
+                        },
+                    ],
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await expect(page.locator('#adminQuickCommand')).toBeVisible();
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#clinician_cie10')).toBeEditable();
+
+    await page.locator('#hcu005_diagnostic_impression').fill('');
+    await page.locator('#clinician_cie10').fill('rosa');
+    await expect(
+        page.locator(
+            '.cie10-autocomplete-menu [data-cie10-code="L71.9"]'
+        )
+    ).toBeVisible();
+
+    await page
+        .locator('.cie10-autocomplete-menu [data-cie10-code="L71.9"]')
+        .click();
+
+    await expect(page.locator('#clinician_cie10')).toHaveValue('L71.9');
+    await expect(page.locator('#hcu005_diagnostic_impression')).toHaveValue(
+        'Rosacea inflamatoria facial'
+    );
+    await expect(
+        page.locator('.cie10-autocomplete-summary')
+    ).toContainText('L71.9 - Rosacea inflamatoria facial');
+    expect(cie10Queries).toContain('rosa');
 });

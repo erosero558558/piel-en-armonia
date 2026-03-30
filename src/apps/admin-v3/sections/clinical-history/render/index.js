@@ -14,6 +14,7 @@ import {
 } from '../../../shared/ui/render.js';
 import { renderDashboard } from '../../dashboard.js';
 import { renderAdminChrome } from '../../../ui/frame.js';
+import { renderClinicalCompareFlow } from './compare.js';
 import { renderClinicalMediaFlow } from './media-flow.js';
 
 const CLINICAL_HISTORY_SESSION_QUERY_PARAM = 'clinicalSessionId';
