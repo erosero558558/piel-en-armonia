@@ -18,6 +18,11 @@ const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 const LAUNCH_DATE = new Date('2026-06-01T00:00:00Z'); // objetivo de lanzamiento
 
 const JSON_MODE = process.argv.includes('--json');
+const TASK_ID_PATTERN = /(?:S\d+|UI\d*)-[A-Z0-9]+/;
+const TASK_ID_GLOBAL_PATTERN = /(?:S\d+|UI\d*)-[A-Z0-9]+/g;
+const TASK_LINE_PATTERN = /^- \[([ x])\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/;
+const SPRINT_HEADING_PATTERN = /^### (.*Sprint (\d+|UI).*)/;
+const CRITICAL_JUNE_SPRINTS = [3, 8, 9];
 
 // ── Parsear tareas ────────────────────────────────────────────────────────────
 
@@ -27,22 +32,18 @@ function parseTasks(md) {
   let currentSprint = '';
 
   for (const line of lines) {
-    // Fix: captura Sprint UI (Fase 1/2/3) además de Sprint \d+
-    const sm = line.match(/^### (.*Sprint (\d+|UI).*)/);
+    const sm = line.match(SPRINT_HEADING_PATTERN);
     if (sm) currentSprint = sm[1].trim();
 
-    // Fix: captura S\d+, UI-01 (sin número), UI2-XX, UI3-XX, S14-00
-    const tm = line.match(/^- \[([ x])\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/);
+    const tm = line.match(TASK_LINE_PATTERN);
     if (tm) {
       const done   = tm[1] === 'x';
       const id     = tm[2];
       const size   = (line.match(/`\[(S|M|L|XL)\]`/) || [, 'M'])[1];
       const human  = line.includes('[HUMAN]');
-      // Sprint UI → 99, otros → número real
       const sprintStr = (currentSprint.match(/Sprint (\d+|UI)/) || [0, 0])[1];
       const sprint = sprintStr === 'UI' ? 99 : parseInt(sprintStr);
 
-      // Estimate hours by size
       const hours = { S: 2, M: 4, L: 8, XL: 16 }[size] || 4;
 
       tasks.push({ id, done, sprint, size, human, hours, sprintName: currentSprint });
@@ -51,24 +52,28 @@ function parseTasks(md) {
   return tasks;
 }
 
+function extractTaskIdsFromGitLog(log) {
+  const taskIds = new Set();
+  for (const line of String(log || '').split('\n')) {
+    const matches = line.match(TASK_ID_GLOBAL_PATTERN);
+    if (matches) matches.forEach(id => taskIds.add(id));
+  }
+  return [...taskIds];
+}
+
 // ── Calcular velocidad real desde git log ─────────────────────────────────────
 
-function getGitVelocity() {
+function getGitVelocity(now = new Date(), runGitLog = defaultGitLog) {
   try {
-    // Commits with feat/fix in last 14 days
-    const since = new Date();
+    const since = new Date(now);
     since.setDate(since.getDate() - 14);
     const sinceStr = since.toISOString().split('T')[0];
 
-    const log = execSync(
-      `git log --oneline --since="${sinceStr}" 2>/dev/null`,
-      { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }
-    );
+    const log = runGitLog(sinceStr);
 
     const commits = log.trim().split('\n').filter(Boolean);
-    // Fix: detecta UI-XX, UI2-XX, UI3-XX además de S\d+ en commits
     const taskCommits = commits.filter(c =>
-      /feat|fix|done:|claim:|S\d+-|UI\d*-/i.test(c)
+      /feat|fix|done:|claim:/i.test(c) || TASK_ID_PATTERN.test(c)
     );
 
     return {
@@ -84,143 +89,199 @@ function getGitVelocity() {
 
 // ── Calcular tasks completadas por semana ─────────────────────────────────────
 
-function getTasksCompletedLastWeek(tasks) {
+function getTasksCompletedLastWeek(now = new Date(), runGitLog = defaultGitLog) {
   try {
-    const since = new Date();
+    const since = new Date(now);
     since.setDate(since.getDate() - 7);
     const sinceStr = since.toISOString().split('T')[0];
 
-    const log = execSync(
-      `git log --oneline --since="${sinceStr}" 2>/dev/null`,
-      { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }
-    );
-
-    const taskIds = new Set();
-    for (const line of log.split('\n')) {
-      // Fix: captura UI-01, UI2-20, UI3-15, S14-00 además de S\d+
-      const m = line.match(/(?:S\d+|UI\d*)-[A-Z0-9]+/g);
-      if (m) m.forEach(id => taskIds.add(id));
-    }
-    return taskIds.size || 1; // mínimo 1 para no dividir por 0
+    const log = runGitLog(sinceStr);
+    const taskIds = extractTaskIdsFromGitLog(log);
+    return taskIds.length || 1;
   } catch {
     return 1;
   }
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
-const md    = existsSync(AGENTS_FILE) ? readFileSync(AGENTS_FILE, 'utf8') : '';
-const tasks = parseTasks(md);
-
-const now          = new Date();
-const weeksToJune  = Math.max(1, Math.round((LAUNCH_DATE - now) / (7 * 24 * 3600 * 1000)));
-const daysToJune   = Math.round((LAUNCH_DATE - now) / (24 * 3600 * 1000));
-
-const totalTasks   = tasks.length;
-const doneTasks    = tasks.filter(t => t.done).length;
-const pendingTasks = totalTasks - doneTasks;
-
-// Tareas críticas para junio (Sprint 3, no bloqueadas)
-const sprint3Tasks  = tasks.filter(t => t.sprint === 3);
-const sprint3Done   = sprint3Tasks.filter(t => t.done).length;
-const sprint3Pending = sprint3Tasks.filter(t => !t.done && !t.human).length;
-
-// Tareas de OpenClaw (core del producto)
-const openclawTasks = tasks.filter(t => t.id.includes('OC') || t.id.includes('oc'));
-const openclawDone  = openclawTasks.filter(t => t.done).length;
-
-// Velocidad real
-const gitVelocity   = getGitVelocity();
-const tasksLastWeek = getTasksCompletedLastWeek(tasks);
-const velocity      = Math.max(1, tasksLastWeek); // tareas/semana
-
-// Proyección
-const weeksNeededAll    = Math.ceil(pendingTasks / velocity);
-const weeksNeededSprint3 = Math.ceil(sprint3Pending / velocity);
-const projectedDoneAll  = Math.round(doneTasks + (velocity * weeksToJune));
-const projectedPct      = Math.min(100, Math.round(projectedDoneAll / totalTasks * 100));
-
-const willFinishSprint3 = weeksNeededSprint3 <= weeksToJune;
-const willFinishAll     = weeksNeededAll <= weeksToJune;
-
-// Estado del semáforo
-function getSignal() {
-  if (willFinishSprint3 && velocity >= 3) return { color: '🟢', label: 'EN CAMINO' };
-  if (willFinishSprint3 && velocity >= 1) return { color: '🟡', label: 'EN RIESGO' };
-  return { color: '🔴', label: 'ATRASADO' };
+function defaultGitLog(sinceStr) {
+  return execSync(
+    `git log --oneline --since="${sinceStr}" 2>/dev/null`,
+    { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }
+  );
 }
 
-const signal = getSignal();
+function buildVelocitySnapshot({
+  md = existsSync(AGENTS_FILE) ? readFileSync(AGENTS_FILE, 'utf8') : '',
+  now = new Date(),
+  launchDate = LAUNCH_DATE,
+  gitVelocity = getGitVelocity(now),
+  tasksLastWeek = getTasksCompletedLastWeek(now),
+} = {}) {
+  const tasks = parseTasks(md);
+  const weeksToJune  = Math.max(1, Math.round((launchDate - now) / (7 * 24 * 3600 * 1000)));
+  const daysToJune   = Math.round((launchDate - now) / (24 * 3600 * 1000));
 
-if (JSON_MODE) {
-  console.log(JSON.stringify({
+  const totalTasks   = tasks.length;
+  const doneTasks    = tasks.filter(t => t.done).length;
+  const pendingTasks = totalTasks - doneTasks;
+  const pctDone      = Math.round(doneTasks / Math.max(totalTasks, 1) * 100);
+
+  const sprint3Tasks   = tasks.filter(t => t.sprint === 3);
+  const sprint3Done    = sprint3Tasks.filter(t => t.done).length;
+  const sprint3Pending = sprint3Tasks.filter(t => !t.done && !t.human).length;
+
+  const criticalTasks = tasks.filter(t => CRITICAL_JUNE_SPRINTS.includes(t.sprint));
+  const criticalDone = criticalTasks.filter(t => t.done).length;
+  const criticalPending = criticalTasks.filter(t => !t.done && !t.human).length;
+
+  const uiTaskTotal = tasks.filter(t => t.id.startsWith('UI')).length;
+  const sprint8To14Total = tasks.filter(t => t.sprint >= 8 && t.sprint <= 14).length;
+
+  const openclawTasks = tasks.filter(t => t.id.includes('OC') || t.id.includes('oc'));
+  const openclawDone  = openclawTasks.filter(t => t.done).length;
+
+  const velocity = Math.max(1, tasksLastWeek);
+
+  const weeksNeededAll = Math.ceil(pendingTasks / velocity);
+  const weeksNeededSprint3 = Math.ceil(sprint3Pending / velocity);
+  const weeksNeededCritical = Math.ceil(criticalPending / velocity);
+  const projectedDoneAll = Math.round(doneTasks + (velocity * weeksToJune));
+  const projectedPct = Math.min(100, Math.round(projectedDoneAll / Math.max(totalTasks, 1) * 100));
+
+  const willFinishSprint3 = weeksNeededSprint3 <= weeksToJune;
+  const willFinishCritical = weeksNeededCritical <= weeksToJune;
+  const willFinishAll = weeksNeededAll <= weeksToJune;
+
+  function getSignal() {
+    if (willFinishCritical && velocity >= 3) return { color: '🟢', label: 'EN CAMINO' };
+    if (willFinishCritical && velocity >= 1) return { color: '🟡', label: 'EN RIESGO' };
+    return { color: '🔴', label: 'ATRASADO' };
+  }
+
+  const signal = getSignal();
+
+  return {
     signal: signal.label,
+    signalColor: signal.color,
     daysToJune,
     weeksToJune,
     velocity,
     doneTasks,
     totalTasks,
-    pctDone: Math.round(doneTasks / totalTasks * 100),
+    pendingTasks,
+    pctDone,
     sprint3Done,
     sprint3Pending,
+    sprint3Total: sprint3Tasks.length,
+    criticalSprintIds: [...CRITICAL_JUNE_SPRINTS],
+    criticalDone,
+    criticalPending,
+    criticalTotal: criticalTasks.length,
+    willFinishSprint3,
+    willFinishCritical,
+    projectedPct,
+    projectedDoneAll,
     openclawDone,
     openclawTotal: openclawTasks.length,
-    willFinishSprint3,
-    projectedPct,
+    uiTaskTotal,
+    sprint8To14Total,
     commitsPerDay: gitVelocity.commitsPerDay,
-  }));
-  process.exit(0);
+    weeksNeededAll,
+    weeksNeededSprint3,
+    weeksNeededCritical,
+    willFinishAll,
+  };
 }
 
-// ── Salida legible ────────────────────────────────────────────────────────────
-
-console.log(`
+function formatVelocityText(snapshot, now = new Date()) {
+  return `
 ╔════════════════════════════════════════════════════════╗
 ║  Aurora Derm — Proyección de Velocidad hacia Junio 2026 ║
 ╚════════════════════════════════════════════════════════╝
 
-  ${signal.color}  Estado: ${signal.label}
+  ${snapshot.signalColor}  Estado: ${snapshot.signal}
 
   📅  Hoy: ${now.toLocaleDateString('es-EC')}
-  🎯  Objetivo: 1 junio 2026 (${daysToJune} días · ${weeksToJune} semanas)
+  🎯  Objetivo: 1 junio 2026 (${snapshot.daysToJune} días · ${snapshot.weeksToJune} semanas)
 
   ══ Progreso General ══
-  Total tareas:    ${totalTasks}
-  Completadas:     ${doneTasks} (${Math.round(doneTasks/totalTasks*100)}%)
-  Pendientes:      ${pendingTasks}
+  Total tareas:    ${snapshot.totalTasks}
+  Completadas:     ${snapshot.doneTasks} (${snapshot.pctDone}%)
+  Pendientes:      ${snapshot.pendingTasks}
 
-  ══ Sprint 3 — Crítico para Junio ══
-  Completadas:     ${sprint3Done}/${sprint3Tasks.length} (${Math.round(sprint3Done/Math.max(sprint3Tasks.length,1)*100)}%)
-  Pendientes:      ${sprint3Pending}
-  ¿Termina a tiempo?: ${willFinishSprint3 ? '✅ SÍ' : '❌ NO — requiere acelerar'}
+  ══ Sprints Críticos para Junio (S3 + S8 + S9) ══
+  Completadas:     ${snapshot.criticalDone}/${snapshot.criticalTotal} (${Math.round(snapshot.criticalDone / Math.max(snapshot.criticalTotal, 1) * 100)}%)
+  Pendientes:      ${snapshot.criticalPending}
+  ¿Terminan a tiempo?: ${snapshot.willFinishCritical ? '✅ SÍ' : '❌ NO — requiere acelerar'}
+
+  ══ Sprint 3 — Referencia histórica ══
+  Completadas:     ${snapshot.sprint3Done}/${snapshot.sprint3Total} (${Math.round(snapshot.sprint3Done / Math.max(snapshot.sprint3Total, 1) * 100)}%)
+  Pendientes:      ${snapshot.sprint3Pending}
+
+  ══ Cobertura del parser ══
+  Tasks UI/Fases:  ${snapshot.uiTaskTotal}
+  Tasks S8-S14:    ${snapshot.sprint8To14Total}
 
   ══ OpenClaw Core ══
-  Completadas:     ${openclawDone}/${openclawTasks.length}
+  Completadas:     ${snapshot.openclawDone}/${snapshot.openclawTotal}
 
   ══ Velocidad Real (últimos 7 días) ══
-  Tareas/semana:   ${velocity}
-  Commits/día:     ${gitVelocity.commitsPerDay}
-  Semanas para Sprint 3: ${weeksNeededSprint3} semanas necesarias
-  Disponibles:     ${weeksToJune} semanas hasta junio
+  Tareas/semana:   ${snapshot.velocity}
+  Commits/día:     ${snapshot.commitsPerDay}
+  Semanas para críticos: ${snapshot.weeksNeededCritical} semanas necesarias
+  Disponibles:     ${snapshot.weeksToJune} semanas hasta junio
 
   ══ Proyección al 1 junio ══
-  Tareas que se completarán: ~${projectedDoneAll}/${totalTasks} (${projectedPct}%)
-  Todo el backlog en: ${weeksNeededAll} semanas (${willFinishAll ? '✅ antes de junio' : '❌ después de junio'})
+  Tareas que se completarán: ~${snapshot.projectedDoneAll}/${snapshot.totalTasks} (${snapshot.projectedPct}%)
+  Todo el backlog en: ${snapshot.weeksNeededAll} semanas (${snapshot.willFinishAll ? '✅ antes de junio' : '❌ después de junio'})
 
-${signal.color === '🔴' ? `
+${snapshot.signalColor === '🔴' ? `
   ⚠️  ACCIÓN REQUERIDA:
-  Si Sprint 3 no termina antes de junio, el lanzamiento falla.
+  Si los sprints críticos no terminan antes de junio, el lanzamiento falla.
   Opciones:
-  1. Aumentar agentes paralelos en Sprint 3
+  1. Aumentar agentes paralelos en Sprint 3/S8/S9
   2. Reducir alcance — ver LAUNCH.md para prioridades críticas
   3. Posponer Sprint 4+ hasta después de junio (ya está en el plan)
-` : ''}${signal.color === '🟡' ? `
+` : ''}${snapshot.signalColor === '🟡' ? `
   💡  RECOMENDACIÓN:
-  Velocidad baja pero aún posible. Necesitas ${Math.ceil(sprint3Pending/weeksToJune)} tareas/semana
-  para llegar a tiempo. Actual: ${velocity}/semana.
-  Foco en tareas marcadas 🔴 CRÍTICO en LAUNCH.md.
-` : ''}${signal.color === '🟢' ? `
-  ✅  Todo en orden. Mantén el ritmo de ${velocity}+ tareas/semana.
-  Siguiente revisión: ${(() => { const d = new Date(); d.setDate(d.getDate()+7); return d.toLocaleDateString('es-EC'); })()}
+  Velocidad baja pero aún posible. Necesitas ${Math.ceil(snapshot.criticalPending / snapshot.weeksToJune)} tareas/semana
+  para llegar a tiempo. Actual: ${snapshot.velocity}/semana.
+  Foco en tareas marcadas 🔴 CRÍTICO en S3/S8/S9.
+` : ''}${snapshot.signalColor === '🟢' ? `
+  ✅  Todo en orden. Mantén el ritmo de ${snapshot.velocity}+ tareas/semana.
+  Siguiente revisión: ${(() => { const d = new Date(now); d.setDate(d.getDate() + 7); return d.toLocaleDateString('es-EC'); })()}
 ` : ''}
-`);
+`;
+}
+
+function main() {
+  const now = new Date();
+  const snapshot = buildVelocitySnapshot({ now });
+
+  if (JSON_MODE) {
+    console.log(JSON.stringify(snapshot));
+    return 0;
+  }
+
+  console.log(formatVelocityText(snapshot, now));
+  return 0;
+}
+
+if (require.main === module) {
+  process.exit(main());
+}
+
+module.exports = {
+  AGENTS_FILE,
+  CRITICAL_JUNE_SPRINTS,
+  LAUNCH_DATE,
+  TASK_ID_PATTERN,
+  buildVelocitySnapshot,
+  defaultGitLog,
+  extractTaskIdsFromGitLog,
+  formatVelocityText,
+  getGitVelocity,
+  getTasksCompletedLastWeek,
+  main,
+  parseTasks,
+};
