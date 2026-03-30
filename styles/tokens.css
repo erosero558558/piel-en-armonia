@@ -1,0 +1,142 @@
+/* 
+ * Aurora Derm — Design System Tokens 
+ * Generado desde DESIGN_SYSTEM.md
+ */
+
+/* 2.1 Colores primarios */
+:root {
+  /* Aurora — el alma de la marca */
+  --color-aurora-50:  hsl(165, 60%, 96%);   /* #edf9f5 — fondos muy suaves */
+  --color-aurora-100: hsl(165, 55%, 90%);   /* #cdf0e3 — hover suave */
+  --color-aurora-200: hsl(165, 50%, 78%);   /* #96dfc4 — accent claro */
+  --color-aurora-400: hsl(165, 55%, 48%);   /* #35c491 — interactivo activo */
+  --color-aurora-600: hsl(165, 60%, 36%);   /* #248a65 — primary */
+  --color-aurora-800: hsl(165, 65%, 22%);   /* #145438 — deep */
+  --color-aurora-900: hsl(165, 70%, 14%);   /* #0c3524 — darkest */
+
+  /* Derm Gold — acento de lujo */
+  --color-gold-300: hsl(42, 85%, 75%);      /* #f2cc75 — light accent */
+  --color-gold-500: hsl(42, 80%, 52%);      /* #e6aa16 — primary gold */
+  --color-gold-700: hsl(42, 75%, 38%);      /* #a87b0e — deep gold */
+
+  /* Neutros cálidos — no son grises fríos */
+  --color-stone-50:  hsl(30, 20%, 97%);     /* #f9f7f5 */
+  --color-stone-100: hsl(30, 18%, 93%);     /* #ede9e4 */
+  --color-stone-200: hsl(30, 15%, 85%);     /* #d6cfc7 */
+  --color-stone-400: hsl(30, 12%, 62%);     /* #a39c94 */
+  --color-stone-600: hsl(30, 10%, 40%);     /* #6b6460 */
+  --color-stone-800: hsl(30, 12%, 20%);     /* #362f2a */
+  --color-stone-900: hsl(30, 14%, 12%);     /* #211c19 */
+
+  /* Semánticos clínicos */
+  --color-success:  hsl(145, 55%, 40%);     /* verde clínico */
+  --color-warning:  hsl(38,  85%, 52%);     /* ámbar */
+  --color-danger:   hsl(0,   65%, 52%);     /* rojo discreto */
+  --color-info:     hsl(210, 60%, 50%);     /* azul info */
+}
+
+/* 2.2 Paleta de admin (dark mode first) */
+:root[data-theme="admin"] {
+  --admin-bg-base:     hsl(220, 20%, 10%);  /* fondo principal */
+  --admin-bg-surface:  hsl(220, 18%, 14%);  /* cards, panels */
+  --admin-bg-elevated: hsl(220, 16%, 18%);  /* modales, dropdowns */
+  --admin-border:      hsl(220, 14%, 22%);  /* bordes sutiles */
+  --admin-text-primary:   hsl(220, 20%, 92%);
+  --admin-text-secondary: hsl(220, 12%, 62%);
+  --admin-text-muted:     hsl(220, 10%, 42%);
+  --admin-accent:      var(--color-aurora-400);
+  --admin-accent-glow: hsla(165, 55%, 48%, 0.15);
+}
+
+/* 2.3 Paleta pública (light, warm) */
+:root[data-theme="public"] {
+  --pub-bg-base:      var(--color-stone-50);
+  --pub-bg-surface:   #ffffff;
+  --pub-bg-warm:      hsl(30, 30%, 98%);    /* sección alternada */
+  --pub-border:       var(--color-stone-200);
+  --pub-text-primary: var(--color-stone-900);
+  --pub-text-body:    var(--color-stone-800);
+  --pub-text-muted:   var(--color-stone-600);
+  --pub-accent:       var(--color-aurora-600);
+  --pub-accent-light: var(--color-aurora-50);
+}
+
+/* 3. Tipografía */
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+
+  /* Escala tipográfica */
+  --text-xs:   0.75rem;    /* 12px — labels, metadata */
+  --text-sm:   0.875rem;   /* 14px — body small, captions */
+  --text-base: 1rem;       /* 16px — body, párrafos */
+  --text-lg:   1.125rem;   /* 18px — subheadings pequeños */
+  --text-xl:   1.25rem;    /* 20px — subheadings */
+  --text-2xl:  1.5rem;     /* 24px — section headings */
+  --text-3xl:  1.875rem;   /* 30px — page headings */
+  --text-4xl:  2.25rem;    /* 36px — hero headings */
+  --text-5xl:  3rem;       /* 48px — display */
+  --text-6xl:  3.75rem;    /* 60px — hero display */
+
+  --leading-tight:  1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+  --leading-loose:  2;
+
+  --tracking-tight:  -0.025em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.025em;
+  --tracking-widest:  0.1em;   /* caps labels */
+}
+
+/* 4. Espaciado */
+:root {
+  /* Escala 8px base */
+  --space-1:  0.25rem;   /* 4px */
+  --space-2:  0.5rem;    /* 8px */
+  --space-3:  0.75rem;   /* 12px */
+  --space-4:  1rem;      /* 16px */
+  --space-5:  1.25rem;   /* 20px */
+  --space-6:  1.5rem;    /* 24px */
+  --space-8:  2rem;      /* 32px */
+  --space-10: 2.5rem;    /* 40px */
+  --space-12: 3rem;      /* 48px */
+  --space-16: 4rem;      /* 64px */
+  --space-20: 5rem;      /* 80px */
+  --space-24: 6rem;      /* 96px */
+  --space-32: 8rem;      /* 128px */
+}
+
+/* 5. Radios, sombras y efectos */
+:root {
+  /* Border radius */
+  --radius-sm:   0.375rem;  /* 6px — inputs, badges */
+  --radius-md:   0.75rem;   /* 12px — cards */
+  --radius-lg:   1rem;      /* 16px — panels */
+  --radius-xl:   1.5rem;    /* 24px — modales */
+  --radius-2xl:  2rem;      /* 32px — hero cards */
+  --radius-full: 9999px;    /* píldoras, avatares */
+
+  /* Sombras — cálidas, no azuladas */
+  --shadow-xs:  0 1px 2px hsla(30, 20%, 10%, 0.05);
+  --shadow-sm:  0 1px 4px hsla(30, 20%, 10%, 0.08), 0 1px 2px hsla(30, 20%, 10%, 0.04);
+  --shadow-md:  0 4px 12px hsla(30, 20%, 10%, 0.10), 0 2px 4px hsla(30, 20%, 10%, 0.06);
+  --shadow-lg:  0 8px 24px hsla(30, 20%, 10%, 0.12), 0 4px 8px hsla(30, 20%, 10%, 0.08);
+  --shadow-xl:  0 16px 48px hsla(30, 20%, 10%, 0.14), 0 8px 16px hsla(30, 20%, 10%, 0.10);
+
+  /* Glow aurora — para CTAs y elementos interactivos */
+  --glow-aurora: 0 0 24px hsla(165, 55%, 48%, 0.20), 0 0 8px hsla(165, 55%, 48%, 0.12);
+  --glow-gold:   0 0 20px hsla(42, 80%, 52%, 0.18), 0 0 6px hsla(42, 80%, 52%, 0.10);
+
+  /* Glassmorphism (admin dark) */
+  --glass-bg:     hsla(220, 18%, 14%, 0.80);
+  --glass-border: hsla(220, 30%, 60%, 0.10);
+  --glass-blur:   blur(20px) saturate(180%);
+
+  /* Transiciones */
+  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
