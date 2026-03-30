@@ -101,6 +101,12 @@
                 "deck": "Que esperar, que traer, cuanto dura y como llegar antes de venir a la consulta."
             },
             {
+                "label": "Paquetes dermatologicos",
+                "href": "/es/paquetes/",
+                "eyebrow": "Combos con precio visible",
+                "deck": "Revise paquetes con laser, peeling y seguimiento medico antes de escribir por WhatsApp."
+            },
+            {
                 "label": "Diagnostico integral",
                 "href": "/es/servicios/diagnostico-integral/",
                 "eyebrow": "Primera consulta",

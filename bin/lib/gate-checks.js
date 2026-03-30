@@ -214,6 +214,45 @@ function createTaskCheckDefinitions(context) {
         evaluate: () => filePresence('es/pre-consulta/index.html'),
       },
     ],
+    'S4-13': [
+      {
+        name: 'Paquetes page exists',
+        evaluate: () => {
+          const generatedPath = '.generated/site-root/es/paquetes/index.html';
+          const publishedPath = 'es/paquetes/index.html';
+          if (fileExists(generatedPath) || fileExists(publishedPath)) {
+            return pass(`Existe ${fileExists(generatedPath) ? generatedPath : publishedPath}`);
+          }
+
+          return fail(`No existe ${generatedPath} ni ${publishedPath}`);
+        },
+      },
+      {
+        name: 'Paquetes page has WhatsApp CTA and visible Plan Piel Perfecta pricing',
+        warn: true,
+        evaluate: () => {
+          const generatedPath = '.generated/site-root/es/paquetes/index.html';
+          const publishedPath = 'es/paquetes/index.html';
+          const pagePath = fileExists(generatedPath)
+            ? generatedPath
+            : (fileExists(publishedPath) ? publishedPath : '');
+
+          if (!pagePath) {
+            return fail(`No existe ${generatedPath} ni ${publishedPath}`);
+          }
+
+          const pageHtml = read(resolveRoot(pagePath));
+          const signals = ['Plan Piel Perfecta', '$495', 'wa.me/', '/es/paquetes/'];
+          const missing = signals.filter((signal) => !pageHtml.includes(signal));
+
+          if (missing.length === 0) {
+            return pass(`${pagePath} publica Plan Piel Perfecta, precio visible y CTA WhatsApp`);
+          }
+
+          return fail(`${pagePath} no incluye: ${missing.join(', ')}`);
+        },
+      },
+    ],
     'S3-19': [
       {
         name: 'Prescription artifact present',

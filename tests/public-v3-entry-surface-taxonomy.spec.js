@@ -62,6 +62,17 @@ const ROUTES = [
         ],
     },
     {
+        route: '/es/paquetes/',
+        templateId: 'packages_v6',
+        selectors: [
+            '[data-v6-page-head]',
+            '[data-v6-packages-hero]',
+            '[data-v6-packages-plans]',
+            '[data-v6-package-compare]',
+            '#v6-booking-status',
+        ],
+    },
+    {
         route: '/es/legal/terminos/',
         templateId: 'legal_v6',
         selectors: [

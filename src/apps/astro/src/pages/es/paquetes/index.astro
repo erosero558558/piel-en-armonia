@@ -1,0 +1,232 @@
+---
+import PackagesPageV6 from '../../../components/public-v6/PackagesPageV6.astro';
+import PublicShellV6 from '../../../layouts/PublicShellV6.astro';
+import { getV6NavigationModel } from '../../../lib/public-v6.js';
+
+const locale = 'es';
+const pathname = '/es/paquetes/';
+const navModel = getV6NavigationModel(locale, pathname);
+
+const page = {
+    title: 'Paquetes dermatologicos en Aurora Derm | Laser, peeling y seguimiento',
+    description:
+        'Paquetes dermatologicos en Aurora Derm con precio visible y CTA por WhatsApp. Revise combos como Plan Piel Perfecta con laser, peeling y follow-up medico.',
+    heading: 'Paquetes dermatologicos con precio claro',
+    menuLabel: 'Secciones',
+    breadcrumb: [
+        { label: 'Inicio', href: '/es/' },
+        { label: 'Paquetes', href: pathname },
+    ],
+    hero: {
+        eyebrow: 'Combos guiados por criterio medico',
+        title: 'Planes que juntan laser, peeling y seguimiento sin vender sesiones a ciegas.',
+        deck: 'Estos paquetes sirven para conversar con una base clara. El precio se ve desde el inicio, pero la indicacion final se confirma segun fototipo, tolerancia, tiempo de recuperacion y objetivo real.',
+        image: '/images/optimized/v6-clinic-laser-dermatologico.webp',
+        alt: 'Cabina dermatologica con plataforma laser y preparacion clinica guiada',
+        stats: [
+            { label: 'Planes activos', value: '3' },
+            { label: 'Precio visible', value: 'Desde $165' },
+            { label: 'Seguimiento', value: 'Incluido' },
+        ],
+        panelTitle: 'Lo que si resuelve esta pagina',
+        panelItems: [
+            'Le deja ver combinaciones reales antes de escribir.',
+            'Aclara si el paquete incluye control medico o solo sesiones.',
+            'Le evita pedir un procedimiento aislado cuando aun falta ordenar la ruta.',
+        ],
+        ctaLabel: 'Ver paquetes',
+        ctaHref: '#v6-packages-plans',
+    },
+    reassurance: {
+        title: 'Los paquetes no reemplazan la valoracion; le ahorran incertidumbre antes de tomarla.',
+        body: 'Si un combo no encaja, lo decimos. La idea no es empujar una secuencia fija, sino mostrarle como solemos ordenar objetivos, sesiones y controles cuando la piel si pide una ruta combinada.',
+    },
+    statement: {
+        eyebrow: 'Antes de reservar un combo',
+        title: 'La pregunta correcta no es cuantas sesiones quiere; es que combinacion tiene sentido para su piel hoy.',
+        body: 'Laser, peeling y controles pueden sumar mucho cuando se ordenan en el momento correcto. Tambien pueden sobrar si el brote todavia no esta estable o si primero conviene una lectura diagnostica.',
+        signature: 'Paquetes Aurora Derm, Quito',
+        image: '/images/optimized/v6-clinic-peeling-quimico.webp',
+        alt: 'Preparacion dermatologica para renovacion cutanea controlada',
+    },
+    packages: [
+        {
+            id: 'plan-piel-perfecta',
+            eyebrow: 'Plan destacado',
+            title: 'Plan Piel Perfecta',
+            price: '$495',
+            priceNote: '3 laser + 1 peeling + 1 follow-up',
+            summary:
+                'Pensado para marcas, textura irregular y tono apagado cuando la piel ya permite una secuencia progresiva.',
+            fit: 'Marcas postbrote, poros, textura y calidad de piel que necesitan mas de una sola sesion.',
+            includes: [
+                '3 sesiones de laser dermatologico espaciadas segun respuesta.',
+                '1 peeling quimico de apoyo cuando la piel ya esta lista.',
+                '1 control medico de follow-up para ajustar la siguiente fase.',
+            ],
+            note: 'La secuencia exacta puede moverse si primero conviene desinflamar, reforzar barrera o separar recuperacion.',
+            ctaLabel: 'Quiero revisar Piel Perfecta',
+            ctaHref:
+                'https://wa.me/593982453672?text=Hola%2C%20quiero%20revisar%20el%20Plan%20Piel%20Perfecta%20de%20Aurora%20Derm',
+        },
+        {
+            id: 'plan-reset-brote',
+            eyebrow: 'Control inflamatorio',
+            title: 'Plan Reset de Brote',
+            price: '$165',
+            priceNote: 'Diagnostico + 2 peelings + control corto',
+            summary:
+                'Sirve cuando el foco sigue siendo ordenar brote, inflamacion y tolerancia antes de pensar en una fase mas intensa.',
+            fit: 'Acne inflamatorio, rosacea sensible o manchas recientes donde aun importa controlar primero.',
+            includes: [
+                '1 diagnostico integral para decidir indicacion y ritmo.',
+                '2 peelings quimicos suaves o progresivos.',
+                '1 control corto para medir respuesta y tolerancia.',
+            ],
+            note: 'Si en la primera revision la piel aun esta reactiva, rearmamos el paquete sin forzar procedimientos.',
+            ctaLabel: 'Quiero revisar Reset de Brote',
+            ctaHref:
+                'https://wa.me/593982453672?text=Hola%2C%20quiero%20revisar%20el%20Plan%20Reset%20de%20Brote%20de%20Aurora%20Derm',
+        },
+        {
+            id: 'plan-brillo-mantenimiento',
+            eyebrow: 'Mantenimiento visible',
+            title: 'Plan Brillo y Mantenimiento',
+            price: '$210',
+            priceNote: '2 peelings + mesoterapia + control',
+            summary:
+                'Ruta para calidad de piel cuando la meta es sostener luminosidad, hidratacion y textura con ventanas de recuperacion manejables.',
+            fit: 'Piel opaca, textura fina, mantenimiento postprocedimiento o pacientes que quieren un plan mas ligero.',
+            includes: [
+                '2 sesiones de peeling quimico calibradas por fototipo.',
+                '1 sesion de mesoterapia para soporte de calidad cutanea.',
+                '1 control medico para definir mantenimiento o pausa.',
+            ],
+            note: 'Conviene mas cuando la piel ya esta estable y usted si puede sostener fotoproteccion y aftercare.',
+            ctaLabel: 'Quiero revisar Brillo y Mantenimiento',
+            ctaHref:
+                'https://wa.me/593982453672?text=Hola%2C%20quiero%20revisar%20el%20Plan%20Brillo%20y%20Mantenimiento%20de%20Aurora%20Derm',
+        },
+    ],
+    comparison: {
+        eyebrow: 'Comparativa rapida',
+        title: 'Que cambia entre un paquete y otro',
+        deck: 'Asi puede ver si su pregunta se parece mas a control inflamatorio, mejora de textura o una ruta combinada con laser.',
+        rows: [
+            {
+                label: 'Mejor encaje',
+                values: [
+                    'Textura, marcas y tono con espacio para varias fases.',
+                    'Brote, sensibilidad o pigmento que aun necesita control primero.',
+                    'Mantenimiento, luminosidad y calidad de piel en ritmo mas liviano.',
+                ],
+            },
+            {
+                label: 'Recuperacion esperada',
+                values: [
+                    'Mayor, porque mezcla laser y peeling.',
+                    'Media, con secuencia mas cuidadosa.',
+                    'Mas corta, pensada para mantenimiento.',
+                ],
+            },
+            {
+                label: 'Control medico',
+                values: [
+                    'Follow-up incluido al cierre de la secuencia principal.',
+                    'Control corto para decidir si se intensifica o se sostiene.',
+                    'Control final para pasar a mantenimiento o detenerse.',
+                ],
+            },
+        ],
+    },
+    process: {
+        eyebrow: 'Como se arma',
+        title: 'No cerramos un paquete sin revisar si la piel puede sostenerlo.',
+        deck: 'El mismo combo puede cambiar de orden, pausarse o dividirse. Lo importante es no tratar de comprimir una ruta compleja en una sola visita.',
+        steps: [
+            {
+                title: '1. Revisamos punto de partida',
+                body: 'Fototipo, brote activo, pigmento, barrera cutanea y objetivos reales para no vender una combinacion fuera de momento.',
+            },
+            {
+                title: '2. Ordenamos la secuencia',
+                body: 'Definimos si primero conviene desinflamar, hacer peeling, pasar a laser o dejar el follow-up reservado para el cierre de fase.',
+            },
+            {
+                title: '3. Ajustamos sobre la marcha',
+                body: 'Si la piel responde distinto a lo esperado, priorizamos seguridad y resultado sostenible antes que completar sesiones por completar.',
+            },
+        ],
+    },
+    fit: {
+        eyebrow: 'Cuando si conviene',
+        title: 'Senales de que un paquete puede tener sentido',
+        deck: 'Le dejamos una lectura sencilla para no entrar a una ruta combinada solo porque suena mas completa.',
+        cards: [
+            {
+                title: 'Si conviene cuando',
+                items: [
+                    'Usted ya tiene un objetivo claro de textura, marcas, pigmento o mantenimiento.',
+                    'Puede sostener fotoproteccion, cuidados y controles entre sesiones.',
+                    'La piel esta lo bastante estable para mezclar mas de una tecnica.',
+                ],
+            },
+            {
+                title: 'Mejor esperar cuando',
+                items: [
+                    'Todavia no esta claro el diagnostico o el brote sigue muy activo.',
+                    'No sabe si podra cumplir los tiempos de recuperacion o control.',
+                    'Busca resolver todo en una sola sesion aunque la piel pida otra secuencia.',
+                ],
+            },
+            {
+                title: 'Lo resolvemos por WhatsApp',
+                items: [
+                    'Nos cuenta que quiere mejorar y que ya ha probado.',
+                    'Le decimos si un paquete sirve, si hay que separarlo o si primero conviene consulta.',
+                    'Si el caso no encaja, le proponemos la ruta correcta sin hacerle pagar de mas.',
+                ],
+            },
+        ],
+    },
+    bookingStatus: {
+        eyebrow: 'Siguiente paso',
+        title: 'Si quiere revisar un paquete por WhatsApp, le ayudamos a ver si encaja o si conviene separar la ruta.',
+        description:
+            'Es la forma mas rapida de resolver si Plan Piel Perfecta si le sirve, si hay que empezar mas suave o si hoy conviene una consulta diagnostica antes del combo.',
+        ctaLabel: 'Escribir por WhatsApp',
+        ctaHref:
+            'https://wa.me/593982453672?text=Hola%2C%20quiero%20revisar%20un%20paquete%20dermatologico%20de%20Aurora%20Derm',
+    },
+    ui: {
+        railTitle: 'Recorrido',
+        railAria: 'Secciones de paquetes dermatologicos',
+        packagesEyebrow: 'Planes',
+        packagesTitle: 'Paquetes listos para discutir con criterio',
+        packagesDeck: 'Cada plan muestra que incluye, para quien suele encajar y donde entra el control medico dentro de la secuencia.',
+        menu: {
+            overview: 'Planes',
+            comparison: 'Comparativa',
+            process: 'Como se arma',
+            fit: 'Cuando conviene',
+            bookingStatus: 'Siguiente paso',
+        },
+    },
+};
+---
+
+<PublicShellV6
+    title={page.title}
+    description={page.description}
+    locale={locale}
+    canonicalPath={pathname}
+    alternatePath=""
+    pathname={pathname}
+    navModel={navModel}
+    templateId="packages_v6"
+    ogImageSrc={page.hero.image}
+    preloadImageSrc={page.hero.image}
+    preloadImageSizes="(max-width: 1100px) 100vw, 60vw"
+>
+    <PackagesPageV6 page={page} locale={locale} navModel={navModel} />
+</PublicShellV6>

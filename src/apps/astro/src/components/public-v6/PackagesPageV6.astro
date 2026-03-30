@@ -1,0 +1,369 @@
+---
+import '../../styles/public-v6/internal.css';
+import '../../styles/public-v6/packages.css';
+
+import BookingStatusV6 from './BookingStatusV6.astro';
+import InternalStatementBandV6 from './InternalStatementBandV6.astro';
+import PageHeadV6 from './PageHeadV6.astro';
+
+const { page = {}, locale = 'es', navModel = {} } = Astro.props;
+
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
+const normalizeLink = (item) => {
+    const label = normalizeText(item?.label);
+    const href = normalizeHref(item?.href);
+    return label && href ? { label, href } : null;
+};
+const makeMenuItem = (label, href) => {
+    const safeLabel = normalizeText(label);
+    const safeHref = normalizeHref(href);
+    return safeLabel && safeHref ? { label: safeLabel, href: safeHref } : null;
+};
+
+const pageHeadUi =
+    navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object'
+        ? navModel.ui.pageHead
+        : {};
+const breadcrumb = Array.isArray(page?.breadcrumb)
+    ? page.breadcrumb.map(normalizeLink).filter(Boolean)
+    : [];
+const hero = page?.hero && typeof page.hero === 'object' ? page.hero : {};
+const reassurance =
+    page?.reassurance && typeof page.reassurance === 'object'
+        ? page.reassurance
+        : {};
+const statement =
+    page?.statement && typeof page.statement === 'object' ? page.statement : {};
+const comparison =
+    page?.comparison && typeof page.comparison === 'object' ? page.comparison : {};
+const process = page?.process && typeof page.process === 'object' ? page.process : {};
+const fit = page?.fit && typeof page.fit === 'object' ? page.fit : {};
+const bookingStatus =
+    page?.bookingStatus && typeof page.bookingStatus === 'object'
+        ? page.bookingStatus
+        : {};
+const ui = page?.ui && typeof page.ui === 'object' ? page.ui : {};
+const menuUi = ui?.menu && typeof ui.menu === 'object' ? ui.menu : {};
+
+const stats = Array.isArray(hero?.stats)
+    ? hero.stats
+          .map((item) => {
+              const label = normalizeText(item?.label);
+              const value = normalizeText(item?.value);
+              return label && value ? { label, value } : null;
+          })
+          .filter(Boolean)
+    : [];
+const heroPanelItems = Array.isArray(hero?.panelItems)
+    ? hero.panelItems.map(normalizeText).filter(Boolean)
+    : [];
+const packages = Array.isArray(page?.packages)
+    ? page.packages
+          .map((item) => {
+              const id = normalizeText(item?.id);
+              const title = normalizeText(item?.title);
+              const ctaHref = normalizeHref(item?.ctaHref);
+              const ctaLabel = normalizeText(item?.ctaLabel);
+              const includes = Array.isArray(item?.includes)
+                  ? item.includes.map(normalizeText).filter(Boolean)
+                  : [];
+              return id && title
+                  ? {
+                        id,
+                        eyebrow: normalizeText(item?.eyebrow),
+                        title,
+                        price: normalizeText(item?.price),
+                        priceNote: normalizeText(item?.priceNote),
+                        summary: normalizeText(item?.summary),
+                        fit: normalizeText(item?.fit),
+                        includes,
+                        note: normalizeText(item?.note),
+                        ctaLabel,
+                        ctaHref,
+                    }
+                  : null;
+          })
+          .filter(Boolean)
+    : [];
+const comparisonRows = Array.isArray(comparison?.rows)
+    ? comparison.rows
+          .map((row) => {
+              const label = normalizeText(row?.label);
+              const values = Array.isArray(row?.values)
+                  ? row.values.map(normalizeText).filter(Boolean)
+                  : [];
+              return label && values.length ? { label, values } : null;
+          })
+          .filter(Boolean)
+    : [];
+const processSteps = Array.isArray(process?.steps)
+    ? process.steps
+          .map((step) => {
+              const title = normalizeText(step?.title);
+              const body = normalizeText(step?.body);
+              return title && body ? { title, body } : null;
+          })
+          .filter(Boolean)
+    : [];
+const fitCards = Array.isArray(fit?.cards)
+    ? fit.cards
+          .map((card) => {
+              const title = normalizeText(card?.title);
+              const items = Array.isArray(card?.items)
+                  ? card.items.map(normalizeText).filter(Boolean)
+                  : [];
+              return title && items.length ? { title, items } : null;
+          })
+          .filter(Boolean)
+    : [];
+
+const pageMenuItems = [
+    makeMenuItem(normalizeText(menuUi.overview), '#v6-packages-plans'),
+    makeMenuItem(normalizeText(menuUi.comparison), '#v6-packages-compare'),
+    makeMenuItem(normalizeText(menuUi.process), '#v6-packages-build'),
+    makeMenuItem(normalizeText(menuUi.fit), '#v6-packages-fit'),
+    makeMenuItem(normalizeText(menuUi.bookingStatus), '#v6-booking-status'),
+].filter(Boolean);
+---
+
+<PageHeadV6
+    breadcrumb={breadcrumb}
+    heading={page.heading}
+    locale={locale}
+    switchLabel=""
+    switchHref=""
+    menuLabel={page.menuLabel}
+    menuItems={pageMenuItems}
+    copy={pageHeadUi}
+/>
+
+<section class="v6-packages-hero" data-v6-packages-hero>
+    <figure class="v6-packages-hero__media">
+        <img
+            src={normalizeText(hero.image)}
+            alt={normalizeText(hero.alt) || normalizeText(page.heading)}
+            sizes="(max-width: 1100px) 100vw, 56vw"
+            loading="eager"
+            decoding="sync"
+            fetchpriority="high"
+        />
+    </figure>
+    <div class="v6-packages-hero__panel">
+        {hero.eyebrow ? <p class="v6-packages-hero__eyebrow">{hero.eyebrow}</p> : null}
+        {hero.title ? <h2>{hero.title}</h2> : null}
+        {hero.deck ? <p class="v6-packages-hero__deck">{hero.deck}</p> : null}
+        {
+            stats.length ? (
+                <div class="v6-packages-hero__stats">
+                    {
+                        stats.map((item) => (
+                            <article>
+                                <span>{item.label}</span>
+                                <strong>{item.value}</strong>
+                            </article>
+                        ))
+                    }
+                </div>
+            ) : null
+        }
+        {
+            hero.panelTitle || heroPanelItems.length ? (
+                <div class="v6-packages-hero__info">
+                    {hero.panelTitle ? <h3>{hero.panelTitle}</h3> : null}
+                    {
+                        heroPanelItems.length ? (
+                            <ul>
+                                {heroPanelItems.map((item) => <li>{item}</li>)}
+                            </ul>
+                        ) : null
+                    }
+                </div>
+            ) : null
+        }
+        {
+            hero.ctaLabel && hero.ctaHref ? (
+                <a class="v6-packages-hero__cta" href={hero.ctaHref}>
+                    {hero.ctaLabel}
+                    <span aria-hidden="true">></span>
+                </a>
+            ) : null
+        }
+    </div>
+</section>
+
+{
+    reassurance.title || reassurance.body ? (
+        <section class="v6-packages-message" data-v6-packages-message>
+            {reassurance.title ? <h2>{reassurance.title}</h2> : null}
+            {reassurance.body ? <p>{reassurance.body}</p> : null}
+        </section>
+    ) : null
+}
+
+<InternalStatementBandV6 statement={statement} />
+
+<div class="v6-internal-shell v6-packages-shell" data-v6-packages-root>
+    {
+        pageMenuItems.length || ui.railTitle ? (
+            <aside class="v6-internal-rail" data-v6-internal-rail>
+                {ui.railTitle ? <p>{ui.railTitle}</p> : null}
+                <nav aria-label={normalizeText(ui.railAria) || undefined}>
+                    {
+                        pageMenuItems.map((item) => (
+                            <a data-v6-section-link href={item.href}>{item.label}</a>
+                        ))
+                    }
+                </nav>
+            </aside>
+        ) : null
+    }
+
+    <div class="v6-internal-shell__body">
+        <section
+            id="v6-packages-plans"
+            class="v6-packages-section"
+            data-v6-packages-plans
+        >
+            <header class="v6-packages-section__head">
+                {ui.packagesEyebrow ? <p>{ui.packagesEyebrow}</p> : null}
+                {ui.packagesTitle ? <h2>{ui.packagesTitle}</h2> : null}
+                {ui.packagesDeck ? <span>{ui.packagesDeck}</span> : null}
+            </header>
+
+            <div class="v6-packages-grid">
+                {
+                    packages.map((item) => (
+                        <article
+                            class="v6-package-card"
+                            data-v6-package-card={item.id}
+                        >
+                            {item.eyebrow ? <p class="v6-package-card__eyebrow">{item.eyebrow}</p> : null}
+                            <div class="v6-package-card__title-row">
+                                <h3>{item.title}</h3>
+                                {item.price ? <strong data-v6-package-price>{item.price}</strong> : null}
+                            </div>
+                            {item.priceNote ? <p class="v6-package-card__price-note">{item.priceNote}</p> : null}
+                            {item.summary ? <p class="v6-package-card__summary">{item.summary}</p> : null}
+                            {item.fit ? <p class="v6-package-card__fit"><span>Ideal para:</span> {item.fit}</p> : null}
+                            {
+                                item.includes.length ? (
+                                    <ul class="v6-package-card__includes">
+                                        {item.includes.map((detail) => <li>{detail}</li>)}
+                                    </ul>
+                                ) : null
+                            }
+                            {item.note ? <p class="v6-package-card__note">{item.note}</p> : null}
+                            {
+                                item.ctaLabel && item.ctaHref ? (
+                                    <a
+                                        class="v6-package-card__cta"
+                                        href={item.ctaHref}
+                                        data-v6-package-cta={item.id}
+                                    >
+                                        {item.ctaLabel}
+                                        <span aria-hidden="true">></span>
+                                    </a>
+                                ) : null
+                            }
+                        </article>
+                    ))
+                }
+            </div>
+        </section>
+
+        {
+            comparisonRows.length ? (
+                <section
+                    id="v6-packages-compare"
+                    class="v6-packages-section v6-packages-compare"
+                    data-v6-package-compare
+                >
+                    <header class="v6-packages-section__head">
+                        {comparison.eyebrow ? <p>{comparison.eyebrow}</p> : null}
+                        {comparison.title ? <h2>{comparison.title}</h2> : null}
+                        {comparison.deck ? <span>{comparison.deck}</span> : null}
+                    </header>
+                    <div class="v6-packages-compare__table">
+                        <div class="v6-packages-compare__header">
+                            <span>Comparativa</span>
+                            {packages.map((item) => <strong>{item.title}</strong>)}
+                        </div>
+                        {
+                            comparisonRows.map((row) => (
+                                <article class="v6-packages-compare__row">
+                                    <h3>{row.label}</h3>
+                                    {
+                                        row.values.map((value) => (
+                                            <p>{value}</p>
+                                        ))
+                                    }
+                                </article>
+                            ))
+                        }
+                    </div>
+                </section>
+            ) : null
+        }
+
+        {
+            processSteps.length ? (
+                <section
+                    id="v6-packages-build"
+                    class="v6-packages-section v6-packages-build"
+                    data-v6-package-process
+                >
+                    <header class="v6-packages-section__head">
+                        {process.eyebrow ? <p>{process.eyebrow}</p> : null}
+                        {process.title ? <h2>{process.title}</h2> : null}
+                        {process.deck ? <span>{process.deck}</span> : null}
+                    </header>
+                    <div class="v6-packages-build__grid">
+                        {
+                            processSteps.map((step) => (
+                                <article class="v6-packages-build__card">
+                                    <h3>{step.title}</h3>
+                                    <p>{step.body}</p>
+                                </article>
+                            ))
+                        }
+                    </div>
+                </section>
+            ) : null
+        }
+
+        {
+            fitCards.length ? (
+                <section
+                    id="v6-packages-fit"
+                    class="v6-packages-section v6-packages-fit"
+                    data-v6-package-fit
+                >
+                    <header class="v6-packages-section__head">
+                        {fit.eyebrow ? <p>{fit.eyebrow}</p> : null}
+                        {fit.title ? <h2>{fit.title}</h2> : null}
+                        {fit.deck ? <span>{fit.deck}</span> : null}
+                    </header>
+                    <div class="v6-packages-fit__grid">
+                        {
+                            fitCards.map((card) => (
+                                <article class="v6-packages-fit__card">
+                                    <h3>{card.title}</h3>
+                                    <ul>
+                                        {card.items.map((item) => <li>{item}</li>)}
+                                    </ul>
+                                </article>
+                            ))
+                        }
+                    </div>
+                </section>
+            ) : null
+        }
+
+        <BookingStatusV6 status={bookingStatus} sectionId="v6-booking-status" />
+    </div>
+</div>

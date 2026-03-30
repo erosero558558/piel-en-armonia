@@ -170,6 +170,15 @@ const SEO_CASES = [
         xDefaultPath: '/es/pago/',
     },
     {
+        path: '/es/paquetes/',
+        canonicalPath: '/es/paquetes/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/paquetes/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/paquetes/',
+    },
+    {
         path: '/es/blog/como-elegir-dermatologo-quito/',
         canonicalPath: '/es/blog/como-elegir-dermatologo-quito/',
         currentLocale: 'es',

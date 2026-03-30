@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 7:56:30 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:12:33 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **57%** completado (132/232)
+`███████████░░░░░░░░░` **57%** completado (133/232)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -15,7 +15,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
 | 🎯 Sprint 3 | 58 | 9 | 87% |
-| ⏸ Sprint 4 | 12 | 14 | 46% |
+| ⏸ Sprint 4 | 13 | 13 | 50% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 6 | 31 | 16% |
@@ -46,16 +46,16 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-42** `[S3]` → _Antigravity_ (expira en 239min)
+- **S3-42** `[S3]` → _Antigravity_ (expira en 223min)
 
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
 
 - **S3-35** `[S3]` L...
 
 ## ⏸ Sprint 4 — Escalar el negocio
-_Esperando que Sprint anterior esté completo. 14 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 
-### 🟢 Disponibles (11)
+### 🟢 Disponibles (10)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -63,12 +63,12 @@ _Esperando que Sprint anterior esté completo. 14 tareas pendientes._
 | **S4-08** | `[S4]` | L |
 | **S4-09** | `[S4]` | L |
 | **S4-12** | `[S4]` | L |
-| **S4-13** | `[S4]` | L |
-| ... | | _+6 más_ |
+| **S4-14** | `[S4]` | M |
+| ... | | _+5 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S4-06** `[S4]` → _antigravity_ (expira en 477min)
+- **S4-06** `[S4]` → _antigravity_ (expira en 461min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

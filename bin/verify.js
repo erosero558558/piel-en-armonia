@@ -695,7 +695,9 @@ function createVerificationChecks() {
         // ── Sprint 4 ───────────────────────────────────────────────────────
         'S4-08': () =>
             fileExists('es/software/turnero-clinicas/precios/index.html'),
-        'S4-13': () => fileExists('es/paquetes/index.html'),
+        'S4-13': () =>
+            fileExists('.generated/site-root/es/paquetes/index.html') ||
+            fileExists('es/paquetes/index.html'),
         'S4-19': () => {
             const idx = readRepoFile('index.html');
             return (

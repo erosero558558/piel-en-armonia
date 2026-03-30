@@ -104,6 +104,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
             'es/index.html',
             'en/index.html',
             'es/primera-consulta/index.html',
+            'es/paquetes/index.html',
             'es/servicios/index.html',
             'es/telemedicina/index.html',
             'es/telemedicina/consulta/index.html',
