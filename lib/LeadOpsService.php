@@ -62,6 +62,136 @@ final class LeadOpsService
         }
     }
 
+    public static function queueBirthdayGreetings(array &$store, array $options = []): array
+    {
+        $today = self::normalizeBirthdayDate((string) ($options['today'] ?? local_date('Y-m-d')));
+        if ($today === '') {
+            $today = local_date('Y-m-d');
+        }
+
+        $sentYear = substr($today, 0, 4);
+        $birthdayKey = substr($today, 5, 5);
+
+        $store['patient_birthday_messages'] = isset($store['patient_birthday_messages']) && is_array($store['patient_birthday_messages'])
+            ? array_values($store['patient_birthday_messages'])
+            : [];
+        $logEntries = $store['patient_birthday_messages'];
+        $sentRegistry = [];
+
+        foreach ($logEntries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $year = trim((string) ($entry['sentYear'] ?? ''));
+            $patientKey = trim((string) ($entry['patientKey'] ?? ''));
+            if ($year === '' || $patientKey === '') {
+                continue;
+            }
+
+            $sentRegistry[$year . '|' . $patientKey] = true;
+        }
+
+        $queueAvailable = false;
+        if (function_exists('whatsapp_openclaw_repository')) {
+            $queueAvailable = true;
+        } elseif (file_exists(__DIR__ . '/whatsapp_openclaw/bootstrap.php')) {
+            require_once __DIR__ . '/whatsapp_openclaw/bootstrap.php';
+            $queueAvailable = function_exists('whatsapp_openclaw_repository');
+        }
+
+        $summary = [
+            'date' => $today,
+            'queued' => 0,
+            'alreadySent' => 0,
+            'missingPhone' => 0,
+            'missingBirthDate' => 0,
+            'notBirthday' => 0,
+            'queueUnavailable' => 0,
+            'candidates' => 0,
+        ];
+
+        $seenThisRun = [];
+
+        foreach (self::buildBirthdayGreetingCandidates($store) as $candidate) {
+            $summary['candidates']++;
+
+            $birthDate = self::normalizeBirthdayDate((string) ($candidate['birthDate'] ?? ''));
+            if ($birthDate === '') {
+                $summary['missingBirthDate']++;
+                continue;
+            }
+
+            if (substr($birthDate, 5, 5) !== $birthdayKey) {
+                $summary['notBirthday']++;
+                continue;
+            }
+
+            $phone = self::normalizeBirthdayPhone((string) ($candidate['phone'] ?? ''));
+            if ($phone === '') {
+                $summary['missingPhone']++;
+                continue;
+            }
+
+            $patientKey = trim((string) ($candidate['patientKey'] ?? ''));
+            if ($patientKey === '') {
+                $patientKey = sha1($phone . '|' . $birthDate);
+            }
+
+            $registryKey = $sentYear . '|' . $patientKey;
+            if (isset($sentRegistry[$registryKey]) || isset($seenThisRun[$registryKey])) {
+                $summary['alreadySent']++;
+                continue;
+            }
+
+            if (!$queueAvailable) {
+                $summary['queueUnavailable']++;
+                continue;
+            }
+
+            $firstName = self::extractBirthdayFirstName((string) ($candidate['name'] ?? 'Paciente'));
+            $text = self::buildBirthdayGreetingText($firstName);
+            $record = whatsapp_openclaw_repository()->enqueueOutbox([
+                'phone' => $phone,
+                'source' => 'system',
+                'type' => 'text',
+                'text' => $text,
+                'status' => 'pending',
+                'priority' => 'normal',
+                'category' => 'birthday_greeting',
+                'template' => 'birthday_greeting',
+                'meta' => [
+                    'patientKey' => $patientKey,
+                    'birthDate' => $birthDate,
+                    'sentYear' => $sentYear,
+                    'sessionId' => (string) ($candidate['sessionId'] ?? ''),
+                    'caseId' => (string) ($candidate['caseId'] ?? ''),
+                ],
+            ]);
+
+            $logEntries[] = [
+                'id' => (string) ($record['id'] ?? ''),
+                'patientKey' => $patientKey,
+                'sessionId' => (string) ($candidate['sessionId'] ?? ''),
+                'caseId' => (string) ($candidate['caseId'] ?? ''),
+                'name' => (string) ($candidate['name'] ?? ''),
+                'phone' => $phone,
+                'birthDate' => $birthDate,
+                'sentOn' => $today,
+                'sentYear' => $sentYear,
+                'channel' => 'whatsapp',
+                'outboxId' => (string) ($record['id'] ?? ''),
+                'createdAt' => local_date('c'),
+            ];
+            $seenThisRun[$registryKey] = true;
+            $sentRegistry[$registryKey] = true;
+            $summary['queued']++;
+        }
+
+        $store['patient_birthday_messages'] = array_values($logEntries);
+        return $summary;
+    }
+
     public static function enrichCallbacks(array $callbacks, array $store, ?array $funnelMetrics = null): array
     {
         $enriched = [];
@@ -853,6 +983,254 @@ final class LeadOpsService
     {
         $raw = (int) getenv('PIELARMONIA_LEADOPS_WORKER_STALE_AFTER_SECONDS');
         return $raw > 0 ? $raw : 900;
+    }
+
+    private static function buildBirthdayGreetingCandidates(array $store): array
+    {
+        $draftsByKey = [];
+        $uniqueDrafts = [];
+
+        foreach ((array) ($store['clinical_history_drafts'] ?? []) as $index => $draft) {
+            if (!is_array($draft)) {
+                continue;
+            }
+
+            $draftIdentity = self::firstNonEmptyString(
+                trim((string) ($draft['sessionId'] ?? '')),
+                trim((string) ($draft['caseId'] ?? '')),
+                'draft:' . (string) $index
+            );
+            $currentStamp = self::timestampValue(
+                (string) ($draft['updatedAt'] ?? $draft['createdAt'] ?? '')
+            );
+            $existingDraftStamp = isset($uniqueDrafts[$draftIdentity])
+                ? self::timestampValue(
+                    (string) (($uniqueDrafts[$draftIdentity]['updatedAt'] ?? $uniqueDrafts[$draftIdentity]['createdAt'] ?? ''))
+                )
+                : -1;
+
+            if (!isset($uniqueDrafts[$draftIdentity]) || $currentStamp >= $existingDraftStamp) {
+                $uniqueDrafts[$draftIdentity] = $draft;
+            }
+
+            foreach ([
+                trim((string) ($draft['sessionId'] ?? '')),
+                trim((string) ($draft['caseId'] ?? '')),
+            ] as $key) {
+                if ($key === '') {
+                    continue;
+                }
+
+                $existingStamp = isset($draftsByKey[$key])
+                    ? self::timestampValue(
+                        (string) (($draftsByKey[$key]['updatedAt'] ?? $draftsByKey[$key]['createdAt'] ?? ''))
+                    )
+                    : -1;
+
+                if (!isset($draftsByKey[$key]) || $currentStamp >= $existingStamp) {
+                    $draftsByKey[$key] = $draft;
+                }
+            }
+        }
+
+        $candidates = [];
+        $processedDrafts = [];
+
+        foreach ((array) ($store['clinical_history_sessions'] ?? []) as $session) {
+            if (!is_array($session)) {
+                continue;
+            }
+
+            $sessionId = trim((string) ($session['sessionId'] ?? ''));
+            $caseId = trim((string) ($session['caseId'] ?? ''));
+            $draft = [];
+
+            if ($sessionId !== '' && isset($draftsByKey[$sessionId]) && is_array($draftsByKey[$sessionId])) {
+                $draft = $draftsByKey[$sessionId];
+            } elseif ($caseId !== '' && isset($draftsByKey[$caseId]) && is_array($draftsByKey[$caseId])) {
+                $draft = $draftsByKey[$caseId];
+            }
+
+            if ($draft !== []) {
+                $processedDrafts[self::buildBirthdayDraftIdentity($draft)] = true;
+            }
+
+            $candidates[] = self::buildBirthdayGreetingCandidate($session, $draft);
+        }
+
+        foreach ($uniqueDrafts as $draftIdentity => $draft) {
+            if (isset($processedDrafts[$draftIdentity]) || !is_array($draft)) {
+                continue;
+            }
+
+            $candidates[] = self::buildBirthdayGreetingCandidate([], $draft);
+        }
+
+        return $candidates;
+    }
+
+    private static function buildBirthdayDraftIdentity(array $draft): string
+    {
+        return self::firstNonEmptyString(
+            trim((string) ($draft['sessionId'] ?? '')),
+            trim((string) ($draft['caseId'] ?? '')),
+            'draft:' . sha1(json_encode($draft))
+        );
+    }
+
+    private static function buildBirthdayGreetingCandidate(array $session, array $draft): array
+    {
+        $patient = isset($session['patient']) && is_array($session['patient']) ? $session['patient'] : [];
+        $draftPatient = isset($draft['patient']) && is_array($draft['patient']) ? $draft['patient'] : [];
+        $intake = isset($draft['intake']) && is_array($draft['intake']) ? $draft['intake'] : [];
+        $patientFacts = isset($intake['datosPaciente']) && is_array($intake['datosPaciente']) ? $intake['datosPaciente'] : [];
+        $admission = isset($draft['admission001']) && is_array($draft['admission001']) ? $draft['admission001'] : [];
+        $identity = isset($admission['identity']) && is_array($admission['identity']) ? $admission['identity'] : [];
+        $demographics = isset($admission['demographics']) && is_array($admission['demographics']) ? $admission['demographics'] : [];
+        $residence = isset($admission['residence']) && is_array($admission['residence']) ? $admission['residence'] : [];
+
+        $fullName = self::firstNonEmptyString(
+            (string) ($patient['name'] ?? ''),
+            (string) ($draftPatient['name'] ?? ''),
+            self::buildBirthdayLegalName($identity)
+        );
+        $phone = self::firstNonEmptyString(
+            (string) ($patient['phone'] ?? ''),
+            (string) ($patient['contactNumber'] ?? ''),
+            (string) ($draftPatient['phone'] ?? ''),
+            (string) ($patientFacts['telefono'] ?? ''),
+            (string) ($residence['phone'] ?? '')
+        );
+        $birthDate = self::firstNonEmptyString(
+            (string) ($patient['birthDate'] ?? ''),
+            (string) ($patient['fechaNacimiento'] ?? ''),
+            (string) ($draftPatient['birthDate'] ?? ''),
+            (string) ($draftPatient['fechaNacimiento'] ?? ''),
+            (string) ($patientFacts['fechaNacimiento'] ?? ''),
+            (string) ($demographics['birthDate'] ?? '')
+        );
+        $documentNumber = self::firstNonEmptyString(
+            (string) ($patient['documentNumber'] ?? ''),
+            (string) ($draftPatient['documentNumber'] ?? ''),
+            (string) ($identity['documentNumber'] ?? '')
+        );
+        $sessionId = trim((string) ($session['sessionId'] ?? $draft['sessionId'] ?? ''));
+        $caseId = trim((string) ($session['caseId'] ?? $draft['caseId'] ?? ''));
+
+        return [
+            'name' => $fullName,
+            'phone' => $phone,
+            'birthDate' => $birthDate,
+            'patientKey' => self::buildBirthdayPatientKey(
+                $documentNumber,
+                $phone,
+                $birthDate,
+                $fullName,
+                $caseId,
+                $sessionId
+            ),
+            'sessionId' => $sessionId,
+            'caseId' => $caseId,
+        ];
+    }
+
+    private static function buildBirthdayGreetingText(string $firstName): string
+    {
+        $name = self::firstNonEmptyString($firstName, 'Paciente');
+        return "Hola {$name}, hoy queremos saludarte por tu cumpleaños desde Aurora Derm. "
+            . "Que tengas un dia tranquilo, acompanado y con mucha salud. "
+            . "Gracias por permitirnos acompanarte en el cuidado de tu piel.";
+    }
+
+    private static function extractBirthdayFirstName(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return 'Paciente';
+        }
+
+        $parts = preg_split('/\s+/', $trimmed);
+        if (!is_array($parts) || $parts === []) {
+            return 'Paciente';
+        }
+
+        return trim((string) ($parts[0] ?? 'Paciente'));
+    }
+
+    private static function buildBirthdayLegalName(array $identity): string
+    {
+        return trim(implode(' ', array_filter([
+            trim((string) ($identity['primerNombre'] ?? '')),
+            trim((string) ($identity['segundoNombre'] ?? '')),
+            trim((string) ($identity['apellidoPaterno'] ?? '')),
+            trim((string) ($identity['apellidoMaterno'] ?? '')),
+        ])));
+    }
+
+    private static function buildBirthdayPatientKey(
+        string $documentNumber,
+        string $phone,
+        string $birthDate,
+        string $name,
+        string $caseId,
+        string $sessionId
+    ): string {
+        $document = preg_replace('/\W+/', '', strtolower($documentNumber));
+        if (is_string($document) && $document !== '') {
+            return 'doc:' . $document;
+        }
+
+        $normalizedPhone = self::normalizeBirthdayPhone($phone);
+        if ($normalizedPhone !== '') {
+            return 'phone:' . $normalizedPhone . '|' . self::normalizeBirthdayDate($birthDate);
+        }
+
+        $nameKey = preg_replace('/[^a-z0-9]+/', '_', strtolower(trim($name)));
+        if (is_string($nameKey) && $nameKey !== '' && self::normalizeBirthdayDate($birthDate) !== '') {
+            return 'name:' . trim($nameKey, '_') . '|' . self::normalizeBirthdayDate($birthDate);
+        }
+
+        return 'case:' . self::firstNonEmptyString($caseId, $sessionId, sha1($name . '|' . $birthDate));
+    }
+
+    private static function normalizeBirthdayPhone(string $value): string
+    {
+        $digits = preg_replace('/\D+/', '', $value);
+        if (!is_string($digits)) {
+            return '';
+        }
+
+        return ltrim($digits, '0');
+    }
+
+    private static function normalizeBirthdayDate(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', substr($trimmed, 0, 10)) === 1) {
+            return substr($trimmed, 0, 10);
+        }
+
+        try {
+            return (new DateTimeImmutable($trimmed))->format('Y-m-d');
+        } catch (Throwable $e) {
+            return '';
+        }
+    }
+
+    private static function firstNonEmptyString(string ...$values): string
+    {
+        foreach ($values as $value) {
+            $trimmed = trim($value);
+            if ($trimmed !== '') {
+                return $trimmed;
+            }
+        }
+
+        return '';
     }
 
     private static function maskPhone(string $phone): string

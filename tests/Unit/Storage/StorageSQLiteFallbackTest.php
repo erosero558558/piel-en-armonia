@@ -195,6 +195,21 @@ final class StorageSQLiteFallbackTest extends TestCase
                 'eventType' => 'draft_saved',
             ],
         ];
+        $store['patient_birthday_messages'] = [
+            [
+                'id' => 70107,
+                'patientKey' => 'doc:0912345678',
+                'sessionId' => 'chs_media_701',
+                'caseId' => 'CASE-MEDIA-701',
+                'name' => 'Ana Test',
+                'phone' => '593987654321',
+                'birthDate' => '1991-03-30',
+                'sentOn' => '2026-03-30',
+                'sentYear' => '2026',
+                'channel' => 'whatsapp',
+                'outboxId' => 'wao_birth_701',
+            ],
+        ];
         $store['case_media_proposals'] = [
             [
                 'id' => 70104,
@@ -232,6 +247,8 @@ final class StorageSQLiteFallbackTest extends TestCase
         $this->assertSame('chs_media_701', (string) ($roundTrip['clinical_history_drafts'][0]['sessionId'] ?? ''));
         $this->assertCount(1, $roundTrip['clinical_history_events'] ?? []);
         $this->assertSame('draft_saved', (string) ($roundTrip['clinical_history_events'][0]['eventType'] ?? ''));
+        $this->assertCount(1, $roundTrip['patient_birthday_messages'] ?? []);
+        $this->assertSame('doc:0912345678', (string) ($roundTrip['patient_birthday_messages'][0]['patientKey'] ?? ''));
         $this->assertCount(1, $roundTrip['case_media_proposals'] ?? []);
         $this->assertSame('cmp_701', (string) ($roundTrip['case_media_proposals'][0]['proposalId'] ?? ''));
         $this->assertCount(1, $roundTrip['case_media_publications'] ?? []);

@@ -94,6 +94,7 @@ final class StorageConfig
             'clinical_history_sessions' => [],
             'clinical_history_drafts' => [],
             'clinical_history_events' => [],
+            'patient_birthday_messages' => [],
             'case_media_proposals' => [],
             'case_media_publications' => [],
             'case_media_events' => [],
@@ -190,6 +191,9 @@ final class StorageConfig
         $clinicalHistoryEvents = isset($store['clinical_history_events']) && is_array($store['clinical_history_events'])
             ? $store['clinical_history_events']
             : [];
+        $patientBirthdayMessages = isset($store['patient_birthday_messages']) && is_array($store['patient_birthday_messages'])
+            ? $store['patient_birthday_messages']
+            : [];
         $caseMediaProposals = isset($store['case_media_proposals']) && is_array($store['case_media_proposals'])
             ? $store['case_media_proposals']
             : [];
@@ -214,6 +218,7 @@ final class StorageConfig
         $clinicalHistorySessions = self::normalizeStoreRecordsWithNumericId($clinicalHistorySessions, 'clinical_history_sessions');
         $clinicalHistoryDrafts = self::normalizeStoreRecordsWithNumericId($clinicalHistoryDrafts, 'clinical_history_drafts');
         $clinicalHistoryEvents = self::normalizeStoreRecordsWithNumericId($clinicalHistoryEvents, 'clinical_history_events');
+        $patientBirthdayMessages = self::normalizeStoreRecordsWithNumericId($patientBirthdayMessages, 'patient_birthday_messages');
         $caseMediaProposals = self::normalizeStoreRecordsWithNumericId($caseMediaProposals, 'case_media_proposals');
         $caseMediaPublications = self::normalizeStoreRecordsWithNumericId($caseMediaPublications, 'case_media_publications');
         $caseMediaEvents = self::normalizeStoreRecordsWithNumericId($caseMediaEvents, 'case_media_events');
@@ -235,6 +240,7 @@ final class StorageConfig
             'clinical_history_sessions' => array_values($clinicalHistorySessions),
             'clinical_history_drafts' => array_values($clinicalHistoryDrafts),
             'clinical_history_events' => array_values($clinicalHistoryEvents),
+            'patient_birthday_messages' => array_values($patientBirthdayMessages),
             'case_media_proposals' => array_values($caseMediaProposals),
             'case_media_publications' => array_values($caseMediaPublications),
             'case_media_events' => array_values($caseMediaEvents),

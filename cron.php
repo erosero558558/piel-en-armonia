@@ -160,7 +160,20 @@ function cron_run_task_safely(string $taskName, callable $callback, array $paylo
 
 function cron_task_reminders(array $payload): array
 {
-    $tomorrow = date('Y-m-d', strtotime('+1 day'));
+    $today = trim((string) ($payload['today'] ?? local_date('Y-m-d')));
+    if ($today === '') {
+        $today = local_date('Y-m-d');
+    }
+
+    $tomorrow = trim((string) ($payload['tomorrow'] ?? ''));
+    if ($tomorrow === '') {
+        try {
+            $tomorrow = (new DateTimeImmutable($today))->modify('+1 day')->format('Y-m-d');
+        } catch (Throwable $e) {
+            $tomorrow = date('Y-m-d', strtotime('+1 day'));
+        }
+    }
+
     $store = read_store();
     $sent = 0;
     $skipped = 0;
@@ -189,17 +202,23 @@ function cron_task_reminders(array $payload): array
     }
     unset($appt);
 
-    if ($sent > 0) {
+    $birthdaySummary = LeadOpsService::queueBirthdayGreetings($store, [
+        'today' => $today,
+    ]);
+
+    if ($sent > 0 || (int) ($birthdaySummary['queued'] ?? 0) > 0) {
         write_store($store);
     }
 
     return [
         'ok' => true,
         'action' => 'reminders',
+        'today' => $today,
         'date' => $tomorrow,
         'sent' => $sent,
         'skipped' => $skipped,
-        'failed' => $failed
+        'failed' => $failed,
+        'birthdays' => $birthdaySummary,
     ];
 }
 
@@ -463,6 +482,10 @@ function cron_process_retries(): array
 }
 
 // --- Main Execution ---
+
+if (defined('AURORADERM_CRON_BOOTSTRAP_ONLY') && AURORADERM_CRON_BOOTSTRAP_ONLY) {
+    return;
+}
 
 $secret = app_env('AURORADERM_CRON_SECRET');
 if (!is_string($secret) || $secret === '') {
