@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-03-30T13:46:54.561Z",
-  "count": 19,
+  "generatedAt": "2026-03-30T18:03:32.958Z",
+  "count": 17,
   "broken": [
     {
       "name": "score:public:v5:sony",
@@ -56,16 +56,6 @@
       "name": "turnero:release:plan",
       "ref": "bin/resolve-turnero-release-plan.js",
       "cmd": "node bin/resolve-turnero-release-plan.js"
-    },
-    {
-      "name": "turnero:verify:bundle",
-      "ref": "bin/verify-turnero-release-bundle.js",
-      "cmd": "node bin/verify-turnero-release-bundle.js"
-    },
-    {
-      "name": "turnero:verify:pilot:local",
-      "ref": "bin/verify-turnero-release-bundle.js",
-      "cmd": "node bin/verify-turnero-release-bundle.js --outputRoot relea"
     },
     {
       "name": "gate:admin:rollout:node",
@@ -124,9 +114,7 @@
       "diagnose:admin:auth:rollout:node"
     ],
     "turnero": [
-      "turnero:release:plan",
-      "turnero:verify:bundle",
-      "turnero:verify:pilot:local"
+      "turnero:release:plan"
     ],
     "agent": [
       "agent:board:legacy:check",

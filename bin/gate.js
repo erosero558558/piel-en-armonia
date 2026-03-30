@@ -185,6 +185,61 @@ check('PHPUnit Smoke Baseline', () => {
   return true;
 });
 
+check('Desktop Channel Promotion Contract', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const latestPath = resolve(ROOT, 'app-downloads/latest');
+
+  if (fs.existsSync(latestPath)) {
+    const manifestPath = path.join(latestPath, 'release-manifest.json');
+    if (!fs.existsSync(manifestPath)) {
+      return `Missing release-manifest.json in ${latestPath}. Cannot promote incomplete latest channel.`;
+    }
+
+    try {
+      const manifest = JSON.parse(read(manifestPath));
+      for (const [appId, appData] of Object.entries(manifest.apps || {})) {
+        for (const [targetId, targetData] of Object.entries(appData.targets || {})) {
+          const fileUrl = (targetData.url || '').replace(/^\/+/, '');
+          const localPath = path.join(ROOT, fileUrl);
+          if (!fs.existsSync(localPath)) {
+            return `Missing installer payload for ${appId} in latest channel: ${fileUrl}`;
+          }
+
+          if (appData.updates && appData.updates[targetId]) {
+            const updateUrl = (appData.updates[targetId].payloadUrl || '').replace(/^\/+/, '');
+            const blockmapPath = path.join(ROOT, updateUrl + '.blockmap');
+            if (updateUrl && !fs.existsSync(blockmapPath)) {
+              return `Missing .blockmap delta for ${appId} update payload in latest channel: ${updateUrl}.blockmap`;
+            }
+          }
+        }
+      }
+    } catch(e) {
+      return `Failed to validate latest channel manifest structural integrity: ${e.message}`;
+    }
+  }
+
+  const dbPath = resolve(ROOT, 'data/turnero-surfaces.json');
+  if (fs.existsSync(dbPath)) {
+    const db = JSON.parse(read(dbPath));
+    for (const surface of db.surfaces || []) {
+      if (surface.status === 'published' && ['kiosk', 'sala_tv'].includes(surface.id)) {
+        const manifestFallback = path.join(latestPath, 'release-manifest.json');
+        if (!fs.existsSync(manifestFallback)) {
+          return `Surface ${surface.id} is marked 'published' in turnero-surfaces.json, but app-downloads/latest/release-manifest.json does not exist.`;
+        }
+        
+        const manifest = JSON.parse(read(manifestFallback));
+        if (!manifest.apps || !manifest.apps[surface.id]) {
+          return `Surface ${surface.id} is marked 'published' but is not backed up by real binaries in latest/release-manifest.json.`;
+        }
+      }
+    }
+  }
+  return true;
+});
+
 // ── Task-specific checks ───────────────────────────────────────────────────────
 
 const taskChecks = createTaskCheckDefinitions({ ROOT, read, fileExists, execSync });

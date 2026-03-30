@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 12:53:28 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 1:09:27 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **48%** completado (201/420)
+`██████████░░░░░░░░░░` **49%** completado (204/420)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -21,7 +21,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 7 | 6 | 31 | 16% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
-| ⏸ Sprint 8 | 2 | 15 | 12% |
+| ⏸ Sprint 8 | 5 | 12 | 29% |
 | ⏸ Sprint 9 | 1 | 26 | 4% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 2 | 24 | 8% |
@@ -56,16 +56,20 @@ _Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 ## ⏸ Sprint 5 — Portal del Paciente (PWA)
 _Esperando que Sprint anterior esté completo. 19 tareas pendientes._
 
-### 🟢 Disponibles (10)
+### 🟢 Disponibles (9)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S5-01** | `[S5]` | M |
 | **S5-02** | `[S5]` | L |
 | **S5-09** | `[S5]` | S |
-| **S5-12** | `[S5]` | M |
 | **S5-14** | `[S5]` | M |
-| ... | | _+5 más_ |
+| **S5-16** | `[S5]` | M |
+| ... | | _+4 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S5-12** `[S5]` → _Codex-erosero558558_ (expira en 235min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -132,18 +136,18 @@ _Sprint completado. 19/19 tareas._
 _Sprint completado. 20/20 tareas._
 
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
-_Esperando que Sprint anterior esté completo. 15 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
-### 🟢 Disponibles (15)
+### 🟢 Disponibles (12)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S8-03** | `[S8]` | L |
-| **S8-04** | `[S8]` | M |
-| **S8-05** | `[S8]` | M |
 | **S8-20** | `[S8]` | M |
 | **S8-06** | `[S8]` | M |
-| ... | | _+10 más_ |
+| **S8-07** | `[S8]` | S |
+| **S8-10** | `[S8]` | M |
+| **S8-11** | `[S8]` | M |
+| ... | | _+7 más_ |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
 _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
@@ -230,7 +234,7 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S14-12** `[S14]` → _antigravity_ (expira en 33min)
+- **S14-12** `[S14]` → _antigravity_ (expira en 17min)
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._

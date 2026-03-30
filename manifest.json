@@ -2,9 +2,9 @@
     "id": "/",
     "name": "Aurora Derm — Dermatología Clínica Quito",
     "short_name": "Aurora Derm",
-    "description": "Clínica dermatológica con enfoque médico real. Quito, Ecuador.",
+    "description": "Portal del paciente Aurora Derm: citas, historial, recetas y seguimiento clínico.",
     "lang": "es",
-    "start_url": "/",
+    "start_url": "/es/portal/",
     "scope": "/",
     "display": "standalone",
     "display_override": [

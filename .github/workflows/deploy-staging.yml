@@ -88,7 +88,7 @@ jobs:
                   set -euo pipefail
                   rm -rf _deploy_bundle
                   mkdir -p _deploy_bundle
-                  node bin/prepare-deploy-bundle.js --include-tooling --output-dir _deploy_bundle --json > _deploy_bundle/deploy-bundle.json
+                  node bin/prepare-deploy-bundle.js --include-tooling --skip-build --output-dir _deploy_bundle --json > _deploy_bundle/deploy-bundle.json
                   stage_dir="$(node <<'NODE'
                   const fs = require('node:fs');
                   const path = require('node:path');

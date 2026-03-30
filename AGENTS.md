@@ -1459,12 +1459,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S8-01** `[M]` Desktop catalog truth — `app-downloads/` mezcla `published`, `registry_only` y entradas sin artefacto real. Que cada entrada declare explícitamente su estado. Kiosco y sala_tv no deben aparecer como "listos" si no hay instalador real. Entregable: tabla de verdad en `docs/DESKTOP_CATALOG.md` + campo `status` en cada registro del catálogo.
 - [x] **S8-02** `[M]` Restore turnero bundle verifier — `bin/verify-turnero-release-bundle.js` desapareció o los scripts npm que lo invocan apuntan a ruta inexistente. Reponer el verificador o corregir las 3 entradas en `package.json` que fallan silenciosamente. Verificable: `npm run verify:turnero:bundle` → exit 0.
-- [ ] **S8-03** `[L]` Release artifact single source — binarios duplicados entre `app-downloads/`, `desktop-updates/` y `release/`. Decidir cuál es canónico. Mover los otros a aliases o eliminarlos. Añadir cross-checksum: si el mismo hash no aparece en las 3 rutas, el smoke falla. Entregable: `docs/RELEASE_CANONICAL.md` + script de verificación.
-- [ ] **S8-04** `[M]` Desktop channel promotion contract — bloquear la promoción de `kiosk` y `sala_tv` a producción mientras no existan manifiesto real, instalador firmado y blockmap. Añadir check en `bin/gate.js` o en el workflow CI que bloquea push a `latest` si falta alguno de los 3.
+- [x] **S8-03** `[L]` Release artifact single source — binarios duplicados entre `app-downloads/`, `desktop-updates/` y `release/`. Decidir cuál es canónico. Mover los otros a aliases o eliminarlos. Añadir cross-checksum: si el mismo hash no aparece en las 3 rutas, el smoke falla. Entregable: `docs/RELEASE_CANONICAL.md` + script de verificación.
+- [x] **S8-04** `[M]` Desktop channel promotion contract — bloquear la promoción de `kiosk` y `sala_tv` a producción mientras no existan manifiesto real, instalador firmado y blockmap. Añadir check en `bin/gate.js` o en el workflow CI que bloquea push a `latest` si falta alguno de los 3.
 
 #### 8.2 Auth y acceso remoto
 
-- [ ] **S8-05** `[M]` Remote operator-auth recovery — `operator-auth-status` y `admin-auth` devuelven 502 en el dominio remoto. Diagnosticar causa raíz (proxy, servicio caído, timeout, falta env). Dejar smoke HTTP que verifique que ambos endpoints responden < 3s. Entregable: `docs/AUTH_RECOVERY_RUNBOOK.md` + `npm run smoke:auth`.
+- [x] **S8-05** `[M]` Remote operator-auth recovery — `operator-auth-status` y `admin-auth` devuelven 502 en el dominio remoto. Diagnosticar causa raíz (proxy, servicio caído, timeout, falta env). Dejar smoke HTTP que verifique que ambos endpoints responden < 3s. Entregable: `docs/AUTH_RECOVERY_RUNBOOK.md` + `npm run smoke:auth`.
 - [ ] **S8-20** `[M]` Auth surface hardening — extraer y encapsular zonas de riesgo en `lib/auth.php`: legacy password path, 2FA temporal bypass, operator auth bridge. Cada zona debe tener un test de contrato mínimo. No romper auth existente — refactor con tests primero. Entregable: `lib/auth/` con archivos separados por zona de riesgo.
 
 #### 8.3 Integraciones externas

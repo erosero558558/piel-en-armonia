@@ -1,15 +1,25 @@
-const CACHE_NAME = 'aurora-derm-v19-production-20260329';
+const CACHE_NAME = 'aurora-derm-v20-portal-pwa-20260330';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/en/index.html',
+    '/es/portal/',
+    '/es/portal/index.html',
+    '/es/portal/historial/',
+    '/es/portal/historial/index.html',
     '/admin.html',
     '/operador-turnos.html',
     '/kiosco-turnos.html',
     '/sala-turnos.html',
+    '/styles/tokens.css',
+    '/styles/base.css',
+    '/styles/components.css',
+    '/styles/aurora-portal.css',
     '/styles/main-aurora.css?v=6.0.2',
     '/js/nueva-web-main.js?v=6.0.2',
     '/js/public-v6-shell.js',
+    '/js/portal-dashboard.js',
+    '/js/portal-pwa.js',
     '/admin-v3.css?v=admin-v3-20260314-sony150',
     '/admin.js?v=admin-20260320-mainpublish1',
     '/queue-ops.css?v=queue-ops-20260314-sony150',
@@ -153,12 +163,22 @@ function isImageAsset(pathname) {
     ].some((ext) => pathname.endsWith(ext));
 }
 
+async function precacheStaticAssets() {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.allSettled(
+        STATIC_ASSETS.map(async (assetUrl) => {
+            await cache.add(
+                new Request(assetUrl, {
+                    cache: 'reload',
+                })
+            );
+        })
+    );
+}
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches
-            .open(CACHE_NAME)
-            .then((cache) => cache.addAll(STATIC_ASSETS))
-            .then(() => self.skipWaiting())
+        precacheStaticAssets().then(() => self.skipWaiting())
     );
 });
 
