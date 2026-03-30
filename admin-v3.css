@@ -3593,3 +3593,88 @@ body.admin-v3-mode .clinical-compare-range::-moz-range-thumb {
         grid-template-columns: 1fr;
     }
 }
+
+/* --- DAILY AGENDA --- */
+
+.daily-agenda-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.agenda-time-slot {
+    background: var(--surface);
+    border: 1px solid var(--border-neutral);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.agenda-time-slot.is-overbooked {
+    border-color: var(--status-error);
+}
+
+.agenda-time-header {
+    background: var(--surface-subtle);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-neutral);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.agenda-time-header h4 {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: 600;
+}
+
+.agenda-time-appointments {
+    display: flex;
+    flex-direction: column;
+}
+
+.agenda-card {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-neutral);
+}
+
+.agenda-card:last-child {
+    border-bottom: none;
+}
+
+.agenda-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.agenda-card-info strong {
+    font-size: var(--text-base);
+}
+
+.agenda-card-info span {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.agenda-card-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.status-badge.error {
+    background: var(--status-error-subtle, #ffebee);
+    color: var(--status-error, #c62828);
+    font-weight: 600;
+}
+
+.status-badge.success {
+    background: var(--status-success-subtle, #e8f5e9);
+    color: var(--status-success, #2e7d32);
+    font-weight: 600;
+}
+

@@ -14,6 +14,7 @@ import {
 } from '../../shared/modules/queue.js';
 import { appendActivity as appendQueueActivity } from '../../shared/modules/queue/state.js';
 import { renderAppointmentsSection } from '../../sections/appointments.js';
+import { renderDailyAgendaContent } from '../../sections/daily-agenda/render.js';
 import { renderCallbacksSection } from '../../sections/callbacks.js';
 import { renderClinicalHistorySection } from '../../sections/clinical-history.js';
 import {
@@ -41,6 +42,7 @@ export function renderAllSections() {
     renderDashboard(getState());
     renderClinicalHistorySection();
     renderAppointmentsSection();
+    renderDailyAgendaContent();
     renderCallbacksSection();
     renderReviewsSection();
     renderAvailabilitySection();

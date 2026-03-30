@@ -1072,7 +1072,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S3-25** `[M]` Confirmación doble — al agendar: enviar WhatsApp + email con fecha, hora, doctor, dirección, instrucciones de preparación según el tipo de cita.
 - [x] **S3-26** `[M]` Reagendamiento self-service — vista pública donde paciente puede mover su cita. Máx 2 cambios, mínimo 24h antes. `src/apps/reschedule/engine.js`.
 - [x] **S3-27** `[M]` Lista de espera — si no hay slots, ofrecer "unirse a lista de espera". Notificar por WhatsApp cuando se libere un espacio.
-- [ ] **S3-28** `[M]` Vista de agenda diaria — en admin: agenda del día con pacientes confirmados, hora, tipo, status. Alertas de overbooking. Botón "marcar llegó" → avanza el journey.
+- [x] **S3-28** `[M]` Vista de agenda diaria — en admin: agenda del día con pacientes confirmados, hora, tipo, status. Alertas de overbooking. Botón "marcar llegó" → avanza el journey.
 
 #### 3.5 Telemedicina
 
@@ -1365,7 +1365,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI-01** `[S]` `[UI]` Design tokens globales — crear `styles/tokens.css` con todos los tokens del `DESIGN_SYSTEM.md`: colores HSL aurora, gold, neutros cálidos, tipografía (Instrument Serif + Inter), espaciado 8px, radios, sombras cálidas, glow effects, transiciones. Este archivo se importa primero en toda página. Sin este archivo, nada más del Sprint UI arranca.
 - [x] **UI-02** `[S]` `[UI]` Reset + base CSS — crear `styles/base.css`: reset moderno (box-sizing border-box, margin 0, font-size rem, smooth scroll), variables de tema público (`data-theme="public"`) y admin (`data-theme="admin"`), classes de utilidad mínimas (`.sr-only`, `.container`, `.section`). No usar frameworks externos — CSS puro con variables del sistema.
-- [ ] **UI-03** `[M]` `[UI]` Sistema de componentes base — crear `styles/components.css`: `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.card`, `.badge`, `.input`, `.select`, `.modal`, `.toast`, `.avatar`, `.divider`. Cada componente usa exclusivamente tokens de `tokens.css`. Con animaciones hover y focus accesibles. Entregable: Storybook-like demo en `dev/components.html`.
+- [x] **UI-03** `[M]` `[UI]` Sistema de componentes base — crear `styles/components.css`: `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.card`, `.badge`, `.input`, `.select`, `.modal`, `.toast`, `.avatar`, `.divider`. Cada componente usa exclusivamente tokens de `tokens.css`. Con animaciones hover y focus accesibles. Entregable: Storybook-like demo en `dev/components.html`.
 
 #### UI-1 Web pública — "La clínica que quieres visitar"
 

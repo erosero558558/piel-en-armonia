@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI-03 Component System Demo</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/styles/tokens.css">
+  <link rel="stylesheet" href="/styles/base.css">
+  <link rel="stylesheet" href="/styles/components.css">
+
+  <style>
+    /* Demo specific styles */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    .demo-pane {
+      padding: 2rem;
+      border-radius: var(--radius-xl);
+      margin-bottom: 2rem;
+    }
+    .demo-pane.light {
+      background: var(--pub-bg-base);
+    }
+    .demo-pane.dark {
+      background: var(--admin-bg-base);
+      color: var(--admin-text-primary);
+    }
+    .component-group {
+      margin-bottom: 2rem;
+    }
+    .component-group h3 {
+      margin-bottom: 1rem;
+      font-family: var(--font-body);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: inherit;
+    }
+    .flex-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container section">
+  <h1 style="margin-bottom: 2rem;">Sistema de Componentes (UI-03)</h1>
+  <p style="margin-bottom: 3rem;">Esta demo recrea la base visual en ambos temas.</p>
+
+  <div class="demo-grid">
+    
+    <!-- LIGHT THEME PANE (PUBLIC) -->
+    <div class="demo-pane light" data-theme="public">
+      <h2 style="margin-bottom: 1.5rem;">Public Theme (Light)</h2>
+
+      <div class="component-group">
+        <h3>Buttons</h3>
+        <div class="flex-row">
+          <button class="btn-primary">Primary Action</button>
+          <button class="btn-secondary">Secondary</button>
+          <button class="btn-ghost">Ghost</button>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <h3>Badges</h3>
+        <div class="flex-row">
+          <span class="badge badge-primary">Nuevo</span>
+          <span class="badge badge-success">Completado</span>
+          <span class="badge badge-warning">Pendiente</span>
+          <span class="badge badge-danger">Rechazado</span>
+          <span class="badge badge-info">Info</span>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <h3>Inputs & Forms</h3>
+        <div style="display: flex; gap: 1rem; flex-direction: column;">
+          <input type="text" class="input" placeholder="Tu nombre...">
+          <select class="select">
+            <option>Opción 1</option>
+            <option>Opción 2</option>
+          </select>
+          <textarea class="textarea" placeholder="Escribe tu mensaje..."></textarea>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <h3>Cards & Avatars</h3>
+        <div class="card" style="margin-bottom: 1rem;">
+          <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+            <div class="avatar avatar-md">JD</div>
+            <div>
+              <div style="font-weight: 600;">Dr. John Doe</div>
+              <div style="color: var(--pub-text-muted); font-size: var(--text-sm)">Dermatólogo Especialista</div>
+            </div>
+          </div>
+          <p>Esta es una tarjeta simple utilizando el componente card. Perfecta para testimonios y servicios.</p>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="component-group">
+        <h3>Toasts (Static Preview)</h3>
+        <div class="toast" style="transform: none; opacity: 1; animation: none; position: relative; bottom: 0; right: 0;">
+          Su turno ha sido agendado.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DARK THEME PANE (ADMIN) -->
+    <div class="demo-pane dark" data-theme="admin">
+      <h2 style="margin-bottom: 1.5rem;">Admin Theme (Dark)</h2>
+
+      <div class="component-group">
+        <h3>Buttons</h3>
+        <div class="flex-row">
+          <button class="btn-primary">Action</button>
+          <button class="btn-secondary">Cancel</button>
+          <button class="btn-ghost">Edit</button>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <h3>Badges</h3>
+        <div class="flex-row">
+          <span class="badge badge-primary">Active</span>
+          <span class="badge badge-success">Paid</span>
+          <span class="badge badge-warning">Waiting</span>
+          <span class="badge badge-danger">Error</span>
+          <span class="badge badge-info">Log</span>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <h3>Inputs & Forms</h3>
+        <div style="display: flex; gap: 1rem; flex-direction: column;">
+          <input type="text" class="input" placeholder="Search patient...">
+          <select class="select">
+            <option>All statuses</option>
+            <option>Pending</option>
+          </select>
+          <textarea class="textarea" placeholder="Clinical notes..."></textarea>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <h3>Admin Card & Avatars</h3>
+        <div class="admin-card" style="margin-bottom: 1rem;">
+          <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+            <div class="avatar avatar-md">AR</div>
+            <div>
+              <div style="font-weight: 600; color: var(--admin-text-primary);">Ana Rojas</div>
+              <div style="color: var(--admin-text-muted); font-size: var(--text-sm)">ID: P-93910</div>
+            </div>
+          </div>
+          <p>This admin card supports glassmorphism directly baked in.</p>
+          <button class="btn-secondary" style="margin-top: 1rem;">View Record</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="component-group">
+        <h3>Toasts (Static Preview)</h3>
+        <div class="toast" style="transform: none; opacity: 1; animation: none; position: relative; bottom: 0; right: 0;">
+          Saving clinical history...
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

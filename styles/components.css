@@ -1,0 +1,379 @@
+/*
+ * Aurora Derm — Sistema de Componentes Base
+ * Generado por Antigravity (UI-03)
+ */
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn-primary, .btn-secondary, .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+  outline: none;
+}
+
+.btn-primary:focus-visible, 
+.btn-secondary:focus-visible, 
+.btn-ghost:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-aurora-200);
+}
+
+.btn-primary {
+  background: var(--color-aurora-600);
+  color: #ffffff; /* Token for white text on primary is usually purely `#ffffff` */
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background: var(--color-aurora-400);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md), var(--glow-aurora);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--pub-bg-surface);
+  color: var(--color-stone-900);
+  border: 1px solid var(--pub-border);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-secondary:hover {
+  background: var(--color-stone-50);
+  border-color: var(--color-stone-400);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+body[data-theme="admin"] .btn-secondary {
+  background: var(--admin-bg-surface);
+  color: var(--admin-text-primary);
+  border-color: var(--admin-border);
+}
+
+body[data-theme="admin"] .btn-secondary:hover {
+  background: var(--admin-bg-elevated);
+  border-color: var(--color-stone-600);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--pub-text-body);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--color-stone-100);
+  color: var(--pub-text-primary);
+}
+
+body[data-theme="admin"] .btn-ghost {
+  color: var(--admin-text-secondary);
+}
+
+body[data-theme="admin"] .btn-ghost:hover {
+  background: var(--admin-bg-elevated);
+  color: var(--admin-text-primary);
+}
+
+/* ==========================================================================
+   Cards
+   ========================================================================== */
+
+.card {
+  background: var(--pub-bg-surface);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.admin-card {
+  background: var(--admin-bg-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  backdrop-filter: var(--glass-blur);
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+/* ==========================================================================
+   Badges
+   ========================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.badge-success {
+  background: hsla(145, 55%, 40%, 0.1);
+  color: var(--color-success);
+}
+
+.badge-warning {
+  background: hsla(38, 85%, 52%, 0.15);
+  color: var(--color-warning);
+}
+
+.badge-danger {
+  background: hsla(0, 65%, 52%, 0.1);
+  color: var(--color-danger);
+}
+
+.badge-info {
+  background: hsla(210, 60%, 50%, 0.1);
+  color: var(--color-info);
+}
+
+.badge-primary {
+  background: var(--color-aurora-100);
+  color: var(--color-aurora-800);
+}
+
+body[data-theme="admin"] .badge-primary {
+  background: hsla(165, 50%, 78%, 0.15);
+  color: var(--color-aurora-200);
+}
+
+/* ==========================================================================
+   Forms (Inputs & Selects)
+   ========================================================================== */
+
+.input, .select, .textarea {
+  width: 100%;
+  appearance: none;
+  background: var(--pub-bg-surface);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--pub-text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+  border-color: var(--color-aurora-400);
+  box-shadow: 0 0 0 3px hsla(165, 55%, 48%, 0.2);
+}
+
+.input::placeholder, .textarea::placeholder {
+  color: var(--pub-text-muted);
+}
+
+.select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b6460'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  background-size: 1.2rem;
+  padding-right: var(--space-10);
+}
+
+/* Admin Form Controls */
+body[data-theme="admin"] .input, 
+body[data-theme="admin"] .select, 
+body[data-theme="admin"] .textarea {
+  background: var(--admin-bg-elevated);
+  border-color: var(--admin-border);
+  color: var(--admin-text-primary);
+}
+
+body[data-theme="admin"] .input:focus, 
+body[data-theme="admin"] .select:focus, 
+body[data-theme="admin"] .textarea:focus {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px var(--admin-accent-glow);
+}
+
+/* ==========================================================================
+   Modals
+   ========================================================================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: hsla(30, 14%, 12%, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal {
+  background: var(--pub-bg-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 500px;
+  overflow: hidden;
+  transform: scale(0.95) translateY(20px);
+  transition: transform var(--transition-spring);
+  pointer-events: none;
+}
+
+.modal-overlay.active .modal {
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+body[data-theme="admin"] .modal-overlay {
+  background: hsla(220, 20%, 10%, 0.6);
+}
+
+body[data-theme="admin"] .modal {
+  background: var(--admin-bg-elevated);
+  border: 1px solid var(--admin-border);
+}
+
+.modal-header {
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--pub-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+body[data-theme="admin"] .modal-header {
+  border-color: var(--admin-border);
+}
+
+.modal-body {
+  padding: var(--space-6);
+}
+
+.modal-footer {
+  padding: var(--space-4) var(--space-6);
+  background: var(--pub-bg-warm);
+  border-top: 1px solid var(--pub-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+body[data-theme="admin"] .modal-footer {
+  background: var(--admin-bg-surface);
+  border-color: var(--admin-border);
+}
+
+/* ==========================================================================
+   Toasts
+   ========================================================================== */
+
+.toast-container {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  z-index: 100;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--pub-bg-surface);
+  color: var(--pub-text-primary);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--color-aurora-600);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  transform: translateX(100%);
+  opacity: 0;
+  animation: slideIn var(--transition-spring) forwards;
+}
+
+@keyframes slideIn {
+  to { transform: translateX(0); opacity: 1; }
+}
+
+body[data-theme="admin"] .toast {
+  background: var(--admin-bg-elevated);
+  color: var(--admin-text-primary);
+  border-left-color: var(--admin-accent);
+}
+
+/* ==========================================================================
+   Avatars
+   ========================================================================== */
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-stone-200);
+  color: var(--color-stone-800);
+  font-weight: 600;
+  overflow: hidden;
+  object-fit: cover;
+}
+
+.avatar-sm { width: 32px; height: 32px; font-size: var(--text-xs); }
+.avatar-md { width: 48px; height: 48px; font-size: var(--text-sm); }
+.avatar-lg { width: 64px; height: 64px; font-size: var(--text-lg); }
+
+body[data-theme="admin"] .avatar {
+  background: var(--admin-border);
+  color: var(--admin-text-primary);
+}
+
+/* ==========================================================================
+   Dividers
+   ========================================================================== */
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background-color: var(--pub-border);
+  margin: var(--space-6) 0;
+}
+
+body[data-theme="admin"] .divider {
+  background-color: var(--admin-border);
+}

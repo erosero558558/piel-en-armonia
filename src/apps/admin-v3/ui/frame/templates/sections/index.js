@@ -1,4 +1,5 @@
 import { renderAppointmentsSection } from './appointments.js';
+import { renderDailyAgendaSection } from './daily-agenda.js';
 import { renderAvailabilitySection } from './availability.js';
 import { renderCallbacksSection } from './callbacks.js';
 import { renderClinicalHistorySection } from './clinical-history.js';
@@ -11,6 +12,7 @@ export function renderAllSections() {
     return `
         ${renderDashboardSection()}
         ${renderAppointmentsSection()}
+        ${renderDailyAgendaSection()}
         ${renderCallbacksSection()}
         ${renderReviewsSection()}
         ${renderAvailabilitySection()}
