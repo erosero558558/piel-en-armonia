@@ -246,7 +246,10 @@
     "merge-ready:auto": "node bin/merge-ready.js --merge",
     "report:full": "node bin/report.js && node bin/velocity.js",
     "conflict": "node bin/conflict.js",
-    "conflict:task": "node bin/conflict.js --task"
+    "conflict:task": "node bin/conflict.js --task",
+    "gov:audit": "node bin/audit.js",
+    "gov:audit:json": "node bin/audit.js --json",
+    "gov:audit:fix": "node bin/audit.js --fix"
   },
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",

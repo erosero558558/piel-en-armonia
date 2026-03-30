@@ -263,7 +263,8 @@ function buildAssetGrid(caseData, slice) {
         `;
     }
 
-    return assets
+    const compareWorkbench = buildCompareWorkbench(caseData, slice);
+    const assetCards = assets
         .map((asset) => {
             const flags = normalizeList(asset.qualityFlags)
                 .concat(normalizeList(asset.riskFlags))
@@ -298,7 +299,14 @@ function buildAssetGrid(caseData, slice) {
                         )}</strong>
                         <small>
                             ${escapeHtml(normalizeString(asset.kind) || 'progress')}
-                            · ${escapeHtml(normalizeString(asset.visibility) || 'private_only')}
+                            · ${escapeHtml(
+                                normalizeString(asset.bodyZone) ||
+                                    'sin zona especificada'
+                            )}
+                            · ${escapeHtml(
+                                normalizeString(asset.visibility) ||
+                                    'private_only'
+                            )}
                         </small>
                         <div class="clinical-history-mini-chip-row">
                             ${flags}
@@ -308,6 +316,287 @@ function buildAssetGrid(caseData, slice) {
             `;
         })
         .join('');
+
+    return `
+        ${compareWorkbench}
+        <div class="clinical-media-flow-asset-grid-list">
+            ${assetCards}
+        </div>
+    `;
+}
+
+function compareAssetTimestamp(asset) {
+    const parsed = Date.parse(normalizeString(asset?.createdAt));
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function compareAssetZone(asset) {
+    return normalizeString(asset?.bodyZone);
+}
+
+function buildCompareAssetMap(caseData) {
+    return new Map(
+        normalizeList(caseData?.mediaAssets)
+            .map((asset) => [normalizeString(asset?.assetId), asset])
+            .filter(([assetId]) => assetId !== '')
+    );
+}
+
+function buildCompareOptionLabel(asset) {
+    return [
+        normalizeString(asset?.bodyZone) || 'Sin zona',
+        normalizeString(asset?.kind) || 'progress',
+        normalizeString(asset?.createdAt)
+            ? formatDateTime(normalizeString(asset.createdAt))
+            : 'Sin fecha',
+        normalizeString(asset?.originalName) || normalizeString(asset?.assetId),
+    ]
+        .filter(Boolean)
+        .join(' · ');
+}
+
+function pickZoneMatchedPair(assets) {
+    const groups = new Map();
+    assets.forEach((asset) => {
+        const zone = compareAssetZone(asset);
+        if (!zone) {
+            return;
+        }
+        if (!groups.has(zone)) {
+            groups.set(zone, []);
+        }
+        groups.get(zone).push(asset);
+    });
+
+    for (const group of groups.values()) {
+        if (!Array.isArray(group) || group.length < 2) {
+            continue;
+        }
+        const sorted = [...group].sort(
+            (left, right) =>
+                compareAssetTimestamp(left) - compareAssetTimestamp(right)
+        );
+        return {
+            beforeAssetId: normalizeString(sorted[0]?.assetId),
+            afterAssetId: normalizeString(sorted[sorted.length - 1]?.assetId),
+        };
+    }
+
+    return null;
+}
+
+function resolveCompareSelection(caseData, slice) {
+    const assets = normalizeList(caseData?.mediaAssets);
+    if (assets.length < 2) {
+        return null;
+    }
+
+    const assetMap = buildCompareAssetMap(caseData);
+    const isValid = (assetId) => assetMap.has(normalizeString(assetId));
+    let beforeAssetId = normalizeString(slice?.compareBeforeAssetId);
+    let afterAssetId = normalizeString(slice?.compareAfterAssetId);
+
+    if (!isValid(beforeAssetId) || !isValid(afterAssetId) || beforeAssetId === afterAssetId) {
+        const proposalPair = normalizeList(caseData?.proposal?.comparePairs).find(
+            (pair) => {
+                const beforeId = normalizeString(pair?.beforeAssetId);
+                const afterId = normalizeString(pair?.afterAssetId);
+                return (
+                    beforeId !== '' &&
+                    afterId !== '' &&
+                    beforeId !== afterId &&
+                    isValid(beforeId) &&
+                    isValid(afterId)
+                );
+            }
+        );
+
+        if (proposalPair) {
+            beforeAssetId = normalizeString(proposalPair.beforeAssetId);
+            afterAssetId = normalizeString(proposalPair.afterAssetId);
+        }
+    }
+
+    if (!isValid(beforeAssetId) || !isValid(afterAssetId) || beforeAssetId === afterAssetId) {
+        const zonePair = pickZoneMatchedPair(assets);
+        if (zonePair) {
+            beforeAssetId = zonePair.beforeAssetId;
+            afterAssetId = zonePair.afterAssetId;
+        }
+    }
+
+    if (!isValid(beforeAssetId) || !isValid(afterAssetId) || beforeAssetId === afterAssetId) {
+        const sorted = [...assets].sort(
+            (left, right) =>
+                compareAssetTimestamp(left) - compareAssetTimestamp(right)
+        );
+        beforeAssetId = normalizeString(sorted[0]?.assetId);
+        afterAssetId = normalizeString(sorted[sorted.length - 1]?.assetId);
+    }
+
+    const splitPct = Math.max(
+        20,
+        Math.min(80, Number(slice?.compareSplitPct || 50) || 50)
+    );
+
+    return {
+        beforeAssetId,
+        afterAssetId,
+        splitPct,
+    };
+}
+
+function buildCompareSelectOptions(assets, selectedAssetId) {
+    return assets
+        .map(
+            (asset) => `
+                <option
+                    value="${escapeHtml(normalizeString(asset.assetId))}"
+                    ${
+                        normalizeString(asset.assetId) ===
+                        normalizeString(selectedAssetId)
+                            ? 'selected'
+                            : ''
+                    }
+                >
+                    ${escapeHtml(buildCompareOptionLabel(asset))}
+                </option>
+            `
+        )
+        .join('');
+}
+
+function buildCompareMetaCard(label, asset) {
+    return `
+        <article class="clinical-media-flow-compare-meta-card">
+            <strong>${escapeHtml(label)}</strong>
+            <span>${escapeHtml(
+                normalizeString(asset?.bodyZone) || 'Sin zona especificada'
+            )}</span>
+            <small>${escapeHtml(
+                normalizeString(asset?.createdAt)
+                    ? formatDateTime(normalizeString(asset.createdAt))
+                    : 'Sin fecha registrada'
+            )}</small>
+            <small>${escapeHtml(
+                normalizeString(asset?.originalName) ||
+                    normalizeString(asset?.assetId)
+            )}</small>
+        </article>
+    `;
+}
+
+function buildCompareWorkbench(caseData, slice) {
+    if (!caseData) {
+        return '';
+    }
+
+    const assets = normalizeList(caseData.mediaAssets);
+    if (assets.length < 2) {
+        return `
+            <article class="clinical-history-empty-card">
+                <strong>Comparacion no disponible</strong>
+                <small>Necesitas al menos dos fotos del historial para abrir el slider before/after.</small>
+            </article>
+        `;
+    }
+
+    const selection = resolveCompareSelection(caseData, slice);
+    if (!selection) {
+        return '';
+    }
+
+    const assetMap = buildCompareAssetMap(caseData);
+    const beforeAsset = assetMap.get(selection.beforeAssetId) || assets[0];
+    const afterAsset =
+        assetMap.get(selection.afterAssetId) || assets[assets.length - 1];
+    const zonesMatch =
+        compareAssetZone(beforeAsset) !== '' &&
+        compareAssetZone(beforeAsset) === compareAssetZone(afterAsset);
+    const compareTone = zonesMatch ? 'success' : 'warning';
+    const compareSummary = zonesMatch
+        ? `Misma zona: ${compareAssetZone(beforeAsset)}`
+        : 'Revisa manualmente que ambas fotos correspondan a la misma zona corporal.';
+
+    return `
+        <section class="clinical-media-flow-compare-shell">
+            <div class="clinical-media-flow-compare-toolbar">
+                <label class="clinical-history-field">
+                    <span>Foto inicial</span>
+                    <select data-media-compare-select="before">
+                        ${buildCompareSelectOptions(
+                            assets,
+                            normalizeString(beforeAsset?.assetId)
+                        )}
+                    </select>
+                </label>
+                <label class="clinical-history-field">
+                    <span>Foto final</span>
+                    <select data-media-compare-select="after">
+                        ${buildCompareSelectOptions(
+                            assets,
+                            normalizeString(afterAsset?.assetId)
+                        )}
+                    </select>
+                </label>
+            </div>
+
+            <div class="clinical-media-flow-compare-stage">
+                <div class="clinical-history-event-head">
+                    <div>
+                        <strong>Comparacion before/after</strong>
+                        <p>${escapeHtml(compareSummary)}</p>
+                    </div>
+                    <span class="clinical-history-mini-chip" data-tone="${escapeHtml(
+                        compareTone
+                    )}">
+                        ${escapeHtml(zonesMatch ? 'Misma zona' : 'Validar zona')}
+                    </span>
+                </div>
+
+                <div
+                    class="clinical-media-flow-compare-view"
+                    style="--media-compare-split: ${escapeHtml(
+                        String(selection.splitPct)
+                    )}%"
+                >
+                    <div class="clinical-media-flow-compare-layer clinical-media-flow-compare-layer--before">
+                        <span class="clinical-media-flow-compare-badge">Before</span>
+                        <img
+                            src="${escapeHtml(normalizeString(beforeAsset?.previewUrl))}"
+                            alt="${escapeHtml(buildCompareOptionLabel(beforeAsset))}"
+                            loading="lazy"
+                            decoding="async"
+                        />
+                    </div>
+                    <div class="clinical-media-flow-compare-layer clinical-media-flow-compare-layer--after">
+                        <span class="clinical-media-flow-compare-badge clinical-media-flow-compare-badge--after">After</span>
+                        <img
+                            src="${escapeHtml(normalizeString(afterAsset?.previewUrl))}"
+                            alt="${escapeHtml(buildCompareOptionLabel(afterAsset))}"
+                            loading="lazy"
+                            decoding="async"
+                        />
+                    </div>
+                    <div class="clinical-media-flow-compare-divider" aria-hidden="true"></div>
+                    <input
+                        type="range"
+                        min="20"
+                        max="80"
+                        step="1"
+                        value="${escapeHtml(String(selection.splitPct))}"
+                        data-media-compare-split="true"
+                        aria-label="Deslizar comparacion before after"
+                    />
+                </div>
+
+                <div class="clinical-media-flow-compare-meta">
+                    ${buildCompareMetaCard('Before', beforeAsset)}
+                    ${buildCompareMetaCard('After', afterAsset)}
+                </div>
+            </div>
+        </section>
+    `;
 }
 
 function pairSummary(proposal) {
@@ -1393,6 +1682,43 @@ function bindEvents() {
         if (action === 'submit') {
             await submitInlineAgentPrompt();
         }
+    });
+
+    root.addEventListener('change', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLSelectElement)) {
+            return;
+        }
+
+        const selectionKind = normalizeString(target.dataset.mediaCompareSelect);
+        if (!selectionKind) {
+            return;
+        }
+
+        const patch =
+            selectionKind === 'before'
+                ? { compareBeforeAssetId: target.value }
+                : { compareAfterAssetId: target.value };
+        setSlice(patch);
+        renderClinicalMediaFlow();
+    });
+
+    root.addEventListener('input', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement)) {
+            return;
+        }
+        if (target.dataset.mediaCompareSplit !== 'true') {
+            return;
+        }
+
+        setSlice({
+            compareSplitPct: Math.max(
+                20,
+                Math.min(80, Number(target.value || 50) || 50)
+            ),
+        });
+        renderClinicalMediaFlow();
     });
 
     root.dataset.mediaFlowBound = 'true';

@@ -862,6 +862,7 @@ final class CaseMediaFlowService
             'appointmentId' => $upload['appointmentId'] ?? $case['appointmentId'] ?? null,
             'intakeId' => $upload['intakeId'] ?? $case['intakeId'] ?? null,
             'kind' => $kind,
+            'bodyZone' => (string) ($upload['bodyZone'] ?? ($upload['body_zone'] ?? '')),
             'storageMode' => (string) ($upload['storageMode'] ?? ''),
             'privatePath' => $privatePath,
             'previewUrl' => self::PRIVATE_PREVIEW_RESOURCE . rawurlencode('cma_' . (int) ($upload['id'] ?? 0)),

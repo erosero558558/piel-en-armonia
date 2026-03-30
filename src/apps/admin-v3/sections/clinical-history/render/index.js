@@ -14,6 +14,7 @@ import {
 } from '../../../shared/ui/render.js';
 import { renderDashboard } from '../../dashboard.js';
 import { renderAdminChrome } from '../../../ui/frame.js';
+import { renderClinicalMediaFlow } from './media-flow.js';
 
 const CLINICAL_HISTORY_SESSION_QUERY_PARAM = 'clinicalSessionId';
 const CLINICAL_HISTORY_WORKSPACE_QUERY_PARAM = 'clinicalWorkspace';
@@ -37,6 +38,12 @@ const CLINICAL_HISTORY_WORKSPACE_OPTIONS = Object.freeze([
         label: 'Cabina HCE',
         metaLabel: (meta) =>
             `${normalizeList(meta.reviewQueue).length} caso(s) clinicos`,
+    },
+    {
+        workspace: 'media-flow',
+        label: 'Before/After',
+        metaLabel: (_meta, state = getState()) =>
+            `${normalizeList(state?.data?.mediaFlowMeta?.queue).length} caso(s) con media`,
     },
 ]);
 const CLINICAL_HISTORY_SEX_CHOICES = Object.freeze([
@@ -185,7 +192,8 @@ function formatTextareaList(value) {
 }
 
 export function normalizeClinicalHistoryWorkspace(value) {
-    return 'review';
+    const normalized = normalizeString(value).toLowerCase();
+    return normalized === 'media-flow' ? 'media-flow' : 'review';
 }
 
 function normalizeClinicalQueueFilter(value) {
@@ -200,6 +208,16 @@ function readWorkspaceQuery() {
         getQueryParam(CLINICAL_HISTORY_WORKSPACE_QUERY_PARAM)
     );
     return raw ? normalizeClinicalHistoryWorkspace(raw) : '';
+}
+
+function hasClinicalMediaFlowCases(state = getState()) {
+    return normalizeList(state?.data?.mediaFlowMeta?.queue).length > 0;
+}
+
+function availableClinicalHistoryWorkspaces(state = getState()) {
+    return CLINICAL_HISTORY_WORKSPACE_OPTIONS.filter(({ workspace }) =>
+        workspace === 'media-flow' ? hasClinicalMediaFlowCases(state) : true
+    );
 }
 
 function normalizeNumber(value) {
