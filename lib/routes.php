@@ -94,8 +94,10 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'openclaw-chat',            [OpenclawController::class, 'chat']);
     $router->add('POST', 'openclaw-save-diagnosis', [OpenclawController::class, 'saveDiagnosis']);
     $router->add('POST', 'openclaw-save-evolution', [OpenclawController::class, 'saveEvolution']);
-    $router->add('POST', 'openclaw-prescription',  [OpenclawController::class, 'savePrescription']);
-    $router->add('POST', 'openclaw-certificate',   [OpenclawController::class, 'generateCertificate']);
+    $router->add('GET',  'openclaw-prescription',   [OpenclawController::class, 'getPrescriptionPdf']);
+    $router->add('POST', 'openclaw-prescription',   [OpenclawController::class, 'savePrescription']);
+    $router->add('POST', 'openclaw-certificate',    [OpenclawController::class, 'generateCertificate']);
+    $router->add('GET',  'openclaw-certificate',    [OpenclawController::class, 'getCertificatePdf']);
     $router->add('POST', 'openclaw-interactions',  [OpenclawController::class, 'checkInteractions']);
     $router->add('POST', 'openclaw-summarize',     [OpenclawController::class, 'summarizeSession']);
     $router->add('GET',  'openclaw-router-status', [OpenclawController::class, 'routerStatus']);

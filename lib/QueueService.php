@@ -686,6 +686,107 @@ class QueueService
         return null;
     }
 
+    public function getPublicTicketStatus(array $store, string $ticketCode): array
+    {
+        $normalizedCode = strtoupper(trim($ticketCode));
+        if ($normalizedCode === '' || preg_match('/^[A-Z]-\d{3,4}$/', $normalizedCode) !== 1) {
+            return [
+                'ok' => false,
+                'error' => 'Codigo de ticket invalido',
+                'status' => 400,
+                'errorCode' => 'queue_bad_request',
+            ];
+        }
+
+        $store = $this->normalizeStore($store);
+        $store = $this->priorityPolicy->refreshWaitingAppointmentPriorities($store);
+        $store = $this->hydratePatientFlowStore($store);
+
+        $ticket = $this->findTicketByCode($store, $normalizedCode);
+        if (!is_array($ticket)) {
+            return [
+                'ok' => false,
+                'error' => 'Ticket no encontrado',
+                'status' => 404,
+                'errorCode' => 'queue_ticket_not_found',
+            ];
+        }
+
+        $tickets = $this->normalizeTickets($store['queue_tickets'] ?? []);
+        $waiting = [];
+        foreach ($tickets as $candidate) {
+            if ((string) ($candidate['status'] ?? '') === self::STATUS_WAITING) {
+                $waiting[] = $candidate;
+            }
+        }
+        $waiting = $this->priorityPolicy->sortWaitingTickets($waiting);
+
+        $position = null;
+        $estimatedWaitMin = null;
+        foreach ($waiting as $index => $candidate) {
+            if ((string) ($candidate['ticketCode'] ?? '') !== $normalizedCode) {
+                continue;
+            }
+            $position = $index + 1;
+            $estimatedWaitMin = max(0, ($index + 1) * 8);
+            break;
+        }
+
+        $queueState = $this->summaryBuilder->buildQueueState(
+            $tickets,
+            $store['queue_help_requests'] ?? [],
+            local_date('c')
+        );
+        $queueData = is_array($queueState['data'] ?? null) ? $queueState['data'] : [];
+
+        return [
+            'ok' => true,
+            'data' => [
+                'ticket' => [
+                    'id' => (int) ($ticket['id'] ?? 0),
+                    'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
+                    'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
+                    'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
+                    'priorityClass' => (string) ($ticket['priorityClass'] ?? 'walk_in'),
+                    'visitReason' => (string) ($ticket['visitReason'] ?? ''),
+                    'visitReasonLabel' => (string) ($ticket['visitReasonLabel'] ?? ''),
+                    'status' => (string) ($ticket['status'] ?? self::STATUS_WAITING),
+                    'assignedConsultorio' => isset($ticket['assignedConsultorio'])
+                        ? ($ticket['assignedConsultorio'] === null ? null : (int) $ticket['assignedConsultorio'])
+                        : null,
+                    'createdAt' => (string) ($ticket['createdAt'] ?? ''),
+                    'calledAt' => (string) ($ticket['calledAt'] ?? ''),
+                    'completedAt' => (string) ($ticket['completedAt'] ?? ''),
+                    'specialPriority' => (bool) ($ticket['specialPriority'] ?? false),
+                    'lateArrival' => (bool) ($ticket['lateArrival'] ?? false),
+                ],
+                'position' => $position,
+                'aheadCount' => $position === null ? null : max(0, $position - 1),
+                'estimatedWaitMin' => $estimatedWaitMin,
+                'updatedAt' => (string) ($queueData['updatedAt'] ?? local_date('c')),
+                'waitingCount' => max(0, (int) ($queueData['waitingCount'] ?? 0)),
+                'calledCount' => max(0, (int) ($queueData['calledCount'] ?? 0)),
+                'delayReason' => (string) ($queueData['delayReason'] ?? ''),
+                'callingNow' => array_values(
+                    array_filter(
+                        is_array($queueData['callingNow'] ?? null) ? $queueData['callingNow'] : [],
+                        static fn ($entry): bool => is_array($entry)
+                    )
+                ),
+                'nextTickets' => array_slice(
+                    array_values(
+                        array_filter(
+                            is_array($queueData['nextTickets'] ?? null) ? $queueData['nextTickets'] : [],
+                            static fn ($entry): bool => is_array($entry)
+                        )
+                    ),
+                    0,
+                    5
+                ),
+            ],
+        ];
+    }
+
     public function buildAdminSummary(array $store): array
     {
         return $this->summaryBuilder->buildAdminSummary($this->getQueueState($store));
@@ -831,6 +932,22 @@ class QueueService
                 if (strtoupper((string) ($ticket['patientInitials'] ?? '')) === $patientInitials) {
                     return normalize_queue_ticket($ticket);
                 }
+            }
+        }
+
+        return null;
+    }
+
+    private function findTicketByCode(array $store, string $ticketCode): ?array
+    {
+        $normalizedCode = strtoupper(trim($ticketCode));
+        if ($normalizedCode === '') {
+            return null;
+        }
+
+        foreach ($this->normalizeTickets($store['queue_tickets'] ?? []) as $ticket) {
+            if ((string) ($ticket['ticketCode'] ?? '') === $normalizedCode) {
+                return $ticket;
             }
         }
 

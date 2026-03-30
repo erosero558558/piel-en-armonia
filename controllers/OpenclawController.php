@@ -347,7 +347,7 @@ final class OpenclawController
         $service = new ClinicalHistoryService();
         $rxId    = 'rx-' . bin2hex(random_bytes(8));
 
-        $result = self::mutateStore(static function (array $store) use ($service, $caseId, $medications): array {
+        $result = self::mutateStore(static function (array $store) use ($service, $caseId, $medications, $rxId): array {
             $session = ClinicalHistoryRepository::findSessionByCaseId($store, $caseId);
             if ($session === null) {
                 return [
@@ -396,9 +396,21 @@ final class OpenclawController
                 ];
             }
 
+            $newStore = $actionResult['store'];
+            if (!isset($newStore['prescriptions'])) {
+                $newStore['prescriptions'] = [];
+            }
+            $newStore['prescriptions'][$rxId] = [
+                'id' => $rxId,
+                'caseId' => $caseId,
+                'medications' => $incomingItems,
+                'issued_at' => gmdate('c'),
+                'issued_by' => $_SESSION['admin_email'] ?? 'médico',
+            ];
+
             return [
                 'ok' => true,
-                'store' => $actionResult['store'],
+                'store' => $newStore,
                 'storeDirty' => true,
                 'prescriptionItems' => $mergedItems,
             ];
@@ -422,6 +434,156 @@ final class OpenclawController
             'pdf_url'         => $pdfUrl,
             'whatsapp_url'    => $waUrl,
         ]);
+    }
+
+    // ── getPrescriptionPdf ────────────────────────────────────────────────────
+
+    public static function getPrescriptionPdf(array $context): void
+    {
+        $rxId = trim((string) ($_GET['id'] ?? ''));
+        if ($rxId === '') {
+            json_response(['ok' => false, 'error' => 'id requerido'], 400);
+        }
+
+        $store = self::readStore();
+        $prescription = $store['prescriptions'][$rxId] ?? null;
+
+        if ($prescription === null) {
+            json_response(['ok' => false, 'error' => 'Receta no encontrada'], 404);
+        }
+
+        $caseId = $prescription['caseId'] ?? '';
+        $patient = $store['patients'][$caseId] ?? [];
+        $patientName = trim(($patient['firstName'] ?? '') . ' ' . ($patient['lastName'] ?? ''));
+        $patientAge = self::calculateAge($patient['birthDate'] ?? '') ?? '';
+
+        $medicationsHtml = '';
+        foreach ($prescription['medications'] ?? [] as $med) {
+            $medName = htmlspecialchars($med['medication'] ?? '', ENT_QUOTES, 'UTF-8');
+            $dose = htmlspecialchars($med['dose'] ?? '', ENT_QUOTES, 'UTF-8');
+            $freq = htmlspecialchars($med['frequency'] ?? '', ENT_QUOTES, 'UTF-8');
+            $dur = htmlspecialchars($med['duration'] ?? '', ENT_QUOTES, 'UTF-8');
+            $inst = htmlspecialchars($med['instructions'] ?? '', ENT_QUOTES, 'UTF-8');
+            
+            $medicationsHtml .= "
+            <div style=\"margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #ccc;\">
+                <h4 style=\"margin: 0 0 5px 0; font-size: 16px;\">{$medName}</h4>
+                <p style=\"margin: 0; font-size: 14px; color: #333;\">
+                    <strong>Tomar:</strong> {$dose}<br>
+                    <strong>Frecuencia:</strong> {$freq} - <strong>Duración:</strong> {$dur}<br>
+                    <strong>Indicaciones:</strong> {$inst}
+                </p>
+            </div>";
+        }
+
+        $dateStr = date('d/m/Y', strtotime($prescription['issued_at'] ?? 'now'));
+        $doctorStr = htmlspecialchars($prescription['issued_by'] ?? 'Médico Tratante', ENT_QUOTES, 'UTF-8');
+
+        $html = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset=\"utf-8\">
+            <title>Receta Médica</title>
+            <style>
+                body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
+                .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #c9a96e; padding-bottom: 20px; }
+                .header h1 { margin: 0; font-size: 24px; color: #07090c; font-weight: bold; }
+                .header p { margin: 5px 0 0 0; font-size: 14px; color: #666; }
+                .rx-symbol { font-size: 40px; font-weight: bold; color: #c9a96e; margin-bottom: 20px; font-style: italic; }
+                .patient-info { margin-bottom: 30px; padding: 15px; background: #f9f9f9; border-radius: 4px; font-size: 14px; }
+                .patient-info strong { display: inline-block; width: 100px; }
+                .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                .signature { margin-top: 60px; text-align: right; }
+                .signature-line { border-top: 1px solid #000; width: 200px; display: inline-block; margin-bottom: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class=\"header\">
+                <h1>Aurora Derm</h1>
+                <p>Clínica Dermatológica Especializada</p>
+                <p>Tel: +593 98 245 3672 | Quito, Ecuador</p>
+            </div>
+            
+            <div class=\"patient-info\">
+                <div style=\"margin-bottom: 8px;\"><strong>Paciente:</strong> {$patientName}</div>
+                <div style=\"margin-bottom: 8px;\"><strong>Edad:</strong> {$patientAge} años</div>
+                <div><strong>Fecha:</strong> {$dateStr}</div>
+            </div>
+
+            <div class=\"rx-symbol\">Rx</div>
+
+            <div class=\"medications\">
+                {$medicationsHtml}
+            </div>
+
+            <div class=\"signature\">
+                <div class=\"signature-line\"></div>
+                <div><strong>{$doctorStr}</strong></div>
+                <div style=\"font-size: 12px; color: #666;\">Registro MSP / Firma Autorizada</div>
+            </div>
+
+            <div class=\"footer\">
+                Generado electrónicamente por Flow OS - Copiloto Clínico
+            </div>
+        </body>
+        </html>
+        ";
+
+        require_once __DIR__ . '/CertificateController.php';
+        
+        // We will repurpose CertificateController's fallback build functionality
+        $pdfPath = __DIR__ . '/../vendor/dompdf/dompdf/src/Dompdf.php';
+        if (file_exists($pdfPath)) {
+            require_once $pdfPath;
+            $dompdf = new \Dompdf\Dompdf(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+            $pdfBytes = $dompdf->output();
+        } else {
+            // Because CertificateController methods are private, we either change them or duplicate
+            // We'll duplicate the fallback generation to keep controllers decoupled.
+            $pdfBytes = self::buildFallbackPdf($html);
+        }
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="receta-' . $rxId . '.pdf"');
+        echo $pdfBytes;
+        exit;
+    }
+
+    private static function buildFallbackPdf(string $html): string
+    {
+        $text = strip_tags(str_replace(['<br>', '</div>', '</p>', '</h1>', '</h4>'], "\n", $html));
+        $text = mb_convert_encoding(trim($text), 'ISO-8859-1', 'UTF-8');
+        
+        $lines = [];
+        $lines[] = '%PDF-1.4';
+        $lines[] = '1 0 obj<< /Type /Catalog /Pages 2 0 R >> endobj';
+        $lines[] = '2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >> endobj';
+        $lines[] = '3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj';
+        
+        $content = "BT\n/F1 12 Tf\n20 800 Td\n15 TL\n";
+        foreach (explode("\n", $text) as $rawLine) {
+            $cl = trim($rawLine);
+            if ($cl === '') {
+                $content .= "T*\n";
+                continue;
+            }
+            $clean = strtr($cl, ['(' => '\\(', ')' => '\\)', '\\' => '\\\\']);
+            $content .= "({$clean}) Tj T*\n";
+        }
+        $content .= "ET";
+        
+        $len = strlen($content);
+        $lines[] = "4 0 obj<< /Length {$len} >>\nstream\n{$content}\nendstream\nendobj";
+        $lines[] = '5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj';
+        
+        $pdf = implode("\n", $lines);
+        $pdf .= "\nxref\n0 6\n0000000000 65535 f \n";
+        $pdf .= "trailer<</Size 6/Root 1 0 R>>\nstartxref\n9\n%%EOF";
+        return $pdf;
     }
 
     // ── generateCertificate ───────────────────────────────────────────────────
