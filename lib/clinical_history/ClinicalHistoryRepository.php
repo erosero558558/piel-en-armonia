@@ -249,6 +249,23 @@ final class ClinicalHistoryRepository
         return null;
     }
 
+    public static function findAllDraftsByCaseId(array $store, string $caseId): array
+    {
+        $needle = self::trimString($caseId);
+        if ($needle === '') {
+            return [];
+        }
+
+        $drafts = [];
+        foreach (($store['clinical_history_drafts'] ?? []) as $draft) {
+            if (self::trimString($draft['caseId'] ?? '') === $needle) {
+                $drafts[] = self::defaultDraft(['sessionId' => $draft['sessionId'] ?? '', 'caseId' => $draft['caseId'] ?? ''], $draft);
+            }
+        }
+
+        return $drafts;
+    }
+
     public static function findEventsBySessionId(array $store, string $sessionId): array
     {
         $needle = self::trimString($sessionId);

@@ -81,6 +81,89 @@ export function renderClinicalHistorySection() {
             ></div>
 
             <div
+                id="clinicalMediaFlowWorkbench"
+                class="clinical-media-flow-grid"
+                hidden
+            >
+                <article class="sony-panel clinical-media-flow-queue-panel">
+                    <header class="section-header">
+                        <div>
+                            <h3>Cola before/after</h3>
+                            <p id="clinicalMediaFlowQueueMeta">
+                                Casos con media privada lista para comparacion editorial.
+                            </p>
+                        </div>
+                        <div class="clinical-history-header-status">
+                            <span
+                                class="clinical-history-status-chip"
+                                id="clinicalMediaFlowStatusChip"
+                                data-tone="neutral"
+                            >
+                                Sin caso
+                            </span>
+                            <span
+                                class="clinical-history-status-meta"
+                                id="clinicalMediaFlowStatusMeta"
+                            >
+                                Esperando seleccion
+                            </span>
+                        </div>
+                    </header>
+                    <div class="toolbar-row clinical-media-flow-toolbar">
+                        <button
+                            type="button"
+                            id="clinicalMediaFlowRefreshBtn"
+                            data-media-flow-action="refresh"
+                        >
+                            Refrescar caso
+                        </button>
+                        <button
+                            type="button"
+                            id="clinicalMediaFlowGenerateBtn"
+                            data-media-flow-action="generate-proposal"
+                        >
+                            Regenerar propuesta
+                        </button>
+                    </div>
+                    <div
+                        id="clinicalMediaFlowQueueList"
+                        class="clinical-media-flow-queue-list"
+                    ></div>
+                </article>
+
+                <article class="sony-panel clinical-media-flow-workspace-panel">
+                    <header class="section-header">
+                        <div>
+                            <h3>Comparador clinico</h3>
+                            <p id="clinicalMediaFlowCaseMeta">
+                                Selecciona un caso para revisar consentimiento, fotos y comparativas before/after.
+                            </p>
+                        </div>
+                    </header>
+                    <div
+                        id="clinicalMediaFlowConsentStrip"
+                        class="clinical-media-flow-consent-strip"
+                    ></div>
+                    <div
+                        id="clinicalMediaFlowAssetGrid"
+                        class="clinical-media-flow-asset-grid"
+                    ></div>
+                    <div
+                        id="clinicalMediaFlowAgentSurface"
+                        class="clinical-media-flow-agent-surface"
+                    ></div>
+                    <div
+                        id="clinicalMediaFlowProposalForm"
+                        class="clinical-media-flow-form"
+                    ></div>
+                    <div
+                        id="clinicalMediaFlowTimeline"
+                        class="clinical-media-flow-timeline"
+                    ></div>
+                </article>
+            </div>
+
+            <div
                 id="clinicalHistoryWorkbench"
                 class="clinical-history-workbench"
             >

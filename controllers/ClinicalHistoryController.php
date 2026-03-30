@@ -663,6 +663,32 @@ final class ClinicalHistoryController
         json_response($payload, (int) ($result['statusCode'] ?? 200));
     }
 
+    public static function galleryGet(array $context): void
+    {
+        if (($context['isAdmin'] ?? false) !== true) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $caseId = ClinicalHistoryRepository::trimString($_GET['case_id'] ?? '');
+        if ($caseId === '') {
+            json_response(['ok' => false, 'error' => 'Case ID requerido'], 400);
+        }
+
+        self::requireClinicalStorageReady([
+            'gallery' => [],
+        ]);
+
+        $service = new ClinicalHistoryService();
+        $result = self::readStore(static function (array $store) use ($service, $caseId): array {
+            return $service->getPatientGallery($store, $caseId);
+        });
+
+        json_response([
+            'ok' => true,
+            'data' => $result['data'] ?? [],
+        ]);
+    }
+
     /**
      * @param array<string,mixed> $data
      */

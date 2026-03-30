@@ -4532,12 +4532,16 @@ function getClinicalHistorySlice(state = getState()) {
 }
 
 function currentActiveWorkspace(state = getState()) {
-    return (
+    const preferred =
         readWorkspaceQuery() ||
         normalizeClinicalHistoryWorkspace(
             getClinicalHistorySlice(state).activeWorkspace
-        )
-    );
+        );
+    return availableClinicalHistoryWorkspaces(state).some(
+        ({ workspace }) => workspace === preferred
+    )
+        ? preferred
+        : 'review';
 }
 
 function currentQueueFilter(state = getState()) {
@@ -4557,7 +4561,12 @@ function setClinicalHistoryState(patch) {
 }
 
 function setActiveClinicalWorkspace(workspace, options = {}) {
-    const next = normalizeClinicalHistoryWorkspace(workspace);
+    const preferred = normalizeClinicalHistoryWorkspace(workspace);
+    const next = availableClinicalHistoryWorkspaces().some(
+        ({ workspace: optionWorkspace }) => optionWorkspace === preferred
+    )
+        ? preferred
+        : 'review';
     setClinicalHistoryState({
         activeWorkspace: next,
     });
@@ -7353,11 +7362,13 @@ function buildQueueFilterChips(meta, activeFilter) {
 }
 
 function buildWorkspaceTabs(activeWorkspace, meta) {
-    return CLINICAL_HISTORY_WORKSPACE_OPTIONS.map(
+    return availableClinicalHistoryWorkspaces().map(
         ({ workspace, label, metaLabel }) => {
             const isActive = activeWorkspace === workspace;
             const workspaceMetaLabel =
-                typeof metaLabel === 'function' ? metaLabel(meta) : '';
+                typeof metaLabel === 'function'
+                    ? metaLabel(meta, getState())
+                    : '';
             return `
                 <button
                     type="button"
@@ -13349,12 +13360,19 @@ function ensureSessionSelection() {
 function syncWorkspaceVisibility(activeWorkspace) {
     const reviewWorkbench = document.getElementById('clinicalHistoryWorkbench');
     const reviewFooter = document.getElementById('clinicalHistoryFooterGrid');
+    const mediaFlowWorkbench = document.getElementById(
+        'clinicalMediaFlowWorkbench'
+    );
+    const mediaFlowActive = activeWorkspace === 'media-flow';
 
     if (reviewWorkbench instanceof HTMLElement) {
-        reviewWorkbench.hidden = false;
+        reviewWorkbench.hidden = mediaFlowActive;
     }
     if (reviewFooter instanceof HTMLElement) {
-        reviewFooter.hidden = false;
+        reviewFooter.hidden = mediaFlowActive;
+    }
+    if (mediaFlowWorkbench instanceof HTMLElement) {
+        mediaFlowWorkbench.hidden = !mediaFlowActive;
     }
 }
 
@@ -13809,5 +13827,6 @@ export function renderClinicalHistorySection() {
     syncDraftStatusMeta();
     syncWorkspaceVisibility(activeWorkspace);
     bindClinicalHistoryEvents();
+    renderClinicalMediaFlow();
     ensureSessionSelection();
 }
