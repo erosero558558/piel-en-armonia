@@ -318,6 +318,10 @@ if (!function_exists('public_sync_read_status_file')) {
             return $result;
         }
 
+        if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
+            $raw = substr($raw, 3);
+        }
+
         $decoded = json_decode($raw, true);
         if (!is_array($decoded)) {
             $result['error'] = 'status_file_invalid_json';
@@ -370,6 +374,26 @@ if (!function_exists('public_sync_candidate_status_paths')) {
         }
 
         return $normalized;
+    }
+}
+
+if (!function_exists('public_sync_status_candidate_priority')) {
+    function public_sync_status_candidate_priority(string $path): int
+    {
+        $normalized = str_replace('\\', '/', strtolower(trim($path)));
+        if (preg_match('~(?:^|/)main-sync-status\.sync\.json$~', $normalized) === 1) {
+            return 300;
+        }
+        if (preg_match('~(?:^|/)main-sync-status\.json$~', $normalized) === 1) {
+            return 200;
+        }
+        if (preg_match('~(?:^|/)main-sync-status\.runtime\.json$~', $normalized) === 1) {
+            return 100;
+        }
+        if (str_ends_with($normalized, '/public-sync-status.json') || str_ends_with($normalized, 'public-sync-status.json')) {
+            return 10;
+        }
+        return 0;
     }
 }
 
@@ -487,11 +511,19 @@ if (!function_exists('public_sync_read_status')) {
 
         if ($configuredSourceKind === 'legacy_public_sync') {
             foreach ($candidates as $candidateEnvelope) {
+                $candidatePriority = public_sync_status_candidate_priority((string) ($candidateEnvelope['path'] ?? ''));
+                $resolvedPriority = public_sync_status_candidate_priority((string) ($resolvedEnvelope['path'] ?? ''));
                 if (
                     trim((string) ($candidateEnvelope['source_kind'] ?? '')) === 'windows_main_sync' &&
                     (bool) ($candidateEnvelope['exists'] ?? false) &&
                     trim((string) ($candidateEnvelope['error'] ?? '')) === '' &&
-                    public_sync_is_newer_envelope($candidateEnvelope, $configuredEnvelope)
+                    (
+                        $candidatePriority > $resolvedPriority ||
+                        (
+                            $candidatePriority === $resolvedPriority &&
+                            public_sync_is_newer_envelope($candidateEnvelope, $resolvedEnvelope)
+                        )
+                    )
                 ) {
                     $resolvedEnvelope = $candidateEnvelope;
                     break;
@@ -499,14 +531,20 @@ if (!function_exists('public_sync_read_status')) {
             }
         } elseif ($configuredSourceKind === 'windows_main_sync') {
             foreach ($candidates as $candidateEnvelope) {
+                $candidatePriority = public_sync_status_candidate_priority((string) ($candidateEnvelope['path'] ?? ''));
+                $resolvedPriority = public_sync_status_candidate_priority((string) ($resolvedEnvelope['path'] ?? ''));
                 if (
                     trim((string) ($candidateEnvelope['source_kind'] ?? '')) === 'windows_main_sync' &&
                     (bool) ($candidateEnvelope['exists'] ?? false) &&
                     trim((string) ($candidateEnvelope['error'] ?? '')) === '' &&
                     (
+                        $candidatePriority > $resolvedPriority ||
                         !((bool) ($resolvedEnvelope['exists'] ?? false)) ||
                         trim((string) ($resolvedEnvelope['error'] ?? '')) !== '' ||
-                        public_sync_is_newer_envelope($candidateEnvelope, $resolvedEnvelope)
+                        (
+                            $candidatePriority === $resolvedPriority &&
+                            public_sync_is_newer_envelope($candidateEnvelope, $resolvedEnvelope)
+                        )
                     )
                 ) {
                     $resolvedEnvelope = $candidateEnvelope;

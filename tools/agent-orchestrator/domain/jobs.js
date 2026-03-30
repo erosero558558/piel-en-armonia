@@ -79,6 +79,18 @@ function candidateStatusPaths(statusPath = '') {
     });
 }
 
+function statusCandidatePriority(statusPath = '') {
+    const normalized = String(statusPath || '')
+        .trim()
+        .replace(/\\/g, '/')
+        .toLowerCase();
+    if (/(^|\/)main-sync-status\.sync\.json$/.test(normalized)) return 300;
+    if (/(^|\/)main-sync-status\.json$/.test(normalized)) return 200;
+    if (/(^|\/)main-sync-status\.runtime\.json$/.test(normalized)) return 100;
+    if (/(^|\/)public-sync-status\.json$/.test(normalized)) return 10;
+    return 0;
+}
+
 function statusReferenceTimestamp(payload = {}) {
     for (const key of [
         'checked_at',
@@ -124,7 +136,7 @@ function resolveLocalStatusFile(job = {}, deps = {}) {
         if (!existsSync(candidatePath)) continue;
         try {
             const raw = String(readFileSync(candidatePath, 'utf8') || '');
-            const payload = JSON.parse(raw);
+            const payload = safeJsonParseText(raw);
             if (!payload || typeof payload !== 'object') continue;
 
             const candidate = { path: candidatePath, payload };
@@ -134,10 +146,18 @@ function resolveLocalStatusFile(job = {}, deps = {}) {
             }
 
             const candidateKind = normalizeStatusPathKind(candidatePath);
+            const candidatePriority = statusCandidatePriority(candidatePath);
+            const resolvedPriority = statusCandidatePriority(resolved.path);
             if (configuredKind === 'legacy_public_sync') {
                 if (
                     candidateKind === 'windows_main_sync' &&
-                    isCandidateStatusNewer(candidate.payload, resolved.payload)
+                    (
+                        candidatePriority > resolvedPriority ||
+                        (
+                            candidatePriority === resolvedPriority &&
+                            isCandidateStatusNewer(candidate.payload, resolved.payload)
+                        )
+                    )
                 ) {
                     resolved = candidate;
                 }
@@ -147,7 +167,13 @@ function resolveLocalStatusFile(job = {}, deps = {}) {
             if (
                 configuredKind === 'windows_main_sync' &&
                 candidateKind === 'windows_main_sync' &&
-                isCandidateStatusNewer(candidate.payload, resolved.payload)
+                (
+                    candidatePriority > resolvedPriority ||
+                    (
+                        candidatePriority === resolvedPriority &&
+                        isCandidateStatusNewer(candidate.payload, resolved.payload)
+                    )
+                )
             ) {
                 resolved = candidate;
             }

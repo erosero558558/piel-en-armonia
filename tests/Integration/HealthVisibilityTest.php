@@ -398,7 +398,7 @@ YAML
         );
         file_put_contents(
             $syncStatusPath,
-            json_encode([
+            "\xEF\xBB\xBF" . json_encode([
                 'ok' => true,
                 'state' => 'updated',
                 'timestamp' => $now->format('c'),

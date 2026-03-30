@@ -212,8 +212,10 @@ test('jobs-engine prefiere el snapshot Windows mas fresco cuando existe sibling 
     const dir = createTempDir();
     const statusPath = join(dir, 'main-sync-status.json');
     const syncStatusPath = join(dir, 'main-sync-status.sync.json');
+    const runtimeStatusPath = join(dir, 'main-sync-status.runtime.json');
     const staleAt = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const freshAt = new Date().toISOString();
+    const runtimeAt = new Date(Date.now() + 30 * 1000).toISOString();
     t.after(() => rmSync(dir, { recursive: true, force: true }));
 
     writeFileSync(
@@ -237,7 +239,7 @@ test('jobs-engine prefiere el snapshot Windows mas fresco cuando existe sibling 
     );
     writeFileSync(
         syncStatusPath,
-        `${JSON.stringify(
+        `\uFEFF${JSON.stringify(
             {
                 ok: true,
                 state: 'updated',
@@ -256,6 +258,26 @@ test('jobs-engine prefiere el snapshot Windows mas fresco cuando existe sibling 
         )}\n`,
         'utf8'
     );
+    writeFileSync(
+        runtimeStatusPath,
+        `${JSON.stringify(
+            {
+                state: 'failed',
+                checked_at: runtimeAt,
+                last_success_at: freshAt,
+                last_error_at: runtimeAt,
+                last_error_message: 'head_drift',
+                repo_path: 'C:\\dev\\pielarmonia-clean-main',
+                branch: 'main',
+                current_head: 'runtime3333',
+                remote_head: 'runtime4444',
+                deployed_commit: 'runtime3333',
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
 
     const snapshot = await jobs.resolveJobSnapshot(
         {
@@ -265,7 +287,10 @@ test('jobs-engine prefiere el snapshot Windows mas fresco cuando existe sibling 
             expected_max_lag_seconds: 120,
         },
         {
-            existsSync: (path) => path === statusPath || path === syncStatusPath,
+            existsSync: (path) =>
+                path === statusPath ||
+                path === syncStatusPath ||
+                path === runtimeStatusPath,
             readFileSync,
             fetchImpl: null,
         }
