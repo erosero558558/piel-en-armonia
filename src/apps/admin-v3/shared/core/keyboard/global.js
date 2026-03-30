@@ -83,6 +83,12 @@ export function handleGlobalKeyboardShortcut(event, options) {
         return false;
     }
 
+    if (
+        document.documentElement.getAttribute('data-admin-ready') !== 'true'
+    ) {
+        return false;
+    }
+
     const normalized = resolveNormalizedShortcut({ key, code });
 
     if (normalized === 'keym') {

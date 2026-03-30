@@ -168,19 +168,22 @@ for (const [taskId, claim] of claimList) {
 
 for (const [zone, claimants] of Object.entries(zoneToClaimants)) {
   if (claimants.length > 1) {
+    let severity = 'MEDIUM';
+    if (zone === 'data' || zone === 'config' || zone === 'bin' || zone === 'agents_md') severity = 'LOW';
+    
     conflicts.push({
       type: 'zone_overlap',
       zone,
       claimants: claimants.map(c => `${c.taskId} (${c.agent})`),
-      severity: zone === 'config' || zone === 'agents_md' ? 'HIGH' : 'MEDIUM',
+      severity,
       message: `Zona "${zone}" reclamada por ${claimants.length} agentes en paralelo`,
       action: `Coordinar quién termina primero. El segundo debe hacer git pull antes de push.`,
     });
   }
 }
 
-// Check 2: routes.php / api.php being touched by multiple tasks (fragile files)
-const fragileFiles = ['lib/routes.php', 'api.php', 'lib/common.php', 'AGENTS.md'];
+// Check 2: fragile files being touched by multiple tasks
+const fragileFiles = ['lib/routes.php', 'api.php', 'AGENTS.md', 'controllers/OpenclawController', 'controllers/ClinicalHistory'];
 for (const file of fragileFiles) {
   const claimantsForFile = claimList.filter(([taskId]) => {
     const zones = getZonesForTask(taskId, agentsMd);
@@ -241,6 +244,31 @@ if (taskArg) {
   }
 
   const taskZones = getZonesForTask(taskArg, agentsMd);
+  const taskLine = agentsMd.split('\n').find(l => l.includes(`**${taskArg}**`)) || '';
+
+  // Check fragile files overlap (surgical precision)
+  const fragileFiles = ['lib/routes.php', 'api.php', 'AGENTS.md', 'controllers/OpenclawController', 'controllers/ClinicalHistory'];
+  let blockedByFragile = false;
+
+  for (const file of fragileFiles) {
+    if (taskLine.toLowerCase().includes(file.toLowerCase())) {
+       const overlappingClaims = claimList.filter(([id]) => {
+         const clLine = agentsMd.split('\n').find(l => l.includes(`**${id}**`)) || '';
+         return clLine.toLowerCase().includes(file.toLowerCase());
+       });
+       
+       if (overlappingClaims.length > 0) {
+         console.log(`\n🚨 DANGER (EXIT 1): El task ${taskArg} toca el archivo frágil "${file}", el cual ya está siendo modificado por el/los task(s) activo(s): ${overlappingClaims.map(c=>c[0]).join(', ')}. BLOQUEADO para prevenir mutaciones destructivas en código troncal.`);
+         blockedByFragile = true;
+       }
+    }
+  }
+
+  if (blockedByFragile) {
+    if (asJson) console.log(JSON.stringify({ available: false, reason: "fragile_conflict" }));
+    process.exit(1);
+  }
+
   const zoneConflicts = taskZones.filter(z => (zoneToClaimants[z] || []).length > 0);
 
   if (zoneConflicts.length > 0 && !asJson) {
@@ -251,12 +279,14 @@ if (taskArg) {
     }
     console.log(`\n   Puedes continuar, pero coordina con esos agentes al hacer push.\n`);
   } else if (!asJson) {
-    console.log(`\n✅ ${taskArg} está disponible. Sin conflictos de zona detectados.\n`);
+    console.log(`\n✅ ${taskArg} está disponible. Sin conflictos críticos detectados.\n`);
   }
+  
   if (asJson) {
     console.log(JSON.stringify({ available: true, zoneConflicts, taskZones }));
   }
-  process.exit(zoneConflicts.length > 0 ? 0 : 0); // warn but don't block
+  
+  process.exit(0); // warn but don't block for general zones (data, config)
 }
 
 // ── Output ────────────────────────────────────────────────────────────────────

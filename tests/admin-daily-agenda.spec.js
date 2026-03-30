@@ -221,13 +221,13 @@ test.describe('Admin appointments daily agenda', () => {
             },
         });
 
-        const card = page.locator(
-            '[data-daily-agenda-item="true"][data-appointment-id="301"]'
-        );
-        const checkinButton = card.getByRole('button', { name: 'Marcar llegó' });
         await expect(
             page.locator('#appointmentsDailyAgenda [data-daily-agenda-item="true"]')
         ).toHaveCount(3);
+        const card = page
+            .locator('#appointmentsDailyAgenda [data-daily-agenda-item="true"]')
+            .filter({ hasText: 'Eva Torres' });
+        const checkinButton = card.getByRole('button', { name: 'Marcar llegó' });
         await expect(checkinButton).toBeVisible();
         await checkinButton.click();
 
