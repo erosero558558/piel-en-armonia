@@ -629,6 +629,32 @@ final class ClinicalHistoryLegalReadiness
             );
         }
 
+        $complianceMspMissing = ComplianceMSP::validate([
+            'patient' => $session['patient'] ?? [],
+            'intake' => $draft['intake'] ?? [],
+            'hcu005' => $hcu005,
+            'doctor' => $session['doctor'] ?? '',
+        ]);
+
+        self::appendChecklist(
+            $checklist,
+            'compliance_msp',
+            $complianceMspMissing === [],
+            'Compliance MSP',
+            $complianceMspMissing === []
+                ? 'Todos los campos clínicos mínimos obligatorios están cubiertos.'
+                : 'Faltan campos clínicos mínimos MVP.',
+            ['missingFields' => $complianceMspMissing]
+        );
+        if ($complianceMspMissing !== []) {
+            $blockingReasons[] = self::blockingReason(
+                'compliance_msp_incomplete',
+                'Faltan campos mínimos de Compliance MSP',
+                'Revisa y completa los siguientes campos: ' . implode(', ', $complianceMspMissing),
+                ['missingFields' => $complianceMspMissing]
+            );
+        }
+
         $ready = $blockingReasons === [];
 
         return [
@@ -784,6 +810,14 @@ final class ClinicalHistoryLegalReadiness
                     'incomplete' => 'El consentimiento por procedimiento todavia no cubre todos los campos del HCU-024.',
                     default => 'No hay consentimiento escrito por procedimiento exigible para este episodio.',
                 },
+            ],
+            'complianceMspStatus' => [
+                'status' => $complianceMspMissing === [] ? 'complete' : 'incomplete',
+                'missingFields' => $complianceMspMissing,
+                'label' => $complianceMspMissing === [] ? 'Compliance MSP OK' : 'Faltan campos MVP',
+                'summary' => $complianceMspMissing === []
+                    ? 'Cumple con los campos mínimos requeridos.'
+                    : 'Faltan campos obligatorios descritos en ComplianceMSP para cerrar el registro.',
             ],
             'normativeSources' => [
                 'MSP-AM-5216A',

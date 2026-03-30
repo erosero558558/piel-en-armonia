@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/openclaw/AIRouter.php';
+require_once __DIR__ . '/../lib/DoctorProfileStore.php';
 
 /**
  * OpenclawController — Copiloto clínico de Aurora Derm
@@ -317,12 +318,19 @@ final class OpenclawController
 
         require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
         $service = new ClinicalHistoryService();
-        $result  = self::mutateStore(static function (array $store) use ($service, $caseId, $text, $payload): array {
+        $doctorProfile = doctor_profile_document_fields([
+            'name' => trim((string) ($payload['doctor_name'] ?? ($_SESSION['admin_email'] ?? ''))),
+        ]);
+
+        $result  = self::mutateStore(static function (array $store) use ($service, $caseId, $text, $payload, $doctorProfile): array {
             return $service->saveEvolutionNote($store, [
                 'caseId'    => $caseId,
                 'text'      => $text,
                 'cie10Code' => $payload['cie10_code'] ?? '',
-                'doctorId'  => $payload['doctor_id'] ?? '',
+                'doctorId'  => $payload['doctor_id'] ?? ($doctorProfile['name'] ?? ''),
+                'doctorName' => $doctorProfile['name'] ?? '',
+                'doctorSpecialty' => $doctorProfile['specialty'] ?? '',
+                'doctorMsp' => $doctorProfile['msp'] ?? '',
                 'source'    => 'openclaw',
             ]);
         });
@@ -348,8 +356,11 @@ final class OpenclawController
         require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
         $service = new ClinicalHistoryService();
         $rxId    = 'rx-' . bin2hex(random_bytes(8));
+        $doctorProfile = doctor_profile_document_fields([
+            'name' => trim((string) ($_SESSION['admin_email'] ?? '')),
+        ]);
 
-        $result = self::mutateStore(static function (array $store) use ($service, $caseId, $medications, $rxId): array {
+        $result = self::mutateStore(static function (array $store) use ($service, $caseId, $medications, $rxId, $doctorProfile): array {
             $session = ClinicalHistoryRepository::findSessionByCaseId($store, $caseId);
             if ($session === null) {
                 return [
@@ -407,7 +418,8 @@ final class OpenclawController
                 'caseId' => $caseId,
                 'medications' => $incomingItems,
                 'issued_at' => gmdate('c'),
-                'issued_by' => $_SESSION['admin_email'] ?? 'médico',
+                'issued_by' => $doctorProfile['name'] ?? 'medico',
+                'doctor' => $doctorProfile,
             ];
 
             return [
@@ -458,6 +470,11 @@ final class OpenclawController
         $patient = $store['patients'][$caseId] ?? [];
         $patientName = trim(($patient['firstName'] ?? '') . ' ' . ($patient['lastName'] ?? ''));
         $patientAge = self::calculateAge($patient['birthDate'] ?? '') ?? '';
+        $doctor = doctor_profile_document_fields(
+            isset($prescription['doctor']) && is_array($prescription['doctor'])
+                ? $prescription['doctor']
+                : ['name' => (string) ($prescription['issued_by'] ?? 'Medico tratante')]
+        );
 
         $medicationsHtml = '';
         foreach ($prescription['medications'] ?? [] as $med) {
@@ -479,7 +496,16 @@ final class OpenclawController
         }
 
         $dateStr = date('d/m/Y', strtotime($prescription['issued_at'] ?? 'now'));
-        $doctorStr = htmlspecialchars($prescription['issued_by'] ?? 'Médico Tratante', ENT_QUOTES, 'UTF-8');
+        $doctorName = htmlspecialchars($doctor['name'] ?? 'Medico tratante', ENT_QUOTES, 'UTF-8');
+        $doctorSpecialty = htmlspecialchars($doctor['specialty'] ?? '', ENT_QUOTES, 'UTF-8');
+        $doctorMsp = htmlspecialchars($doctor['msp'] ?? '', ENT_QUOTES, 'UTF-8');
+        $doctorSignatureImage = htmlspecialchars($doctor['signatureImage'] ?? '', ENT_QUOTES, 'UTF-8');
+        $doctorSignatureHtml = $doctorSignatureImage !== ''
+            ? "<img src=\"{$doctorSignatureImage}\" alt=\"Firma digital del medico\" style=\"max-width: 220px; max-height: 80px; display: block; margin-left: auto; margin-bottom: 10px; object-fit: contain;\">"
+            : '';
+        $doctorMspLine = $doctorMsp !== ''
+            ? "Registro MSP: {$doctorMsp}"
+            : 'Firma autorizada';
 
         $html = "
         <!DOCTYPE html>
@@ -520,9 +546,11 @@ final class OpenclawController
             </div>
 
             <div class=\"signature\">
+                {$doctorSignatureHtml}
                 <div class=\"signature-line\"></div>
-                <div><strong>{$doctorStr}</strong></div>
-                <div style=\"font-size: 12px; color: #666;\">Registro MSP / Firma Autorizada</div>
+                <div><strong>{$doctorName}</strong></div>
+                <div style=\"font-size: 12px; color: #666;\">{$doctorSpecialty}</div>
+                <div style=\"font-size: 12px; color: #666;\">{$doctorMspLine}</div>
             </div>
 
             <div class=\"footer\">
@@ -604,6 +632,9 @@ final class OpenclawController
 
         $certId = 'cert-' . bin2hex(random_bytes(8));
         $folio  = 'AD-' . date('Y') . '-' . strtoupper(substr($certId, 5, 6));
+        $doctorProfile = doctor_profile_document_fields([
+            'name' => trim((string) ($_SESSION['admin_email'] ?? '')),
+        ]);
 
         // Store certificate data for PDF generation
         $certData = [
@@ -617,7 +648,8 @@ final class OpenclawController
             'restrictions'      => $payload['restrictions'] ?? '',
             'observations'      => $payload['observations'] ?? '',
             'issued_at'         => gmdate('c'),
-            'issued_by'         => $_SESSION['admin_email'] ?? 'médico',
+            'issued_by'         => $doctorProfile['name'] ?? 'medico',
+            'doctor'            => $doctorProfile,
         ];
 
         self::mutateStore(static function (array $store) use ($certId, $certData): array {
@@ -882,7 +914,15 @@ final class OpenclawController
         $restDays = (int) ($certificate['rest_days'] ?? 0);
         $restrictions = trim((string) ($certificate['restrictions'] ?? ''));
         $observations = trim((string) ($certificate['observations'] ?? ''));
-        $doctor = trim((string) ($certificate['issued_by'] ?? 'Medico tratante'));
+        $doctorData = doctor_profile_document_fields(
+            isset($certificate['doctor']) && is_array($certificate['doctor'])
+                ? $certificate['doctor']
+                : ['name' => (string) ($certificate['issued_by'] ?? 'Medico tratante')]
+        );
+        $doctor = trim((string) ($doctorData['name'] ?? 'Medico tratante'));
+        $doctorSpecialty = trim((string) ($doctorData['specialty'] ?? ''));
+        $doctorMsp = trim((string) ($doctorData['msp'] ?? ''));
+        $doctorSignatureImage = trim((string) ($doctorData['signatureImage'] ?? ''));
         $folio = trim((string) ($certificate['folio'] ?? $certificate['id'] ?? ''));
 
         $details = [];
@@ -904,6 +944,15 @@ final class OpenclawController
 
         $patientIdHtml = $patientId !== ''
             ? '<p><strong>Identificacion:</strong> ' . htmlspecialchars($patientId, ENT_QUOTES, 'UTF-8') . '</p>'
+            : '';
+        $signatureHtml = $doctorSignatureImage !== ''
+            ? '<img src="' . htmlspecialchars($doctorSignatureImage, ENT_QUOTES, 'UTF-8') . '" alt="Firma digital del medico" style="max-width: 220px; max-height: 80px; display: block; margin-bottom: 10px; object-fit: contain;">'
+            : '';
+        $doctorSubtitle = $doctorSpecialty !== ''
+            ? htmlspecialchars($doctorSpecialty, ENT_QUOTES, 'UTF-8')
+            : 'Flow OS - Copiloto Clinico Aurora Derm';
+        $doctorMspHtml = $doctorMsp !== ''
+            ? '<p>Registro MSP: ' . htmlspecialchars($doctorMsp, ENT_QUOTES, 'UTF-8') . '</p>'
             : '';
 
         return "<!DOCTYPE html>
@@ -931,8 +980,10 @@ final class OpenclawController
     " . implode("\n    ", $details) . "
   </div>
   <div class=\"signature\">
+    {$signatureHtml}
     <p><strong>" . htmlspecialchars($doctor, ENT_QUOTES, 'UTF-8') . "</strong></p>
-    <p>Flow OS - Copiloto Clinico Aurora Derm</p>
+    <p>{$doctorSubtitle}</p>
+    {$doctorMspHtml}
   </div>
 </body>
 </html>";

@@ -111,6 +111,10 @@ final class ClinicalHistoryOpsSnapshot
             'revoked' => 0,
             'incomplete' => 0,
         ];
+        $complianceMspCoverage = [
+            'complete' => 0,
+            'incomplete' => 0,
+        ];
 
         foreach ($sessions as $sessionRecord) {
             $session = ClinicalHistoryRepository::adminSession($sessionRecord);
@@ -198,6 +202,14 @@ final class ClinicalHistoryOpsSnapshot
                 $hcu024Status = 'not_applicable';
             }
             $hcu024Coverage[$hcu024Status]++;
+
+            $complianceMspStatus = ClinicalHistoryRepository::trimString(
+                $legalReadiness['complianceMspStatus']['status'] ?? 'incomplete'
+            );
+            if (!array_key_exists($complianceMspStatus, $complianceMspCoverage)) {
+                $complianceMspStatus = 'incomplete';
+            }
+            $complianceMspCoverage[$complianceMspStatus]++;
 
             if (self::needsReviewQueue($session, $draft, $pendingAi)) {
                 $reviewQueue[] = self::buildReviewQueueRow(
@@ -289,6 +301,7 @@ final class ClinicalHistoryOpsSnapshot
                 'hcu010A' => $hcu010ACoverage,
                 'hcu012A' => $hcu012ACoverage,
                 'hcu024' => $hcu024Coverage,
+                'complianceMsp' => $complianceMspCoverage,
             ],
             'events' => [
                 'total' => count($eventFeed),
@@ -415,6 +428,8 @@ final class ClinicalHistoryOpsSnapshot
             'hcu024Status' => (string) ($legalReadiness['hcu024Status']['status'] ?? 'not_applicable'),
             'hcu024Label' => (string) ($legalReadiness['hcu024Status']['label'] ?? 'HCU-024 no aplica'),
             'hcu024Summary' => (string) ($legalReadiness['hcu024Status']['summary'] ?? ''),
+            'complianceMspStatus' => (string) ($legalReadiness['complianceMspStatus']['status'] ?? 'incomplete'),
+            'complianceMspMissing' => array_values(is_array($legalReadiness['complianceMspStatus']['missingFields'] ?? null) ? $legalReadiness['complianceMspStatus']['missingFields'] : []),
             'approvalBlockedReasons' => isset($legalReadiness['blockingReasons']) && is_array($legalReadiness['blockingReasons'])
                 ? array_values($legalReadiness['blockingReasons'])
                 : [],

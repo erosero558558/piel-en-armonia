@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../lib/clinical_history/bootstrap.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
+require_once __DIR__ . '/../lib/DoctorProfileStore.php';
+require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 
 final class ClinicalHistoryController
 {
@@ -274,7 +276,27 @@ final class ClinicalHistoryController
         }
 
         $dateStr = date('d/m/Y');
-        $doctorStr = htmlspecialchars($_SESSION['admin_email'] ?? 'Médico Tratante', ENT_QUOTES, 'UTF-8');
+        $doctorData = doctor_profile_document_fields([
+            'name' => trim((string) ($_SESSION['admin_email'] ?? '')),
+        ]);
+        $doctorStr = htmlspecialchars($doctorData['name'] ?? 'Medico tratante', ENT_QUOTES, 'UTF-8');
+        $doctorSpecialty = htmlspecialchars($doctorData['specialty'] ?? '', ENT_QUOTES, 'UTF-8');
+        $doctorMsp = htmlspecialchars($doctorData['msp'] ?? '', ENT_QUOTES, 'UTF-8');
+        $doctorSignatureImage = htmlspecialchars($doctorData['signatureImage'] ?? '', ENT_QUOTES, 'UTF-8');
+        $doctorSignatureHtml = $doctorSignatureImage !== ''
+            ? "<img class=\"signature-image\" src=\"{$doctorSignatureImage}\" alt=\"Firma digital del medico\">"
+            : '';
+        $doctorMspLine = $doctorMsp !== ''
+            ? "Registro MSP: {$doctorMsp}"
+            : 'Firma autorizada';
+
+        $clinicProfile = read_clinic_profile();
+        $clinicName = htmlspecialchars($clinicProfile['clinicName'] ?: 'Aurora Derm');
+        $clinicAddress = htmlspecialchars($clinicProfile['address'] ?: 'Quito, Ecuador');
+        $clinicPhone = htmlspecialchars($clinicProfile['phone'] ?: '');
+        $clinicLogoHtml = $clinicProfile['logoImage'] !== '' 
+            ? '<img src="' . htmlspecialchars($clinicProfile['logoImage'], ENT_QUOTES, 'UTF-8') . '" style="max-height: 50px; display:inline-block; margin-right:10px; vertical-align:middle;" />' 
+            : '';
 
         $html = "
         <!DOCTYPE html>
@@ -285,7 +307,8 @@ final class ClinicalHistoryController
             <style>
                 body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
                 .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #c9a96e; padding-bottom: 20px; }
-                .header h1 { margin: 0; font-size: 24px; color: #07090c; font-weight: bold; }
+                .header-wrapper { display: inline-flex; align-items: center; justify-content: center; }
+                .header h1 { margin: 0; font-size: 24px; color: #07090c; font-weight: bold; display: inline-block; vertical-align: middle; }
                 .header p { margin: 5px 0 0 0; font-size: 14px; color: #666; }
                 .title { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 30px; }
                 .patient-info { margin-bottom: 30px; padding: 15px; background: #f9f9f9; border-radius: 4px; font-size: 14px; }
@@ -295,14 +318,18 @@ final class ClinicalHistoryController
                 .section p { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
                 .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
                 .signature { margin-top: 60px; text-align: right; }
+                .signature-image { max-width: 220px; max-height: 80px; display: block; margin-left: auto; margin-bottom: 10px; object-fit: contain; }
                 .signature-line { border-top: 1px solid #000; width: 200px; display: inline-block; margin-bottom: 5px; }
             </style>
         </head>
         <body>
             <div class=\"header\">
-                <h1>Aurora Derm</h1>
-                <p>Clínica Dermatológica Especializada</p>
-                <p>Tel: +593 98 245 3672 | Quito, Ecuador</p>
+                <div class=\"header-wrapper\">
+                    {$clinicLogoHtml}
+                    <h1>{$clinicName}</h1>
+                </div>
+                <p>Clínica Especializada</p>
+                <p>{$clinicAddress} | Telf: {$clinicPhone}</p>
             </div>
             
             <div class=\"title\">PLAN DE TRATAMIENTO Y SEGUIMIENTO</div>
@@ -333,9 +360,11 @@ final class ClinicalHistoryController
             </div>
 
             <div class=\"signature\">
+                {$doctorSignatureHtml}
                 <div class=\"signature-line\"></div>
                 <div><strong>{$doctorStr}</strong></div>
-                <div style=\"font-size: 12px; color: #666;\">Registro MSP / Firma Autorizada</div>
+                <div style=\"font-size: 12px; color: #666;\">{$doctorSpecialty}</div>
+                <div style=\"font-size: 12px; color: #666;\">{$doctorMspLine}</div>
             </div>
 
             <div class=\"footer\">

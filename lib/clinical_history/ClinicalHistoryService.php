@@ -676,6 +676,9 @@ final class ClinicalHistoryService
             'metadata' => [
                 'cie10Code' => $payload['cie10Code'] ?? '',
                 'doctor' => $payload['doctorId'] ?? 'System',
+                'doctorName' => $payload['doctorName'] ?? ($payload['doctorId'] ?? 'System'),
+                'doctorSpecialty' => $payload['doctorSpecialty'] ?? '',
+                'doctorMsp' => $payload['doctorMsp'] ?? '',
                 'source' => $payload['source'] ?? 'openclaw',
             ],
             'status' => 'closed',

@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/storage.php';
 require_once __DIR__ . '/../lib/api_helpers.php';
+require_once __DIR__ . '/../lib/DoctorProfileStore.php';
+require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 
 final class CertificateController
 {
@@ -105,6 +107,7 @@ final class CertificateController
         $certId = 'cert-' . bin2hex(random_bytes(6));
         $now    = gmdate('c');
 
+        $clinicProfile = read_clinic_profile();
         $certData = [
             'id'               => $certId,
             'folio'            => $folio,
@@ -118,9 +121,9 @@ final class CertificateController
             'observations'     => $obs,
             'patient'          => $patient,
             'doctor'           => $doctor,
-            'clinicName'       => app_env('AURORADERM_CLINIC_NAME') ?: 'Aurora Derm — Dermatología y Estética',
-            'clinicAddress'    => app_env('AURORADERM_CLINIC_ADDRESS') ?: 'Quito, Ecuador',
-            'clinicPhone'      => app_env('AURORADERM_CLINIC_PHONE') ?: '',
+            'clinicName'       => $clinicProfile['clinicName'],
+            'clinicAddress'    => $clinicProfile['address'] ?: 'Quito, Ecuador',
+            'clinicPhone'      => $clinicProfile['phone'] ?: '',
             'issuedAt'         => $now,
             'issuedDateLocal'  => (new DateTime('now', new DateTimeZone('America/Guayaquil')))->format('d/m/Y'),
         ];
@@ -221,7 +224,7 @@ final class CertificateController
         $folio    = $cert['folio'] ?? '';
         $patient  = ($cert['patient']['name'] ?? 'Paciente') . ', CI: ' . ($cert['patient']['ci'] ?? 'N/A');
         $date     = $cert['issuedDateLocal'] ?? gmdate('d/m/Y');
-        $clinic   = $cert['clinicName'] ?? 'Aurora Derm';
+        $clinic   = $cert['clinicName'] ?? read_clinic_profile()['clinicName'];
         $doctor   = ($cert['doctor']['name'] ?? 'Dr./Dra.') . ' — MSP: ' . ($cert['doctor']['msp'] ?? 'N/A');
         $dx       = $cert['diagnosisText'] ?? '';
         $cie      = $cert['cie10Code'] ? " (CIE-10 {$cert['cie10Code']})" : '';
@@ -268,20 +271,25 @@ final class CertificateController
      */
     private static function buildCertificateHtml(array $cert): string
     {
+        $clinicProfile = read_clinic_profile();
         $type     = htmlspecialchars($cert['typeLabel'] ?? 'CERTIFICADO MÉDICO');
         $folio    = htmlspecialchars($cert['folio'] ?? '');
-        $clinic   = htmlspecialchars($cert['clinicName'] ?? 'Aurora Derm');
-        $address  = htmlspecialchars($cert['clinicAddress'] ?? 'Quito, Ecuador');
-        $phone    = htmlspecialchars($cert['clinicPhone'] ?? '');
+        $clinic   = htmlspecialchars($cert['clinicName'] ?? $clinicProfile['clinicName']);
+        $address  = htmlspecialchars($cert['clinicAddress'] ?? ($clinicProfile['address'] ?: 'Quito, Ecuador'));
+        $phone    = htmlspecialchars($cert['clinicPhone'] ?? $clinicProfile['phone']);
         $date     = htmlspecialchars($cert['issuedDateLocal'] ?? gmdate('d/m/Y'));
 
         $patName  = htmlspecialchars($cert['patient']['name'] ?? '');
         $patCi    = htmlspecialchars($cert['patient']['ci'] ?? '');
         $patAge   = $cert['patient']['age'] ? htmlspecialchars((string) $cert['patient']['age']) . ' años' : '';
 
-        $docName  = htmlspecialchars($cert['doctor']['name'] ?? 'Dr./Dra.');
-        $docSpec  = htmlspecialchars($cert['doctor']['specialty'] ?? 'Médico/a Tratante');
-        $docMsp   = htmlspecialchars($cert['doctor']['msp'] ?? '');
+        $doctorData = doctor_profile_document_fields(
+            isset($cert['doctor']) && is_array($cert['doctor']) ? $cert['doctor'] : []
+        );
+        $docName  = htmlspecialchars($doctorData['name'] ?? 'Dr./Dra.');
+        $docSpec  = htmlspecialchars($doctorData['specialty'] ?? 'Medico/a tratante');
+        $docMsp   = htmlspecialchars($doctorData['msp'] ?? '');
+        $docSignatureImage = htmlspecialchars($doctorData['signatureImage'] ?? '', ENT_QUOTES, 'UTF-8');
 
         $dx        = htmlspecialchars($cert['diagnosisText'] ?? '');
         $cie       = htmlspecialchars($cert['cie10Code'] ?? '');
@@ -301,8 +309,15 @@ final class CertificateController
             default => self::contentReposoLaboral($patName, $patCi, $patAge, $dx, $cie, $restDays, $restrict, $obs, $date),
         };
 
+        $logoHtml = $clinicProfile['logoImage'] !== '' 
+            ? '<img src="' . htmlspecialchars($clinicProfile['logoImage'], ENT_QUOTES, 'UTF-8') . '" style="max-height: 60px; margin-right: 15px;" />' 
+            : '';
+
         // Pre-resolve ternary — heredoc cannot handle ternary expressions
         $mspLine = $docMsp !== '' ? "<div class=\"sig-msp\">Reg. MSP: {$docMsp}</div>" : '';
+        $signatureImage = $docSignatureImage !== ''
+            ? "<img class=\"sig-image\" src=\"{$docSignatureImage}\" alt=\"Firma digital del medico\" />"
+            : '';
 
         return <<<HTML
 <!DOCTYPE html>
@@ -338,6 +353,7 @@ final class CertificateController
 
   /* FIRMA */
   .signature-area { margin-top: 48px; display: flex; flex-direction: column; align-items: center; }
+  .sig-image { max-width: 220px; max-height: 88px; object-fit: contain; margin-bottom: 10px; }
   .sig-line { border-top: 1.5px solid #111; width: 240px; margin-bottom: 6px; }
   .sig-name { font-weight: bold; font-size: 11pt; text-align: center; }
   .sig-spec { font-size: 9.5pt; text-align: center; color: #444; }
@@ -352,9 +368,12 @@ final class CertificateController
 <div class="page">
 
   <div class="header">
-    <div>
-      <div class="clinic-name">{$clinic}</div>
-      <div class="clinic-sub">{$address}{$phone}</div>
+    <div style="display:flex; align-items:center;">
+      {$logoHtml}
+      <div>
+        <div class="clinic-name">{$clinic}</div>
+        <div class="clinic-sub">{$address} {$phone}</div>
+      </div>
     </div>
     <div class="folio">
       <div class="folio-label">Folio</div>
@@ -374,6 +393,7 @@ final class CertificateController
   </div>
 
   <div class="signature-area">
+    {$signatureImage}
     <div class="sig-line"></div>
     <div class="sig-name">{$docName}</div>
     <div class="sig-spec">{$docSpec}</div>
@@ -544,11 +564,12 @@ TXT;
             $doctor = reset($doctors);
         }
 
-        return [
-            'name'      => $doctor['name'] ?? app_env('AURORADERM_PRIMARY_DOCTOR_NAME') ?: 'Dr./Dra.',
-            'specialty' => $doctor['specialty'] ?? 'Médico/a Tratante',
-            'msp'       => $doctor['msp'] ?? app_env('AURORADERM_PRIMARY_DOCTOR_MSP') ?: '',
-        ];
+        return doctor_profile_document_fields([
+            'name' => $doctor['name'] ?? '',
+            'specialty' => $doctor['specialty'] ?? '',
+            'msp' => $doctor['msp'] ?? '',
+            'signatureImage' => $doctor['signatureImage'] ?? '',
+        ]);
     }
 
     private static function nextFolio(array $store): string
@@ -560,8 +581,9 @@ TXT;
     private static function buildWhatsAppText(array $cert): string
     {
         $folio   = $cert['folio'] ?? '';
+        $clinicProfile = read_clinic_profile();
         $type    = $cert['typeLabel'] ?? 'Certificado médico';
-        $clinic  = $cert['clinicName'] ?? 'Aurora Derm';
+        $clinic  = $cert['clinicName'] ?? $clinicProfile['clinicName'];
         $date    = $cert['issuedDateLocal'] ?? gmdate('d/m/Y');
         $days    = (int) ($cert['restDays'] ?? 0);
         $daysTxt = $days > 0 ? "\n🛌 Días de reposo: {$days}" : '';
