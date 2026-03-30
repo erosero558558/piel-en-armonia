@@ -18,6 +18,7 @@
 const { execSync } = require('child_process');
 const { readFileSync, existsSync } = require('fs');
 const { resolve } = require('path');
+const { createTaskCheckDefinitions } = require('./lib/gate-checks');
 
 const ROOT = resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
@@ -77,6 +78,20 @@ function check(name, fn, { warn = false, required = true } = {}) {
     if (result === true || result === undefined) {
       checks.push({ status: 'pass', name });
       passed++;
+    } else if (result && typeof result === 'object' && !Array.isArray(result)) {
+      const isPass = result.ok === true || result.status === 'pass';
+      const detail = typeof result.detail === 'string' ? result.detail : '';
+      if (isPass) {
+        checks.push({ status: 'pass', name, detail });
+        passed++;
+      } else if (warn) {
+        checks.push({ status: 'warn', name, detail: detail || 'Warning' });
+        warnings++;
+      } else {
+        checks.push({ status: 'fail', name, detail: detail || (required ? 'Required' : 'Recommended') });
+        if (required) failed++;
+        else warnings++;
+      }
     } else if (result === false) {
       if (warn) {
         checks.push({ status: 'warn', name, detail: 'Warning' });
@@ -172,88 +187,13 @@ check('PHPUnit Smoke Baseline', () => {
 
 // ── Task-specific checks ───────────────────────────────────────────────────────
 
-const taskChecks = {
-  // Sprint 1
-  'S1-01': () => check('bioestimuladores link fixed in index.html', () => {
-    const idx = read(resolve(ROOT, 'index.html'));
-    return !idx.includes('href="/es/servicios/bioestimuladores/"') ||
-           idx.includes('href="/es/servicios/bioestimuladores-colageno/"');
-  }),
-
-  'S1-04': () => check('manifest.json has no Flow OS reference', () => {
-    try {
-      const m = JSON.parse(read(resolve(ROOT, 'manifest.json')));
-      if (m.name?.includes('Flow OS')) return 'manifest.json still contains "Flow OS"';
-      if (!m.name?.includes('Aurora Derm')) return 'manifest.json name should include "Aurora Derm"';
-      return true;
-    } catch { return 'manifest.json is invalid JSON'; }
-  }),
-
-  // Sprint 2
-  'S2-07': () => {
-    check('WhatsApp links have ?text= parameter', () => {
-      const idx = read(resolve(ROOT, 'index.html'));
-      const count = (idx.match(/wa\.me\/593982453672\?text=/g) || []).length;
-      if (count < 3) return `Only ${count} WhatsApp links have ?text=. Need at least 3.`;
-      return true;
-    });
-  },
-
-  'S2-18': () => {
-    check('Medical disclaimer on all service pages', () => {
-      try {
-        const files = execSync(
-          `find "${resolve(ROOT, 'es/servicios')}" -name "index.html"`,
-          { encoding: 'utf8' }
-        ).split('\n').filter(Boolean);
-        const missing = files.filter(f => !read(f).includes('Los resultados varían'));
-        if (missing.length > 0) {
-          return `Missing disclaimer in: ${missing.slice(0, 3).map(f => f.replace(ROOT+'/', '')).join(', ')}`;
-        }
-        return true;
-      } catch { return false; }
-    });
-  },
-
-  'S2-19': () => {
-    check('Hero badges present in index.html', () => {
-      const idx = read(resolve(ROOT, 'index.html'));
-      return idx.includes('MSP Certificado') || idx.includes('hero-badge');
-    });
-  },
-
-  'S2-21': () => {
-    check('Primera consulta page exists', () => fileExists('es/primera-consulta/index.html'));
-    check('Primera consulta has WhatsApp CTA', () => {
-      const p = read(resolve(ROOT, 'es/primera-consulta/index.html'));
-      return p.includes('wa.me/') && p.includes('?text=');
-    }, { warn: true });
-  },
-
-  'S3-05': () => {
-    check('Pre-consulta page exists', () => fileExists('es/pre-consulta/index.html'));
-  },
-
-  'S3-24': () => {
-    check('Booking page exists', () => fileExists('es/agendar/index.html'));
-    check('Booking integrates with CalendarAvailabilityService', () => {
-      const p = read(resolve(ROOT, 'es/agendar/index.html'));
-      return p.includes('availability') || p.includes('calendar');
-    }, { warn: true });
-  },
-
-  'S4-08': () => {
-    check('Pricing page exists', () => fileExists('es/software/turnero-clinicas/precios/index.html'));
-    check('Pricing page has 3 tiers', () => {
-      const p = read(resolve(ROOT, 'es/software/turnero-clinicas/precios/index.html'));
-      return (p.includes('Free') || p.includes('Gratis')) && p.includes('Pro') && p.includes('Enterprise');
-    });
-  },
-};
+const taskChecks = createTaskCheckDefinitions({ ROOT, read, fileExists, execSync });
 
 // Run task-specific check if it exists
 if (taskChecks[taskId]) {
-  taskChecks[taskId]();
+  taskChecks[taskId].forEach(({ name, evaluate, warn = false, required = true }) => {
+    check(name, evaluate, { warn, required });
+  });
 } else {
   checks.push({ status: 'warn', name: `No specific check for ${taskId} — manual review recommended` });
   warnings++;
