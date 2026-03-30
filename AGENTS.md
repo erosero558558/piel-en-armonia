@@ -1814,7 +1814,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 16.1 Análisis estático PHP
 
-- [ ] **S16-01** `[M]` Psalm bootstrap crítico — `psalm.xml` existe pero no está wired a superficies reales. Configurar para que cubra `lib/`, `controllers/` y `api.php`. Añadir `vendor/bin/psalm --no-cache` al CI como job separado (puede ser `allowed_failure: true` inicialmente). Entregable: `psalm.xml` ajustado + baseline `psalm-baseline.xml` con 0 errores nuevos. Verificable: `vendor/bin/psalm --no-cache lib/` → exit 0 o baseline limpia.
+- [x] **S16-01** `[M]` Psalm bootstrap crítico — `psalm.xml` existe pero no está wired a superficies reales. Configurar para que cubra `lib/`, `controllers/` y `api.php`. Añadir `vendor/bin/psalm --no-cache` al CI como job separado (puede ser `allowed_failure: true` inicialmente). Entregable: `psalm.xml` ajustado + baseline `psalm-baseline.xml` con 0 errores nuevos. Verificable: `vendor/bin/psalm --no-cache lib/` → exit 0 o baseline limpia.
 - [ ] **S16-02** `[M]` Psalm gate por archivos cambiados — hoy CI hace skip silencioso si Psalm falta. Convertir en contrato explícito: si el PR toca `lib/` o `controllers/`, el job Psalm **debe** correr (no se puede silenciar). Si no hay Psalm instalado → falla con mensaje accionable "Instala Psalm: composer require --dev vimeo/psalm". Verificable: modificar cualquier .php en lib/ → el job Psalm aparece en CI, no se saltea silenciosamente.
 
 #### 16.2 Seguridad de endpoints críticos

@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 3:16:33 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 6:09:49 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **48%** completado (215/449)
+`██████████░░░░░░░░░░` **51%** completado (227/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -25,11 +25,11 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 9 | 1 | 26 | 4% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 2 | 24 | 8% |
-| ⏸ Sprint 13 | 4 | 17 | 19% |
+| ⏸ Sprint 13 | 13 | 8 | 62% |
 | ⏸ Sprint UI | 18 | 2 | 90% |
-| ⏸ Sprint 14 | 2 | 12 | 14% |
-| ⏸ Sprint 15 | 1 | 12 | 8% |
-| ⏸ Sprint 16 | 0 | 13 | 0% |
+| ⏸ Sprint 14 | 3 | 11 | 21% |
+| ⏸ Sprint 15 | 2 | 11 | 15% |
+| ⏸ Sprint 16 | 1 | 12 | 8% |
 | ⏸ Sprint 17 | 0 | 12 | 0% |
 | ⏸ Sprint 18 | 0 | 4 | 0% |
 
@@ -191,18 +191,18 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 | ... | | _+19 más_ |
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 8 tareas pendientes._
 
-### 🟢 Disponibles (17)
+### 🟢 Disponibles (8)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S13-00** | `[S13]` | S |
-| **S13-01** | `[S13]` | M |
-| **S13-02** | `[S13]` | M |
-| **S13-04** | `[S13]` | M |
-| **S13-05** | `[S13]` | S |
-| ... | | _+12 más_ |
+| **S13-11** | `[S13]` | S |
+| **S13-13** | `[S13]` | S |
+| **S13-14** | `[S13]` | M |
+| **S13-15** | `[S13]` | M |
+| **S13-16** | `[S13]` | S |
+| ... | | _+3 más_ |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 2 tareas pendientes._
@@ -215,12 +215,12 @@ _Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **UI3-15** `[UI3]` → _codex_ (expira en 237min)
+- **UI3-15** `[UI3]` → _codex_ (expira en 63min)
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
-_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 
-### 🟢 Disponibles (12)
+### 🟢 Disponibles (11)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -229,35 +229,35 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | **S14-02** | `[S14]` | M |
 | **S14-05** | `[S14]` | M |
 | **S14-06** | `[S14]` | M |
-| ... | | _+7 más_ |
+| ... | | _+6 más_ |
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
+_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
+
+### 🟢 Disponibles (11)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S15-02** | `[S15]` | S |
+| **S15-04** | `[S15]` | M |
+| **S15-05** | `[S15]` | M |
+| **S15-06** | `[S15]` | S |
+| **S15-07** | `[S15]` | S |
+| ... | | _+6 más_ |
+
+## ⏸ Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
 ### 🟢 Disponibles (12)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S15-02** | `[S15]` | S |
-| **S15-03** | `[S15]` | S |
-| **S15-04** | `[S15]` | M |
-| **S15-05** | `[S15]` | M |
-| **S15-06** | `[S15]` | S |
-| ... | | _+7 más_ |
-
-## ⏸ Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
-_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
-
-### 🟢 Disponibles (13)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S16-01** | `[S16]` | M |
 | **S16-02** | `[S16]` | M |
 | **S16-03** | `[S16]` | M |
 | **S16-04** | `[S16]` | S |
 | **S16-05** | `[S16]` | M |
-| ... | | _+8 más_ |
+| **S16-06** | `[S16]` | M |
+| ... | | _+7 más_ |
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._

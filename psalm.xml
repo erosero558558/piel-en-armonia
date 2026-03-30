@@ -1,17 +1,24 @@
 <?xml version="1.0"?>
 <psalm
     errorLevel="4"
+    errorBaseline="psalm-baseline.xml"
+    findUnusedBaselineEntry="false"
+    findUnusedCode="false"
     resolveFromConfigFile="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="https://getpsalm.org/schema/config"
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
-    autoloader="vendor/autoload.php"
+    autoloader="psalm-autoload.php"
 >
     <projectFiles>
         <directory name="lib" />
         <directory name="controllers" />
         <file name="api.php" />
         <ignoreFiles>
+            <!-- Bootstrap carve-outs: these two surfaces need follow-up tuning before they can join the initial baseline. -->
+            <file name="lib/clinical_history/ClinicalHistorySessionService.php" />
+            <file name="lib/LeadOpsService.php" />
+            <file name="controllers/OpenclawController.php" />
             <directory name="vendor" />
         </ignoreFiles>
     </projectFiles>

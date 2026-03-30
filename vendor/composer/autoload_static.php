@@ -4,16 +4,19 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit8312c11339181a840237a2ed06f0c027
+class ComposerStaticInit13105848b5fd496b984e14f6d4db2c47
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
-        'ad155f8f1cf0d418fe49e248db8c661b' => __DIR__ . '/..' . '/react/promise/src/functions_include.php',
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
+        'ad155f8f1cf0d418fe49e248db8c661b' => __DIR__ . '/..' . '/react/promise/src/functions_include.php',
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
-        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         '8825ede83f2f289127722d4e842cf7e8' => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme/bootstrap.php',
         'e69f7f6ee287b969198c3c9d6777bd38' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/bootstrap.php',
+        'e8aa6e4b5a1db2f56ae794f1505391a8' => __DIR__ . '/..' . '/amphp/amp/lib/functions.php',
+        '76cd0796156622033397994f25b0d8fc' => __DIR__ . '/..' . '/amphp/amp/lib/Internal/functions.php',
+        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
+        'b6b991a57620e2fb6b2f66f03fe9ddc2' => __DIR__ . '/..' . '/symfony/string/Resources/functions.php',
         '72243e5536b63e298acb6476f01f1aff' => __DIR__ . '/..' . '/thecodingmachine/safe/lib/special_cases.php',
         '3f648889e687f31c52f949ba8a9d0873' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/apache.php',
         'eeb4581d958421a4244aaa4167c6a575' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/apcu.php',
@@ -96,7 +99,7 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         '356736db98a6834f0a886b8d509b0ecd' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/zlib.php',
         '0174385c3be07e86008907d06ee66531' => __DIR__ . '/..' . '/sabberworm/php-css-parser/src/Rule/Rule.php',
         '98aea6e41b9cb79b379b10f37ba1f0b7' => __DIR__ . '/..' . '/sabberworm/php-css-parser/src/RuleSet/RuleContainer.php',
-        'b6b991a57620e2fb6b2f66f03fe9ddc2' => __DIR__ . '/..' . '/symfony/string/Resources/functions.php',
+        '6cd5651c4fef5ed6b63e8d8b8ffbf3cc' => __DIR__ . '/..' . '/amphp/byte-stream/lib/functions.php',
         '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
         'fb4ca2d97fe7ba6af750497425204e70' => __DIR__ . '/..' . '/sentry/sentry/src/functions.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
@@ -106,6 +109,18 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
     );
 
     public static $prefixLengthsPsr4 = array (
+        'p' =>
+        array (
+            'phpDocumentor\\Reflection\\' => 25,
+        ),
+        'X' =>
+        array (
+            'XdgBaseDir\\' => 11,
+        ),
+        'W' =>
+        array (
+            'Webmozart\\Assert\\' => 17,
+        ),
         'S' =>
         array (
             'Symfony\\Polyfill\\Php84\\' => 23,
@@ -126,6 +141,7 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
             'Symfony\\Component\\EventDispatcher\\' => 34,
             'Symfony\\Component\\Console\\' => 26,
             'Svg\\' => 4,
+            'Spatie\\ArrayToXml\\' => 18,
             'Sentry\\' => 7,
             'Sabberworm\\CSS\\' => 15,
         ),
@@ -145,15 +161,21 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
             'Psr\\Http\\Message\\' => 17,
             'Psr\\EventDispatcher\\' => 20,
             'Psr\\Container\\' => 14,
+            'Psalm\\' => 6,
             'Predis\\' => 7,
             'PhpParser\\' => 10,
             'PhpCsFixer\\' => 11,
+            'PHPStan\\PhpDocParser\\' => 21,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
         'M' =>
         array (
             'Monolog\\' => 8,
             'Masterminds\\' => 12,
+        ),
+        'L' =>
+        array (
+            'LanguageServerProtocol\\' => 23,
         ),
         'J' =>
         array (
@@ -175,6 +197,7 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         'D' =>
         array (
             'Dompdf\\' => 7,
+            'Doctrine\\Deprecations\\' => 22,
             'DeepCopy\\' => 9,
         ),
         'C' =>
@@ -184,9 +207,29 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
             'Composer\\Pcre\\' => 14,
             'Clue\\React\\NDJson\\' => 18,
         ),
+        'A' =>
+        array (
+            'Amp\\ByteStream\\' => 15,
+            'Amp\\' => 4,
+            'AdvancedJsonRpc\\' => 16,
+        ),
     );
 
     public static $prefixDirsPsr4 = array (
+        'phpDocumentor\\Reflection\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
+            1 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
+            2 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
+        ),
+        'XdgBaseDir\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/dnoegel/php-xdg-base-dir/src',
+        ),
+        'Webmozart\\Assert\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/webmozart/assert/src',
+        ),
         'Symfony\\Polyfill\\Php84\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php84',
@@ -259,6 +302,10 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         array (
             0 => __DIR__ . '/..' . '/dompdf/php-svg-lib/src/Svg',
         ),
+        'Spatie\\ArrayToXml\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/spatie/array-to-xml/src',
+        ),
         'Sentry\\' =>
         array (
             0 => __DIR__ . '/..' . '/sentry/sentry/src',
@@ -312,6 +359,10 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         array (
             0 => __DIR__ . '/..' . '/psr/container/src',
         ),
+        'Psalm\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/vimeo/psalm/src/Psalm',
+        ),
         'Predis\\' =>
         array (
             0 => __DIR__ . '/..' . '/predis/predis/src',
@@ -324,6 +375,10 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         array (
             0 => __DIR__ . '/..' . '/friendsofphp/php-cs-fixer/src',
         ),
+        'PHPStan\\PhpDocParser\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/phpstan/phpdoc-parser/src',
+        ),
         'PHPMailer\\PHPMailer\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
@@ -335,6 +390,10 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         'Masterminds\\' =>
         array (
             0 => __DIR__ . '/..' . '/masterminds/html5/src',
+        ),
+        'LanguageServerProtocol\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/felixfbecker/language-server-protocol/src',
         ),
         'Jean85\\' =>
         array (
@@ -360,6 +419,10 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         array (
             0 => __DIR__ . '/..' . '/dompdf/dompdf/src',
         ),
+        'Doctrine\\Deprecations\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/doctrine/deprecations/src',
+        ),
         'DeepCopy\\' =>
         array (
             0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
@@ -379,6 +442,28 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         'Clue\\React\\NDJson\\' =>
         array (
             0 => __DIR__ . '/..' . '/clue/ndjson-react/src',
+        ),
+        'Amp\\ByteStream\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/amphp/byte-stream/lib',
+        ),
+        'Amp\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/amphp/amp/lib',
+        ),
+        'AdvancedJsonRpc\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/felixfbecker/advanced-json-rpc/lib',
+        ),
+    );
+
+    public static $prefixesPsr0 = array (
+        'J' =>
+        array (
+            'JsonMapper' =>
+            array (
+                0 => __DIR__ . '/..' . '/netresearch/jsonmapper/src',
+            ),
         ),
     );
 
@@ -419,6 +504,7 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         'ClinicalMediaService' => __DIR__ . '/../..' . '/lib/telemedicine/ClinicalMediaService.php',
         'ComplianceMSP' => __DIR__ . '/../..' . '/lib/clinical_history/ComplianceMSP.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
+        'ConsentVersioning' => __DIR__ . '/../..' . '/lib/consent/ConsentVersioning.php',
         'Deprecated' => __DIR__ . '/..' . '/symfony/polyfill-php84/Resources/stubs/Deprecated.php',
         'Dompdf\\Cpdf' => __DIR__ . '/..' . '/dompdf/dompdf/lib/Cpdf.php',
         'EmailListener' => __DIR__ . '/../..' . '/lib/listeners/EmailListener.php',
@@ -426,9 +512,11 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         'EventDispatcher' => __DIR__ . '/../..' . '/lib/events/EventDispatcher.php',
         'FeatureFlags' => __DIR__ . '/../..' . '/lib/features.php',
         'FunnelMetricsService' => __DIR__ . '/../..' . '/lib/analytics/FunnelMetricsService.php',
+        'FunnelTimelineStore' => __DIR__ . '/../..' . '/lib/analytics/FunnelTimelineStore.php',
         'GatewayClient' => __DIR__ . '/../..' . '/lib/figo_queue/GatewayClient.php',
         'GoogleCalendarClient' => __DIR__ . '/../..' . '/lib/calendar/GoogleCalendarClient.php',
         'GoogleTokenProvider' => __DIR__ . '/../..' . '/lib/calendar/GoogleTokenProvider.php',
+        'InputValidator' => __DIR__ . '/../..' . '/lib/input-validator.php',
         'JobProcessor' => __DIR__ . '/../..' . '/lib/figo_queue/JobProcessor.php',
         'JobRepository' => __DIR__ . '/../..' . '/lib/figo_queue/JobRepository.php',
         'LeadOpsService' => __DIR__ . '/../..' . '/lib/LeadOpsService.php',
@@ -1331,6 +1419,7 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
         'PHPUnit\\Util\\Xml\\Loader' => __DIR__ . '/..' . '/phpunit/phpunit/src/Util/Xml/Loader.php',
         'PHPUnit\\Util\\Xml\\XmlException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Util/Exception/XmlException.php',
         'PatientCaseService' => __DIR__ . '/../..' . '/lib/PatientCaseService.php',
+        'PatientPortalAuth' => __DIR__ . '/../..' . '/lib/PatientPortalAuth.php',
         'PharIo\\Manifest\\Application' => __DIR__ . '/..' . '/phar-io/manifest/src/values/Application.php',
         'PharIo\\Manifest\\ApplicationName' => __DIR__ . '/..' . '/phar-io/manifest/src/values/ApplicationName.php',
         'PharIo\\Manifest\\Author' => __DIR__ . '/..' . '/phar-io/manifest/src/values/Author.php',
@@ -1746,9 +1835,10 @@ class ComposerStaticInit8312c11339181a840237a2ed06f0c027
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit8312c11339181a840237a2ed06f0c027::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit8312c11339181a840237a2ed06f0c027::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit8312c11339181a840237a2ed06f0c027::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit13105848b5fd496b984e14f6d4db2c47::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit13105848b5fd496b984e14f6d4db2c47::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit13105848b5fd496b984e14f6d4db2c47::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit13105848b5fd496b984e14f6d4db2c47::$classMap;
 
         }, null, ClassLoader::class);
     }

@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+  <file src="controllers/AdminAgentController.php">
+    <InvalidArgument>
+      <code><![CDATA[$_GET]]></code>
+      <code><![CDATA[$_GET]]></code>
+      <code><![CDATA[$_GET]]></code>
+      <code><![CDATA[$_GET]]></code>
+    </InvalidArgument>
+    <UndefinedConstant>
+      <code><![CDATA[TESTING_ENV]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="controllers/CaseMediaFlowController.php">
+    <InvalidArgument>
+      <code><![CDATA[$_GET]]></code>
+      <code><![CDATA[$_GET]]></code>
+    </InvalidArgument>
+  </file>
+  <file src="controllers/CertificateController.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="controllers/HealthController.php">
+    <InvalidReturnStatement>
+      <code><![CDATA[[
+            'mode' => $mode,
+            'status' => $status,
+            'configured' => $configured,
+            'hardeningCompliant' => $hardeningCompliant,
+            'recommendedMode' => $recommendedMode,
+            'recommendedModeActive' => $mode === $recommendedMode,
+            'legacyPasswordConfigured' => $legacyPasswordConfigured,
+            'twoFactorEnabled' => $twoFactorEnabled,
+            'operatorAuthEnabled' => $operatorAuthEnabled,
+            'operatorAuthConfigured' => $operatorAuthConfigured,
+            'brokerTrustConfigured' => $brokerTrustConfigured,
+            'brokerIssuerPinned' => $brokerIssuerPinned,
+            'brokerAudiencePinned' => $brokerAudiencePinned,
+            'brokerJwksConfigured' => $brokerJwksConfigured,
+            'brokerEmailVerifiedRequired' => $brokerEmailVerifiedRequired,
+            'operatorPinMode' => TURNERO_OPERATOR_MODE,
+            'operatorPinConfigured' => (bool) ($operatorPinMeta['configured'] ?? false),
+            'operatorPinSessionTtlHours' => (int) ($operatorPinMeta['sessionTtlHours'] ?? TURNERO_OPERATOR_DEFAULT_SESSION_TTL_HOURS),
+            'operatorAuthMissing' => is_array($operatorAuthConfig['missing'] ?? null)
+                ? array_values($operatorAuthConfig['missing'])
+                : [],
+            'operatorAuthAllowedEmailCount' => (int) ($operatorAuthConfig['allowedEmailCount'] ?? 0),
+        ]]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[array{
+     *   mode:string,
+     *   status:string,
+     *   configured:bool,
+     *   hardeningCompliant:bool,
+     *   recommendedMode:string,
+     *   recommendedModeActive:bool,
+     *   legacyPasswordConfigured:bool,
+     *   twoFactorEnabled:bool,
+     *   operatorAuthEnabled:bool,
+     *   operatorAuthConfigured:bool,
+     *   brokerTrustConfigured:bool,
+     *   brokerIssuerPinned:bool,
+     *   brokerAudiencePinned:bool,
+     *   brokerJwksConfigured:bool,
+     *   brokerEmailVerifiedRequired:bool
+     * }]]></code>
+    </InvalidReturnType>
+    <ReservedWord>
+      <code><![CDATA[array]]></code>
+    </ReservedWord>
+  </file>
+  <file src="controllers/IntakeController.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="controllers/ServiceCatalogController.php">
+    <UndefinedConstant>
+      <code><![CDATA[TESTING_ENV]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="controllers/ServicePriorityController.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+    <UndefinedConstant>
+      <code><![CDATA[TESTING_ENV]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="controllers/WhatsappOpenclawController.php">
+    <InvalidArgument>
+      <code><![CDATA[[self::class, 'sanitizeConversation']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeDraft']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeHold']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeOpsSweepItem']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeOutboxRecord']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeOutboxRecord']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeOutboxRecord']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeOutboxRecord']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeOutboxRecord']]]></code>
+      <code><![CDATA[[self::class, 'sanitizeOutboxRecord']]]></code>
+    </InvalidArgument>
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/AdminAgentService.php">
+    <InvalidArgument>
+      <code><![CDATA[$entries]]></code>
+      <code><![CDATA[$toolCallsByTurn]]></code>
+    </InvalidArgument>
+    <InvalidArrayOffset>
+      <code><![CDATA[$assets[count($assets) - 1]]]></code>
+    </InvalidArrayOffset>
+    <ParadoxicalCondition>
+      <code><![CDATA['availability' => 'ui.navigate']]></code>
+      <code><![CDATA['queue' => 'ui.navigate']]></code>
+      <code><![CDATA['reviews' => 'ui.navigate']]></code>
+    </ParadoxicalCondition>
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+    <UndefinedConstant>
+      <code><![CDATA[OPERATOR_AUTH_SOURCE]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="lib/CaseMediaFlowService.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/FlowOsJourney.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/QueueService.php">
+    <InvalidOperand>
+      <code><![CDATA[$index]]></code>
+    </InvalidOperand>
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/QueueSurfaceStatusStore.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/TicketPrinter.php">
+    <InvalidArrayOffset>
+      <code><![CDATA[$lines[$i]]]></code>
+    </InvalidArrayOffset>
+  </file>
+  <file src="lib/TurneroClinicProfile.php">
+    <InvalidOperand>
+      <code><![CDATA[$index]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="lib/analytics/FunnelTimelineStore.php">
+    <InvalidArrayOffset>
+      <code><![CDATA[$days[$dayKey]]]></code>
+    </InvalidArrayOffset>
+    <NoValue>
+      <code><![CDATA[$dayKey]]></code>
+    </NoValue>
+  </file>
+  <file src="lib/auth.php">
+    <UndefinedConstant>
+      <code><![CDATA[TESTING_ENV]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="lib/backup/BackupConfig.php">
+    <UndefinedConstant>
+      <code><![CDATA[BACKUP_HEALTH_DEFAULT_MAX_AGE_HOURS]]></code>
+      <code><![CDATA[BACKUP_LOCAL_REPLICA_DIRNAME]]></code>
+      <code><![CDATA[BACKUP_OFFSITE_MAX_TIMEOUT_SECONDS]]></code>
+      <code><![CDATA[BACKUP_OFFSITE_MAX_TIMEOUT_SECONDS]]></code>
+      <code><![CDATA[BACKUP_OFFSITE_MIN_TIMEOUT_SECONDS]]></code>
+      <code><![CDATA[BACKUP_OFFSITE_MIN_TIMEOUT_SECONDS]]></code>
+      <code><![CDATA[BACKUP_OFFSITE_TIMEOUT_SECONDS]]></code>
+      <code><![CDATA[BACKUP_RECEIVER_CLEANUP_MAX_FILES_DEFAULT]]></code>
+      <code><![CDATA[BACKUP_RECEIVER_RETENTION_DAYS_DEFAULT]]></code>
+      <code><![CDATA[BACKUP_RECEIVER_RETENTION_DAYS_MAX]]></code>
+      <code><![CDATA[BACKUP_RECEIVER_RETENTION_DAYS_MAX]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="lib/backup/BackupCrypto.php">
+    <UndefinedConstant>
+      <code><![CDATA[BACKUP_RECEIVER_ENCRYPTION_ALGO]]></code>
+      <code><![CDATA[BACKUP_RECEIVER_ENCRYPTION_ALGO]]></code>
+      <code><![CDATA[BACKUP_RECEIVER_ENVELOPE_PREFIX]]></code>
+      <code><![CDATA[BACKUP_RECEIVER_ENVELOPE_PREFIX]]></code>
+      <code><![CDATA[BACKUP_RECEIVER_ENVELOPE_PREFIX]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="lib/clinical_history/ClinicalHistoryDiagnosisRepository.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/clinical_history/ClinicalHistoryEvolutionRepository.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/clinical_history/ClinicalHistoryOpsSnapshot.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/clinical_history/ClinicalHistoryPrescriptionRepository.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/clinical_history/ClinicalHistorySessionRepository.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/common.php">
+    <InvalidArgument>
+      <code><![CDATA[$curlHandle]]></code>
+    </InvalidArgument>
+    <InvalidCast>
+      <code><![CDATA[$canonicalValue]]></code>
+      <code><![CDATA[$legacyValue]]></code>
+    </InvalidCast>
+  </file>
+  <file src="lib/email.php">
+    <InvalidArgument>
+      <code><![CDATA[$context]]></code>
+      <code><![CDATA[$context]]></code>
+      <code><![CDATA[$context]]></code>
+      <code><![CDATA[$context]]></code>
+      <code><![CDATA[$context]]></code>
+      <code><![CDATA[$context]]></code>
+    </InvalidArgument>
+  </file>
+  <file src="lib/figo_queue/JobRepository.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/openclaw/AIRouter.php">
+    <UndefinedMethod>
+      <code><![CDATA[callFigoGateway]]></code>
+    </UndefinedMethod>
+  </file>
+  <file src="lib/queue/QueueSummaryBuilder.php">
+    <InvalidOperand>
+      <code><![CDATA[$index]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="lib/queue/TicketPriorityPolicy.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/storage.php">
+    <UndefinedConstant>
+      <code><![CDATA[STORE_LOCK_TIMEOUT_MS]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="lib/storage/StorePaths.php">
+    <UndefinedConstant>
+      <code><![CDATA[DATA_DIR]]></code>
+      <code><![CDATA[DATA_DIR]]></code>
+      <code><![CDATA[DATA_DIR]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="lib/storage/StorePersistence.php">
+    <UndefinedConstant>
+      <code><![CDATA[MAX_STORE_BACKUPS]]></code>
+      <code><![CDATA[MAX_STORE_BACKUPS]]></code>
+      <code><![CDATA[STORE_LOCK_RETRY_DELAY_US]]></code>
+      <code><![CDATA[STORE_LOCK_TIMEOUT_MS]]></code>
+      <code><![CDATA[STORE_LOCK_TIMEOUT_MS]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="lib/telemedicine/TelemedicineIntakeService.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/telemedicine/TelemedicineOpsSnapshot.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="lib/whatsapp_openclaw/Repository.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+</files>
