@@ -230,7 +230,10 @@ const checks = {
     },
     'S3-11': () => {
         const statusPage = read(
-            resolve(ROOT, 'es/software/turnero-clinicas/estado-turno/index.html')
+            resolve(
+                ROOT,
+                '.generated/site-root/es/software/turnero-clinicas/estado-turno/index.html'
+            )
         );
         const routes = read(resolve(ROOT, 'lib/routes.php'));
         const controller = read(resolve(ROOT, 'controllers/QueueController.php'));
@@ -239,7 +242,8 @@ const checks = {
             statusPage.includes('data-v6-ticket-status-root') &&
             routes.includes("'GET', 'queue-public-ticket'") &&
             controller.includes('publicTicket') &&
-            printer.includes('estado-turno/?ticket=')
+            printer.includes('PUBLIC_QUEUE_STATUS_BASE_URL') &&
+            printer.includes('buildPublicQueueStatusUrl')
         );
     },
     'S3-24': () => fileExists('es/agendar/index.html'),
