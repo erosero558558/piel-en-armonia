@@ -270,3 +270,140 @@ body.portal-body {
 }
 
 .portal-fab-whatsapp:active { transform: scale(0.95); }
+
+/* 9. Timeline Historial Médico PWA */
+.portal-timeline {
+    position: relative;
+    padding-left: var(--space-4);
+    margin-top: var(--space-4);
+}
+
+.portal-timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 5px;
+    bottom: 0;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.portal-timeline-item {
+    position: relative;
+    margin-bottom: var(--space-6);
+}
+
+.portal-timeline-dot {
+    position: absolute;
+    left: -var(--space-4);
+    top: 5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-slate-900);
+    border: 2px solid var(--color-aurora-500);
+    transform: translateX(-3px);
+    z-index: 2;
+    box-shadow: 0 0 10px rgba(82, 113, 255, 0.5);
+}
+
+.portal-timeline-content {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4);
+    margin-left: var(--space-4);
+}
+
+.portal-timeline-date {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--color-gold-400);
+    margin-bottom: var(--space-1);
+    display: block;
+}
+
+.portal-timeline-doctor {
+    font-size: 0.85rem;
+    color: var(--admin-text-muted);
+    margin-bottom: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.portal-timeline-reason {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Detalles colapsables HTML5 */
+.portal-timeline-details {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.portal-timeline-details summary {
+    list-style: none; /* Hide default arrow */
+    color: var(--color-aurora-400);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.portal-timeline-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.portal-timeline-details summary::after {
+    content: '+';
+    font-size: 1.2rem;
+    font-weight: 300;
+    transition: transform 0.2s;
+}
+
+.portal-timeline-details[open] summary::after {
+    content: '−';
+}
+
+.portal-timeline-body {
+    margin-top: var(--space-4);
+    font-size: 0.85rem;
+    color: var(--admin-text-primary);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.portal-timeline-chip {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(82, 113, 255, 0.1);
+    color: var(--color-aurora-400);
+    padding: 2px 8px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    border: 1px solid rgba(82, 113, 255, 0.2);
+    width: max-content;
+}
+
+.portal-timeline-prescription {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    margin-top: var(--space-2);
+}
+.portal-timeline-prescription svg {
+    color: var(--color-aurora-400);
+}

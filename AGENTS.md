@@ -1393,7 +1393,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### UI-5 Portal del paciente — "Mi salud en mi celular"
 
 - [x] **UI-16** `[L]` `[UI]` Portal base mobile-first — crear `es/portal/index.html` + `styles/aurora-portal.css`: bottom navigation (5 iconos: inicio, citas, historial, recetas, perfil), header con foto/nombre del paciente, card de próxima cita, estado de plan activo, CTA WhatsApp siempre visible. PWA-ready. iOS y Android se ven nativos.
-- [ ] **UI-17** `[M]` `[UI]` Vista de historial del paciente — `es/portal/historial/index.html`: lista de consultas con fechas, doctor y motivo. Tap para expandir detalle con diagnóstico, receta, y plan. Timeline vertical. Solo lectura. Datos del endpoint existente `clinical-history`.
+- [x] **UI-17** `[M]` `[UI]` Vista de historial del paciente — `es/portal/historial/index.html`: lista de consultas con fechas, doctor y motivo. Tap para expandir detalle con diagnóstico, receta, y plan. Timeline vertical. Solo lectura. Datos del endpoint existente `clinical-history`.
 
 #### UI-6 PDF y documentos — "Los documentos que la doctora firma con orgullo"
 
