@@ -165,8 +165,10 @@ const CLINICAL_RED_FLAG_LABELS = Object.freeze({
     anafilaxia: 'Anafilaxia',
     embarazo: 'Embarazo',
 });
+const CLINICAL_HISTORY_CERTIFICATE_ISSUED_EVENT = 'aurora:certificate-issued';
 
 let scheduledAutoSelection = '';
+let clinicalHistoryCertificateBridgeBound = false;
 
 function normalizeString(value) {
     return String(value || '').trim();
@@ -868,6 +870,8 @@ function emptyDraft() {
 
 function emptyReview() {
     return {
+        caseId: '',
+        patientRecordId: '',
         session: {
             sessionId: '',
             caseId: '',
@@ -4380,6 +4384,14 @@ function normalizeReviewPayload(payload) {
         updatedAt: normalizeString(sessionSource.updatedAt),
         lastMessageAt: normalizeString(sessionSource.lastMessageAt),
     };
+    review.caseId = normalizeString(
+        source.caseId || review.session.caseId || source?.draft?.caseId
+    );
+    review.patientRecordId = normalizeString(
+        source.patientRecordId ||
+            source?.patientRecord?.patientRecordId ||
+            source?.draft?.patientRecordId
+    );
     review.draft = normalizeDraftSnapshot(source.draft);
     review.events = normalizeList(source.events).map(normalizeEvent);
     review.patientRecord =
@@ -4826,6 +4838,62 @@ function currentDraftSource(state = getState()) {
     }
 
     return currentReviewSource(state).draft;
+}
+
+function emptyCertificateHistoryState() {
+    return {
+        caseId: '',
+        loading: false,
+        error: '',
+        items: [],
+        lastLoadedAt: 0,
+    };
+}
+
+function normalizeCertificateHistoryItem(item) {
+    const source = item && typeof item === 'object' ? item : {};
+    return {
+        id: normalizeString(source.id),
+        folio: normalizeString(source.folio),
+        caseId: normalizeString(source.caseId),
+        type: normalizeString(source.type),
+        typeLabel: normalizeString(source.typeLabel),
+        diagnosisText: normalizeString(source.diagnosisText),
+        cie10Code: normalizeString(source.cie10Code),
+        restDays: normalizeNullableInt(source.restDays) ?? 0,
+        observations: normalizeString(source.observations),
+        issuedAt: normalizeString(source.issuedAt),
+        issuedDateLocal: normalizeString(source.issuedDateLocal),
+    };
+}
+
+function readCertificateHistorySlice(state = getState()) {
+    const source = getClinicalHistorySlice(state).certificateHistory;
+    if (!source || typeof source !== 'object') {
+        return emptyCertificateHistoryState();
+    }
+
+    return {
+        caseId: normalizeString(source.caseId),
+        loading: source.loading === true,
+        error: normalizeString(source.error),
+        items: normalizeList(source.items).map(normalizeCertificateHistoryItem),
+        lastLoadedAt: normalizeNumber(source.lastLoadedAt),
+    };
+}
+
+function currentReviewCaseId(review = currentReviewSource()) {
+    return normalizeString(
+        review?.caseId || review?.session?.caseId || review?.draft?.caseId
+    );
+}
+
+function currentReviewPatientRecordId(review = currentReviewSource()) {
+    return normalizeString(
+        review?.patientRecordId ||
+            review?.patientRecord?.patientRecordId ||
+            review?.draft?.patientRecordId
+    );
 }
 
 function truncateText(value, limit = 120) {
@@ -6677,6 +6745,123 @@ function buildAttachmentStrip(review) {
                     <span>${escapeHtml(
                         attachment.privatePath || 'Disponible solo para staff'
                     )}</span>
+                </article>
+            `;
+        }
+    );
+}
+
+function buildCertificateHistoryMetaText(review, history) {
+    const caseId = currentReviewCaseId(review);
+    if (!caseId) {
+        return 'Selecciona un caso clinico para revisar su salida documental.';
+    }
+    if (history.loading && history.items.length === 0) {
+        return 'Consultando los certificados emitidos para este caso.';
+    }
+    if (history.error && history.items.length === 0) {
+        return history.error;
+    }
+    if (history.items.length === 0) {
+        return 'Todavia no se han emitido certificados para este caso.';
+    }
+
+    const latest = history.items[0];
+    const countLabel =
+        history.items.length === 1
+            ? '1 certificado emitido'
+            : `${history.items.length} certificados emitidos`;
+    const latestLabel = readableTimestamp(latest.issuedAt);
+    return latestLabel && latestLabel !== '-'
+        ? `${countLabel} • Ultimo ${latestLabel}`
+        : countLabel;
+}
+
+function buildCertificateHistoryList(review, history) {
+    const caseId = currentReviewCaseId(review);
+    if (!caseId) {
+        return buildEmptyClinicalCard(
+            'Sin caso activo',
+            'Selecciona un caso clinico para ver folios, fechas y descargas PDF.',
+            { cardClass: 'clinical-history-document-card is-empty' }
+        );
+    }
+
+    if (history.loading && history.items.length === 0) {
+        return buildEmptyClinicalCard(
+            'Cargando certificados',
+            'Estamos recuperando el historial documental del caso activo.',
+            { cardClass: 'clinical-history-document-card is-empty' }
+        );
+    }
+
+    if (history.error && history.items.length === 0) {
+        return buildEmptyClinicalCard(
+            'No se pudo cargar el historial',
+            history.error,
+            {
+                cardClass: 'clinical-history-document-card is-empty',
+                tone: 'warning',
+            }
+        );
+    }
+
+    return buildClinicalHistoryCollection(
+        history.items,
+        () =>
+            buildEmptyClinicalCard(
+                'Sin certificados emitidos',
+                'El primer certificado que emitas desde este caso aparecera aqui.',
+                { cardClass: 'clinical-history-document-card is-empty' }
+            ),
+        (item) => {
+            const meta = [
+                item.folio,
+                item.typeLabel || humanizeClinicalCode(item.type),
+                readableTimestamp(item.issuedAt),
+            ]
+                .filter((value) => value && value !== '-')
+                .join(' • ');
+            const summary = [
+                item.cie10Code ? `CIE-10 ${item.cie10Code}` : '',
+                item.diagnosisText,
+                item.restDays > 0 ? `${item.restDays} dia(s) de reposo` : '',
+                item.observations,
+            ]
+                .filter(Boolean)
+                .join(' • ');
+            const pdfUrl = `/api.php?resource=certificate&id=${encodeURIComponent(
+                item.id
+            )}&format=pdf`;
+
+            return `
+                <article class="clinical-history-document-card">
+                    <div class="clinical-history-event-head">
+                        <strong>${escapeHtml(
+                            item.typeLabel || 'Certificado medico'
+                        )}</strong>
+                        ${
+                            item.restDays > 0
+                                ? `<span class="clinical-history-mini-chip" data-tone="warning">${escapeHtml(
+                                      `${item.restDays} dia(s)`
+                                  )}</span>`
+                                : ''
+                        }
+                    </div>
+                    <small>${escapeHtml(meta || 'Documento emitido')}</small>
+                    <p>${escapeHtml(
+                        summary || 'Sin resumen clinico adicional.'
+                    )}</p>
+                    <div class="clinical-history-document-actions">
+                        <a
+                            class="clinical-history-document-link"
+                            href="${escapeHtml(pdfUrl)}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Descargar PDF
+                        </a>
+                    </div>
                 </article>
             `;
         }
@@ -12985,6 +13170,7 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
             dirty: false,
             current: null,
             draftForm: null,
+            certificateHistory: emptyCertificateHistoryState(),
         });
         renderClinicalHistorySection();
         return null;
@@ -13024,6 +13210,10 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
             draftForm: cloneValue(review.draft),
         });
         renderClinicalHistorySection();
+        void loadCertificateHistory(currentReviewCaseId(review), {
+            force: true,
+            silent: true,
+        });
         return review;
     } catch (error) {
         setClinicalHistoryState({
@@ -13034,6 +13224,7 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
                 'No se pudo cargar la revision clinica de este caso.',
             current: null,
             draftForm: null,
+            certificateHistory: emptyCertificateHistoryState(),
         });
         renderClinicalHistorySection();
         if (options.silent !== true) {
@@ -13044,6 +13235,80 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
             );
         }
         return null;
+    }
+}
+
+async function loadCertificateHistory(caseId, options = {}) {
+    const desiredCaseId = normalizeString(caseId);
+    if (!desiredCaseId) {
+        setClinicalHistoryState({
+            certificateHistory: emptyCertificateHistoryState(),
+        });
+        renderClinicalHistorySection();
+        return [];
+    }
+
+    const currentHistory = readCertificateHistorySlice();
+    if (
+        options.force !== true &&
+        desiredCaseId === currentHistory.caseId &&
+        (currentHistory.items.length > 0 || currentHistory.lastLoadedAt > 0)
+    ) {
+        return currentHistory.items;
+    }
+
+    setClinicalHistoryState({
+        certificateHistory: {
+            ...currentHistory,
+            caseId: desiredCaseId,
+            loading: true,
+            error: '',
+        },
+    });
+    renderClinicalHistorySection();
+
+    try {
+        const response = await apiRequest('certificate', {
+            query: {
+                case_id: desiredCaseId,
+            },
+        });
+        const items = normalizeList(response.certificates).map(
+            normalizeCertificateHistoryItem
+        );
+
+        setClinicalHistoryState({
+            certificateHistory: {
+                caseId: desiredCaseId,
+                loading: false,
+                error: '',
+                items,
+                lastLoadedAt: Date.now(),
+            },
+        });
+        renderClinicalHistorySection();
+        return items;
+    } catch (error) {
+        setClinicalHistoryState({
+            certificateHistory: {
+                ...currentHistory,
+                caseId: desiredCaseId,
+                loading: false,
+                error:
+                    error?.message ||
+                    'No se pudo cargar el historial de certificados.',
+                lastLoadedAt: Date.now(),
+            },
+        });
+        renderClinicalHistorySection();
+        if (options.silent !== true) {
+            createToast(
+                error?.message ||
+                    'No se pudo cargar el historial de certificados.',
+                'error'
+            );
+        }
+        return [];
     }
 }
 

@@ -235,6 +235,28 @@ export function renderClinicalHistorySection() {
                     ></div>
                 </article>
 
+                <article class="sony-panel soft clinical-history-documents-panel">
+                    <header class="section-header">
+                        <div>
+                            <h3>Documentos</h3>
+                            <p id="clinicalHistoryDocumentsMeta">
+                                Historial de certificados emitidos para el caso activo.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            id="clinicalHistoryRefreshCertificatesBtn"
+                            data-clinical-review-action="refresh-certificates"
+                        >
+                            Actualizar
+                        </button>
+                    </header>
+                    <div
+                        id="clinicalHistoryDocuments"
+                        class="clinical-history-documents-list"
+                    ></div>
+                </article>
+
                 <article class="sony-panel soft clinical-history-followup-panel">
                     <header class="section-header">
                         <div>
