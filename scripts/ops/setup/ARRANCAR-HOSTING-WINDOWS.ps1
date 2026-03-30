@@ -172,10 +172,16 @@ function Get-EffectiveOperatorAuthBootstrapConfig {
         $effective['AURORADERM_OPERATOR_AUTH_MODE'] = [string]$env:AURORADERM_OPERATOR_AUTH_MODE
     }
     if ([string]::IsNullOrWhiteSpace([string]$effective['AURORADERM_OPERATOR_AUTH_MODE'])) {
+        $effective['AURORADERM_OPERATOR_AUTH_MODE'] = [string]$effective['PIELARMONIA_OPERATOR_AUTH_MODE']
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$effective['AURORADERM_OPERATOR_AUTH_MODE'])) {
         $effective['AURORADERM_OPERATOR_AUTH_MODE'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_MODE
     }
     if (-not $effective.ContainsKey('AURORADERM_OPERATOR_AUTH_TRANSPORT')) {
         $effective['AURORADERM_OPERATOR_AUTH_TRANSPORT'] = [string]$env:AURORADERM_OPERATOR_AUTH_TRANSPORT
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$effective['AURORADERM_OPERATOR_AUTH_TRANSPORT'])) {
+        $effective['AURORADERM_OPERATOR_AUTH_TRANSPORT'] = [string]$effective['PIELARMONIA_OPERATOR_AUTH_TRANSPORT']
     }
     if ([string]::IsNullOrWhiteSpace([string]$effective['AURORADERM_OPERATOR_AUTH_TRANSPORT'])) {
         $effective['AURORADERM_OPERATOR_AUTH_TRANSPORT'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT

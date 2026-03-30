@@ -16,6 +16,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $preflightScript = Join-Path $repoRoot 'bin/openclaw-auth-preflight.js'
 $helperScript = Join-Path $repoRoot 'bin/openclaw-auth-helper.js'
+$envPhpPath = Join-Path $repoRoot 'env.php'
 $nodeCommand = Get-Command node -ErrorAction Stop
 
 function Set-OptionalEnv {
@@ -30,6 +31,39 @@ function Set-OptionalEnv {
 
     [Environment]::SetEnvironmentVariable($Name, $Value.Trim(), 'Process')
 }
+
+function Import-EnvPhpProcessVariables {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        return 0
+    }
+
+    $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+    $matches = [regex]::Matches($raw, 'putenv\(\s*([''"])([A-Z0-9_]+)=(.*?)\1\s*\)\s*;')
+    $imported = 0
+
+    foreach ($match in $matches) {
+        $name = [string]$match.Groups[2].Value.Trim()
+        if ([string]::IsNullOrWhiteSpace($name)) {
+            continue
+        }
+
+        $existing = [string][Environment]::GetEnvironmentVariable($name, 'Process')
+        if (-not [string]::IsNullOrWhiteSpace($existing)) {
+            continue
+        }
+
+        $value = [string]$match.Groups[3].Value
+        $value = $value.Replace("\'", "'").Replace('\"', '"').Trim()
+        [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+        $imported++
+    }
+
+    return $imported
+}
+
+[void](Import-EnvPhpProcessVariables -Path $envPhpPath)
 
 function Invoke-NodeJsonCommand {
     param(
