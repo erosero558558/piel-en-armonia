@@ -13,7 +13,7 @@
 
 'use strict';
 
-const { readFileSync, writeFileSync, existsSync } = require('fs');
+const { readFileSync, writeFileSync, existsSync, readdirSync } = require('fs');
 const { execSync } = require('child_process');
 const { resolve } = require('path');
 
@@ -21,7 +21,14 @@ const ROOT = resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 const ROUTES_FILE = 'lib/routes.php';
 const FIX = process.argv.includes('--fix');
-const TASK_LINE_PATTERN = /^- \[([ x])\] \*\*(S\d+-[A-Z0-9]+)\*\*/;
+const TASK_LINE_PATTERN = /^- \[([ x])\] \*\*([A-Z0-9]+(?:-[A-Z0-9]+)+)\*\*/;
+const PHASE_TWO_AUDIT_CHECK_KEYS = [
+    'serviceCssCoverage',
+    'salaTurnosAriaLive',
+    'baseCssReducedMotion',
+    'manifestShortcuts',
+    'portalFetch',
+];
 const CLINICAL_SAMPLE_PHOTOS = [
     'images/optimized/v6-clinic-home-diagnostic-brief-1400.jpg',
     'images/optimized/v6-clinic-telemedicine-intake-800.jpg',
@@ -95,6 +102,23 @@ function fileExists(relativePath) {
     return existsSync(resolve(ROOT, relativePath));
 }
 
+function listNestedIndexFiles(relativeDir) {
+    const absoluteDir = resolve(ROOT, relativeDir);
+    if (!existsSync(absoluteDir)) {
+        return [];
+    }
+
+    try {
+        return readdirSync(absoluteDir, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => `${relativeDir}/${entry.name}/index.html`)
+            .filter((relativePath) => fileExists(relativePath))
+            .sort();
+    } catch {
+        return [];
+    }
+}
+
 function normalizeHtmlEntities(value) {
     return String(value || '')
         .replace(/&iacute;/gi, 'í')
@@ -110,6 +134,46 @@ function fileContains(relativePath, pattern) {
     return pattern instanceof RegExp
         ? pattern.test(content)
         : content.includes(pattern);
+}
+
+function getServiceAuroraCssCoverage() {
+    const files = listNestedIndexFiles('es/servicios');
+    const matchedFiles = files.filter((relativePath) =>
+        fileContains(relativePath, 'aurora-service.css')
+    );
+    return {
+        total: files.length,
+        matched: matchedFiles.length,
+        missing: files.filter(
+            (relativePath) => !matchedFiles.includes(relativePath)
+        ),
+    };
+}
+
+function manifestHasShortcuts() {
+    try {
+        const manifest = JSON.parse(readRepoFile('manifest.json'));
+        return (
+            Array.isArray(manifest.shortcuts) && manifest.shortcuts.length > 0
+        );
+    } catch {
+        return false;
+    }
+}
+
+function createPhaseTwoAuditChecks() {
+    return {
+        serviceCssCoverage: () => {
+            const coverage = getServiceAuroraCssCoverage();
+            return coverage.total >= 20 && coverage.matched === coverage.total;
+        },
+        salaTurnosAriaLive: () =>
+            fileContains('sala-turnos.html', /\baria-live\s*=\s*['"][^'"]+['"]/),
+        baseCssReducedMotion: () =>
+            fileContains('styles/base.css', /prefers-reduced-motion/),
+        manifestShortcuts: () => manifestHasShortcuts(),
+        portalFetch: () => fileContains('es/portal/index.html', /\bfetch\s*\(/),
+    };
 }
 
 function phpClassExists(relativePath, className) {
@@ -194,6 +258,8 @@ function parseTaskLines(markdown) {
 }
 
 function createVerificationChecks() {
+    const phaseTwoAuditChecks = createPhaseTwoAuditChecks();
+
     return {
         // ── Sprint 1 ───────────────────────────────────────────────────────
         'S1-01': () => {
@@ -719,6 +785,13 @@ function createVerificationChecks() {
                 return false;
             }
         },
+
+        // ── Sprint UI Fase 2 ──────────────────────────────────────────────
+        'UI2-20': () =>
+            PHASE_TWO_AUDIT_CHECK_KEYS.every(
+                (checkId) => typeof phaseTwoAuditChecks[checkId] === 'function'
+            ) &&
+            Object.keys(parseTaskLines('- [ ] **UI2-20**')).includes('UI2-20'),
     };
 }
 
@@ -820,13 +893,17 @@ if (require.main === module) {
 module.exports = {
     CLINICAL_SAMPLE_PHOTOS,
     OPENCLAW_ENDPOINTS,
+    PHASE_TWO_AUDIT_CHECK_KEYS,
     TASK_LINE_PATTERN,
     allFilesExist,
     controllerSurfaceExists,
+    createPhaseTwoAuditChecks,
     createVerificationChecks,
     fileContains,
     fileExists,
+    getServiceAuroraCssCoverage,
     main,
+    manifestHasShortcuts,
     normalizeHtmlEntities,
     openclawSurfaceExists,
     parseTaskLines,
