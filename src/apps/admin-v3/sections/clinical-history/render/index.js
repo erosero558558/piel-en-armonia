@@ -3985,6 +3985,7 @@ function normalizeDraftSnapshot(draft) {
         typeof intakeSource.datosPaciente === 'object'
             ? intakeSource.datosPaciente
             : {};
+    const normalizedAnamnesis = normalizeAnamnesisFields(intakeSource);
 
     const reviewStatus =
         normalizeString(source.reviewStatus) || defaults.reviewStatus;
@@ -4085,11 +4086,16 @@ function normalizeDraftSnapshot(draft) {
             ...defaults.intake,
             motivoConsulta: normalizeString(intakeSource.motivoConsulta),
             enfermedadActual: normalizeString(intakeSource.enfermedadActual),
-            antecedentes: normalizeString(intakeSource.antecedentes),
+            antecedentes: normalizedAnamnesis.antecedentes,
+            antecedentesPersonales:
+                normalizedAnamnesis.antecedentesPersonales,
+            antecedentesFamiliares:
+                normalizedAnamnesis.antecedentesFamiliares,
             alergias: normalizeString(intakeSource.alergias),
             medicacionActual: normalizeString(intakeSource.medicacionActual),
-            fototipoFitzpatrick: normalizeString(intakeSource.fototipoFitzpatrick),
-            habitos: normalizeString(intakeSource.habitos),
+            fototipoFitzpatrick: normalizedAnamnesis.fototipoFitzpatrick,
+            habitosSol: normalizedAnamnesis.habitosSol,
+            habitosTabaco: normalizedAnamnesis.habitosTabaco,
             rosRedFlags: normalizeStringList(intakeSource.rosRedFlags),
             adjuntos: normalizeList(intakeSource.adjuntos).map(
                 normalizeAttachment
@@ -5249,11 +5255,13 @@ function buildClinicalRecordExportHtml(review) {
     const intakeSection = buildClinicalRecordExportFieldGrid([
         ['Motivo de consulta', draft.intake.motivoConsulta],
         ['Enfermedad actual', draft.intake.enfermedadActual],
-        ['Antecedentes', draft.intake.antecedentes],
+        ['Antecedentes personales', draft.intake.antecedentesPersonales],
+        ['Antecedentes familiares', draft.intake.antecedentesFamiliares],
         ['Alergias', draft.intake.alergias],
         ['Medicacion actual', draft.intake.medicacionActual],
         ['Fototipo Fitzpatrick', draft.intake.fototipoFitzpatrick],
-        ['Habitos', draft.intake.habitos],
+        ['Habitos de sol', draft.intake.habitosSol],
+        ['Habitos de tabaco', draft.intake.habitosTabaco],
         ['Resumen clinico', draft.intake.resumenClinico],
     ]);
     const hcu005Section = buildClinicalRecordExportFieldGrid([
