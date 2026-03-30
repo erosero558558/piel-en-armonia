@@ -11,6 +11,11 @@ final class WhatsappOpenclawPlannerClient
             return $remote;
         }
 
+        $ai = WhatsappAIService::planNativeAi($conversation, $draft, $event);
+        if (is_array($ai)) {
+            return $ai;
+        }
+
         return $this->heuristicPlan($conversation, $draft, $event);
     }
 

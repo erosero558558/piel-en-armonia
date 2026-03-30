@@ -7,6 +7,7 @@ require_once __DIR__ . '/Repository.php';
 require_once __DIR__ . '/SlotHoldService.php';
 require_once __DIR__ . '/PlannerClient.php';
 require_once __DIR__ . '/ConversationOrchestrator.php';
+require_once __DIR__ . '/WhatsappAIService.php';
 
 function whatsapp_openclaw_normalize_phone(string $value): string
 {
