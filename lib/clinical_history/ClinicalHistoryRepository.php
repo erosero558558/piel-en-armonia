@@ -3325,8 +3325,13 @@ final class ClinicalHistoryRepository
             'motivoConsulta' => '',
             'enfermedadActual' => '',
             'antecedentes' => '',
+            'antecedentesPersonales' => '',
+            'antecedentesFamiliares' => '',
             'alergias' => '',
             'medicacionActual' => '',
+            'fototipoFitzpatrick' => '',
+            'habitosSol' => '',
+            'habitosTabaco' => '',
             'rosRedFlags' => [],
             'adjuntos' => [],
             'resumenClinico' => '',
@@ -3352,9 +3357,23 @@ final class ClinicalHistoryRepository
         ];
 
         $normalized = $defaults;
-        foreach (['motivoConsulta', 'enfermedadActual', 'antecedentes', 'alergias', 'medicacionActual', 'resumenClinico', 'tratamientoBorrador'] as $field) {
+        foreach ([
+            'motivoConsulta',
+            'enfermedadActual',
+            'antecedentes',
+            'antecedentesPersonales',
+            'antecedentesFamiliares',
+            'alergias',
+            'medicacionActual',
+            'fototipoFitzpatrick',
+            'habitosSol',
+            'habitosTabaco',
+            'resumenClinico',
+            'tratamientoBorrador',
+        ] as $field) {
             $normalized[$field] = self::trimString($intake[$field] ?? $defaults[$field]);
         }
+        $normalized['antecedentes'] = self::buildAntecedentesSummary($normalized);
 
         $normalized['rosRedFlags'] = self::normalizeStringList($intake['rosRedFlags'] ?? []);
         $normalized['cie10Sugeridos'] = self::normalizeStringList($intake['cie10Sugeridos'] ?? []);
@@ -3375,6 +3394,26 @@ final class ClinicalHistoryRepository
         ];
 
         return $normalized;
+    }
+
+    public static function buildAntecedentesSummary(array $intake): string
+    {
+        $personal = self::trimString($intake['antecedentesPersonales'] ?? '');
+        $family = self::trimString($intake['antecedentesFamiliares'] ?? '');
+        $summary = [];
+
+        if ($personal !== '') {
+            $summary[] = 'Personales: ' . $personal;
+        }
+        if ($family !== '') {
+            $summary[] = 'Familiares: ' . $family;
+        }
+
+        if ($summary !== []) {
+            return implode("\n", $summary);
+        }
+
+        return self::trimString($intake['antecedentes'] ?? '');
     }
 
     private static function deriveAgeYearsFromBirthDate(string $birthDate): ?int

@@ -2187,6 +2187,202 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     );
 });
 
+test('anamnesis admin separa antecedentes y persiste fitzpatrick y habitos en el PATCH', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-anamnesis-001',
+        caseId: 'case-anamnesis-001',
+        patientName: 'Lucia Cedeno',
+        clinicianSummary: 'Control dermatologico con anamnesis estructurada.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.',
+            hcu001Status: {
+                status: 'complete',
+                label: 'HCU-001 completa',
+                summary:
+                    'La admision longitudinal ya deja identidad y contacto base defendibles.',
+            },
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y la prescripcion trazable estan completas.',
+            },
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                    label: 'Datos minimos clinicos',
+                    message:
+                        'No hay preguntas faltantes abiertas en el intake.',
+                },
+            ],
+            blockingReasons: [],
+        },
+    });
+    baseRecord.draft.intake.antecedentesPersonales =
+        'Acne en adolescencia tratado con isotretinoina.';
+    baseRecord.draft.intake.antecedentesFamiliares =
+        'Madre con rosacea papulopustulosa.';
+    baseRecord.draft.intake.antecedentes =
+        'Personales: Acne en adolescencia tratado con isotretinoina.\nFamiliares: Madre con rosacea papulopustulosa.';
+    baseRecord.draft.intake.fototipoFitzpatrick = 'II';
+    baseRecord.draft.intake.habitosSol =
+        'Exposicion recreativa en playa con fotoproteccion irregular.';
+    baseRecord.draft.intake.habitosTabaco = 'Niega tabaquismo.';
+
+    const patchPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                        hcu001: {
+                            complete: 1,
+                            partial: 0,
+                            legacy_partial: 0,
+                            missing: 0,
+                        },
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-anamnesis-001',
+                        caseId: 'case-anamnesis-001',
+                        patientName: 'Lucia Cedeno',
+                        summary: 'Control dermatologico con anamnesis estructurada.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 1,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.',
+                        hcu001Status: 'complete',
+                        hcu001Label: 'HCU-001 completa',
+                        hcu001Summary:
+                            'La admision longitudinal ya deja identidad y contacto base defendibles.',
+                        hcu005Status: 'complete',
+                        hcu005Label: 'HCU-005 completo',
+                        hcu005Summary:
+                            'La evolucion, la impresion y la prescripcion trazable estan completas.',
+                        hcu024Status: 'accepted',
+                        hcu024Label: 'HCU-024 aceptado',
+                        hcu024Summary:
+                            'El consentimiento escrito por procedimiento ya quedó aceptado.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-record' && method === 'PATCH') {
+                patchPayloads.push(payload);
+                const updatedRecord = JSON.parse(JSON.stringify(baseRecord));
+                updatedRecord.draft.intake = {
+                    ...updatedRecord.draft.intake,
+                    ...payload.draft.intake,
+                };
+                await fulfillJson(route, {
+                    ok: true,
+                    data: updatedRecord,
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#intake_antecedentes_personales')).toBeVisible();
+    await expect(page.locator('#intake_fototipo_fitzpatrick')).toHaveValue('II');
+
+    await page
+        .locator('#intake_antecedentes_personales')
+        .fill('Melasma y peeling previo sin secuelas.');
+    await page
+        .locator('#intake_antecedentes_familiares')
+        .fill('Padre con melanoma cutaneo.');
+    await page.locator('#intake_fototipo_fitzpatrick').selectOption('III');
+    await page
+        .locator('#intake_habitos_sol')
+        .fill(
+            'Exposicion laboral diaria con fotoproteccion intermitente y antecedente de quemaduras.'
+        );
+    await page
+        .locator('#intake_habitos_tabaco')
+        .fill('Exfumadora desde 2022.');
+
+    await page.locator('#clinicalHistorySaveBtn').click();
+
+    await expect.poll(() => patchPayloads.length).toBe(1);
+    expect(patchPayloads[0].draft.intake).toMatchObject({
+        antecedentes:
+            'Personales: Melasma y peeling previo sin secuelas.\nFamiliares: Padre con melanoma cutaneo.',
+        antecedentesPersonales: 'Melasma y peeling previo sin secuelas.',
+        antecedentesFamiliares: 'Padre con melanoma cutaneo.',
+        fototipoFitzpatrick: 'III',
+        habitosSol:
+            'Exposicion laboral diaria con fotoproteccion intermitente y antecedente de quemaduras.',
+        habitosTabaco: 'Exfumadora desde 2022.',
+    });
+    await expect(page.locator('#intake_antecedentes_familiares')).toHaveValue(
+        'Padre con melanoma cutaneo.'
+    );
+    await expect(page.locator('#intake_fototipo_fitzpatrick')).toHaveValue(
+        'III'
+    );
+});
+
 test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del episodio', async ({
     page,
 }) => {

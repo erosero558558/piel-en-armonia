@@ -3763,6 +3763,113 @@ final class ClinicalHistoryControllerTest extends TestCase
         );
     }
 
+    public function testClinicalRecordPatchPersistsExpandedAnamnesisFields(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Lucia Cedeno',
+                    'email' => 'lucia@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+        self::assertNotEmpty($session['sessionId'] ?? '');
+
+        $_SESSION['csrf_token'] = 'csrf-anamnesis';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-anamnesis';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Control de melasma',
+                        'enfermedadActual' => 'Melasma facial en seguimiento sin empeoramiento reciente.',
+                        'antecedentesPersonales' => 'Peeling quimico previo y acne tratado en adolescencia.',
+                        'antecedentesFamiliares' => 'Padre con melanoma cutaneo.',
+                        'alergias' => 'Niega alergias.',
+                        'medicacionActual' => 'Acido azelaico topico nocturno.',
+                        'fototipoFitzpatrick' => 'III',
+                        'habitosSol' => 'Exposicion laboral diaria con fotoproteccion irregular.',
+                        'habitosTabaco' => 'Exfumadora desde 2022.',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 34,
+                            'pesoKg' => 60,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'preguntasFaltantes' => [],
+                        'hcu005' => [
+                            'evolutionNote' => 'Melasma facial estable con control ambulatorio.',
+                            'diagnosticImpression' => 'Melasma facial en seguimiento.',
+                            'therapeuticPlan' => 'Continuar topicos y fotoproteccion estricta.',
+                            'careIndications' => 'Reforzar fotoproteccion diaria y evitar exposicion pico.',
+                            'prescriptionItems' => [],
+                        ],
+                    ],
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertTrue((bool) ($recordPatch['payload']['ok'] ?? false));
+        self::assertSame(
+            'Personales: Peeling quimico previo y acne tratado en adolescencia.' . "\n" . 'Familiares: Padre con melanoma cutaneo.',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['antecedentes'] ?? '')
+        );
+        self::assertSame(
+            'Peeling quimico previo y acne tratado en adolescencia.',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['antecedentesPersonales'] ?? '')
+        );
+        self::assertSame(
+            'Padre con melanoma cutaneo.',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['antecedentesFamiliares'] ?? '')
+        );
+        self::assertSame(
+            'III',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['fototipoFitzpatrick'] ?? '')
+        );
+        self::assertSame(
+            'Exposicion laboral diaria con fotoproteccion irregular.',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['habitosSol'] ?? '')
+        );
+        self::assertSame(
+            'Exfumadora desde 2022.',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['habitosTabaco'] ?? '')
+        );
+
+        $_GET = ['sessionId' => (string) ($session['sessionId'] ?? '')];
+        $record = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordGet([
+                'isAdmin' => true,
+            ])
+        );
+
+        self::assertSame(200, $record['status']);
+        self::assertSame(
+            'III',
+            (string) ($record['payload']['data']['draft']['intake']['fototipoFitzpatrick'] ?? '')
+        );
+        self::assertSame(
+            'Exfumadora desde 2022.',
+            (string) ($record['payload']['data']['draft']['intake']['habitosTabaco'] ?? '')
+        );
+    }
+
     private function buildAdmission001Payload(array $overrides = []): array
     {
         return array_replace_recursive([

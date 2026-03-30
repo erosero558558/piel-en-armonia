@@ -65,6 +65,15 @@ const CLINICAL_HISTORY_PREGNANCY_CHOICES = Object.freeze([
     { value: 'no', label: 'No' },
     { value: 'yes', label: 'Si' },
 ]);
+const CLINICAL_HISTORY_FITZPATRICK_CHOICES = Object.freeze([
+    { value: '', label: 'Sin dato' },
+    { value: 'I', label: 'I' },
+    { value: 'II', label: 'II' },
+    { value: 'III', label: 'III' },
+    { value: 'IV', label: 'IV' },
+    { value: 'V', label: 'V' },
+    { value: 'VI', label: 'VI' },
+]);
 const CLINICAL_HISTORY_LAB_ORDER_PRIORITY_CHOICES = Object.freeze([
     { value: 'routine', label: 'Rutina' },
     { value: 'urgent', label: 'Urgente' },
@@ -178,6 +187,26 @@ function normalizeTextareaList(value) {
         .split(/\r?\n|,/)
         .map((item) => normalizeString(item))
         .filter(Boolean);
+}
+
+function buildClinicalAntecedentSummary(intake) {
+    const source = intake && typeof intake === 'object' ? intake : {};
+    const personal = normalizeString(source.antecedentesPersonales);
+    const family = normalizeString(source.antecedentesFamiliares);
+    const items = [];
+
+    if (personal) {
+        items.push(`Personales: ${personal}`);
+    }
+    if (family) {
+        items.push(`Familiares: ${family}`);
+    }
+
+    if (items.length > 0) {
+        return items.join('\n');
+    }
+
+    return normalizeString(source.antecedentes);
 }
 
 function formatTextareaList(value) {
@@ -712,8 +741,13 @@ function emptyDraft() {
             motivoConsulta: '',
             enfermedadActual: '',
             antecedentes: '',
+            antecedentesPersonales: '',
+            antecedentesFamiliares: '',
             alergias: '',
             medicacionActual: '',
+            fototipoFitzpatrick: '',
+            habitosSol: '',
+            habitosTabaco: '',
             rosRedFlags: [],
             adjuntos: [],
             resumenClinico: '',
@@ -3866,6 +3900,12 @@ function normalizeDraftSnapshot(draft) {
         typeof intakeSource.datosPaciente === 'object'
             ? intakeSource.datosPaciente
             : {};
+    const antecedentesPersonales = normalizeString(
+        intakeSource.antecedentesPersonales || intakeSource.antecedentes
+    );
+    const antecedentesFamiliares = normalizeString(
+        intakeSource.antecedentesFamiliares
+    );
 
     const reviewStatus =
         normalizeString(source.reviewStatus) || defaults.reviewStatus;
@@ -3966,9 +4006,20 @@ function normalizeDraftSnapshot(draft) {
             ...defaults.intake,
             motivoConsulta: normalizeString(intakeSource.motivoConsulta),
             enfermedadActual: normalizeString(intakeSource.enfermedadActual),
-            antecedentes: normalizeString(intakeSource.antecedentes),
+            antecedentes: buildClinicalAntecedentSummary({
+                antecedentes: intakeSource.antecedentes,
+                antecedentesPersonales,
+                antecedentesFamiliares,
+            }),
+            antecedentesPersonales,
+            antecedentesFamiliares,
             alergias: normalizeString(intakeSource.alergias),
             medicacionActual: normalizeString(intakeSource.medicacionActual),
+            fototipoFitzpatrick: normalizeString(
+                intakeSource.fototipoFitzpatrick
+            ),
+            habitosSol: normalizeString(intakeSource.habitosSol),
+            habitosTabaco: normalizeString(intakeSource.habitosTabaco),
             rosRedFlags: normalizeStringList(intakeSource.rosRedFlags),
             adjuntos: normalizeList(intakeSource.adjuntos).map(
                 normalizeAttachment
@@ -5055,9 +5106,13 @@ function buildClinicalRecordExportHtml(review) {
     const intakeSection = buildClinicalRecordExportFieldGrid([
         ['Motivo de consulta', draft.intake.motivoConsulta],
         ['Enfermedad actual', draft.intake.enfermedadActual],
-        ['Antecedentes', draft.intake.antecedentes],
+        ['Antecedentes personales', draft.intake.antecedentesPersonales],
+        ['Antecedentes familiares', draft.intake.antecedentesFamiliares],
         ['Alergias', draft.intake.alergias],
         ['Medicacion actual', draft.intake.medicacionActual],
+        ['Fototipo Fitzpatrick', draft.intake.fototipoFitzpatrick],
+        ['Habitos de sol', draft.intake.habitosSol],
+        ['Habitos de tabaco', draft.intake.habitosTabaco],
         ['Resumen clinico', draft.intake.resumenClinico],
     ]);
     const hcu005Section = buildClinicalRecordExportFieldGrid([
@@ -8218,7 +8273,7 @@ function buildClinicalHistoryAdmissionSection(review, draft, disabled) {
 function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
     return buildClinicalHistorySection(
         'Intake estructurado',
-        'Motivo de consulta, evolucion y datos del paciente.',
+        'Motivo de consulta, anamnesis y datos del paciente.',
         `
                 ${buildClinicalRedFlagNotice(draft.redFlags)}
                 ${inputField(
@@ -8243,16 +8298,29 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
                 )}
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
-                        'intake_antecedentes',
-                        'Antecedentes',
-                        draft.intake.antecedentes,
+                        'intake_antecedentes_personales',
+                        'Antecedentes personales',
+                        draft.intake.antecedentesPersonales,
                         {
                             rows: 4,
                             placeholder:
-                                'Dermatologicos, familiares, cronicos.',
+                                'Dermatologicos, cronicos, quirurgicos y relevantes.',
                             disabled,
                         }
                     ),
+                    textareaField(
+                        'intake_antecedentes_familiares',
+                        'Antecedentes familiares',
+                        draft.intake.antecedentesFamiliares,
+                        {
+                            rows: 4,
+                            placeholder:
+                                'Cancer de piel, melanoma, acne, rosacea u otros.',
+                            disabled,
+                        }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
                     textareaField(
                         'intake_alergias',
                         'Alergias',
@@ -8263,8 +8331,6 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
                             disabled,
                         }
                     ),
-                ])}
-                ${buildClinicalHistoryInlineGrid([
                     textareaField(
                         'intake_medicacion_actual',
                         'Medicacion actual',
@@ -8275,19 +8341,50 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
                             disabled,
                         }
                     ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    selectField(
+                        'intake_fototipo_fitzpatrick',
+                        'Fototipo Fitzpatrick',
+                        draft.intake.fototipoFitzpatrick,
+                        CLINICAL_HISTORY_FITZPATRICK_CHOICES,
+                        { disabled }
+                    ),
                     textareaField(
-                        'intake_ros_red_flags',
-                        'ROS / red flags',
-                        listToTextarea(draft.intake.rosRedFlags),
+                        'intake_habitos_sol',
+                        'Habitos de sol',
+                        draft.intake.habitosSol,
                         {
                             rows: 4,
                             placeholder:
-                                'Una linea por dato clinico o red flag.',
-                            hint: 'Cada linea se guarda como item separado.',
+                                'Exposicion solar, fotoproteccion, cabinas o quemaduras.',
+                            disabled,
+                        }
+                    ),
+                    textareaField(
+                        'intake_habitos_tabaco',
+                        'Habitos de tabaco',
+                        draft.intake.habitosTabaco,
+                        {
+                            rows: 4,
+                            placeholder:
+                                'Tabaquismo actual, previo, vapeo o exposicion relevante.',
                             disabled,
                         }
                     ),
                 ])}
+                ${textareaField(
+                    'intake_ros_red_flags',
+                    'ROS / red flags',
+                    listToTextarea(draft.intake.rosRedFlags),
+                    {
+                        rows: 4,
+                        placeholder:
+                            'Una linea por dato clinico o red flag.',
+                        hint: 'Cada linea se guarda como item separado.',
+                        disabled,
+                    }
+                )}
                 ${textareaField(
                     'intake_resumen_clinico',
                     'Resumen clinico',
@@ -11121,12 +11218,25 @@ function serializeDraftForm(form, baseDraft) {
     snapshot.intake.enfermedadActual = normalizeString(
         readValue('intake_enfermedad_actual')
     );
-    snapshot.intake.antecedentes = normalizeString(
-        readValue('intake_antecedentes')
+    snapshot.intake.antecedentesPersonales = normalizeString(
+        readValue('intake_antecedentes_personales')
+    );
+    snapshot.intake.antecedentesFamiliares = normalizeString(
+        readValue('intake_antecedentes_familiares')
+    );
+    snapshot.intake.antecedentes = buildClinicalAntecedentSummary(
+        snapshot.intake
     );
     snapshot.intake.alergias = normalizeString(readValue('intake_alergias'));
     snapshot.intake.medicacionActual = normalizeString(
         readValue('intake_medicacion_actual')
+    );
+    snapshot.intake.fototipoFitzpatrick = normalizeString(
+        readValue('intake_fototipo_fitzpatrick')
+    );
+    snapshot.intake.habitosSol = normalizeString(readValue('intake_habitos_sol'));
+    snapshot.intake.habitosTabaco = normalizeString(
+        readValue('intake_habitos_tabaco')
     );
     snapshot.intake.rosRedFlags = serializeTextareaLines(
         readValue('intake_ros_red_flags')
@@ -12812,9 +12922,14 @@ function buildReviewPatch(mode, question) {
             intake: {
                 motivoConsulta: draft.intake.motivoConsulta,
                 enfermedadActual: draft.intake.enfermedadActual,
-                antecedentes: draft.intake.antecedentes,
+                antecedentes: buildClinicalAntecedentSummary(draft.intake),
+                antecedentesPersonales: draft.intake.antecedentesPersonales,
+                antecedentesFamiliares: draft.intake.antecedentesFamiliares,
                 alergias: draft.intake.alergias,
                 medicacionActual: draft.intake.medicacionActual,
+                fototipoFitzpatrick: draft.intake.fototipoFitzpatrick,
+                habitosSol: draft.intake.habitosSol,
+                habitosTabaco: draft.intake.habitosTabaco,
                 rosRedFlags: cloneValue(draft.intake.rosRedFlags),
                 resumenClinico: draft.intake.resumenClinico,
                 preguntasFaltantes: cloneValue(draft.intake.preguntasFaltantes),
