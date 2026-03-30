@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 8:01:28 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 8:18:18 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **34%** completado (49/144)
+`██████░░░░░░░░░░░░░░` **31%** completado (50/163)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 11 | 24 | 31% |
+| 🎯 Sprint 3 | 12 | 42 | 22% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -30,11 +30,21 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (19)
+### 🟢 Disponibles (37)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S3-14** | `[S]` | Métricas de espera — registrar tiempo real de espera por turno. Regist... |
+| **S3-36** | `[S]` | Perfil del médico — en admin settings: formulario para cargar datos de... |
+| **S3-37** | `[S]` | Perfil de clínica — nombre clínica, dirección, teléfono, logo (imagen)... |
+| **S3-41** | `[S]` | CIE-10 autocomplete widget — el backend  ya existe. Falta el frontend:... |
+| **S3-43** | `[S]` | Botón "Emitir certificado" en admin — en la vista del caso del pacient... |
+| **S3-44** | `[S]` | Historial de certificados en admin — en el perfil del paciente, pestañ... |
+| **S3-46** | `[S]` | ComplianceMSP validator — crear  con método  que devuelve lista de cam... |
+| **S3-47** | `[S]` | Health check completo — el endpoint  debe verificar y reportar: estado... |
+| **S3-48** | `[S]` | BLOCKERS.md auto-generado — modificar  para que además de liberar el c... |
+| **S3-49** | `[S]` | npm run status — comando que en una sola ejecución muestra: progreso d... |
+| **S3-50** | `[S]` | Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta ... |
+| **S3-53** | `[S]` | Modo offline del AIRouter — cuando todos los tiers fallan, el Tier 3 (... |
 | **S3-10** | `[M]` | Acciones post-consulta — botones en operador: "Agendar siguiente", "En... |
 | **S3-11** | `[M]` | Ticket con QR —  genera ticket con QR que lleva a . Paciente ve su pos... |
 | **S3-13** | `[M]` | Sala inteligente — en , entre llamadas mostrar: tips de cuidado de pie... |
@@ -45,12 +55,20 @@ _Sprint completado. 24/24 tareas._
 | **S3-28** | `[M]` | Vista de agenda diaria — en admin: agenda del día con pacientes confir... |
 | **S3-33** | `[M]` | Verificación de transferencia — paciente sube foto del comprobante. Ad... |
 | **S3-34** | `[M]` | Estado de cuenta — vista en admin: historial de pagos por paciente, sa... |
+| **S3-38** | `[M]` | Instalación de dompdf — agregar  vía composer: . Sin esto los PDF de c... |
+| **S3-39** | `[M]` | Receta PDF renderer — actualmente  guarda la receta en HCE pero  devue... |
+| **S3-40** | `[M]` | Integrar OpenClaw en admin — en , dentro del panel del caso del pacien... |
+| **S3-42** | `[M]` | Panel de protocolo clínico — cuando el médico selecciona un código CIE... |
+| **S3-45** | `[M]` | Gate checks específicos por tarea — ampliar  para verificar artefactos... |
+| **S3-51** | `[M]` | openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero ... |
+| **S3-52** | `[M]` | Custom GPT instructions — crear  con las instrucciones exactas para co... |
 | **S3-12** | `[L]` | Estimación de espera — calcular tiempo estimado basado en: posición en... |
 | **S3-15** | `[L]` | Formulario de anamnesis — vista en admin: motivo, antecedentes persona... |
 | **S3-16** | `[L]` | Fotografía clínica — captura desde cámara, upload a . Metadata: fecha,... |
 | **S3-17** | `[L]` | Comparación before/after — en admin: dos fotos side-by-side de misma z... |
 | **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
+| **S3-54** | `[L]` | Resumen de consulta para paciente — al cerrar la consulta (), generar ... |
 | **S3-24** | `[XL]` | Booking público — crear : selección de servicio → doctor → fecha → hor... |
 | **S3-29** | `[XL]` | Flujo completo de teleconsulta — paciente solicita →  evalúa →  decide... |
 

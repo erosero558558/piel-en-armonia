@@ -1087,7 +1087,48 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S3-34** `[M]` Estado de cuenta — vista en admin: historial de pagos por paciente, saldos pendientes, próximos vencimientos.
 - [ ] **S3-35** `[L]` `[HUMAN]` Factura SRI — integrar con facturación electrónica del SRI Ecuador. **BLOQUEADO hasta junio 2026:** El médico titular (Dr. Hermano) aún no se gradúa. Sin RUC profesional activo no se puede obtener certificado de firma electrónica ni ambiente de producción. **No tocar hasta julio 2026.** Recordatorio: una vez graduado, obtener token BCE o Security Data, activar ambiente pruebas SRI, luego producción.
 
+#### 3.7 Perfil del médico y configuración clínica
+
+> **Falencia detectada (auditoría 2026-03-29):** Los certificados y recetas generan PDF con "Dr./Dra." y sin registro MSP porque no existe un perfil del médico en el sistema. Sin esto, ningún documento legal tiene validez.
+
+- [ ] **S3-36** `[S]` Perfil del médico — en admin settings: formulario para cargar datos del médico principal: nombre completo, especialidad, número de registro MSP, firma digital (imagen PNG/JPG, se guarda como base64 en `data/config/doctor-profile.json`). `controllers/DoctorProfileController.php` + `GET/POST /api.php?resource=doctor-profile`. Este dato alimenta automáticamente certificados, recetas y evoluciones.
+- [ ] **S3-37** `[S]` Perfil de clínica — nombre clínica, dirección, teléfono, logo (imagen). `data/config/clinic-profile.json`. Alimenta el membrete de todos los PDF. Sin esto el membrete dice "Aurora Derm" hardcoded.
+- [ ] **S3-38** `[M]` Instalación de dompdf — agregar `dompdf/dompdf` vía composer: `composer require dompdf/dompdf`. Sin esto los PDF de certificados y recetas son texto plano (fallback). Verificar que `CertificateController::generatePdfBase64()` detecta automáticamente la librería y la usa. Test: `GET /api.php?resource=certificate&id=X&format=pdf` debe devolver `Content-Type: application/pdf` con diseño completo.
+- [ ] **S3-39** `[M]` Receta PDF renderer — actualmente `OpenclawController::savePrescription()` guarda la receta en HCE pero `GET /api.php?resource=openclaw-prescription&id=X&format=pdf` devuelve 404. Crear `PrescriptionPdfRenderer.php` en `lib/openclaw/`: genera HTML con membrete de la clínica, datos del médico (MSP), datos del paciente, lista de medicamentos (nombre genérico, dosis, frecuencia, duración, indicaciones). Usar mismo sistema dompdf/fallback que `CertificateController`. URL WhatsApp lista al final del endpoint de prescripción.
+
+#### 3.8 OpenClaw — Frontend e integración admin
+
+> **Falencia detectada:** El backend de OpenClaw está completo (12 endpoints), pero `admin.html` no carga `openclaw-chat.js` en ninguna condición. El médico no puede usar la herramienta principal del producto.
+
+- [ ] **S3-40** `[M]` Integrar OpenClaw en admin — en `admin.html`, dentro del panel del caso del paciente (vista detalle), agregar un botón flotante "🩺 OpenClaw" o una pestaña "Copiloto". Al hacer clic, abre el widget `openclaw-chat.js` cargado dinámicamente con el `case_id` del paciente activo. El chat ya sabe quién es el paciente porque llama al endpoint `openclaw-patient` con ese ID. Sin esto, el médico no puede usar la IA.
+- [ ] **S3-41** `[S]` CIE-10 autocomplete widget — el backend `GET /api.php?resource=openclaw-cie10-suggest&q=dermatitis` ya existe. Falta el frontend: en el campo de diagnóstico de la HCE en admin, mientras el médico escribe, hacer un `debounce(200ms)` + fetch al endpoint y mostrar un dropdown con los resultados. Al seleccionar: llenar el campo con código + descripción. Archivo: `js/cie10-autocomplete.js`. Cargar en admin con `<script src="js/cie10-autocomplete.js">`.
+- [ ] **S3-42** `[M]` Panel de protocolo clínico — cuando el médico selecciona un código CIE-10, hacer `GET /api.php?resource=openclaw-protocol&code=L20.0` y mostrar un panel lateral colapsable (slide-in desde la derecha) con: primera línea de tratamiento, medicamentos sugeridos (con botón "Agregar a receta"), seguimiento, instrucciones para el paciente. El médico puede aceptar todo de un click o ignorar. Estilo coherente con `main-aurora.css`.
+- [ ] **S3-43** `[S]` Botón "Emitir certificado" en admin — en la vista del caso del paciente en `admin.html`, agregar botón "📋 Certificado". Al hacer clic: modal con formulario (tipo de certificado, días de reposo si aplica, diagnóstico CIE-10 autocompletado, observaciones). Al confirmar: `POST /api.php?resource=certificate` → mostrar link de descarga PDF + botón WhatsApp. El folio aparece en pantalla para el médico.
+- [ ] **S3-44** `[S]` Historial de certificados en admin — en el perfil del paciente, pestaña "Documentos": lista de certificados emitidos (folio, tipo, fecha). Botón "Descargar" por cada uno. `GET /api.php?resource=certificate&case_id=X`.
+
+#### 3.9 Calidad y validación del sistema
+
+> **Falencia detectada:** `gate.js` da PASS a S3-19 sin verificar que la receta realmente funcione. Dice "no specific check" para la mayoría de tareas. No hay validación real.
+
+- [ ] **S3-45** `[M]` Gate checks específicos por tarea — ampliar `bin/gate.js` para verificar artefactos concretos por tarea. Ejemplos: S3-19 → verificar que existe `controllers/PrescriptionController.php` O que `controllers/OpenclawController.php` tiene el método `savePrescription` con PDF. S3-24 → verificar que existe `es/agendar/index.html`. S3-36 → verificar `controllers/DoctorProfileController.php`. Mapa de checks en `bin/lib/gate-checks.js`. Output debe ser PASS/FAIL con evidencia.
+- [ ] **S3-46** `[S]` ComplianceMSP validator — crear `lib/clinical_history/ComplianceMSP.php` con método `validate(array $record): array` que devuelve lista de campos faltantes según formulario SNS-MSP/HCU-form.002. Campos mínimos: `patient_name`, `patient_id`, `reason_for_visit`, `physical_exam`, `cie10_code`, `cie10_type (PRE|DEF)`, `treatment_plan`, `evolution_note`, `doctor_msp`. Badge rojo en admin si incompleto al intentar cerrar la consulta.
+- [ ] **S3-47** `[S]` Health check completo — el endpoint `GET /api.php?resource=health` debe verificar y reportar: estado de cada tier del AIRouter (Codex disponible, OpenRouter disponible, local disponible), archivos de datos existentes (`data/cie10.json`, `data/protocols/`, `data/drug-interactions.json`), perfil doctor cargado, perfil clínica cargado. Respuesta JSON: `{ ok, tiers, data_files, doctor_profile, clinic_profile }`.
+
+#### 3.10 Herramientas de gobernanza adicionales
+
+- [ ] **S3-48** `[S]` BLOCKERS.md auto-generado — modificar `bin/stuck.js` para que además de liberar el claim, escriba la entrada en `BLOCKERS.md` con: tarea, razón, fecha, agente. Ya existe el archivo. Verificar que el flujo completo funciona: `node bin/stuck.js S3-XX "razón"` → libera claim → escribe en BLOCKERS.md → hace commit automático.
+- [ ] **S3-49** `[S]` npm run status — comando que en una sola ejecución muestra: progreso del sprint (%), claims activos, ramas pendientes de merge, velocidad actual, próxima fecha de revisión. Combinar output de `report.js` + `velocity.js --json` + `merge-ready.js --json`. Guardarlo como `bin/status.js`. Agregar a `package.json`.
+- [ ] **S3-50** `[S]` Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta `bin/stuck.js`, además de liberar el claim, enviar un mensaje WhatsApp al número del director (`AURORADERM_DIRECTOR_PHONE` en env) con: qué tarea se bloqueó, quién la tenía, razón. Usar la misma función de WhatsApp que ya existe en el sistema.
+
+#### 3.11 OpenClaw — Integraciones externas
+
+- [ ] **S3-51** `[M]` openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero hay 12 endpoints en el backend. Verificar que el YAML tiene todos: `openclaw-patient`, `openclaw-cie10-suggest`, `openclaw-protocol`, `openclaw-chat`, `openclaw-save-diagnosis`, `openclaw-save-evolution`, `openclaw-prescription`, `openclaw-certificate`, `openclaw-interactions`, `openclaw-summarize`, `openclaw-router-status`. Agregar los que falten con schema correcto. Este YAML es el que se carga en el Custom GPT de ChatGPT para que el médico use desde ChatGPT directamente.
+- [ ] **S3-52** `[M]` Custom GPT instructions — crear `docs/chatgpt-custom-gpt-instructions.md` con las instrucciones exactas para configurar el Custom GPT de ChatGPT: nombre ("Aurora Derm OpenClaw"), descripción, instrucciones del sistema (rol del GPT, cómo usar los actions, lenguaje español), URL del servidor, autenticación OAuth. El médico copia esto al crear su GPT en platform.openai.com. Sin esto no puede usar la integración ChatGPT↔Aurora Derm.
+- [ ] **S3-53** `[S]` Modo offline del AIRouter — cuando todos los tiers fallan, el Tier 3 (heurística local) debe devolver respuestas útiles pre-construidas para los casos más comunes en dermatología: "¿qué es esto en la piel?" → template de diagnóstico diferencial, "genera receta" → template de receta en blanco, "genera certificado" → redirigir a botón de certificado. El médico debe saber que está en modo offline: badge visible "🔴 IA sin conexión — modo local".
+- [ ] **S3-54** `[L]` Resumen de consulta para paciente — al cerrar la consulta (`openclaw-summarize`), generar automáticamente un mensaje WhatsApp para el paciente con: diagnóstico en lenguaje no técnico, medicamentos con instrucciones de toma, fecha del próximo control, 3 señales de alarma cuando debe consultar urgente. El médico puede editar el mensaje antes de enviarlo. Un click: enviado.
+
 ---
+
 
 ### 🔵 Sprint 4 — Escalar el negocio
 
