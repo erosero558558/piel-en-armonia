@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:27:27 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:29:43 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **38%** completado (142/373)
+`███████░░░░░░░░░░░░░` **37%** completado (144/393)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 61 | 6 | 91% |
+| 🎯 Sprint 3 | 62 | 5 | 93% |
 | ⏸ Sprint 4 | 15 | 11 | 58% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -25,7 +25,8 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 9 | 1 | 26 | 4% |
 | ⏸ Sprint 10 | 0 | 30 | 0% |
 | ⏸ Sprint 12 | 0 | 26 | 0% |
-| ⏸ Sprint 13 | 0 | 21 | 0% |
+| ⏸ Sprint 13 | 1 | 20 | 5% |
+| ⏸ Sprint UI | 0 | 20 | 0% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -38,11 +39,10 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (5)
+### 🟢 Disponibles (4)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S3-38** | `[S3]` | M |
 | **S3-44** | `[S3]` | S |
 | **S3-46** | `[S3]` | S |
 | **S3-47** | `[S3]` | S |
@@ -191,7 +191,7 @@ _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 30 tareas pendientes._
 
-### 🟢 Disponibles (30)
+### 🟢 Disponibles (29)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -200,7 +200,11 @@ _Esperando que Sprint anterior esté completo. 30 tareas pendientes._
 | **S10-03** | `[S10]` | S |
 | **S10-04** | `[S10]` | M |
 | **S10-05** | `[S10]` | M |
-| ... | | _+25 más_ |
+| ... | | _+24 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S10-11** `[S10]` → _antigravity_ (expira en 480min)
 
 ## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
 _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
@@ -217,7 +221,7 @@ _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 | ... | | _+21 más_ |
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Esperando que Sprint anterior esté completo. 21 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 
 ### 🟢 Disponibles (20)
 
@@ -230,9 +234,19 @@ _Esperando que Sprint anterior esté completo. 21 tareas pendientes._
 | **S13-04** | `[S13]` | M |
 | ... | | _+15 más_ |
 
-### 🔒 En progreso — NO tomar
+## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
+_Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 
-- **S13-12** `[S13]` → _Codex-erosero558558_ (expira en 240min)
+### 🟢 Disponibles (20)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **UI3-01** | `[UI3]` | M |
+| **UI3-02** | `[UI3]` | S |
+| **UI3-03** | `[UI3]` | M |
+| **UI3-04** | `[UI3]` | M |
+| **UI3-05** | `[UI3]` | M |
+| ... | | _+15 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
