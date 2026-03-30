@@ -1229,11 +1229,29 @@ function buildClinicalRecordPayload({
                     legalReadiness.status === 'ready'
                         ? 'Sin antecedentes dermatologicos de alarma.'
                         : '',
+                antecedentesPersonales:
+                    legalReadiness.status === 'ready'
+                        ? 'Sin antecedentes dermatologicos de alarma.'
+                        : '',
+                antecedentesFamiliares:
+                    legalReadiness.status === 'ready'
+                        ? 'Madre con rosacea en seguimiento.'
+                        : '',
                 alergias:
                     legalReadiness.status === 'ready'
                         ? 'Niega alergias medicamentosas.'
                         : '',
                 medicacionActual: '',
+                fototipoFitzpatrick:
+                    legalReadiness.status === 'ready' ? 'III' : '',
+                habitosSol:
+                    legalReadiness.status === 'ready'
+                        ? 'Exposicion recreativa; usa FPS 50 a diario.'
+                        : '',
+                habitosTabaco:
+                    legalReadiness.status === 'ready'
+                        ? 'Niega consumo de tabaco.'
+                        : '',
                 rosRedFlags: ['ardor'],
                 adjuntos: [
                     {
@@ -2168,6 +2186,21 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     await expect(
         page.locator('#admission_identity_document_number')
     ).toHaveValue('0912345678');
+    await expect(page.locator('#intake_antecedentes_personales')).toHaveValue(
+        'Sin antecedentes dermatologicos de alarma.'
+    );
+    await expect(page.locator('#intake_antecedentes_familiares')).toHaveValue(
+        'Madre con rosacea en seguimiento.'
+    );
+    await expect(page.locator('#intake_fototipo_fitzpatrick')).toHaveValue(
+        'III'
+    );
+    await expect(page.locator('#intake_habitos_sol')).toHaveValue(
+        'Exposicion recreativa; usa FPS 50 a diario.'
+    );
+    await expect(page.locator('#intake_habitos_tabaco')).toHaveValue(
+        'Niega consumo de tabaco.'
+    );
     await expect(page.locator('#hcu005_prescription_0_medication')).toHaveValue(
         'Metronidazol topico'
     );
@@ -4936,6 +4969,10 @@ test('exporta la HCE completa desde admin en una vista imprimible con readiness 
     await expect(popup.locator('body')).toContainText('Lista para aprobar');
     await expect(popup.locator('body')).toContainText(
         'Dermatitis facial cronica en control con evolucion estable.'
+    );
+    await expect(popup.locator('body')).toContainText('Fototipo Fitzpatrick');
+    await expect(popup.locator('body')).toContainText(
+        'Exposicion recreativa; usa FPS 50 a diario.'
     );
     await expect(popup.locator('body')).toContainText('Imprimir / Guardar PDF');
 });

@@ -131,8 +131,13 @@ final class ClinicalHistoryControllerTest extends TestCase
             'intakePatch' => [
                 'motivoConsulta' => 'Placas pruriginosas',
                 'enfermedadActual' => 'Lesiones pruriginosas de 2 semanas',
+                'antecedentesPersonales' => 'Dermatitis atopica en la infancia',
+                'antecedentesFamiliares' => 'Madre con dermatitis atopica',
                 'alergias' => 'Alergia a penicilina',
                 'medicacionActual' => 'Cetirizina',
+                'fototipoFitzpatrick' => 'III',
+                'habitosSol' => 'Exposicion escolar ocasional con uso irregular de protector',
+                'habitosTabaco' => 'Niega consumo de tabaco',
                 'datosPaciente' => [
                     'edadAnios' => 14,
                     'pesoKg' => 42,
@@ -232,6 +237,30 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame(
             'complete',
             (string) ($review['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
+        );
+        self::assertSame(
+            'Dermatitis atopica en la infancia',
+            (string) ($review['payload']['data']['draft']['intake']['antecedentesPersonales'] ?? '')
+        );
+        self::assertSame(
+            'Madre con dermatitis atopica',
+            (string) ($review['payload']['data']['draft']['intake']['antecedentesFamiliares'] ?? '')
+        );
+        self::assertSame(
+            "Personales: Dermatitis atopica en la infancia\nFamiliares: Madre con dermatitis atopica",
+            (string) ($review['payload']['data']['draft']['intake']['antecedentes'] ?? '')
+        );
+        self::assertSame(
+            'III',
+            (string) ($review['payload']['data']['draft']['intake']['fototipoFitzpatrick'] ?? '')
+        );
+        self::assertSame(
+            'Exposicion escolar ocasional con uso irregular de protector',
+            (string) ($review['payload']['data']['draft']['intake']['habitosSol'] ?? '')
+        );
+        self::assertSame(
+            'Niega consumo de tabaco',
+            (string) ($review['payload']['data']['draft']['intake']['habitosTabaco'] ?? '')
         );
 
         self::assertSame('blocked', (string) ($review['payload']['data']['legalReadiness']['status'] ?? ''));
@@ -363,7 +392,11 @@ final class ClinicalHistoryControllerTest extends TestCase
                     'intake' => [
                         'motivoConsulta' => 'Rosacea inflamatoria',
                         'enfermedadActual' => 'Brote facial de varias semanas',
-                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'antecedentesPersonales' => 'Niega antecedentes dermatologicos personales',
+                        'antecedentesFamiliares' => 'Madre con rosacea',
+                        'fototipoFitzpatrick' => 'III',
+                        'habitosSol' => 'Exposicion recreativa con protector diario',
+                        'habitosTabaco' => 'Niega consumo de tabaco',
                         'preguntasFaltantes' => [],
                         'datosPaciente' => [
                             'edadAnios' => 33,
@@ -443,6 +476,30 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame(
             'hcu024_consent_incomplete',
             (string) ($recordPatch['payload']['data']['approvalBlockedReasons'][0]['code'] ?? '')
+        );
+        self::assertSame(
+            'Niega antecedentes dermatologicos personales',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['antecedentesPersonales'] ?? '')
+        );
+        self::assertSame(
+            'Madre con rosacea',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['antecedentesFamiliares'] ?? '')
+        );
+        self::assertSame(
+            "Personales: Niega antecedentes dermatologicos personales\nFamiliares: Madre con rosacea",
+            (string) ($recordPatch['payload']['data']['draft']['intake']['antecedentes'] ?? '')
+        );
+        self::assertSame(
+            'III',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['fototipoFitzpatrick'] ?? '')
+        );
+        self::assertSame(
+            'Exposicion recreativa con protector diario',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['habitosSol'] ?? '')
+        );
+        self::assertSame(
+            'Niega consumo de tabaco',
+            (string) ($recordPatch['payload']['data']['draft']['intake']['habitosTabaco'] ?? '')
         );
 
         $blockedApprove = $this->captureResponse(
