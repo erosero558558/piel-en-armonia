@@ -202,6 +202,7 @@ final class PatientCaseFlowTest extends TestCase
             'dailySeq' => 1,
             'queueType' => 'walk_in',
             'patientInitials' => 'EC',
+            'visitReason' => 'procedimiento',
             'status' => 'waiting',
             'createdAt' => date('c'),
             'createdSource' => 'kiosk',
@@ -238,6 +239,22 @@ final class PatientCaseFlowTest extends TestCase
         $this->assertSame(
             (string) ($queueCase['id'] ?? ''),
             (string) ($adminResponse['payload']['data']['patientFlowMeta']['journeyHistory']['selectedCaseId'] ?? '')
+        );
+        $this->assertSame(
+            'Procedimiento',
+            (string) (($queueCase['summary']['latestVisitReasonLabel'] ?? ''))
+        );
+        $journeyCase = $this->findJourneyCaseByCaseId(
+            $adminResponse['payload']['data']['patientFlowMeta']['journeyPreview']['cases'] ?? [],
+            (string) ($queueCase['id'] ?? '')
+        );
+        $this->assertNotNull($journeyCase);
+        $this->assertSame('scheduled', (string) ($journeyCase['displayStage'] ?? ''));
+        $this->assertSame('Agenda', (string) ($journeyCase['ownerLabel'] ?? ''));
+        $this->assertNotEmpty($journeyCase['journeyHistory'] ?? []);
+        $this->assertContains(
+            'scheduled',
+            array_column($journeyCase['journeyHistory'] ?? [], 'displayStage')
         );
 
         $_GET['caseId'] = (string) ($queueCase['id'] ?? '');

@@ -329,6 +329,8 @@ final class PatientCaseService
                 'payload' => [
                     'ticketId' => $ticketId > 0 ? (string) $ticketId : '',
                     'status' => 'arrived',
+                    'visitReason' => (string) ($ticket['visitReason'] ?? ''),
+                    'visitReasonLabel' => (string) ($ticket['visitReasonLabel'] ?? ''),
                 ],
                 'createdAt' => $createdAt,
             ];
@@ -349,6 +351,8 @@ final class PatientCaseService
                 'payload' => [
                     'ticketId' => $ticketId > 0 ? (string) $ticketId : '',
                     'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
+                    'visitReason' => (string) ($ticket['visitReason'] ?? ''),
+                    'visitReasonLabel' => (string) ($ticket['visitReasonLabel'] ?? ''),
                 ],
                 'createdAt' => $createdAt,
             ];
@@ -936,6 +940,10 @@ final class PatientCaseService
         ]);
         $summary['queueStatus'] = (string) ($ticket['status'] ?? 'waiting');
         $summary['assignedConsultorio'] = $ticket['assignedConsultorio'] ?? null;
+        if (trim((string) ($ticket['visitReason'] ?? '')) !== '') {
+            $summary['latestVisitReason'] = (string) ($ticket['visitReason'] ?? '');
+            $summary['latestVisitReasonLabel'] = (string) ($ticket['visitReasonLabel'] ?? '');
+        }
         $summary['patientLabel'] = $this->firstNonEmptyString([
             isset($summary['patientLabel']) ? (string) $summary['patientLabel'] : '',
             (string) ($ticket['patientInitials'] ?? ''),

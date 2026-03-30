@@ -101,6 +101,7 @@ class TicketPrinter
         $queueType = (string) ($ticket['queueType'] ?? 'walk_in');
         $createdAt = (string) ($ticket['createdAt'] ?? local_date('c'));
         $priority = (string) ($ticket['priorityClass'] ?? 'walk_in');
+        $visitReason = (string) ($ticket['visitReasonLabel'] ?? $ticket['visitReason'] ?? '');
         $consultorio = $ticket['assignedConsultorio'] ?? null;
 
         $lines = [
@@ -110,6 +111,7 @@ class TicketPrinter
             'Turno: ' . ($ticketCode !== '' ? $ticketCode : 'A-000'),
             'Iniciales: ' . ($initials !== '' ? $initials : 'PA'),
             'Tipo: ' . ($queueType === 'appointment' ? 'Cita' : 'Walk-in'),
+            'Motivo: ' . ($visitReason !== '' ? $visitReason : '-'),
             'Prioridad: ' . $this->priorityLabel($priority),
             'Hora: ' . $this->printableDateTime($createdAt),
             'Consultorio: ' . ($consultorio === null ? '-' : (string) $consultorio),
@@ -169,4 +171,3 @@ class TicketPrinter
         return 'Walk-in';
     }
 }
-

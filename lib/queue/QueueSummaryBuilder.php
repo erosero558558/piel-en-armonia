@@ -96,6 +96,8 @@ final class QueueSummaryBuilder
                 'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
                 'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
                 'priorityClass' => (string) ($ticket['priorityClass'] ?? 'walk_in'),
+                'visitReason' => (string) ($ticket['visitReason'] ?? ''),
+                'visitReasonLabel' => (string) ($ticket['visitReasonLabel'] ?? ''),
                 'position' => $index + 1,
                 'createdAt' => (string) ($ticket['createdAt'] ?? ''),
                 'needsAssistance' => (bool) ($ticket['needsAssistance'] ?? ($activeHelp !== null)),

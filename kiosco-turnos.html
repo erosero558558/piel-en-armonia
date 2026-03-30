@@ -314,6 +314,56 @@
                             placeholder="EP"
                         />
 
+                        <fieldset class="kiosk-reason-fieldset">
+                            <legend>Motivo de atención</legend>
+                            <p class="kiosk-form-hint">
+                                Selecciona la opción más cercana antes de generar tu turno.
+                            </p>
+                            <div class="kiosk-reason-grid">
+                                <label class="kiosk-reason-option" for="walkinReasonGeneral">
+                                    <input
+                                        id="walkinReasonGeneral"
+                                        type="radio"
+                                        name="walkinVisitReason"
+                                        value="consulta_general"
+                                        checked
+                                    />
+                                    <span>Consulta general</span>
+                                    <small>Primera valoración o molestia general.</small>
+                                </label>
+                                <label class="kiosk-reason-option" for="walkinReasonControl">
+                                    <input
+                                        id="walkinReasonControl"
+                                        type="radio"
+                                        name="walkinVisitReason"
+                                        value="control"
+                                    />
+                                    <span>Control</span>
+                                    <small>Seguimiento de una atención previa.</small>
+                                </label>
+                                <label class="kiosk-reason-option" for="walkinReasonProcedure">
+                                    <input
+                                        id="walkinReasonProcedure"
+                                        type="radio"
+                                        name="walkinVisitReason"
+                                        value="procedimiento"
+                                    />
+                                    <span>Procedimiento</span>
+                                    <small>Láser, curación o intervención programada.</small>
+                                </label>
+                                <label class="kiosk-reason-option" for="walkinReasonUrgent">
+                                    <input
+                                        id="walkinReasonUrgent"
+                                        type="radio"
+                                        name="walkinVisitReason"
+                                        value="urgencia"
+                                    />
+                                    <span>Urgencia</span>
+                                    <small>Malestar severo, sangrado o reacción importante.</small>
+                                </label>
+                            </div>
+                        </fieldset>
+
                         <label for="walkinPhone">Telefono (opcional)</label>
                         <input
                             id="walkinPhone"

@@ -113,6 +113,20 @@ const KIOSK_WELCOME_HIDE_MS = 1800;
 const KIOSK_WELCOME_REMOVE_MS = 2600;
 const KIOSK_VOICE_GUIDE_LANG = 'es-EC';
 const KIOSK_HEARTBEAT_MS = 15000;
+const WALKIN_VISIT_REASON_OPTIONS = {
+    consulta_general: {
+        label: 'Consulta general',
+    },
+    control: {
+        label: 'Control',
+    },
+    procedimiento: {
+        label: 'Procedimiento',
+    },
+    urgencia: {
+        label: 'Urgencia',
+    },
+};
 
 function hideKioskSurfaceOpsPanel(panel) {
     if (!panel || typeof panel !== 'object') {
@@ -262,6 +276,39 @@ function normalizeStoredBoolean(rawValue, fallbackValue = false) {
     return Boolean(fallbackValue);
 }
 
+function normalizeWalkInVisitReason(value, fallback = 'consulta_general') {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+    if (normalized && WALKIN_VISIT_REASON_OPTIONS[normalized]) {
+        return normalized;
+    }
+    return fallback;
+}
+
+function walkInVisitReasonLabel(reason) {
+    const normalized = normalizeWalkInVisitReason(reason, '');
+    return WALKIN_VISIT_REASON_OPTIONS[normalized]?.label || '';
+}
+
+function readWalkInVisitReason() {
+    const selectedInput = document.querySelector(
+        'input[name="walkinVisitReason"]:checked'
+    );
+    if (!(selectedInput instanceof HTMLInputElement)) {
+        return {
+            value: '',
+            label: '',
+        };
+    }
+
+    const value = normalizeWalkInVisitReason(selectedInput.value, '');
+    return {
+        value,
+        label: walkInVisitReasonLabel(value),
+    };
+}
+
 function normalizePrinterStateStorage(rawValue) {
     const parsed = parseStructuredStorageValue(rawValue);
     if (!parsed || Array.isArray(parsed)) {
@@ -301,6 +348,7 @@ function normalizeOfflineOutboxStorage(rawValue) {
             originLabel: String(item?.originLabel || 'Solicitud offline'),
             patientInitials: String(item?.patientInitials || '--'),
             queueType: String(item?.queueType || '--'),
+            visitReasonLabel: String(item?.visitReasonLabel || ''),
             renderMode:
                 String(item?.renderMode || 'ticket').toLowerCase() === 'support'
                     ? 'support'
@@ -3641,7 +3689,7 @@ function focusFlowTarget(target, { announce = true } = {}) {
     if (announce) {
         setKioskProgressHint(
             normalized === 'walkin'
-                ? 'Paso 2: escribe iniciales y pulsa "Generar turno".'
+                ? 'Paso 2: confirma el motivo, escribe tus iniciales y pulsa "Generar turno".'
                 : 'Paso 2: escanea tu QR o escribe telefono, fecha y hora.',
             'info'
         );
@@ -3649,6 +3697,29 @@ function focusFlowTarget(target, { announce = true } = {}) {
     emitQueueOpsEvent('flow_focus', {
         target: normalized,
     });
+}
+
+function handleWalkInVisitReasonChange(event) {
+    const input = event?.target;
+    if (!(input instanceof HTMLInputElement) || input.checked !== true) {
+        return;
+    }
+
+    if (state.selectedFlow !== 'walkin') {
+        return;
+    }
+
+    const visitReason = normalizeWalkInVisitReason(
+        input.value,
+        'consulta_general'
+    );
+    const label = walkInVisitReasonLabel(visitReason);
+    setKioskProgressHint(
+        visitReason === 'urgencia'
+            ? 'Motivo marcado como urgencia. Completa iniciales y genera el turno.'
+            : `Motivo: ${label}. Completa iniciales y pulsa "Generar turno".`,
+        visitReason === 'urgencia' ? 'warn' : 'info'
+    );
 }
 
 function getQueueStateArray(source, keys) {
@@ -3815,6 +3886,21 @@ function normalizeQueueStatePayload(rawState) {
                       ticket?.priorityClass ||
                           ticket?.priority_class ||
                           'walk_in'
+                  ),
+                  visitReason: String(
+                      ticket?.visitReason || ticket?.visit_reason || ''
+                  ),
+                  visitReasonLabel: String(
+                      ticket?.visitReasonLabel ||
+                          ticket?.visit_reason_label ||
+                          walkInVisitReasonLabel(
+                              ticket?.visitReason || ticket?.visit_reason || ''
+                          ) ||
+                          (String(
+                              ticket?.queueType || ticket?.queue_type || ''
+                          ) === 'walk_in'
+                              ? walkInVisitReasonLabel('consulta_general')
+                              : '')
                   ),
                   needsAssistance: Boolean(
                       ticket?.needsAssistance ?? ticket?.needs_assistance
@@ -4965,6 +5051,20 @@ function renderTicketResult(payload, originLabel) {
         queueType: String(
             rawTicket?.queueType || rawTicket?.queue_type || 'walk_in'
         ),
+        visitReason: String(
+            rawTicket?.visitReason || rawTicket?.visit_reason || ''
+        ),
+        visitReasonLabel: String(
+            rawTicket?.visitReasonLabel ||
+                rawTicket?.visit_reason_label ||
+                walkInVisitReasonLabel(
+                    rawTicket?.visitReason || rawTicket?.visit_reason || ''
+                ) ||
+                (String(rawTicket?.queueType || rawTicket?.queue_type || '') ===
+                'walk_in'
+                    ? walkInVisitReasonLabel('consulta_general')
+                    : '')
+        ),
         createdAt: String(
             rawTicket?.createdAt ||
                 rawTicket?.created_at ||
@@ -4980,6 +5080,9 @@ function renderTicketResult(payload, originLabel) {
     const currentPosition =
         nextTickets.find((item) => Number(item.id) === Number(ticket.id))
             ?.position || '-';
+    const visitReasonRow = ticket.visitReasonLabel
+        ? `<div><dt>Motivo</dt><dd>${escapeHtml(ticket.visitReasonLabel)}</dd></div>`
+        : '';
 
     const printState = payload?.printed
         ? 'Impresion enviada a termica'
@@ -4996,6 +5099,7 @@ function renderTicketResult(payload, originLabel) {
             <dl>
                 <div><dt>Posicion</dt><dd>#${escapeHtml(currentPosition)}</dd></div>
                 <div><dt>Tipo</dt><dd>${escapeHtml(ticket.queueType || '--')}</dd></div>
+                ${visitReasonRow}
                 <div><dt>Creado</dt><dd>${escapeHtml(formatIsoDateTime(ticket.createdAt))}</dd></div>
             </dl>
             <p class="ticket-result-print">${printState}</p>
@@ -5007,10 +5111,14 @@ function renderPendingTicketResult({
     originLabel,
     patientInitials,
     queueType,
+    visitReasonLabel = '',
     queuedAt,
 }) {
     const container = getById('ticketResult');
     if (!container) return;
+    const visitReasonRow = visitReasonLabel
+        ? `<div><dt>Motivo</dt><dd>${escapeHtml(visitReasonLabel)}</dd></div>`
+        : '';
 
     container.innerHTML = `
         <article class="ticket-result-card">
@@ -5023,6 +5131,7 @@ function renderPendingTicketResult({
             <dl>
                 <div><dt>Posicion</dt><dd>Pendiente sync</dd></div>
                 <div><dt>Tipo</dt><dd>${escapeHtml(queueType || '--')}</dd></div>
+                ${visitReasonRow}
                 <div><dt>Guardado</dt><dd>${escapeHtml(formatIsoDateTime(queuedAt))}</dd></div>
             </dl>
             <p class="ticket-result-print">Se sincronizara automaticamente al recuperar conexion.</p>
@@ -5067,6 +5176,7 @@ function queueOfflineRequest({
     originLabel,
     patientInitials,
     queueType,
+    visitReasonLabel = '',
     renderMode = 'ticket',
 }) {
     const safeResource = String(resource || '');
@@ -5102,6 +5212,7 @@ function queueOfflineRequest({
         originLabel: String(originLabel || 'Solicitud offline'),
         patientInitials: String(patientInitials || '--'),
         queueType: String(queueType || '--'),
+        visitReasonLabel: String(visitReasonLabel || ''),
         renderMode:
             String(renderMode || 'ticket').toLowerCase() === 'support'
                 ? 'support'
@@ -5409,6 +5520,7 @@ async function submitWalkIn(event) {
     const patientInitials = initialsRaw || deriveInitials(name);
     const phone =
         phoneInput instanceof HTMLInputElement ? phoneInput.value.trim() : '';
+    const visitReason = readWalkInVisitReason();
 
     if (!patientInitials) {
         setKioskStatus(
@@ -5417,6 +5529,18 @@ async function submitWalkIn(event) {
         );
         setKioskProgressHint(
             'Escribe iniciales para generar tu turno.',
+            'warn'
+        );
+        return;
+    }
+
+    if (!visitReason.value) {
+        setKioskStatus(
+            'Selecciona el motivo de atencion antes de generar el turno',
+            'error'
+        );
+        setKioskProgressHint(
+            'Marca Consulta general, Control, Procedimiento o Urgencia para continuar.',
             'warn'
         );
         return;
@@ -5431,6 +5555,8 @@ async function submitWalkIn(event) {
             patientInitials,
             name,
             phone,
+            visitReason: visitReason.value,
+            visitReasonLabel: visitReason.label,
         };
         const payload = await apiRequest('queue-ticket', {
             method: 'POST',
@@ -5438,8 +5564,10 @@ async function submitWalkIn(event) {
         });
         setKioskStatus('Turno walk-in registrado correctamente', 'success');
         setKioskProgressHint(
-            'Turno generado. Conserva tu ticket y espera llamado.',
-            'success'
+            visitReason.value === 'urgencia'
+                ? 'Turno urgente generado. Recepcion vera la prioridad desde la cola.'
+                : 'Turno generado. Conserva tu ticket y espera llamado.',
+            visitReason.value === 'urgencia' ? 'warn' : 'success'
         );
         renderTicketResult(payload, 'Turno sin cita');
         state.queueFailureStreak = 0;
@@ -5458,10 +5586,13 @@ async function submitWalkIn(event) {
                     patientInitials,
                     name,
                     phone,
+                    visitReason: visitReason.value,
+                    visitReasonLabel: visitReason.label,
                 },
                 originLabel: 'Turno sin cita',
                 patientInitials,
                 queueType: 'walk_in',
+                visitReasonLabel: visitReason.label,
             });
             if (queued) {
                 setQueueConnectionStatus('offline', 'Sin conexion al backend');
@@ -5472,6 +5603,7 @@ async function submitWalkIn(event) {
                     originLabel: queued.originLabel,
                     patientInitials: queued.patientInitials,
                     queueType: queued.queueType,
+                    visitReasonLabel: queued.visitReasonLabel,
                     queuedAt: queued.queuedAt,
                 });
                 setKioskStatus(
@@ -6338,6 +6470,13 @@ function initKiosk() {
     if (assistantForm instanceof HTMLFormElement) {
         assistantForm.addEventListener('submit', submitAssistant);
     }
+    document
+        .querySelectorAll('input[name="walkinVisitReason"]')
+        .forEach((input) => {
+            if (input instanceof HTMLInputElement) {
+                input.addEventListener('change', handleWalkInVisitReasonChange);
+            }
+        });
     bindKioskStarControls();
     setKioskHelpPanelOpen(false, { source: 'init' });
 

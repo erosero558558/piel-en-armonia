@@ -45,6 +45,19 @@ async function openKioskSupportShell(page) {
     });
 }
 
+async function selectWalkInReason(page, reason) {
+    const selectorByReason = {
+        consulta_general: '#walkinReasonGeneral',
+        control: '#walkinReasonControl',
+        procedimiento: '#walkinReasonProcedure',
+        urgencia: '#walkinReasonUrgent',
+    };
+    const selector =
+        selectorByReason[String(reason || 'consulta_general')] ||
+        selectorByReason.consulta_general;
+    await page.locator(selector).check();
+}
+
 test.describe('Kiosco turnos', () => {
     test('aplica branding del perfil clinico en cabecera y contexto del kiosco', async ({
         page,
@@ -407,6 +420,93 @@ test.describe('Kiosco turnos', () => {
         await page.click('#assistantSend');
         await expect(page.locator('#assistantMessages')).toContainText(
             'Tengo cita'
+        );
+    });
+
+    test('envia el motivo seleccionado del walk-in y refleja urgencia en pantalla', async ({
+        page,
+    }) => {
+        let ticketRequestBody = null;
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: new Date().toISOString(),
+                        waitingCount: 1,
+                        calledCount: 0,
+                        callingNow: [],
+                        nextTickets: [
+                            {
+                                id: 401,
+                                ticketCode: 'A-401',
+                                patientInitials: 'EP',
+                                position: 1,
+                                queueType: 'walk_in',
+                                priorityClass: 'walk_in',
+                                visitReason: 'urgencia',
+                                visitReasonLabel: 'Urgencia',
+                                specialPriority: true,
+                            },
+                        ],
+                    },
+                });
+            }
+
+            if (resource === 'queue-ticket') {
+                ticketRequestBody = request.postDataJSON();
+                return json(
+                    route,
+                    {
+                        ok: true,
+                        data: {
+                            id: 401,
+                            ticketCode: 'A-401',
+                            patientInitials: 'EP',
+                            queueType: 'walk_in',
+                            visitReason: String(
+                                ticketRequestBody?.visitReason || ''
+                            ),
+                            visitReasonLabel: String(
+                                ticketRequestBody?.visitReasonLabel || ''
+                            ),
+                            specialPriority: true,
+                            createdAt: new Date().toISOString(),
+                        },
+                        printed: false,
+                        print: {
+                            ok: true,
+                            errorCode: 'printer_disabled',
+                            message: 'disabled',
+                        },
+                    },
+                    201
+                );
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/kiosco-turnos.html');
+
+        await page.click('#kioskQuickWalkin');
+        await selectWalkInReason(page, 'urgencia');
+        await expect(page.locator('#kioskProgressHint')).toContainText(
+            'Motivo marcado como urgencia'
+        );
+        await page.fill('#walkinInitials', 'EP');
+        await page.click('#walkinSubmit');
+
+        expect(ticketRequestBody?.visitReason).toBe('urgencia');
+        expect(ticketRequestBody?.visitReasonLabel).toBe('Urgencia');
+        await expect(page.locator('#ticketResult')).toContainText('Urgencia');
+        await expect(page.locator('#kioskProgressHint')).toContainText(
+            'Recepcion vera la prioridad'
         );
     });
 

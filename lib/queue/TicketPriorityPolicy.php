@@ -83,6 +83,12 @@ final class TicketPriorityPolicy
             return $priorityDiff;
         }
 
+        $visitReasonDiff = $this->visitPriorityWeight($a)
+            <=> $this->visitPriorityWeight($b);
+        if ($visitReasonDiff !== 0) {
+            return $visitReasonDiff;
+        }
+
         $timeDiff = $this->ticketTimestamp($a, 'createdAt') <=> $this->ticketTimestamp($b, 'createdAt');
         if ($timeDiff !== 0) {
             return $timeDiff;
@@ -129,6 +135,31 @@ final class TicketPriorityPolicy
                 return 1;
             default:
                 return 2;
+        }
+    }
+
+    private function visitPriorityWeight(array $ticket): int
+    {
+        $queueType = strtolower(trim((string) ($ticket['queueType'] ?? 'walk_in')));
+        if ($queueType !== 'walk_in') {
+            return 0;
+        }
+
+        $visitReason = normalize_queue_visit_reason(
+            (string) ($ticket['visitReason'] ?? ($ticket['visit_reason'] ?? '')),
+            'consulta_general'
+        );
+        switch ($visitReason) {
+            case 'urgencia':
+                return 0;
+            case 'procedimiento':
+                return 1;
+            case 'consulta_general':
+                return 2;
+            case 'control':
+                return 3;
+            default:
+                return 4;
         }
     }
 

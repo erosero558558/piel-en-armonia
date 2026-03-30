@@ -46,6 +46,16 @@ $walkin = $service->createWalkInTicket(qs_base_store(), ['patientInitials' => 'E
 qs_assert_true(($walkin['ok'] ?? false) === true, 'walk-in should be created');
 qs_assert_equals('A-001', (string) ($walkin['ticket']['ticketCode'] ?? ''), 'first walk-in should be A-001');
 qs_assert_equals('waiting', (string) ($walkin['ticket']['status'] ?? ''), 'walk-in status should be waiting');
+qs_assert_equals(
+    'consulta_general',
+    (string) ($walkin['ticket']['visitReason'] ?? ''),
+    'walk-in should default to consulta_general'
+);
+qs_assert_equals(
+    'Consulta general',
+    (string) ($walkin['ticket']['visitReasonLabel'] ?? ''),
+    'walk-in should expose visitReasonLabel'
+);
 
 // 2) Appointment check-in should avoid duplicates
 $today = date('Y-m-d');
@@ -162,6 +172,81 @@ qs_assert_equals(
     'second call-next must pick current appointment'
 );
 qs_assert_equals(2, (int) ($call2['ticket']['assignedConsultorio'] ?? 0), 'second call should assign consultorio 2');
+
+// 3b) Walk-in reason order: urgencia > procedimiento > consulta_general > control
+$reasonStore = qs_base_store();
+$reasonGeneral = $service->createWalkInTicket($reasonStore, [
+    'patientInitials' => 'GE',
+    'visitReason' => 'consulta_general',
+], 'kiosk');
+qs_assert_true(($reasonGeneral['ok'] ?? false) === true, 'general walk-in should succeed');
+$reasonControl = $service->createWalkInTicket(($reasonGeneral['store'] ?? []), [
+    'patientInitials' => 'CT',
+    'visitReason' => 'control',
+], 'kiosk');
+qs_assert_true(($reasonControl['ok'] ?? false) === true, 'control walk-in should succeed');
+$reasonProcedure = $service->createWalkInTicket(($reasonControl['store'] ?? []), [
+    'patientInitials' => 'PR',
+    'visitReason' => 'procedimiento',
+], 'kiosk');
+qs_assert_true(($reasonProcedure['ok'] ?? false) === true, 'procedure walk-in should succeed');
+$reasonUrgent = $service->createWalkInTicket(($reasonProcedure['store'] ?? []), [
+    'patientInitials' => 'UR',
+    'visitReason' => 'urgencia',
+], 'kiosk');
+qs_assert_true(($reasonUrgent['ok'] ?? false) === true, 'urgent walk-in should succeed');
+
+$reasonCall1 = $service->callNext(($reasonUrgent['store'] ?? []), 1);
+qs_assert_true(($reasonCall1['ok'] ?? false) === true, 'urgent walk-in should be first');
+qs_assert_equals(
+    'urgencia',
+    (string) ($reasonCall1['ticket']['visitReason'] ?? ''),
+    'urgent walk-in should be called first among walk-ins'
+);
+qs_assert_equals(
+    true,
+    (bool) ($reasonCall1['ticket']['specialPriority'] ?? false),
+    'urgent walk-in should mark specialPriority'
+);
+$reasonCall1Done = $service->patchTicket(($reasonCall1['store'] ?? []), [
+    'id' => (int) ($reasonCall1['ticket']['id'] ?? 0),
+    'action' => 'completar',
+]);
+qs_assert_true(($reasonCall1Done['ok'] ?? false) === true, 'urgent completion should succeed');
+
+$reasonCall2 = $service->callNext(($reasonCall1Done['store'] ?? []), 1);
+qs_assert_true(($reasonCall2['ok'] ?? false) === true, 'procedure walk-in should be second');
+qs_assert_equals(
+    'procedimiento',
+    (string) ($reasonCall2['ticket']['visitReason'] ?? ''),
+    'procedure walk-in should outrank general and control'
+);
+$reasonCall2Done = $service->patchTicket(($reasonCall2['store'] ?? []), [
+    'id' => (int) ($reasonCall2['ticket']['id'] ?? 0),
+    'action' => 'completar',
+]);
+qs_assert_true(($reasonCall2Done['ok'] ?? false) === true, 'procedure completion should succeed');
+
+$reasonCall3 = $service->callNext(($reasonCall2Done['store'] ?? []), 1);
+qs_assert_true(($reasonCall3['ok'] ?? false) === true, 'general walk-in should be third');
+qs_assert_equals(
+    'consulta_general',
+    (string) ($reasonCall3['ticket']['visitReason'] ?? ''),
+    'general walk-in should outrank control'
+);
+$reasonCall3Done = $service->patchTicket(($reasonCall3['store'] ?? []), [
+    'id' => (int) ($reasonCall3['ticket']['id'] ?? 0),
+    'action' => 'completar',
+]);
+qs_assert_true(($reasonCall3Done['ok'] ?? false) === true, 'general completion should succeed');
+
+$reasonCall4 = $service->callNext(($reasonCall3Done['store'] ?? []), 1);
+qs_assert_true(($reasonCall4['ok'] ?? false) === true, 'control walk-in should be fourth');
+qs_assert_equals(
+    'control',
+    (string) ($reasonCall4['ticket']['visitReason'] ?? ''),
+    'control walk-in should be the lowest walk-in priority'
+);
 
 // 4) Patch ticket actions
 $patched = $service->patchTicket(($call2['store'] ?? []), [

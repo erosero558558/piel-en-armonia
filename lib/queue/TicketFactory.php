@@ -12,6 +12,10 @@ final class TicketFactory
     {
         $timestamp = $nowIso ?? local_date('c');
         $dailySeq = $this->nextDailySequence($tickets, $timestamp);
+        $visitReason = normalize_queue_visit_reason(
+            (string) ($payload['visitReason'] ?? ($payload['visit_reason'] ?? '')),
+            'consulta_general'
+        );
 
         return normalize_queue_ticket([
             'id' => $this->nextTicketId($tickets),
@@ -22,12 +26,15 @@ final class TicketFactory
             'patientInitials' => $this->resolveInitials($payload),
             'phoneLast4' => $this->extractPhoneLast4((string) ($payload['phone'] ?? ($payload['telefono'] ?? ''))),
             'priorityClass' => 'walk_in',
+            'visitReason' => $visitReason,
+            'visitReasonLabel' => queue_visit_reason_label($visitReason),
             'status' => 'waiting',
             'assignedConsultorio' => null,
             'createdAt' => $timestamp,
             'calledAt' => '',
             'completedAt' => '',
             'createdSource' => $this->normalizeCreatedSource($createdSource),
+            'specialPriority' => $visitReason === 'urgencia',
         ]);
     }
 
@@ -63,6 +70,8 @@ final class TicketFactory
                 )
             ),
             'priorityClass' => $priorityClass,
+            'visitReason' => '',
+            'visitReasonLabel' => '',
             'status' => 'waiting',
             'assignedConsultorio' => null,
             'createdAt' => $timestamp,
