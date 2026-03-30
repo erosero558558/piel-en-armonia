@@ -939,6 +939,105 @@ function emptyReview() {
         approvalBlockedReasons: [],
         closureChecklist: {},
         auditSummary: {},
+        accountStatement: {
+            currency: 'USD',
+            summary: {
+                entriesCount: 0,
+                paidCents: 0,
+                pendingCents: 0,
+                overdueCents: 0,
+                paidCount: 0,
+                pendingCount: 0,
+                overdueCount: 0,
+                lastPaidAt: '',
+                nextDueAt: '',
+            },
+            entries: [],
+            upcomingEntries: [],
+        },
+    };
+}
+
+function emptyAccountStatement() {
+    return cloneValue(emptyReview().accountStatement);
+}
+
+function normalizeAccountStatementEntry(entry) {
+    const source = entry && typeof entry === 'object' ? entry : {};
+    return {
+        entryId: normalizeString(source.entryId),
+        source: normalizeString(source.source),
+        reference: normalizeString(source.reference),
+        concept: normalizeString(source.concept),
+        amountCents: Math.max(0, normalizeNumber(source.amountCents)),
+        currency: normalizeString(source.currency || 'USD').toUpperCase(),
+        paymentMethod: normalizeString(source.paymentMethod || 'unpaid'),
+        paymentStatus: normalizeString(source.paymentStatus || 'pending'),
+        paymentProvider: normalizeString(source.paymentProvider),
+        createdAt: normalizeString(source.createdAt),
+        updatedAt: normalizeString(source.updatedAt),
+        paidAt: normalizeString(source.paidAt),
+        dueAt: normalizeString(source.dueAt),
+        effectiveAt: normalizeString(source.effectiveAt),
+        isPaid: source.isPaid === true,
+        isPending: source.isPending === true,
+        isOverdue: source.isOverdue === true,
+        status: normalizeString(source.status),
+        notes: normalizeString(source.notes),
+    };
+}
+
+function normalizeAccountStatement(statement) {
+    const defaults = emptyAccountStatement();
+    const source = statement && typeof statement === 'object' ? statement : {};
+    const summarySource =
+        source.summary && typeof source.summary === 'object'
+            ? source.summary
+            : {};
+    const entries = normalizeList(source.entries).map(
+        normalizeAccountStatementEntry
+    );
+    const upcomingEntries = normalizeList(source.upcomingEntries).length
+        ? normalizeList(source.upcomingEntries).map(normalizeAccountStatementEntry)
+        : entries
+              .filter((entry) => entry.isPending && entry.dueAt)
+              .sort(
+                  (left, right) =>
+                      accountStatementTimestampValue(left.dueAt) -
+                      accountStatementTimestampValue(right.dueAt)
+              )
+              .slice(0, 3);
+
+    return {
+        currency: normalizeString(source.currency || defaults.currency).toUpperCase(),
+        summary: {
+            entriesCount: Math.max(
+                0,
+                normalizeNumber(summarySource.entriesCount || entries.length)
+            ),
+            paidCents: Math.max(0, normalizeNumber(summarySource.paidCents)),
+            pendingCents: Math.max(
+                0,
+                normalizeNumber(summarySource.pendingCents)
+            ),
+            overdueCents: Math.max(
+                0,
+                normalizeNumber(summarySource.overdueCents)
+            ),
+            paidCount: Math.max(0, normalizeNumber(summarySource.paidCount)),
+            pendingCount: Math.max(
+                0,
+                normalizeNumber(summarySource.pendingCount)
+            ),
+            overdueCount: Math.max(
+                0,
+                normalizeNumber(summarySource.overdueCount)
+            ),
+            lastPaidAt: normalizeString(summarySource.lastPaidAt),
+            nextDueAt: normalizeString(summarySource.nextDueAt),
+        },
+        entries,
+        upcomingEntries,
     };
 }
 
@@ -4514,6 +4613,7 @@ function normalizeReviewPayload(payload) {
         source.auditSummary && typeof source.auditSummary === 'object'
             ? source.auditSummary
             : {};
+    review.accountStatement = normalizeAccountStatement(source.accountStatement);
     return review;
 }
 
@@ -7259,6 +7359,315 @@ function buildRecordsGovernancePanel(review, saving = false) {
                         </div>
                         <div class="clinical-history-events">${recentDisclosureCards}</div>
                         <div class="clinical-history-events">${recentAccessCards}</div>
+                    `
+                )}
+            </div>
+        </article>
+    `;
+}
+
+function accountStatementTimestampValue(stamp) {
+    const ts = Date.parse(normalizeString(stamp));
+    return Number.isFinite(ts) ? ts : 0;
+}
+
+function formatAccountStatementCurrency(amountCents, currency = 'USD') {
+    const safeCurrency = normalizeString(currency || 'USD').toUpperCase();
+    const value = Math.max(0, normalizeNumber(amountCents)) / 100;
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: safeCurrency || 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(value);
+    } catch (_error) {
+        const prefix = safeCurrency === 'USD' ? '$' : `${safeCurrency} `;
+        return `${prefix}${value.toFixed(2)}`;
+    }
+}
+
+function accountStatementStatusLabel(entry) {
+    const status = normalizeString(entry?.paymentStatus).toLowerCase();
+    switch (status) {
+        case 'paid':
+            return 'Pagado';
+        case 'pending_transfer_review':
+            return 'Verificando transferencia';
+        case 'pending_transfer':
+            return 'Pendiente de transferencia';
+        case 'pending_cash':
+            return 'Pendiente en consultorio';
+        case 'pending_gateway':
+            return 'Esperando Stripe';
+        case 'failed':
+            return 'Fallido';
+        default:
+            return entry?.isOverdue ? 'Vencido' : 'Pendiente';
+    }
+}
+
+function accountStatementMethodLabel(method) {
+    switch (normalizeString(method).toLowerCase()) {
+        case 'card':
+            return 'Tarjeta';
+        case 'transfer':
+            return 'Transferencia';
+        case 'cash':
+            return 'Efectivo';
+        default:
+            return 'Pendiente';
+    }
+}
+
+function accountStatementSourceLabel(source) {
+    switch (normalizeString(source).toLowerCase()) {
+        case 'appointment':
+            return 'Cita';
+        case 'checkout_order':
+            return 'Checkout';
+        default:
+            return 'Movimiento';
+    }
+}
+
+function accountStatementTone(entry) {
+    if (entry?.isOverdue) {
+        return 'warning';
+    }
+    if (entry?.isPaid) {
+        return 'success';
+    }
+    if (normalizeString(entry?.paymentStatus) === 'failed') {
+        return 'danger';
+    }
+    return 'neutral';
+}
+
+function buildAccountStatementEntryCard(entry) {
+    const primaryStamp = entry.isPaid
+        ? readableTimestamp(entry.paidAt)
+        : readableTimestamp(entry.dueAt || entry.createdAt || entry.updatedAt);
+    const secondaryNote = normalizeString(entry.notes)
+        ? entry.notes
+        : entry.isPaid
+          ? 'Pago aplicado al expediente.'
+          : entry.dueAt
+            ? `Vence ${readableTimestamp(entry.dueAt)}`
+            : 'Saldo pendiente de conciliacion.';
+
+    return `
+        <article
+            class="clinical-history-event-card"
+            data-tone="${escapeHtml(accountStatementTone(entry))}"
+            data-account-statement-entry="${escapeHtml(entry.entryId)}"
+        >
+            <div class="clinical-history-event-head">
+                <span class="clinical-history-mini-chip">${escapeHtml(
+                    accountStatementStatusLabel(entry)
+                )}</span>
+                <span class="clinical-history-mini-chip">${escapeHtml(
+                    accountStatementMethodLabel(entry.paymentMethod)
+                )}</span>
+            </div>
+            <strong>${escapeHtml(
+                formatAccountStatementCurrency(entry.amountCents, entry.currency)
+            )}</strong>
+            <p>${escapeHtml(entry.concept || 'Movimiento sin concepto')}</p>
+            <small>${escapeHtml(
+                [
+                    entry.reference,
+                    accountStatementSourceLabel(entry.source),
+                    primaryStamp,
+                ]
+                    .filter(Boolean)
+                    .join(' • ') || 'Sin metadata adicional'
+            )}</small>
+            <small>${escapeHtml(secondaryNote)}</small>
+        </article>
+    `;
+}
+
+function buildAccountStatementDueCard(entry) {
+    return `
+        <article
+            class="clinical-history-event-card"
+            data-tone="${escapeHtml(entry.isOverdue ? 'warning' : 'neutral')}"
+            data-account-statement-due="${escapeHtml(entry.entryId)}"
+        >
+            <div class="clinical-history-event-head">
+                <span class="clinical-history-mini-chip">${escapeHtml(
+                    entry.isOverdue ? 'Vencido' : 'Por vencer'
+                )}</span>
+                <span class="clinical-history-mini-chip">${escapeHtml(
+                    readableTimestamp(entry.dueAt)
+                )}</span>
+            </div>
+            <strong>${escapeHtml(
+                formatAccountStatementCurrency(entry.amountCents, entry.currency)
+            )}</strong>
+            <p>${escapeHtml(entry.concept || 'Cargo pendiente')}</p>
+            <small>${escapeHtml(
+                [
+                    accountStatementStatusLabel(entry),
+                    accountStatementMethodLabel(entry.paymentMethod),
+                    entry.reference,
+                ]
+                    .filter(Boolean)
+                    .join(' • ') || 'Sin metadata adicional'
+            )}</small>
+        </article>
+    `;
+}
+
+function buildAccountStatementPanel(review) {
+    if (!normalizeString(review.session.sessionId)) {
+        return buildEmptyClinicalCard(
+            'Estado de cuenta',
+            'El historial financiero del paciente aparecerá aquí cuando exista un episodio activo.'
+        );
+    }
+
+    const accountStatement = normalizeAccountStatement(review.accountStatement);
+    const summary = accountStatement.summary;
+    const currency = accountStatement.currency || 'USD';
+    const latestPaidEntry =
+        accountStatement.entries.find((entry) => entry.isPaid) || null;
+    const nextDueEntry = accountStatement.upcomingEntries[0] || null;
+    const tone =
+        summary.overdueCents > 0
+            ? 'warning'
+            : summary.pendingCents > 0
+              ? 'neutral'
+              : 'success';
+
+    if (accountStatement.entries.length === 0) {
+        return buildEmptyClinicalCard(
+            'Estado de cuenta',
+            'Todavía no hay movimientos financieros asociados a este paciente.'
+        );
+    }
+
+    return `
+        <article class="clinical-history-readiness-card" data-tone="${escapeHtml(
+            tone
+        )}">
+            <header class="section-header">
+                <div>
+                    <h4>Estado de cuenta</h4>
+                    <p>Historial de cobros, pagos aplicados y próximos vencimientos del paciente activo.</p>
+                </div>
+                <span class="clinical-history-mini-chip" data-tone="${escapeHtml(
+                    summary.overdueCents > 0
+                        ? 'warning'
+                        : summary.pendingCents > 0
+                          ? 'neutral'
+                          : 'success'
+                )}">
+                    ${escapeHtml(
+                        summary.overdueCents > 0
+                            ? 'Con saldos vencidos'
+                            : summary.pendingCents > 0
+                              ? 'Con saldo pendiente'
+                              : 'Al día'
+                    )}
+                </span>
+            </header>
+            <div class="clinical-history-summary-grid">
+                ${summaryStatCard(
+                    'Saldo pendiente',
+                    formatAccountStatementCurrency(
+                        summary.pendingCents,
+                        currency
+                    ),
+                    summary.overdueCents > 0
+                        ? `${formatAccountStatementCurrency(
+                              summary.overdueCents,
+                              currency
+                          )} vencido(s)`
+                        : `${summary.pendingCount} movimiento(s) pendiente(s)`,
+                    summary.overdueCents > 0
+                        ? 'warning'
+                        : summary.pendingCents > 0
+                          ? 'neutral'
+                          : 'success'
+                )}
+                ${summaryStatCard(
+                    'Pagado acumulado',
+                    formatAccountStatementCurrency(summary.paidCents, currency),
+                    `${summary.paidCount} pago(s) aplicado(s)`,
+                    summary.paidCents > 0 ? 'success' : 'neutral'
+                )}
+                ${summaryStatCard(
+                    'Próximo vencimiento',
+                    summary.nextDueAt
+                        ? readableTimestamp(summary.nextDueAt)
+                        : 'Sin vencimientos',
+                    nextDueEntry
+                        ? `${formatAccountStatementCurrency(
+                              nextDueEntry.amountCents,
+                              currency
+                          )} • ${accountStatementStatusLabel(nextDueEntry)}`
+                        : 'No hay cargos pendientes con fecha',
+                    nextDueEntry?.isOverdue ? 'warning' : 'neutral'
+                )}
+                ${summaryStatCard(
+                    'Último pago',
+                    summary.lastPaidAt
+                        ? readableTimestamp(summary.lastPaidAt)
+                        : 'Sin pagos',
+                    latestPaidEntry
+                        ? `${formatAccountStatementCurrency(
+                              latestPaidEntry.amountCents,
+                              currency
+                          )} • ${accountStatementMethodLabel(
+                              latestPaidEntry.paymentMethod
+                          )}`
+                        : 'Aún no hay pagos aplicados',
+                    latestPaidEntry ? 'success' : 'neutral'
+                )}
+            </div>
+            <div class="clinical-history-form-grid">
+                ${buildClinicalHistorySection(
+                    'Movimientos recientes',
+                    'Incluye citas cobradas y checkouts asociados al mismo paciente.',
+                    `
+                        <div class="clinical-history-events">
+                            ${buildClinicalHistoryCollection(
+                                accountStatement.entries.slice(0, 4),
+                                () =>
+                                    buildEmptyClinicalCard(
+                                        'Sin movimientos',
+                                        'No hay movimientos recientes para mostrar.',
+                                        {
+                                            cardClass:
+                                                'clinical-history-event-card is-empty',
+                                        }
+                                    ),
+                                buildAccountStatementEntryCard
+                            )}
+                        </div>
+                    `
+                )}
+                ${buildClinicalHistorySection(
+                    'Próximos vencimientos',
+                    'Cargos pendientes con fecha visible para seguimiento operativo.',
+                    `
+                        <div class="clinical-history-events">
+                            ${buildClinicalHistoryCollection(
+                                accountStatement.upcomingEntries,
+                                () =>
+                                    buildEmptyClinicalCard(
+                                        'Sin vencimientos próximos',
+                                        'Los cargos pendientes con fecha aparecerán aquí cuando apliquen.',
+                                        {
+                                            cardClass:
+                                                'clinical-history-event-card is-empty',
+                                        }
+                                    ),
+                                buildAccountStatementDueCard
+                            )}
+                        </div>
                     `
                 )}
             </div>
@@ -13835,6 +14244,10 @@ export function renderClinicalHistorySection() {
     setHtml(
         '#clinicalHistoryRecordsGovernancePanel',
         buildRecordsGovernancePanel(review, slice.saving)
+    );
+    setHtml(
+        '#clinicalHistoryAccountStatementPanel',
+        buildAccountStatementPanel(review)
     );
     setHtml('#clinicalHistoryAttachmentStrip', buildAttachmentStrip(review));
     setHtml(

@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../CheckoutOrderService.php';
+require_once __DIR__ . '/../models.php';
+require_once __DIR__ . '/../../payment-lib.php';
+
 class ClinicalHistorySessionService
 {
     private ClinicalHistoryService $facade;
@@ -1020,6 +1024,7 @@ public function  buildClinicalRecordPayload(array $store, array $session, array 
                 }
             }
         }
+        $accountStatement = $this->buildAccountStatement($store, $session, $draft);
 
         return [
             'session' => $session,
@@ -1106,8 +1111,359 @@ public function  buildClinicalRecordPayload(array $store, array $session, array 
                 'lastApprovedAt' => (string) ($approval['approvedAt'] ?? ''),
                 'approvalStatus' => (string) ($approval['status'] ?? 'pending'),
             ],
+            'accountStatement' => $accountStatement,
             'caseMediaAssets' => $caseMediaAssets,
         ];
+    }
+
+    private function buildAccountStatement(array $store, array $session, array $draft): array
+    {
+        $currency = function_exists('payment_currency')
+            ? strtoupper((string) payment_currency())
+            : 'USD';
+        $identity = $this->extractAccountStatementIdentity($session, $draft);
+        $appointmentId = (int) ($draft['appointmentId'] ?? $session['appointmentId'] ?? 0);
+        $entries = [];
+
+        foreach ((array) ($store['appointments'] ?? []) as $appointment) {
+            if (!is_array($appointment) || !$this->matchesAppointmentAccountIdentity($appointment, $identity, $appointmentId)) {
+                continue;
+            }
+
+            $entry = $this->buildAppointmentAccountStatementEntry($appointment, $currency);
+            if ($entry !== []) {
+                $entries[] = $entry;
+            }
+        }
+
+        foreach ((array) ($store['checkout_orders'] ?? []) as $order) {
+            if (!is_array($order) || !$this->matchesCheckoutOrderAccountIdentity($order, $identity)) {
+                continue;
+            }
+
+            $entry = $this->buildCheckoutOrderAccountStatementEntry($order, $currency);
+            if ($entry !== []) {
+                $entries[] = $entry;
+            }
+        }
+
+        usort($entries, function (array $left, array $right): int {
+            $byStamp = $this->accountStatementTimestampValue((string) ($right['effectiveAt'] ?? ''))
+                <=> $this->accountStatementTimestampValue((string) ($left['effectiveAt'] ?? ''));
+            if ($byStamp !== 0) {
+                return $byStamp;
+            }
+
+            return strcmp(
+                (string) ($right['entryId'] ?? ''),
+                (string) ($left['entryId'] ?? '')
+            );
+        });
+
+        $paidCents = 0;
+        $pendingCents = 0;
+        $overdueCents = 0;
+        $paidCount = 0;
+        $pendingCount = 0;
+        $overdueCount = 0;
+        $lastPaidAt = '';
+
+        foreach ($entries as $entry) {
+            $amountCents = max(0, (int) ($entry['amountCents'] ?? 0));
+            if (($entry['isPaid'] ?? false) === true) {
+                $paidCents += $amountCents;
+                $paidCount++;
+                $paidAt = (string) ($entry['paidAt'] ?? '');
+                if ($paidAt !== '' && $this->accountStatementTimestampValue($paidAt) > $this->accountStatementTimestampValue($lastPaidAt)) {
+                    $lastPaidAt = $paidAt;
+                }
+                continue;
+            }
+
+            if (($entry['isPending'] ?? false) !== true) {
+                continue;
+            }
+
+            $pendingCents += $amountCents;
+            $pendingCount++;
+            if (($entry['isOverdue'] ?? false) === true) {
+                $overdueCents += $amountCents;
+                $overdueCount++;
+            }
+        }
+
+        $upcomingEntries = array_values(array_filter(
+            $entries,
+            static fn (array $entry): bool =>
+                ($entry['isPending'] ?? false) === true
+                && ClinicalHistoryRepository::trimString($entry['dueAt'] ?? '') !== ''
+        ));
+        usort($upcomingEntries, function (array $left, array $right): int {
+            return $this->accountStatementTimestampValue((string) ($left['dueAt'] ?? ''))
+                <=> $this->accountStatementTimestampValue((string) ($right['dueAt'] ?? ''));
+        });
+        $upcomingEntries = array_slice($upcomingEntries, 0, 3);
+
+        return [
+            'currency' => $currency,
+            'summary' => [
+                'entriesCount' => count($entries),
+                'paidCents' => $paidCents,
+                'pendingCents' => $pendingCents,
+                'overdueCents' => $overdueCents,
+                'paidCount' => $paidCount,
+                'pendingCount' => $pendingCount,
+                'overdueCount' => $overdueCount,
+                'lastPaidAt' => $lastPaidAt,
+                'nextDueAt' => (string) ($upcomingEntries[0]['dueAt'] ?? ''),
+            ],
+            'entries' => $entries,
+            'upcomingEntries' => $upcomingEntries,
+        ];
+    }
+
+    private function extractAccountStatementIdentity(array $session, array $draft): array
+    {
+        $patient = isset($session['patient']) && is_array($session['patient'])
+            ? $session['patient']
+            : [];
+        $admission = isset($draft['admission001']) && is_array($draft['admission001'])
+            ? $draft['admission001']
+            : [];
+        $residence = isset($admission['residence']) && is_array($admission['residence'])
+            ? $admission['residence']
+            : [];
+        $intake = isset($draft['intake']) && is_array($draft['intake'])
+            ? $draft['intake']
+            : [];
+        $patientFacts = isset($intake['datosPaciente']) && is_array($intake['datosPaciente'])
+            ? $intake['datosPaciente']
+            : [];
+
+        return [
+            'name' => $this->normalizeAccountStatementName(
+                (string) ($patient['legalName'] ?? $patient['name'] ?? '')
+            ),
+            'email' => strtolower(ClinicalHistoryRepository::trimString($patient['email'] ?? '')),
+            'phone' => $this->normalizeAccountStatementPhone(
+                (string) ($patient['phone'] ?? $residence['phone'] ?? $patientFacts['telefono'] ?? '')
+            ),
+        ];
+    }
+
+    private function matchesAppointmentAccountIdentity(array $appointment, array $identity, int $appointmentId): bool
+    {
+        $candidateId = (int) ($appointment['id'] ?? 0);
+        if ($appointmentId > 0 && $candidateId === $appointmentId) {
+            return true;
+        }
+
+        $candidateEmail = strtolower(ClinicalHistoryRepository::trimString($appointment['email'] ?? ''));
+        if ($identity['email'] !== '' && $candidateEmail !== '' && hash_equals($identity['email'], $candidateEmail)) {
+            return true;
+        }
+
+        $candidatePhone = $this->normalizeAccountStatementPhone((string) ($appointment['phone'] ?? ''));
+        if ($identity['phone'] !== '' && $candidatePhone !== '' && $identity['phone'] === $candidatePhone) {
+            return true;
+        }
+
+        $candidateName = $this->normalizeAccountStatementName((string) ($appointment['name'] ?? ''));
+        return $identity['name'] !== ''
+            && $candidateName !== ''
+            && $identity['email'] === ''
+            && $identity['phone'] === ''
+            && $identity['name'] === $candidateName;
+    }
+
+    private function matchesCheckoutOrderAccountIdentity(array $order, array $identity): bool
+    {
+        $candidateEmail = strtolower(ClinicalHistoryRepository::trimString($order['payerEmail'] ?? ''));
+        if ($identity['email'] !== '' && $candidateEmail !== '' && hash_equals($identity['email'], $candidateEmail)) {
+            return true;
+        }
+
+        $candidatePhone = $this->normalizeAccountStatementPhone((string) ($order['payerWhatsapp'] ?? ''));
+        if ($identity['phone'] !== '' && $candidatePhone !== '' && $identity['phone'] === $candidatePhone) {
+            return true;
+        }
+
+        $candidateName = $this->normalizeAccountStatementName((string) ($order['payerName'] ?? ''));
+        return $identity['name'] !== ''
+            && $candidateName !== ''
+            && $identity['email'] === ''
+            && $identity['phone'] === ''
+            && $identity['name'] === $candidateName;
+    }
+
+    private function buildAppointmentAccountStatementEntry(array $appointment, string $defaultCurrency): array
+    {
+        $paymentStatus = strtolower(ClinicalHistoryRepository::trimString($appointment['paymentStatus'] ?? 'pending'));
+        if ($paymentStatus === '') {
+            $paymentStatus = 'pending';
+        }
+
+        $appointmentStatus = strtolower(ClinicalHistoryRepository::trimString($appointment['status'] ?? ''));
+        $isPaid = $paymentStatus === 'paid';
+        $isPending = in_array(
+            $paymentStatus,
+            ['pending', 'pending_cash', 'pending_transfer', 'pending_transfer_review', 'pending_gateway'],
+            true
+        );
+        if ($appointmentStatus === 'cancelled' && !$isPaid) {
+            return [];
+        }
+
+        $service = ClinicalHistoryRepository::trimString($appointment['service'] ?? '');
+        $date = ClinicalHistoryRepository::trimString($appointment['date'] ?? '');
+        $time = ClinicalHistoryRepository::trimString($appointment['time'] ?? '');
+        $tenantId = ClinicalHistoryRepository::trimString($appointment['tenantId'] ?? '');
+        $amountCents = 0;
+        if (function_exists('payment_expected_amount_cents') && $service !== '') {
+            try {
+                $amountCents = max(0, (int) payment_expected_amount_cents($service, $date !== '' ? $date : null, $time !== '' ? $time : null, $tenantId !== '' ? $tenantId : null));
+            } catch (\Throwable $e) {
+                $amountCents = 0;
+            }
+        }
+        if ($amountCents <= 0) {
+            return [];
+        }
+
+        $dueAt = $this->buildAppointmentAccountStatementDueAt($appointment);
+        $paidAt = ClinicalHistoryRepository::trimString($appointment['paymentPaidAt'] ?? '');
+        $createdAt = ClinicalHistoryRepository::trimString($appointment['dateBooked'] ?? '');
+        $updatedAt = ClinicalHistoryRepository::trimString($appointment['updatedAt'] ?? $createdAt);
+        $effectiveAt = $paidAt !== ''
+            ? $paidAt
+            : ($dueAt !== '' ? $dueAt : ($updatedAt !== '' ? $updatedAt : $createdAt));
+        $doctor = ClinicalHistoryRepository::trimString($appointment['doctor'] ?? '');
+        $serviceLabel = function_exists('get_service_label')
+            ? (string) get_service_label($service)
+            : ($service !== '' ? $service : 'Cita');
+        $doctorLabel = function_exists('get_doctor_label')
+            ? (string) get_doctor_label($doctor)
+            : $doctor;
+
+        return [
+            'entryId' => 'appointment:' . (string) ($appointment['id'] ?? $serviceLabel),
+            'source' => 'appointment',
+            'reference' => (int) ($appointment['id'] ?? 0) > 0
+                ? 'APT-' . (string) ($appointment['id'] ?? '')
+                : '',
+            'concept' => trim($serviceLabel . ($doctorLabel !== '' ? ' · ' . $doctorLabel : '')),
+            'amountCents' => $amountCents,
+            'currency' => strtoupper(ClinicalHistoryRepository::trimString($appointment['currency'] ?? $defaultCurrency)),
+            'paymentMethod' => strtolower(ClinicalHistoryRepository::trimString($appointment['paymentMethod'] ?? 'unpaid')),
+            'paymentStatus' => $paymentStatus,
+            'paymentProvider' => ClinicalHistoryRepository::trimString($appointment['paymentProvider'] ?? ''),
+            'createdAt' => $createdAt,
+            'updatedAt' => $updatedAt,
+            'paidAt' => $paidAt,
+            'dueAt' => $dueAt,
+            'effectiveAt' => $effectiveAt,
+            'isPaid' => $isPaid,
+            'isPending' => $isPending,
+            'isOverdue' => $isPending && $dueAt !== '' && $this->timestampIsPast($dueAt),
+            'status' => $appointmentStatus,
+            'notes' => trim(implode(' • ', array_filter([
+                $date !== '' ? $date : '',
+                $time !== '' ? $time : '',
+                $appointmentStatus !== '' ? $appointmentStatus : '',
+            ]))),
+        ];
+    }
+
+    private function buildCheckoutOrderAccountStatementEntry(array $order, string $defaultCurrency): array
+    {
+        $amountCents = max(0, (int) ($order['amountCents'] ?? 0));
+        if ($amountCents <= 0) {
+            return [];
+        }
+
+        $paymentStatus = strtolower(ClinicalHistoryRepository::trimString($order['paymentStatus'] ?? 'pending'));
+        if ($paymentStatus === '') {
+            $paymentStatus = 'pending';
+        }
+
+        $createdAt = ClinicalHistoryRepository::trimString($order['createdAt'] ?? '');
+        $updatedAt = ClinicalHistoryRepository::trimString($order['updatedAt'] ?? $createdAt);
+        $paidAt = ClinicalHistoryRepository::trimString($order['paymentPaidAt'] ?? '');
+        $dueAt = '';
+        if ($paymentStatus === 'pending_transfer' && $createdAt !== '') {
+            $dueAt = $this->addHoursToTimestamp($createdAt, 48);
+        }
+        $isPaid = $paymentStatus === 'paid';
+        $isPending = in_array(
+            $paymentStatus,
+            ['pending', 'pending_transfer', 'pending_cash', 'pending_gateway'],
+            true
+        );
+        $effectiveAt = $paidAt !== ''
+            ? $paidAt
+            : ($dueAt !== '' ? $dueAt : ($updatedAt !== '' ? $updatedAt : $createdAt));
+
+        return [
+            'entryId' => 'checkout_order:' . ClinicalHistoryRepository::trimString($order['id'] ?? ''),
+            'source' => 'checkout_order',
+            'reference' => ClinicalHistoryRepository::trimString($order['receiptNumber'] ?? $order['id'] ?? ''),
+            'concept' => ClinicalHistoryRepository::trimString($order['concept'] ?? 'Pago Aurora Derm'),
+            'amountCents' => $amountCents,
+            'currency' => strtoupper(ClinicalHistoryRepository::trimString($order['currency'] ?? $defaultCurrency)),
+            'paymentMethod' => strtolower(ClinicalHistoryRepository::trimString($order['paymentMethod'] ?? '')),
+            'paymentStatus' => $paymentStatus,
+            'paymentProvider' => ClinicalHistoryRepository::trimString($order['paymentProvider'] ?? ''),
+            'createdAt' => $createdAt,
+            'updatedAt' => $updatedAt,
+            'paidAt' => $paidAt,
+            'dueAt' => $dueAt,
+            'effectiveAt' => $effectiveAt,
+            'isPaid' => $isPaid,
+            'isPending' => $isPending,
+            'isOverdue' => $isPending && $dueAt !== '' && $this->timestampIsPast($dueAt),
+            'status' => '',
+            'notes' => ClinicalHistoryRepository::trimString($order['transferReference'] ?? ''),
+        ];
+    }
+
+    private function buildAppointmentAccountStatementDueAt(array $appointment): string
+    {
+        $date = ClinicalHistoryRepository::trimString($appointment['date'] ?? '');
+        $time = ClinicalHistoryRepository::trimString($appointment['time'] ?? '');
+        if ($date === '') {
+            return '';
+        }
+
+        $safeTime = $time !== '' ? $time : '00:00';
+        try {
+            return (new \DateTimeImmutable($date . ' ' . $safeTime))->format('c');
+        } catch (\Throwable $e) {
+            return '';
+        }
+    }
+
+    private function normalizeAccountStatementPhone(string $value): string
+    {
+        return preg_replace('/\D+/', '', $value) ?? '';
+    }
+
+    private function normalizeAccountStatementName(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        if ($normalized === '') {
+            return '';
+        }
+
+        return preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
+    }
+
+    private function accountStatementTimestampValue(string $stamp): int
+    {
+        try {
+            return (new \DateTimeImmutable($stamp))->getTimestamp();
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 
 public function  openEpisode(array $store, array $payload): array

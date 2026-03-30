@@ -324,6 +324,97 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertNotSame('', (string) ($approve['payload']['data']['approval']['approvedAt'] ?? ''));
     }
 
+    public function testAdminReviewGetIncludesPatientAccountStatement(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Camila Torres',
+                    'email' => 'camila@example.com',
+                    'phone' => '0990001111',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+        self::assertNotSame('', (string) ($session['sessionId'] ?? ''));
+
+        $store = \read_store();
+        $store['appointments'] = [[
+            'id' => 451,
+            'tenantId' => 'default',
+            'date' => '2026-04-02',
+            'time' => '10:00',
+            'doctor' => 'rosero',
+            'service' => 'consulta',
+            'name' => 'Camila Torres',
+            'email' => 'camila@example.com',
+            'phone' => '0990001111',
+            'status' => 'confirmed',
+            'paymentMethod' => 'transfer',
+            'paymentStatus' => 'pending_transfer_review',
+            'paymentProvider' => 'manual_transfer',
+            'paymentPaidAt' => '',
+            'dateBooked' => '2026-03-30T09:00:00-05:00',
+            'updatedAt' => '2026-03-30T09:00:00-05:00',
+        ]];
+        $store['checkout_orders'] = [[
+            'id' => 'co_001',
+            'receiptNumber' => 'PAY-20260318-001',
+            'concept' => 'Anticipo laser',
+            'amountCents' => 6500,
+            'currency' => 'USD',
+            'payerName' => 'Camila Torres',
+            'payerEmail' => 'camila@example.com',
+            'payerWhatsapp' => '0990001111',
+            'paymentMethod' => 'card',
+            'paymentStatus' => 'paid',
+            'paymentProvider' => 'stripe',
+            'paymentPaidAt' => '2026-03-18T16:40:00-05:00',
+            'createdAt' => '2026-03-18T16:20:00-05:00',
+            'updatedAt' => '2026-03-18T16:40:00-05:00',
+        ]];
+        \write_store($store);
+
+        $_GET = ['sessionId' => (string) ($session['sessionId'] ?? '')];
+        $review = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::reviewGet([
+                'isAdmin' => true,
+            ])
+        );
+
+        self::assertSame(200, $review['status']);
+        $accountStatement = $review['payload']['data']['accountStatement'] ?? [];
+        $summary = is_array($accountStatement['summary'] ?? null)
+            ? $accountStatement['summary']
+            : [];
+        $entries = is_array($accountStatement['entries'] ?? null)
+            ? array_values($accountStatement['entries'])
+            : [];
+
+        self::assertSame(2, (int) ($summary['entriesCount'] ?? -1));
+        self::assertSame(6500, (int) ($summary['paidCents'] ?? -1));
+        self::assertSame(4000, (int) ($summary['pendingCents'] ?? -1));
+        self::assertSame(1, (int) ($summary['paidCount'] ?? -1));
+        self::assertSame(1, (int) ($summary['pendingCount'] ?? -1));
+        self::assertCount(2, $entries);
+
+        self::assertSame('checkout_order', (string) ($entries[0]['source'] ?? ''));
+        self::assertSame('Anticipo laser', (string) ($entries[0]['concept'] ?? ''));
+        self::assertSame('paid', (string) ($entries[0]['paymentStatus'] ?? ''));
+
+        self::assertSame('appointment', (string) ($entries[1]['source'] ?? ''));
+        self::assertSame('pending_transfer_review', (string) ($entries[1]['paymentStatus'] ?? ''));
+        self::assertStringStartsWith(
+            '2026-04-02T10:00:00',
+            (string) ($entries[1]['dueAt'] ?? '')
+        );
+    }
+
     public function testClinicalHistoryApprovalRequiresAcceptedConsentWhenEpisodeNeedsIt(): void
     {
         $sessionCreate = $this->captureResponse(

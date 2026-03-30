@@ -42,6 +42,10 @@ export function renderClinicalHistorySection() {
                         id="clinicalHistoryRecordsGovernancePanel"
                         class="clinical-history-approval-constancy"
                     ></section>
+                    <section
+                        id="clinicalHistoryAccountStatementPanel"
+                        class="clinical-history-approval-constancy"
+                    ></section>
                     <div
                         id="clinicalHistoryAttachmentStrip"
                         class="clinical-history-attachment-strip"

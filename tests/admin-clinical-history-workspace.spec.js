@@ -841,6 +841,7 @@ function buildClinicalRecordPayload({
     accessAudit = [],
     archiveReadiness = {},
     recordsGovernance = {},
+    accountStatement = {},
 }) {
     const normalizedHcu001Status = legalReadiness.hcu001Status || {
         status: 'complete',
@@ -1157,6 +1158,27 @@ function buildClinicalRecordPayload({
         confidentialityLabel: 'CONFIDENCIAL',
         identityProtectionMode: 'standard',
         ...recordsGovernance,
+    };
+    const normalizedAccountStatement = {
+        currency: 'USD',
+        summary: {
+            entriesCount: 0,
+            paidCents: 0,
+            pendingCents: 0,
+            overdueCents: 0,
+            paidCount: 0,
+            pendingCount: 0,
+            overdueCount: 0,
+            lastPaidAt: '',
+            nextDueAt: '',
+            ...(accountStatement.summary || {}),
+        },
+        entries: Array.isArray(accountStatement.entries)
+            ? accountStatement.entries
+            : [],
+        upcomingEntries: Array.isArray(accountStatement.upcomingEntries)
+            ? accountStatement.upcomingEntries
+            : [],
     };
 
     return {
@@ -1760,6 +1782,7 @@ function buildClinicalRecordPayload({
             lastApprovedAt: approval?.approvedAt || '',
             approvalStatus: approval?.status || 'pending',
         },
+        accountStatement: normalizedAccountStatement,
     };
 }
 
@@ -2632,6 +2655,216 @@ test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del epis
     await expect(page.locator('#interconsult_cancel_reason')).toHaveValue(
         'La paciente decidió diferir la valoración externa.'
     );
+});
+
+test('estado de cuenta muestra historial, saldo pendiente y próximo vencimiento del paciente activo', async ({
+    page,
+}) => {
+    const financeRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-finance-001',
+        caseId: 'case-finance-001',
+        patientName: 'Camila Torres',
+        clinicianSummary: 'Seguimiento de rosacea con control financiero activo.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary: 'La historia clínica ya puede cerrarse.',
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    label: 'Datos mínimos clínicos',
+                    status: 'pass',
+                    message:
+                        'La evolución y la identificación ya cumplen el mínimo defendible.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        accountStatement: {
+            currency: 'USD',
+            summary: {
+                entriesCount: 2,
+                paidCents: 6500,
+                pendingCents: 4000,
+                overdueCents: 0,
+                paidCount: 1,
+                pendingCount: 1,
+                overdueCount: 0,
+                lastPaidAt: '2026-03-18T16:40:00-05:00',
+                nextDueAt: '2026-04-02T10:00:00-05:00',
+            },
+            entries: [
+                {
+                    entryId: 'checkout_order:co-001',
+                    source: 'checkout_order',
+                    reference: 'PAY-20260318-001',
+                    concept: 'Anticipo láser',
+                    amountCents: 6500,
+                    currency: 'USD',
+                    paymentMethod: 'card',
+                    paymentStatus: 'paid',
+                    createdAt: '2026-03-18T16:20:00-05:00',
+                    updatedAt: '2026-03-18T16:40:00-05:00',
+                    paidAt: '2026-03-18T16:40:00-05:00',
+                    dueAt: '',
+                    effectiveAt: '2026-03-18T16:40:00-05:00',
+                    isPaid: true,
+                    isPending: false,
+                    isOverdue: false,
+                    notes: 'Stripe',
+                },
+                {
+                    entryId: 'appointment:451',
+                    source: 'appointment',
+                    reference: 'APT-451',
+                    concept: 'Consulta Presencial · Dr. Javier Rosero',
+                    amountCents: 4000,
+                    currency: 'USD',
+                    paymentMethod: 'transfer',
+                    paymentStatus: 'pending_transfer_review',
+                    createdAt: '2026-03-30T09:00:00-05:00',
+                    updatedAt: '2026-03-30T09:00:00-05:00',
+                    paidAt: '',
+                    dueAt: '2026-04-02T10:00:00-05:00',
+                    effectiveAt: '2026-04-02T10:00:00-05:00',
+                    isPaid: false,
+                    isPending: true,
+                    isOverdue: false,
+                    status: 'confirmed',
+                    notes: '2026-04-02 • 10:00 • confirmed',
+                },
+            ],
+            upcomingEntries: [
+                {
+                    entryId: 'appointment:451',
+                    source: 'appointment',
+                    reference: 'APT-451',
+                    concept: 'Consulta Presencial · Dr. Javier Rosero',
+                    amountCents: 4000,
+                    currency: 'USD',
+                    paymentMethod: 'transfer',
+                    paymentStatus: 'pending_transfer_review',
+                    createdAt: '2026-03-30T09:00:00-05:00',
+                    updatedAt: '2026-03-30T09:00:00-05:00',
+                    paidAt: '',
+                    dueAt: '2026-04-02T10:00:00-05:00',
+                    effectiveAt: '2026-04-02T10:00:00-05:00',
+                    isPaid: false,
+                    isPending: true,
+                    isOverdue: false,
+                    status: 'confirmed',
+                    notes: '2026-04-02 • 10:00 • confirmed',
+                },
+            ],
+        },
+    });
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-finance-001',
+                        caseId: 'case-finance-001',
+                        patientName: 'Camila Torres',
+                        summary: 'Seguimiento listo para aprobar.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 1,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'La historia clínica cumple los bloqueos médico-legales mínimos para aprobar.',
+                        hcu001Status: 'complete',
+                        hcu001Label: 'HCU-001 completa',
+                        hcu001Summary:
+                            'La admisión longitudinal ya deja identidad y contacto base defendibles.',
+                        hcu005Status: 'complete',
+                        hcu005Label: 'HCU-005 completo',
+                        hcu005Summary:
+                            'La evolución, la impresión y la prescripción trazable están completas.',
+                        hcu024Status: 'not_applicable',
+                        hcu024Label: 'HCU-024 no aplica',
+                        hcu024Summary:
+                            'No hay consentimiento escrito por procedimiento exigible para este episodio.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({ route, resource, method, fulfillJson }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: financeRecord,
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+    await page.locator('[data-clinical-session-id="chs-finance-001"]').click();
+
+    await expect(
+        page.locator('#clinicalHistoryAccountStatementPanel')
+    ).toContainText('Estado de cuenta');
+    await expect(
+        page.locator('#clinicalHistoryAccountStatementPanel')
+    ).toContainText('$40.00');
+    await expect(
+        page.locator('#clinicalHistoryAccountStatementPanel')
+    ).toContainText('$65.00');
+    await expect(
+        page.locator(
+            '#clinicalHistoryAccountStatementPanel [data-account-statement-entry="checkout_order:co-001"]'
+        )
+    ).toContainText('Anticipo láser');
+    await expect(
+        page.locator(
+            '#clinicalHistoryAccountStatementPanel [data-account-statement-entry="appointment:451"]'
+        )
+    ).toContainText('Verificando transferencia');
+    await expect(
+        page.locator(
+            '#clinicalHistoryAccountStatementPanel [data-account-statement-due="appointment:451"]'
+        )
+    ).toContainText('Consulta Presencial');
 });
 
 test('interconsulta HCU-007 permite recibir el informe del consultado y mostrar reconciliación manual', async ({
