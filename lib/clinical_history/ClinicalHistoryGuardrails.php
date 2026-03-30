@@ -42,8 +42,13 @@ final class ClinicalHistoryGuardrails
             'motivoConsulta' => 'Cuentame cual es el motivo principal de consulta hoy.',
             'enfermedadActual' => 'Desde cuando empezo y como ha evolucionado lo que te preocupa?',
             'antecedentes' => 'Tienes antecedentes medicos o dermatologicos importantes?',
+            'antecedentesPersonales' => 'Tienes antecedentes personales o dermatologicos relevantes?',
+            'antecedentesFamiliares' => 'Hay antecedentes familiares relacionados con este problema?',
             'alergias' => 'Tienes alergias a medicamentos, alimentos o productos?',
             'medicacionActual' => 'Estas usando algun medicamento, crema o tratamiento actualmente?',
+            'fototipoFitzpatrick' => 'Sabes tu fototipo Fitzpatrick o como responde tu piel al sol?',
+            'habitosSol' => 'Como es tu exposicion al sol y que fotoproteccion usas?',
+            'habitosTabaco' => 'Consumes tabaco actualmente o lo has consumido antes?',
             'datosPaciente.edadAnios' => 'Que edad tiene el paciente?',
             'datosPaciente.pesoKg' => 'Cuanto pesa aproximadamente en kg?',
         ];
@@ -292,7 +297,21 @@ final class ClinicalHistoryGuardrails
     public static function normalizePatch(array $patch): array
     {
         $normalized = [];
-        foreach (['motivoConsulta', 'enfermedadActual', 'antecedentes', 'alergias', 'medicacionActual', 'resumenClinico', 'tratamientoBorrador'] as $field) {
+        foreach ([
+            'motivoConsulta',
+            'enfermedadActual',
+            'antecedentes',
+            'antecedentesPersonales',
+            'antecedentesFamiliares',
+            'alergias',
+            'medicacionActual',
+            'fototipoFitzpatrick',
+            'habitos',
+            'habitosSol',
+            'habitosTabaco',
+            'resumenClinico',
+            'tratamientoBorrador',
+        ] as $field) {
             if (array_key_exists($field, $patch)) {
                 $normalized[$field] = ClinicalHistoryRepository::trimString($patch[$field]);
             }
@@ -417,8 +436,14 @@ final class ClinicalHistoryGuardrails
             'motivoConsulta' => '',
             'enfermedadActual' => '',
             'antecedentes' => '',
+            'antecedentesPersonales' => '',
+            'antecedentesFamiliares' => '',
             'alergias' => '',
             'medicacionActual' => '',
+            'fototipoFitzpatrick' => '',
+            'habitos' => '',
+            'habitosSol' => '',
+            'habitosTabaco' => '',
             'rosRedFlags' => self::detectRedFlags($messageText),
             'datosPaciente' => [
                 'edadAnios' => null,
@@ -470,7 +495,21 @@ final class ClinicalHistoryGuardrails
         $draft = ClinicalHistoryRepository::adminDraft($draft);
         $patch = self::normalizePatch($patch);
 
-        foreach (['motivoConsulta', 'enfermedadActual', 'antecedentes', 'alergias', 'medicacionActual', 'resumenClinico', 'tratamientoBorrador'] as $field) {
+        foreach ([
+            'motivoConsulta',
+            'enfermedadActual',
+            'antecedentes',
+            'antecedentesPersonales',
+            'antecedentesFamiliares',
+            'alergias',
+            'medicacionActual',
+            'fototipoFitzpatrick',
+            'habitos',
+            'habitosSol',
+            'habitosTabaco',
+            'resumenClinico',
+            'tratamientoBorrador',
+        ] as $field) {
             $value = ClinicalHistoryRepository::trimString($patch[$field] ?? '');
             if ($value !== '') {
                 $draft['intake'][$field] = $value;
@@ -522,6 +561,10 @@ final class ClinicalHistoryGuardrails
             );
         }
 
+        $draft['intake'] = ClinicalHistoryRepository::normalizeIntake(
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : []
+        );
+
         return $draft;
     }
 
@@ -572,8 +615,14 @@ final class ClinicalHistoryGuardrails
             ClinicalHistoryRepository::trimString($intake['motivoConsulta'] ?? ''),
             ClinicalHistoryRepository::trimString($intake['enfermedadActual'] ?? ''),
             ClinicalHistoryRepository::trimString($intake['antecedentes'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['antecedentesPersonales'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['antecedentesFamiliares'] ?? ''),
             ClinicalHistoryRepository::trimString($intake['alergias'] ?? ''),
             ClinicalHistoryRepository::trimString($intake['medicacionActual'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['fototipoFitzpatrick'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['habitos'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['habitosSol'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['habitosTabaco'] ?? ''),
             ClinicalHistoryRepository::trimString($intake['resumenClinico'] ?? ''),
             ...ClinicalHistoryRepository::normalizeStringList($intake['rosRedFlags'] ?? []),
             ClinicalHistoryRepository::trimString($clinicianDraft['resumen'] ?? ''),
