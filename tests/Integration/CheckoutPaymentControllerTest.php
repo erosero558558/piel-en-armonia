@@ -330,4 +330,80 @@ class CheckoutPaymentControllerTest extends TestCase
         $this->assertNotSame('', (string) ($order['transferVerifiedAt'] ?? ''));
         $this->assertNotSame('', (string) ($order['transferAppliedAt'] ?? ''));
     }
+
+    public function testAdminAccountMetaGroupsBalancesByPatientAndDueState(): void
+    {
+        $now = new \DateTimeImmutable(\local_date('c'));
+        $overdueAt = $now->modify('-4 hours')->format('c');
+        $dueSoonAt = $now->modify('+24 hours')->format('c');
+        $settledAt = $now->modify('-1 day')->format('c');
+
+        $meta = \CheckoutOrderService::buildAdminAccountMeta([
+            'checkout_orders' => [
+                [
+                    'id' => 'co_ana_pending',
+                    'receiptNumber' => 'PAY-ANA-001',
+                    'concept' => 'Saldo peeling',
+                    'amountCents' => 8000,
+                    'currency' => 'USD',
+                    'payerName' => 'Ana Test',
+                    'payerEmail' => 'ana@example.com',
+                    'payerWhatsapp' => '+593999000111',
+                    'paymentMethod' => 'transfer',
+                    'paymentStatus' => 'pending_transfer',
+                    'transferReference' => 'TRX-ANA-01',
+                    'dueAt' => $overdueAt,
+                    'createdAt' => $now->modify('-2 day')->format('c'),
+                    'updatedAt' => $now->modify('-6 hours')->format('c'),
+                ],
+                [
+                    'id' => 'co_ana_paid',
+                    'receiptNumber' => 'PAY-ANA-002',
+                    'concept' => 'Control laser',
+                    'amountCents' => 4500,
+                    'currency' => 'USD',
+                    'payerName' => 'Ana Test',
+                    'payerEmail' => 'ana@example.com',
+                    'payerWhatsapp' => '+593999000111',
+                    'paymentMethod' => 'card',
+                    'paymentStatus' => 'paid',
+                    'paymentPaidAt' => $settledAt,
+                    'createdAt' => $now->modify('-5 day')->format('c'),
+                    'updatedAt' => $settledAt,
+                ],
+                [
+                    'id' => 'co_luis_pending',
+                    'receiptNumber' => 'PAY-LUI-001',
+                    'concept' => 'Control acne',
+                    'amountCents' => 7500,
+                    'currency' => 'USD',
+                    'payerName' => 'Luis Mora',
+                    'payerEmail' => 'luis@example.com',
+                    'payerWhatsapp' => '+593999000222',
+                    'paymentMethod' => 'cash',
+                    'paymentStatus' => 'pending_cash',
+                    'dueAt' => $dueSoonAt,
+                    'createdAt' => $now->modify('-1 day')->format('c'),
+                    'updatedAt' => $now->modify('-2 hours')->format('c'),
+                ],
+            ],
+        ]);
+
+        $this->assertSame(2, (int) ($meta['summary']['patientCount'] ?? -1));
+        $this->assertSame(2, (int) ($meta['summary']['outstandingCount'] ?? -1));
+        $this->assertSame(1, (int) ($meta['summary']['dueSoonCount'] ?? -1));
+        $this->assertSame(1, (int) ($meta['summary']['overdueCount'] ?? -1));
+        $this->assertSame('$155.00', (string) ($meta['summary']['outstandingBalanceLabel'] ?? ''));
+        $this->assertSame('$45.00', (string) ($meta['summary']['settledBalanceLabel'] ?? ''));
+
+        $patients = $meta['patients'] ?? [];
+        $this->assertCount(2, $patients);
+        $this->assertSame('Ana Test', (string) ($patients[0]['patientName'] ?? ''));
+        $this->assertSame('$80.00', (string) ($patients[0]['outstandingBalanceLabel'] ?? ''));
+        $this->assertSame('$45.00', (string) ($patients[0]['settledBalanceLabel'] ?? ''));
+        $this->assertSame(1, (int) ($patients[0]['overdueCount'] ?? -1));
+        $this->assertSame($overdueAt, (string) ($patients[0]['nextDueAt'] ?? ''));
+        $this->assertSame('PAY-ANA-001', (string) ($patients[0]['orders'][0]['receiptNumber'] ?? ''));
+        $this->assertSame('outstanding', (string) ($patients[0]['orders'][0]['statusBucket'] ?? ''));
+    }
 }

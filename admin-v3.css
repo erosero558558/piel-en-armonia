@@ -1418,6 +1418,60 @@ body.admin-v3-mode .dashboard-checkout-review__actions button {
     cursor: pointer;
 }
 
+body.admin-v3-mode .dashboard-payment-account__item {
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .dashboard-payment-account__copy {
+    display: grid;
+    gap: 4px;
+}
+
+body.admin-v3-mode .dashboard-payment-account__copy small,
+body.admin-v3-mode .dashboard-payment-account__orders small {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .dashboard-payment-account__balances {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+body.admin-v3-mode .dashboard-payment-account__badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface);
+    color: var(--admin3-ink);
+    font-size: 0.82rem;
+}
+
+body.admin-v3-mode .dashboard-payment-account__badge[data-tone='warning'] {
+    border-color: rgba(255, 139, 107, 0.45);
+    background: rgba(255, 139, 107, 0.14);
+}
+
+body.admin-v3-mode .dashboard-payment-account__badge[data-tone='neutral'] {
+    border-color: rgba(244, 188, 96, 0.4);
+    background: rgba(244, 188, 96, 0.12);
+}
+
+body.admin-v3-mode .dashboard-payment-account__badge[data-tone='success'],
+body.admin-v3-mode .dashboard-payment-account__badge[data-tone='ready'] {
+    border-color: rgba(91, 214, 175, 0.35);
+    background: rgba(91, 214, 175, 0.12);
+}
+
+body.admin-v3-mode .dashboard-payment-account__orders {
+    display: grid;
+    gap: 6px;
+}
+
 body.admin-v3-mode .operations-action-item {
     width: 100%;
     justify-content: space-between;
