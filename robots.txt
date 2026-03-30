@@ -9,6 +9,15 @@ Disallow: /cron.php
 Disallow: /legacy.php
 Disallow: /data/
 Disallow: /tools/
+Disallow: /lib/
+Disallow: /templates/
+Disallow: /backup/
+Disallow: /bin/
+Disallow: /store/
+Disallow: /src/
+Disallow: /scripts/
+Disallow: /verification/
+Disallow: /governance/
 Disallow: /uploads/
 
 Sitemap: https://pielarmonia.com/sitemap.xml

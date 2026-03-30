@@ -1,0 +1,140 @@
+{
+  "generatedAt": "2026-03-30T13:46:54.561Z",
+  "count": 19,
+  "broken": [
+    {
+      "name": "score:public:v5:sony",
+      "ref": "bin/score-public-v5-sony.js",
+      "cmd": "node bin/score-public-v5-sony.js --min-score 82 --min-checkp"
+    },
+    {
+      "name": "score:public:v5:sony:strict",
+      "ref": "bin/score-public-v5-sony.js",
+      "cmd": "node bin/score-public-v5-sony.js --min-score 90 --min-checkp"
+    },
+    {
+      "name": "audit:public:v5:surface",
+      "ref": "bin/audit-public-v5-surface.js",
+      "cmd": "node bin/audit-public-v5-surface.js --strict"
+    },
+    {
+      "name": "audit:public:v5:copy",
+      "ref": "bin/audit-public-v5-copy.js",
+      "cmd": "node bin/audit-public-v5-copy.js --strict"
+    },
+    {
+      "name": "audit:public:v6:sony-evidence",
+      "ref": "bin/audit-public-v6-sony-evidence.js",
+      "cmd": "node bin/audit-public-v6-sony-evidence.js --strict"
+    },
+    {
+      "name": "audit:public:v6:sony-parity",
+      "ref": "bin/audit-public-v6-sony-parity.js",
+      "cmd": "node bin/audit-public-v6-sony-parity.js --min-points 50 --st"
+    },
+    {
+      "name": "baseline:sony:reference",
+      "ref": "bin/capture-sony-reference.js",
+      "cmd": "node bin/capture-sony-reference.js"
+    },
+    {
+      "name": "compare:public:v5:sony:reference",
+      "ref": "bin/compare-public-v5-sony-reference.js",
+      "cmd": "node bin/compare-public-v5-sony-reference.js"
+    },
+    {
+      "name": "gate:public:v5:8point",
+      "ref": "bin/gate-public-v5-8point.js",
+      "cmd": "node bin/gate-public-v5-8point.js"
+    },
+    {
+      "name": "diagnose:admin:auth:rollout:node",
+      "ref": "bin/admin-openclaw-rollout-diagnostic.js",
+      "cmd": "node bin/admin-openclaw-rollout-diagnostic.js --domain https"
+    },
+    {
+      "name": "turnero:release:plan",
+      "ref": "bin/resolve-turnero-release-plan.js",
+      "cmd": "node bin/resolve-turnero-release-plan.js"
+    },
+    {
+      "name": "turnero:verify:bundle",
+      "ref": "bin/verify-turnero-release-bundle.js",
+      "cmd": "node bin/verify-turnero-release-bundle.js"
+    },
+    {
+      "name": "turnero:verify:pilot:local",
+      "ref": "bin/verify-turnero-release-bundle.js",
+      "cmd": "node bin/verify-turnero-release-bundle.js --outputRoot relea"
+    },
+    {
+      "name": "gate:admin:rollout:node",
+      "ref": "bin/admin-rollout-gate.js",
+      "cmd": "node bin/admin-rollout-gate.js --domain https://pielarmonia."
+    },
+    {
+      "name": "gate:admin:rollout:auth:node",
+      "ref": "bin/admin-rollout-gate.js",
+      "cmd": "node bin/admin-rollout-gate.js --domain https://pielarmonia."
+    },
+    {
+      "name": "agent:board:legacy:check",
+      "ref": "bin/board-legacy-drift-guard.js",
+      "cmd": "node bin/board-legacy-drift-guard.js --check --json"
+    },
+    {
+      "name": "agent:board:legacy:normalize",
+      "ref": "bin/board-legacy-drift-guard.js",
+      "cmd": "node bin/board-legacy-drift-guard.js --write --json"
+    },
+    {
+      "name": "content:public-v4:validate",
+      "ref": "bin/validate-public-v4-catalog.js",
+      "cmd": "node bin/validate-public-v4-catalog.js"
+    },
+    {
+      "name": "content:public-v5:validate",
+      "ref": "bin/validate-public-v5-catalog.js",
+      "cmd": "node bin/validate-public-v5-catalog.js"
+    }
+  ],
+  "domains": {
+    "score": [
+      "score:public:v5:sony",
+      "score:public:v5:sony:strict"
+    ],
+    "audit": [
+      "audit:public:v5:surface",
+      "audit:public:v5:copy",
+      "audit:public:v6:sony-evidence",
+      "audit:public:v6:sony-parity"
+    ],
+    "baseline": [
+      "baseline:sony:reference"
+    ],
+    "compare": [
+      "compare:public:v5:sony:reference"
+    ],
+    "gate": [
+      "gate:public:v5:8point",
+      "gate:admin:rollout:node",
+      "gate:admin:rollout:auth:node"
+    ],
+    "diagnose": [
+      "diagnose:admin:auth:rollout:node"
+    ],
+    "turnero": [
+      "turnero:release:plan",
+      "turnero:verify:bundle",
+      "turnero:verify:pilot:local"
+    ],
+    "agent": [
+      "agent:board:legacy:check",
+      "agent:board:legacy:normalize"
+    ],
+    "content": [
+      "content:public-v4:validate",
+      "content:public-v5:validate"
+    ]
+  }
+}

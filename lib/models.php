@@ -6,6 +6,7 @@ require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/business.php';
 require_once __DIR__ . '/tenants.php';
+require_once __DIR__ . '/consent/ConsentVersioning.php';
 
 /**
  * Business logic and data models.
@@ -133,6 +134,12 @@ function normalize_appointment(array $appointment): array
 
     $privacyConsent = isset($appointment['privacyConsent']) ? parse_bool($appointment['privacyConsent']) : false;
     $privacyConsentAtDefault = $privacyConsent ? local_date('c') : '';
+    
+    // Attach cryptograhic hash for auditing
+    $privacyVersionInfo = null;
+    if ($privacyConsent) {
+        $privacyVersionInfo = ConsentVersioning::getActiveVersion('privacy_policy');
+    }
     $casePhotoNames = normalize_string_list($appointment['casePhotoNames'] ?? [], 3, 200);
     $casePhotoUrls = normalize_string_list($appointment['casePhotoUrls'] ?? [], 3, 500);
     $casePhotoPaths = normalize_string_list($appointment['casePhotoPaths'] ?? [], 3, 500);
@@ -173,6 +180,8 @@ function normalize_appointment(array $appointment): array
         'evolutionTime' => truncate_field(sanitize_xss(trim((string) ($appointment['evolutionTime'] ?? ''))), 100),
         'privacyConsent' => $privacyConsent,
         'privacyConsentAt' => truncate_field(trim((string) ($appointment['privacyConsentAt'] ?? $privacyConsentAtDefault)), 30),
+        'privacyConsentVersion' => $privacyVersionInfo['version'] ?? ($appointment['privacyConsentVersion'] ?? null),
+        'privacyConsentHash' => $privacyVersionInfo['hash'] ?? ($appointment['privacyConsentHash'] ?? null),
         'casePhotoCount' => $casePhotoCount,
         'casePhotoNames' => $casePhotoNames,
         'casePhotoUrls' => $casePhotoUrls,

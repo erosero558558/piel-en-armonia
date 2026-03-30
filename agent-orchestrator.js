@@ -17,27 +17,29 @@ const cmd = process.argv[2] || 'status';
 const messages = {
   status: () => {
     const agents = readFileSync(resolve(__dirname, 'AGENTS.md'), 'utf8');
-    // Mismo regex que claim.js: solo cuenta líneas con ID de tarea real (S3-19, S3-OC1, etc.)
-    const done    = (agents.match(/^- \[x\] \*\*S\d+-[A-Z0-9]+\*\*/gm) || []).length;
-    const pending = (agents.match(/^- \[ \] \*\*S\d+-[A-Z0-9]+\*\*/gm) || []).length;
+    // S14-00 fix: regex unificado igual que dispatch.js — captura S3-09, UI-01, UI2-20, UI3-15, S14-00, etc.
+    const done    = (agents.match(/^- \[x\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/gm) || []).length;
+    const pending = (agents.match(/^- \[ \] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/gm) || []).length;
     const total   = done + pending;
 
-    // Detect current sprint (first one with pending tasks)
-    let currentSprint = 'Sprint 1';
-    for (const sprint of ['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4']) {
-      const num = sprint.split(' ')[1];
-      const marker = `Sprint ${num} —`;
-      const start = agents.indexOf(marker);
-      if (start === -1) continue;
-      const end = agents.indexOf('### 🔵 Sprint 4') > start
-        ? agents.indexOf('\n### ', start + 10) : agents.length;
-      const section = agents.slice(start, end);
-      if (section.includes('- [ ]')) { currentSprint = sprint; break; }
+    // Detect current sprint dynamically — busca el primero con tareas pendientes
+    let currentSprint = 'Sprint 3';
+    const sprintMatches = [...agents.matchAll(/^### [^\n]*Sprint (\d+|UI)[^\n]*/gm)];
+    for (const m of sprintMatches) {
+      const label = m[0].replace(/^### /, '').trim();
+      const idx   = agents.indexOf(m[0]);
+      const nextIdx = agents.indexOf('\n### ', idx + 10);
+      const section = agents.slice(idx, nextIdx === -1 ? agents.length : nextIdx);
+      if (section.match(/^- \[ \] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/m)) {
+        currentSprint = label;
+        break;
+      }
     }
 
     console.log(JSON.stringify({
-      source: 'AGENTS.md',
-      orchestrator: 'redirect-stub-v2',
+      source:       'AGENTS.md',
+      parsedFrom:   'AGENTS.md',  // S14-00: canonical source, same as claim.js + dispatch.js
+      orchestrator: 'redirect-stub-v3-canonical',
       message: 'Lee AGENTS.md + usa dispatch por rol para tomar tu tarea.',
       backlog: {
         done,
@@ -51,6 +53,7 @@ const messages = {
         frontend:  'npm run dispatch:frontend  → HTML, CSS, páginas',
         backend:   'npm run dispatch:backend   → PHP, API, controladores',
         devops:    'npm run dispatch:devops    → CI, limpieza, auditorías',
+        ui:        'npm run dispatch:ui        → SOLO Antigravity — UI/UX Aurora Derm',
         fullstack: 'npm run dispatch:fullstack → cualquier tarea disponible',
       },
       workflow: [

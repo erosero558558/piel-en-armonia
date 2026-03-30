@@ -1562,7 +1562,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 10.3 Consentimiento y trazabilidad legal
 
-- [ ] **S10-11** `[L]` Consent versioning system — versionar consentimientos con: `version`, `valid_from`, `valid_to`, texto completo hash. Al obtener consentimiento, guardar qué versión aceptó el paciente. `lib/consent/ConsentVersioning.php`. Crítico para auditoría legal MSP.
+- [x] **S10-11** `[L]` Consent versioning system — versionar consentimientos con: `version`, `valid_from`, `valid_to`, texto completo hash. Al obtener consentimiento, guardar qué versión aceptó el paciente. `lib/consent/ConsentVersioning.php`. Crítico para auditoría legal MSP.
 - [ ] **S10-12** `[M]` Consent signature evidence — guardar evidencia mínima de cada aceptación: canal (portal web, presencial, telemedicina), timestamp, IP/origen, versión y surface. `consent_records` con índice por `case_id`.
 - [ ] **S10-13** `[M]` Procedure-specific consent routing — tratamientos de mayor riesgo (láser CO2, bioestimuladores, peeling profundo) deben exigir consentimiento específico además del genérico. `data/catalog/services.json` campo `consent_required: "specific|generic"`.
 - [ ] **S10-14** `[S]` Clinical document revocation ledger — si una receta o certificado es reemplazado o anulado, dejar trazabilidad: doc anterior marcado `voided_at`, razón, quién lo anuló. El historial clínico muestra documento tachado + nuevo. Append-only.
