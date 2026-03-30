@@ -137,6 +137,29 @@
         `;
     }
 
+    function renderBillingSkeleton() {
+        return `
+            <section class="portal-plan-card portal-billing-card" data-portal-billing-skeleton style="opacity:0.8;">
+                <div style="display:grid; gap:12px; width:100%;">
+                    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+                        <div style="display:grid; gap:8px; flex:1;">
+                            <div class="skeleton" style="width: 34%; height: 14px;"></div>
+                            <div class="skeleton" style="width: 56%; height: 20px;"></div>
+                        </div>
+                        <div class="skeleton" style="width: 90px; height: 28px; border-radius:999px;"></div>
+                    </div>
+                    <div class="portal-billing-card__metrics">
+                        <div class="skeleton" style="width: 100%; height: 92px;"></div>
+                        <div class="skeleton" style="width: 100%; height: 92px;"></div>
+                        <div class="skeleton" style="width: 100%; height: 92px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 100%; height: 40px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 44px;"></div>
+                </div>
+            </section>
+        `;
+    }
+
     function doctorInitials(name) {
         return String(name || '')
             .trim()
@@ -377,9 +400,106 @@
         `;
     }
 
+    function renderBillingMetric(title, value, note, attr) {
+        return `
+            <article class="portal-plan-card__metric portal-billing-card__metric">
+                <strong>${escapeHtml(title)}</strong>
+                <span${attr ? ` ${attr}` : ''}>${escapeHtml(value)}</span>
+                <small>${escapeHtml(note)}</small>
+            </article>
+        `;
+    }
+
+    function renderBillingCard(billing) {
+        const safeBilling = billing && typeof billing === 'object' ? billing : {};
+        const tone = ['good', 'warning', 'attention', 'idle'].includes(String(safeBilling.tone || ''))
+            ? String(safeBilling.tone || 'idle')
+            : 'idle';
+        const lastPayment =
+            safeBilling.lastPayment && typeof safeBilling.lastPayment === 'object'
+                ? safeBilling.lastPayment
+                : null;
+        const nextObligation =
+            safeBilling.nextObligation && typeof safeBilling.nextObligation === 'object'
+                ? safeBilling.nextObligation
+                : null;
+        const payNowUrl = String(safeBilling.payNowUrl || '/es/pago/').trim() || '/es/pago/';
+        const reviewBalanceCents = Number(safeBilling.reviewBalanceCents || 0);
+        const detailParts = [String(safeBilling.statusDetail || '').trim()].filter(Boolean);
+
+        if (reviewBalanceCents > 0 && String(safeBilling.reviewBalanceLabel || '').trim()) {
+            detailParts.push(`Incluye ${String(safeBilling.reviewBalanceLabel).trim()} en revisión manual.`);
+        }
+
+        return `
+            <section class="portal-plan-card portal-billing-card" data-portal-billing-card>
+                <div class="portal-plan-card__header">
+                    <div class="portal-plan-card__info">
+                        <span class="portal-inline-label">Resumen financiero</span>
+                        <strong>Saldo y próximos cobros</strong>
+                        <span>No mostramos datos bancarios ni comprobantes sensibles en esta vista.</span>
+                    </div>
+                    <span class="portal-status-chip portal-status-chip--${escapeHtml(tone)}" data-portal-billing-status>
+                        ${escapeHtml(String(safeBilling.statusLabel || 'Sin datos'))}
+                    </span>
+                </div>
+
+                <div class="portal-billing-card__metrics">
+                    ${renderBillingMetric(
+                        'Total pendiente',
+                        String(safeBilling.totalPendingLabel || '$0.00'),
+                        reviewBalanceCents > 0
+                            ? 'Incluye cobros pendientes y pagos en revisión.'
+                            : 'Solo lectura desde tu portal.',
+                        'data-portal-billing-total'
+                    )}
+                    ${renderBillingMetric(
+                        'Último pago',
+                        lastPayment ? String(lastPayment.amountLabel || 'Sin registro') : 'Sin registro',
+                        lastPayment
+                            ? `${String(lastPayment.paymentMethodLabel || 'Pago')} · ${String(lastPayment.paidAtLabel || 'Sin fecha')}`
+                            : 'Todavía no hay pagos confirmados.',
+                        'data-portal-billing-last-payment'
+                    )}
+                    ${renderBillingMetric(
+                        'Próxima obligación',
+                        nextObligation ? String(nextObligation.dueAtLabel || 'Por confirmar') : 'Sin vencimientos',
+                        nextObligation
+                            ? `${String(nextObligation.concept || 'Saldo pendiente')} · ${String(nextObligation.amountLabel || '')}`.trim()
+                            : 'No tienes cobros pendientes ahora mismo.',
+                        'data-portal-billing-next-due'
+                    )}
+                </div>
+
+                <p class="portal-billing-card__detail" data-portal-billing-detail>${escapeHtml(
+                    detailParts.join(' ')
+                )}</p>
+
+                <div class="portal-cta-row portal-cta-row--single">
+                    <a class="btn btn-primary" data-portal-billing-cta href="${escapeHtml(payNowUrl)}">Pagar ahora</a>
+                </div>
+            </section>
+        `;
+    }
+
+    function renderBillingUnavailable() {
+        return renderBillingCard({
+            tone: 'idle',
+            statusLabel: 'No disponible',
+            statusDetail:
+                'No pudimos cargar tu resumen de pagos en este momento. Puedes abrir el checkout seguro si necesitas pagar ahora.',
+            totalPendingLabel: '$0.00',
+            reviewBalanceCents: 0,
+            lastPayment: null,
+            nextObligation: null,
+            payNowUrl: '/es/pago/',
+        });
+    }
+
     async function hydrateDashboard() {
         const nextAppointmentContainer = document.getElementById('portal-next-appointment');
         const treatmentPlanContainer = document.getElementById('portal-treatment-plan');
+        const billingContainer = document.getElementById('portal-billing-summary');
         const actionsContainer = document.getElementById('portal-appointment-actions');
         if (!(nextAppointmentContainer instanceof HTMLElement)) {
             return;
@@ -397,6 +517,9 @@
         nextAppointmentContainer.innerHTML = renderSkeletonCard();
         if (treatmentPlanContainer instanceof HTMLElement) {
             treatmentPlanContainer.innerHTML = renderTreatmentPlanSkeleton();
+        }
+        if (billingContainer instanceof HTMLElement) {
+            billingContainer.innerHTML = renderBillingSkeleton();
         }
         if (actionsContainer instanceof HTMLElement) {
             actionsContainer.innerHTML = renderActionSkeletons();
@@ -430,6 +553,8 @@
                 payload.treatmentPlan && typeof payload.treatmentPlan === 'object'
                     ? payload.treatmentPlan
                     : null;
+            const billing =
+                payload.billing && typeof payload.billing === 'object' ? payload.billing : null;
             const support = payload.support && typeof payload.support === 'object' ? payload.support : {};
 
             if (portalShell && typeof portalShell.updatePatient === 'function' && patient.name) {
@@ -444,6 +569,9 @@
                     ? renderTreatmentPlan(treatmentPlan)
                     : renderTreatmentPlanEmpty();
             }
+            if (billingContainer instanceof HTMLElement) {
+                billingContainer.innerHTML = renderBillingCard(billing);
+            }
 
             if (actionsContainer instanceof HTMLElement) {
                 actionsContainer.innerHTML = renderSupportActions(support);
@@ -453,6 +581,9 @@
             nextAppointmentContainer.innerHTML = renderErrorState();
             if (treatmentPlanContainer instanceof HTMLElement) {
                 treatmentPlanContainer.innerHTML = renderTreatmentPlanEmpty();
+            }
+            if (billingContainer instanceof HTMLElement) {
+                billingContainer.innerHTML = renderBillingUnavailable();
             }
             if (actionsContainer instanceof HTMLElement) {
                 actionsContainer.innerHTML = renderSupportActions({

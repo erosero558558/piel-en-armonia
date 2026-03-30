@@ -311,6 +311,32 @@ body.portal-body {
     flex-shrink: 0;
 }
 
+.portal-billing-card {
+    background: linear-gradient(180deg, rgba(11, 17, 32, 0.98), rgba(17, 24, 39, 0.86));
+    border-color: rgba(129, 140, 248, 0.18);
+}
+
+.portal-billing-card__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.portal-billing-card__metric {
+    min-height: 108px;
+}
+
+.portal-billing-card__metric small {
+    color: var(--admin-text-muted);
+    line-height: 1.45;
+}
+
+.portal-billing-card__detail {
+    margin: 0;
+    color: #fff;
+    line-height: 1.6;
+}
+
 /* 7. Bottom Navigation (Tab Bar) */
 .portal-bottom-nav {
     position: absolute;
@@ -822,6 +848,10 @@ body.portal-body {
     margin-top: var(--space-4);
 }
 
+.portal-cta-row--single {
+    grid-template-columns: 1fr;
+}
+
 .portal-cta-row .btn {
     width: 100%;
     justify-content: center;
@@ -937,6 +967,10 @@ body.portal-body {
     }
 
     .portal-plan-card__metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .portal-billing-card__metrics {
         grid-template-columns: 1fr;
     }
 }

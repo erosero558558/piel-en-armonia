@@ -242,6 +242,54 @@ final class PatientPortalControllerTest extends TestCase
             ],
             'updatedAt' => '2026-03-18T18:20:00-05:00',
         ];
+        $store['checkout_orders'] = [
+            [
+                'id' => 'co_paid_001',
+                'receiptNumber' => 'PAY-20260305-AA1001',
+                'concept' => 'Consulta dermatológica',
+                'amountCents' => 4500,
+                'currency' => 'USD',
+                'payerName' => 'Lucia Portal',
+                'payerEmail' => 'lucia@example.com',
+                'payerWhatsapp' => '0991234567',
+                'paymentMethod' => 'card',
+                'paymentStatus' => 'paid',
+                'paymentPaidAt' => '2026-03-05T11:30:00-05:00',
+                'createdAt' => '2026-03-05T10:45:00-05:00',
+                'updatedAt' => '2026-03-05T11:30:00-05:00',
+            ],
+            [
+                'id' => 'co_pending_001',
+                'receiptNumber' => 'PAY-20260329-BB2002',
+                'concept' => 'Saldo peeling químico',
+                'amountCents' => 9500,
+                'currency' => 'USD',
+                'payerName' => 'Lucia Portal',
+                'payerEmail' => '',
+                'payerWhatsapp' => '0991234567',
+                'paymentMethod' => 'transfer',
+                'paymentStatus' => 'pending_transfer',
+                'dueAt' => '2026-03-31T09:00:00-05:00',
+                'transferReference' => 'TRX-LUCIA-01',
+                'createdAt' => '2026-03-29T09:15:00-05:00',
+                'updatedAt' => '2026-03-29T09:15:00-05:00',
+            ],
+            [
+                'id' => 'co_other_001',
+                'receiptNumber' => 'PAY-20260310-CC3003',
+                'concept' => 'Saldo paciente ajeno',
+                'amountCents' => 15000,
+                'currency' => 'USD',
+                'payerName' => 'Paciente Ajeno',
+                'payerEmail' => 'otro@example.com',
+                'payerWhatsapp' => '0988888888',
+                'paymentMethod' => 'cash',
+                'paymentStatus' => 'pending_cash',
+                'dueAt' => '2026-04-01T10:00:00-05:00',
+                'createdAt' => '2026-03-10T10:00:00-05:00',
+                'updatedAt' => '2026-03-10T10:00:00-05:00',
+            ],
+        ];
         \write_store($store, false);
     }
 
@@ -415,6 +463,44 @@ final class PatientPortalControllerTest extends TestCase
         self::assertSame(
             'Completar 4 sesiones de control.',
             (string) ($dashboard['payload']['data']['treatmentPlan']['tasks'][0]['label'] ?? '')
+        );
+        self::assertSame(
+            'warning',
+            (string) ($dashboard['payload']['data']['billing']['tone'] ?? '')
+        );
+        self::assertSame(
+            'Saldo pendiente',
+            (string) ($dashboard['payload']['data']['billing']['statusLabel'] ?? '')
+        );
+        self::assertSame(
+            '$95.00',
+            (string) ($dashboard['payload']['data']['billing']['totalPendingLabel'] ?? '')
+        );
+        self::assertSame(
+            '$45.00',
+            (string) ($dashboard['payload']['data']['billing']['lastPayment']['amountLabel'] ?? '')
+        );
+        self::assertStringContainsString(
+            '5 mar 2026',
+            (string) ($dashboard['payload']['data']['billing']['lastPayment']['paidAtLabel'] ?? '')
+        );
+        self::assertSame(
+            '$95.00',
+            (string) ($dashboard['payload']['data']['billing']['nextObligation']['amountLabel'] ?? '')
+        );
+        self::assertStringContainsString(
+            '31 mar 2026',
+            (string) ($dashboard['payload']['data']['billing']['nextObligation']['dueAtLabel'] ?? '')
+        );
+        self::assertSame(
+            '/es/pago/',
+            (string) ($dashboard['payload']['data']['billing']['payNowUrl'] ?? '')
+        );
+        self::assertArrayNotHasKey(
+            'bank',
+            is_array($dashboard['payload']['data']['billing'] ?? null)
+                ? $dashboard['payload']['data']['billing']
+                : []
         );
     }
 
