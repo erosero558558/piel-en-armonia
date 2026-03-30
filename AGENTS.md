@@ -778,13 +778,13 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 
 ### Issues conocidas
 
-| Issue                        | Detalle                                                                                                     | Impacto                                                 |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| 502 intermitente             | pielarmonia.com responde 502 ocasionalmente                                                                 | Server Windows, fuera de alcance del repo               |
+| Issue                        | Detalle                                                                                                                                             | Impacto                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 502 intermitente             | pielarmonia.com responde 502 ocasionalmente                                                                                                         | Server Windows, fuera de alcance del repo                       |
 | `patient-flow-os/` activo    | `src/apps/patient-flow-os/` tiene `apps/`, `packages/`, `tests/`, `infra/`, `docker-compose.yml` — **slice viva, 12 tests**. Owner: codex_frontend. | Requiere clean-checkout (S14-02) y smoke multi-surface (S14-04) |
-| 398 surface files            | `src/apps/queue-shared/` tiene 398 archivos, ~80% dead code                                                 | Confunde a agentes, infla el repo                       |
-| EN desactualizado            | `en/index.html` puede no reflejar la versión ES actual                                                      | Experiencia inconsistente para pacientes angloparlantes |
-| `bioestimuladores/` redirect | Footer enlaza `/es/servicios/bioestimuladores/` pero existe como `/es/servicios/bioestimuladores-colageno/` | 404 para algunos visitors                               |
+| 398 surface files            | `src/apps/queue-shared/` tiene 398 archivos, ~80% dead code                                                                                         | Confunde a agentes, infla el repo                               |
+| EN desactualizado            | `en/index.html` puede no reflejar la versión ES actual                                                                                              | Experiencia inconsistente para pacientes angloparlantes         |
+| `bioestimuladores/` redirect | Footer enlaza `/es/servicios/bioestimuladores/` pero existe como `/es/servicios/bioestimuladores-colageno/`                                         | 404 para algunos visitors                                       |
 
 ### Acceptance criteria por sprint
 
@@ -1453,7 +1453,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ### ⚙️ Sprint 8 — Operación Real, Deuda Desktop y Hardening
 
-> Deuda técnica y operativa detectada en el audit del 30-mar-2026. Prerequisito para que kiosco, sala_tv, turnero y auth funcionen sin sorpresas en producción. **Sprint 11 (multi-sede) postergado hasta post-lanzamiento junio 2026.*
+> Deuda técnica y operativa detectada en el audit del 30-mar-2026. Prerequisito para que kiosco, sala_tv, turnero y auth funcionen sin sorpresas en producción. \*_Sprint 11 (multi-sede) postergado hasta post-lanzamiento junio 2026._
 
 #### 8.1 Desktop y distribución
 
@@ -1625,7 +1625,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 12.4 Conversión y CRO
 
 - [ ] **S12-16** `[M]` `[UI]` Conversion copy experiment — probar variantes de headline, subtítulo y CTA en hero y páginas de servicio. El diseño ya está en `aurora-public.css` — esta tarea es texto + tracking. Medir con los eventos de booking funnel (S9-06).
-- [ ] **S12-17** `[M]` `[UI]` CTA intelligence por surface — que el CTA de cada página empuje al siguiente paso correcto: página de servicio → booking esa especialidad; primera consulta → WhatsApp con texto prepopulado; blog → pre-consulta. Sin CTA genéricos. Verificable: 0 CTAs que digan solo "Contáctanos".
+- [x] **S12-17** `[M]` `[UI]` CTA intelligence por surface — que el CTA de cada página empuje al siguiente paso correcto: página de servicio → booking esa especialidad; primera consulta → WhatsApp con texto prepopulado; blog → pre-consulta. Sin CTA genéricos. Verificable: 0 CTAs que digan solo "Contáctanos".
 - [ ] **S12-18** `[S]` Exit intent / hesitation signals — capturar con `mouseleave` en desktop y `scroll_up > 30%` en mobile cuántos usuarios dudan antes de irse. Evento `hesitation_signal { surface, service, scroll_pct }`. Datos para S9-06.
 - [ ] **S12-19** `[M]` WhatsApp conversion taxonomy — distinguir en analytics: clic de curiosidad (scroll inicial) vs clic de intención (después de leer FAQ o before/after) vs clic de conversión (en el CTA final). Tres eventos distintos. Dato valioso para saber qué contenido convierte.
 - [ ] **S12-20** `[M]` `[UI]` Landing page CRO scorecard — semáforo por página de servicio: claridad del propósito, nivel de confianza social, fricción percibida, diferenciación vs competencia, CTA dominante y performance (<3s). Admin card mensual. Entregable: `GET /api.php?resource=cro-scorecard`.
@@ -1783,13 +1783,13 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 15.1 Fallas de regex detectadas hoy (ya en corrección)
 
-- [ ] **S15-01** `[S]` Mejorar regex en `bin/velocity.js` — ✅ *Corregido hoy mismo por el Gobernador.* Las 3 regex `S\d+` ahora capturan `(?:S\d+|UI\d*)-[A-Z0-9]+`. Verificar que las proyecciones de velocidad cuentan los 37 tasks UI de Fase 1/2/3 y los 99 de S8-S14. Refina: extender además la búsqueda de "sprints críticos para junio" para incluir S8/S9 como high-priority además de Sprint 3. Verificable: `node bin/velocity.js --json | jq .totalTasks` → ≥407.
-- [ ] **S15-02** `[S]` Mejorar regex en `bin/stuck.js` — ✅ *Corregido hoy mismo.* La validación `^S\d+-[A-Z0-9]+$` bloqueaba silenciosamente a cualquier agente tratando de marcar stuck una tarea UI. Ahora acepta `^(S\d+|UI\d*)-[A-Z0-9]+$`. Verificable: `node bin/stuck.js UI2-07 "test"` → no sale "Usage:" de ID inválido.
+- [ ] **S15-01** `[S]` Mejorar regex en `bin/velocity.js` — ✅ _Corregido hoy mismo por el Gobernador._ Las 3 regex `S\d+` ahora capturan `(?:S\d+|UI\d*)-[A-Z0-9]+`. Verificar que las proyecciones de velocidad cuentan los 37 tasks UI de Fase 1/2/3 y los 99 de S8-S14. Refina: extender además la búsqueda de "sprints críticos para junio" para incluir S8/S9 como high-priority además de Sprint 3. Verificable: `node bin/velocity.js --json | jq .totalTasks` → ≥407.
+- [ ] **S15-02** `[S]` Mejorar regex en `bin/stuck.js` — ✅ _Corregido hoy mismo._ La validación `^S\d+-[A-Z0-9]+$` bloqueaba silenciosamente a cualquier agente tratando de marcar stuck una tarea UI. Ahora acepta `^(S\d+|UI\d*)-[A-Z0-9]+$`. Verificable: `node bin/stuck.js UI2-07 "test"` → no sale "Usage:" de ID inválido.
 - [ ] **S15-03** `[S]` `bin/dispatch.js` — actualizar `prefer[]` de roles para S8-S14 — el array `prefer` del rol `backend` solo lista tasks S3-XX. Con 99 tareas nuevas en S8-S14, el dispatch nunca las prioriza. Añadir a `backend prefer[]`: `'S8-05', 'S8-06', 'S8-07', 'S8-12', 'S8-20', 'S9-08', 'S10-06', 'S14-13'`. Añadir a `frontend prefer[]`: `'S9-01', 'S9-09', 'S10-01', 'S10-25', 'S12-17'`. Añadir a `devops prefer[]`: `'S14-00', 'S14-02', 'S14-06', 'S14-07', 'S14-09', 'S13-04'`. Verificable: `npm run dispatch:backend` → retorna alguna tarea de S8/S9/S10.
 
 #### 15.2 Convergencia e integridad del board
 
-- [ ] **S15-04** `[M]` Sistema de evidencia para tareas done — la falla de S4-08 (done sin archivo) debe ser imposible en el futuro. Añadir a `bin/gate.js` un "generic evidence check": si la tarea tiene una referencia a un archivo explícito (ej: `es/paquetes/index.html`, `js/aurora-toast.js`), el gate verifica que el archivo exista antes de aceptar el done. Regex de extracción: `[\`'"]([a-z][a-z\/\-\.]+\.[a-z]{2,5})[\`'"]` dentro del texto de la tarea. Verificable: `node bin/gate.js S4-08` → error si el archivo no existe.
+- [ ] **S15-04** `[M]` Sistema de evidencia para tareas done — la falla de S4-08 (done sin archivo) debe ser imposible en el futuro. Añadir a `bin/gate.js` un "generic evidence check": si la tarea tiene una referencia a un archivo explícito (ej: `es/paquetes/index.html`, `js/aurora-toast.js`), el gate verifica que el archivo exista antes de aceptar el done. Regex de extracción: `[\`'"]([a-z][a-z\/\-\.]+\.[a-z]{2,5})[\`'"]`dentro del texto de la tarea. Verificable:`node bin/gate.js S4-08` → error si el archivo no existe.
 - [ ] **S15-05** `[M]` Alertas de claim abandonado — `bin/claim.js` detecta claims expiradas pero no notifica a nadie. Añadir: cuando `list` se ejecuta, si hay claims con `expiresAt` < now, mostrar sección "⚠️ Claims expiradas:" con nombre de tarea y agente. Añadir campo `expiryWarning` en `agent-orchestrator status --json` para que los dashboards lo consuman. Verificable: un claim con fecha pasada aparece en el output de `node bin/claim.js list`.
 - [ ] **S15-06** `[S]` Detector de commits done sin claim — hoy un agente puede marcar `[x]` en AGENTS.md y hacer commit sin haber hecho `claim.js claim` primero. Añadir check en `sync-backlog.js`: si la tarea acaba de pasar de `[ ]` a `[x]` (detectar diff en AGENTS.md), verificar que existe `data/claims/tasks/<ID>.json`. Si no existe → warning en el output (no error — el gobernador puede hacer done directos). Verificable: `npm run sync:backlog` → advierte si hay done sin claim.
 - [ ] **S15-07** `[S]` `bin/audit.js` — integrar `verify-scripts.js` — el `gov:audit` no llama a `verify-scripts.js`. Añadir al pipeline de audit: spawn de `node bin/verify-scripts.js`, capturar el JSON de `governance/broken-scripts.json` y añadir sección "Scripts rotos" al reporte. Verificable: `npm run gov:audit` → muestra tabla de scripts rotos + conteo.
@@ -1805,4 +1805,3 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S15-12** `[S]` `README.md` — actualizar velocidad y board real — `README.md` tiene stats hardcodeadas o desactualizadas. Hacer que `README.md` sea generado parcialmente por `bin/gen-readme-stats.js`: inserta `<!-- STATS_START -->...<!-- STATS_END -->` con done/total/pct leídos de AGENTS.md en tiempo de sync. Verificable: `node bin/gen-readme-stats.js && grep "153/407" README.md` → match (con los valores actuales).
 - [ ] **S15-13** `[M]` `BLOCKERS.md` — sincronizar con `stuck.js` — `BLOCKERS.md` existe pero puede estar desalineado con los blockers reales registrados en `stuck.js`. Hacer que `stuck.js list` y `stuck.js clear` actualicen `BLOCKERS.md` como fuente de verdad secundaria. El gobernador puede leer BLOCKERS.md sin correr stuck.js. Verificable: después de `node bin/stuck.js clear S3-35` → `BLOCKERS.md` ya no menciona S3-35.
-
