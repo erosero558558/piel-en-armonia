@@ -214,6 +214,10 @@
         
         hideDropdown();
         el.focus();
+        
+        if (window.openProtocolPanel) {
+            window.openProtocolPanel(code);
+        }
     }
 
     // ── Bind Events ──────────────────────────────────────────────────────────────

@@ -250,5 +250,128 @@
   padding: var(--space-8);
   color: var(--admin-text-muted);
   font-style: italic;
+}
+
+/* ==========================================================================
+   Protocol Clinical Panel (S3-42) / AI Slide-in
+   ========================================================================== */
+.protocol-panel-slide-in {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: var(--bg-primary, #ffffff);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+  border-left: 1px solid var(--border-color, #e5e7eb);
+  z-index: 9999;
+  transform: translateX(0);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.protocol-panel-slide-in.protocol-hidden {
+  transform: translateX(100%);
+}
+
+.protocol-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  background: var(--color-slate-50, #f8fafc);
+}
+
+.protocol-badge {
+  display: inline-block;
+  margin-top: 4px;
+  background: var(--color-aurora-100, #dcfce7);
+  color: var(--color-aurora-700, #15803d);
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.protocol-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-muted, #64748b);
+  transition: color 0.2s;
+}
+
+.protocol-close-btn:hover {
+  color: var(--color-red-600, #dc2626);
+}
+
+.protocol-panel-body {
+  padding: var(--space-6);
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.protocol-section {
+  margin-bottom: var(--space-6);
+}
+
+.protocol-section h4 {
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted, #64748b);
+  margin-bottom: var(--space-3);
+  font-weight: 600;
+}
+
+.protocol-med-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  transition: border-color 0.2s;
+}
+
+.protocol-med-card:hover {
+  border-color: var(--color-aurora-400, #4ade80);
+}
+
+.protocol-med-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.protocol-med-info strong {
+  font-size: var(--text-sm);
+  color: var(--text-primary, #0f172a);
+}
+
+.protocol-med-info span {
+  font-size: var(--text-xs);
+  color: var(--text-secondary, #475569);
+}
+
+.protocol-add-rx-btn {
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--color-aurora-50) !important;
+  color: var(--color-aurora-700) !important;
+  border: 1px solid var(--color-aurora-200) !important;
+  transition: all 0.2s !important;
+}
+
+.protocol-add-rx-btn:hover {
+  background: var(--color-aurora-600) !important;
+  color: var(--text-inverse, #ffffff) !important;
+  border-color: var(--color-aurora-600) !important;
 }
