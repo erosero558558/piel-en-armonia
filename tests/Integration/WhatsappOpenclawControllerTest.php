@@ -307,6 +307,77 @@ final class WhatsappOpenclawControllerTest extends TestCase
         self::assertSame(1, (int) ($outbox['payload']['data']['count'] ?? 0));
     }
 
+    public function testInboundFaqOutsideBusinessHoursAnswersHoursLocationAndWhatToBring(): void
+    {
+        $payload = [
+            'eventId' => 'evt-faq-after-hours-001',
+            'providerMessageId' => 'wamid-faq-after-hours-001',
+            'phone' => '+593981110456',
+            'profileName' => 'FAQ Paciente',
+            'text' => 'Hola, cuales son sus horarios, como llego y que debo llevar?',
+            'receivedAt' => '2026-03-29T20:15:00-05:00',
+        ];
+
+        $inbound = $this->captureResponse(
+            static fn () => \WhatsappOpenclawController::inbound([]),
+            'POST',
+            $payload,
+            ['HTTP_AUTHORIZATION' => 'Bearer test-wa-bridge-token']
+        );
+
+        self::assertSame(202, $inbound['status']);
+        self::assertTrue((bool) ($inbound['payload']['ok'] ?? false));
+        self::assertSame('faq', (string) ($inbound['payload']['data']['plan']['intent'] ?? ''));
+        self::assertSame(['faq_reply'], array_values($inbound['payload']['data']['actions'] ?? []));
+        self::assertSame(1, count($inbound['payload']['data']['queuedOutbox'] ?? []));
+
+        $reply = (string) ($inbound['payload']['data']['queuedOutbox'][0]['text'] ?? '');
+        self::assertStringContainsString('fuera de horario', strtolower($reply));
+        self::assertStringContainsString('lunes a viernes', strtolower($reply));
+        self::assertStringContainsString('Valparaiso 13-183 y Sodiro', $reply);
+        self::assertStringContainsString('cedula', strtolower($reply));
+    }
+
+    public function testInboundClinicalQuestionEscalatesToHumanFollowUp(): void
+    {
+        $payload = [
+            'eventId' => 'evt-clinical-handoff-001',
+            'providerMessageId' => 'wamid-clinical-handoff-001',
+            'phone' => '+593981110654',
+            'profileName' => 'Clinical Paciente',
+            'text' => 'Tengo una mancha que sangra y pica, que me recomienda?',
+            'receivedAt' => '2026-03-29T21:00:00-05:00',
+        ];
+
+        $inbound = $this->captureResponse(
+            static fn () => \WhatsappOpenclawController::inbound([]),
+            'POST',
+            $payload,
+            ['HTTP_AUTHORIZATION' => 'Bearer test-wa-bridge-token']
+        );
+
+        self::assertSame(202, $inbound['status']);
+        self::assertTrue((bool) ($inbound['payload']['ok'] ?? false));
+        self::assertSame('handoff_clinical', (string) ($inbound['payload']['data']['plan']['intent'] ?? ''));
+        self::assertSame(
+            ['clinical_handoff_requested'],
+            array_values($inbound['payload']['data']['actions'] ?? [])
+        );
+        self::assertSame('human_followup', (string) ($inbound['payload']['data']['conversation']['status'] ?? ''));
+        self::assertSame(1, count($inbound['payload']['data']['queuedOutbox'] ?? []));
+
+        $reply = (string) ($inbound['payload']['data']['queuedOutbox'][0]['text'] ?? '');
+        self::assertStringContainsString('pregunta clinica', strtolower($reply));
+        self::assertStringContainsString('doctor', strtolower($reply));
+
+        $conversationId = (string) ($inbound['payload']['data']['conversation']['id'] ?? '');
+        $draft = \whatsapp_openclaw_repository()->getBookingDraft($conversationId, '593981110654');
+        self::assertSame(
+            'clinical_handoff_requested',
+            (string) ($draft['notes'][0]['type'] ?? '')
+        );
+    }
+
     public function testCardCheckoutCompletesViaWebhookAndQueuesConfirmation(): void
     {
         $date = date('Y-m-d', strtotime('+2 days'));

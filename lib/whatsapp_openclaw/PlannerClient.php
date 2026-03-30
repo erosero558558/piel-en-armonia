@@ -6,6 +6,11 @@ final class WhatsappOpenclawPlannerClient
 {
     public function plan(array $conversation, array $draft, array $event): array
     {
+        $local = $this->planStructuredLocally($conversation, $draft, $event);
+        if (is_array($local)) {
+            return $local;
+        }
+
         $remote = $this->planWithGateway($conversation, $draft, $event);
         if (is_array($remote)) {
             return $remote;
@@ -17,6 +22,39 @@ final class WhatsappOpenclawPlannerClient
         }
 
         return $this->heuristicPlan($conversation, $draft, $event);
+    }
+
+    private function planStructuredLocally(array $conversation, array $draft, array $event): ?array
+    {
+        $text = trim((string) ($event['text'] ?? ''));
+        if ($text === '') {
+            return null;
+        }
+
+        $normalized = $this->normalize($text);
+        $faqTopics = $this->resolveFaqTopics($normalized);
+        $afterHours = $this->isOutsideBusinessHours((string) ($event['receivedAt'] ?? ''));
+        $bookingSignals = $this->hasBookingIntentSignals($normalized, $text);
+
+        if ($this->looksLikeClinicalQuestion($normalized, $event) && !$bookingSignals) {
+            return [
+                'source' => 'local_structured',
+                'intent' => 'handoff_clinical',
+                'reply' => $this->buildClinicalHandoffReply($afterHours),
+                'draftPatch' => [],
+            ];
+        }
+
+        if ($faqTopics !== [] && !$bookingSignals) {
+            return [
+                'source' => 'local_structured',
+                'intent' => 'faq',
+                'reply' => $this->buildStructuredFaqReply($faqTopics, $afterHours),
+                'draftPatch' => [],
+            ];
+        }
+
+        return null;
     }
 
     private function planWithGateway(array $conversation, array $draft, array $event): ?array
@@ -226,6 +264,241 @@ final class WhatsappOpenclawPlannerClient
             'reply' => $reply,
             'draftPatch' => $draftPatch,
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveFaqTopics(string $normalized): array
+    {
+        $topics = [];
+
+        if ($this->containsAny($normalized, ['horario', 'horarios', 'atienden', 'atiende', 'abren', 'abierto', 'cierran'])) {
+            $topics[] = 'hours';
+        }
+        if ($this->containsAny($normalized, ['como llego', 'como llegar', 'donde estan', 'donde queda', 'ubicacion', 'direccion', 'mapa'])) {
+            $topics[] = 'location';
+        }
+        if ($this->containsAny($normalized, ['que debo llevar', 'que llevo', 'debo llevar', 'llevar a la cita', 'que necesito llevar', 'documentos'])) {
+            $topics[] = 'bring';
+        }
+
+        return $topics;
+    }
+
+    private function hasBookingIntentSignals(string $normalized, string $rawText): bool
+    {
+        if (preg_match('/\b\d{4}-\d{2}-\d{2}\b/', $rawText) === 1 || preg_match('/\b\d{2}:\d{2}\b/', $rawText) === 1) {
+            return true;
+        }
+
+        return $this->containsAny($normalized, [
+            'quiero una cita',
+            'quiero cita',
+            'quiero consulta',
+            'agendar',
+            'agenda',
+            'reservar',
+            'reservame',
+            'reagendar',
+            'reprogram',
+            'pago en',
+            'pago con',
+            'tarjeta',
+            'efectivo',
+            'transferencia',
+            'autorizo datos',
+            'acepto datos',
+        ]);
+    }
+
+    private function looksLikeClinicalQuestion(string $normalized, array $event): bool
+    {
+        $hasMedia = is_array($event['media'] ?? null) && $event['media'] !== [];
+        $clinicalTokens = [
+            'mancha',
+            'lunar',
+            'lesion',
+            'granito',
+            'grano',
+            'acne',
+            'rosacea',
+            'psoriasis',
+            'roncha',
+            'sarpullido',
+            'verruga',
+            'hongo',
+            'picazon',
+            'comezon',
+            'pica',
+            'arde',
+            'sangra',
+            'inflam',
+            'medicamento',
+            'receta',
+            'sintoma',
+            'biopsia',
+            'melanoma',
+        ];
+        $questionSignals = [
+            'que me recomienda',
+            'que puede ser',
+            'es normal',
+            'debo preocuparme',
+            'me salio',
+            'tengo una',
+            'tengo un',
+            'puedo tomar',
+            'puedo usar',
+            'revisar',
+        ];
+
+        return $hasMedia
+            || ($this->containsAny($normalized, $clinicalTokens) && $this->containsAny($normalized, $questionSignals));
+    }
+
+    private function buildStructuredFaqReply(array $topics, bool $afterHours): string
+    {
+        $parts = [];
+        if ($afterHours) {
+            $parts[] = 'Ahora estamos fuera de horario, pero te dejo la informacion clave.';
+        }
+
+        foreach ($topics as $topic) {
+            if ($topic === 'hours') {
+                $parts[] = $this->buildHoursReply();
+                continue;
+            }
+            if ($topic === 'location') {
+                $parts[] = 'Estamos en ' . AppConfig::ADDRESS . '.';
+                continue;
+            }
+            if ($topic === 'bring') {
+                $parts[] = 'Para tu cita trae tu cedula, una lista de medicamentos y examenes o fotos previas si las tienes.';
+            }
+        }
+
+        if ($parts === []) {
+            $parts[] = 'Con gusto te comparto la informacion basica de la clinica.';
+        }
+
+        return implode(' ', $parts);
+    }
+
+    private function buildClinicalHandoffReply(bool $afterHours): string
+    {
+        if ($afterHours) {
+            return 'Tu mensaje parece una pregunta clinica y ahora estamos fuera de horario. Lo voy a dejar escalado para seguimiento humano y un doctor de '
+                . AppConfig::BRAND_NAME
+                . ' te respondera en cuanto el equipo retome atencion.';
+        }
+
+        return 'Tu mensaje parece una pregunta clinica. Lo voy a dejar escalado para seguimiento humano y un doctor de '
+            . AppConfig::BRAND_NAME
+            . ' te respondera lo antes posible.';
+    }
+
+    private function buildHoursReply(): string
+    {
+        $slots = AppConfig::getAvailabilitySlots();
+        $weekday = $this->renderSlotRanges(is_array($slots['weekdays'] ?? null) ? $slots['weekdays'] : []);
+        $saturday = $this->renderSlotRanges(is_array($slots['saturday'] ?? null) ? $slots['saturday'] : []);
+
+        return 'Atendemos de lunes a viernes ' . $weekday . ', y los sabados ' . $saturday . '.';
+    }
+
+    /**
+     * @param list<string> $slots
+     */
+    private function renderSlotRanges(array $slots): string
+    {
+        if ($slots === []) {
+            return 'sin horario publicado';
+        }
+
+        $ranges = [];
+        $rangeStart = null;
+        $previousMinutes = null;
+
+        foreach ($slots as $slot) {
+            $minutes = $this->timeToMinutes((string) $slot);
+            if ($minutes === null) {
+                continue;
+            }
+
+            if ($rangeStart === null) {
+                $rangeStart = $slot;
+                $previousMinutes = $minutes;
+                continue;
+            }
+
+            if ($previousMinutes !== null && ($minutes - $previousMinutes) > 30) {
+                $ranges[] = $rangeStart . ' a ' . $this->minutesToTime($previousMinutes);
+                $rangeStart = $slot;
+            }
+
+            $previousMinutes = $minutes;
+        }
+
+        if ($rangeStart !== null && $previousMinutes !== null) {
+            $ranges[] = $rangeStart . ' a ' . $this->minutesToTime($previousMinutes);
+        }
+
+        return implode(' y ', $ranges);
+    }
+
+    private function timeToMinutes(string $value): ?int
+    {
+        if (preg_match('/^(\d{2}):(\d{2})$/', trim($value), $matches) !== 1) {
+            return null;
+        }
+
+        return ((int) $matches[1] * 60) + (int) $matches[2];
+    }
+
+    private function minutesToTime(int $minutes): string
+    {
+        $hours = (int) floor($minutes / 60);
+        $mins = $minutes % 60;
+        return sprintf('%02d:%02d', $hours, $mins);
+    }
+
+    private function isOutsideBusinessHours(string $value): bool
+    {
+        try {
+            $date = $value !== '' ? new DateTimeImmutable($value) : new DateTimeImmutable(local_date('c'));
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        $dayOfWeek = (int) $date->format('N');
+        if ($dayOfWeek === 7) {
+            return true;
+        }
+
+        $slots = AppConfig::getAvailabilitySlots();
+        $daySlots = $dayOfWeek === 6
+            ? (is_array($slots['saturday'] ?? null) ? $slots['saturday'] : [])
+            : (is_array($slots['weekdays'] ?? null) ? $slots['weekdays'] : []);
+        if ($daySlots === []) {
+            return true;
+        }
+
+        $current = $this->timeToMinutes($date->format('H:i'));
+        if ($current === null) {
+            return false;
+        }
+
+        $allowed = [];
+        foreach ($daySlots as $slot) {
+            $slotMinutes = $this->timeToMinutes((string) $slot);
+            if ($slotMinutes === null) {
+                continue;
+            }
+            $allowed[$slotMinutes] = true;
+        }
+
+        return !isset($allowed[$current]);
     }
 
     private function buildFaqReply(array $state): string

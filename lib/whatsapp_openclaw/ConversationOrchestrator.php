@@ -153,6 +153,30 @@ final class WhatsappOpenclawConversationOrchestrator
             return $result;
         }
 
+        if ($intent === 'handoff_clinical') {
+            $draft = $this->appendDraftNote(
+                $draft,
+                'clinical_handoff_requested',
+                'La consulta fue escalada a seguimiento humano por posible pregunta clinica.'
+            );
+            $meta = isset($conversation['meta']) && is_array($conversation['meta']) ? $conversation['meta'] : [];
+            $meta['humanFollowUpRequestedAt'] = local_date('c');
+            $meta['humanFollowUpReason'] = 'clinical_question';
+            $conversation['meta'] = $meta;
+            $conversation['status'] = 'human_followup';
+
+            return [
+                'ok' => true,
+                'store' => $store,
+                'storeDirty' => false,
+                'conversation' => $conversation,
+                'draft' => $draft,
+                'reply' => trim((string) ($plan['reply'] ?? '')),
+                'actions' => ['clinical_handoff_requested'],
+                'mutationMode' => $mutationMode,
+            ];
+        }
+
         if ($intent === 'cancel') {
             return $this->cancelAppointment($store, $conversation, $draft, $mutationMode);
         }
