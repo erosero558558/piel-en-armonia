@@ -63,6 +63,14 @@ class QueueService
             ];
         }
 
+        $payload['visitReason'] = normalize_queue_visit_reason(
+            (string) ($payload['visitReason'] ?? ($payload['visit_reason'] ?? '')),
+            'consulta_general'
+        );
+        $payload['visitReasonLabel'] = queue_visit_reason_label(
+            (string) $payload['visitReason']
+        );
+
         $nowIso = local_date('c');
         $ticket = $this->ticketFactory->createWalkInTicket($store['queue_tickets'] ?? [], $payload, $createdSource, $nowIso);
         $store['queue_tickets'][] = $ticket;

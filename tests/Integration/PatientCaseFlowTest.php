@@ -203,6 +203,7 @@ final class PatientCaseFlowTest extends TestCase
             'dailySeq' => 1,
             'queueType' => 'walk_in',
             'patientInitials' => 'EC',
+            'visitReason' => 'procedimiento',
             'status' => 'waiting',
             'createdAt' => date('c'),
             'createdSource' => 'kiosk',
@@ -234,6 +235,10 @@ final class PatientCaseFlowTest extends TestCase
         $queueCase = $this->findCaseByTicketCode($adminResponse['payload']['data']['patient_cases'] ?? [], $ticketCode);
         $this->assertNotNull($queueCase);
         $this->assertSame('waiting', (string) (($queueCase['summary']['queueStatus'] ?? '')));
+        $this->assertSame(
+            'Procedimiento',
+            (string) (($queueCase['summary']['latestVisitReasonLabel'] ?? ''))
+        );
         $journeyCase = $this->findJourneyCaseByCaseId(
             $adminResponse['payload']['data']['patientFlowMeta']['journeyPreview']['cases'] ?? [],
             (string) ($queueCase['id'] ?? '')

@@ -207,6 +207,48 @@ function normalize_appointment(array $appointment): array
     ];
 }
 
+function normalize_queue_visit_reason(string $reason, string $fallback = ''): string
+{
+    $normalized = strtolower(trim($reason));
+    if ($normalized === '') {
+        return $fallback;
+    }
+
+    $aliases = [
+        'consulta_general' => 'consulta_general',
+        'consulta-general' => 'consulta_general',
+        'consulta general' => 'consulta_general',
+        'consulta' => 'consulta_general',
+        'general' => 'consulta_general',
+        'control' => 'control',
+        'seguimiento' => 'control',
+        'follow_up' => 'control',
+        'follow-up' => 'control',
+        'follow up' => 'control',
+        'procedimiento' => 'procedimiento',
+        'procedure' => 'procedimiento',
+        'urgencia' => 'urgencia',
+        'urgent' => 'urgencia',
+        'urgency' => 'urgencia',
+        'triage' => 'urgencia',
+    ];
+
+    return $aliases[$normalized] ?? $fallback;
+}
+
+function queue_visit_reason_label(string $reason): string
+{
+    $normalized = normalize_queue_visit_reason($reason, '');
+    $labels = [
+        'consulta_general' => 'Consulta general',
+        'control' => 'Control',
+        'procedimiento' => 'Procedimiento',
+        'urgencia' => 'Urgencia',
+    ];
+
+    return $labels[$normalized] ?? '';
+}
+
 function normalize_queue_ticket(array $ticket): array
 {
     $queueType = strtolower(trim((string) ($ticket['queueType'] ?? 'walk_in')));
@@ -276,12 +318,19 @@ function normalize_queue_ticket(array $ticket): array
         $createdAt = local_date('c');
     }
 
+    $visitReason = normalize_queue_visit_reason(
+        (string) ($ticket['visitReason'] ?? ($ticket['visit_reason'] ?? '')),
+        $queueType === 'walk_in' ? 'consulta_general' : ''
+    );
     $needsAssistance = isset($ticket['needsAssistance'])
         ? parse_bool($ticket['needsAssistance'])
         : (isset($ticket['needs_assistance']) ? parse_bool($ticket['needs_assistance']) : false);
     $specialPriority = isset($ticket['specialPriority'])
         ? parse_bool($ticket['specialPriority'])
         : (isset($ticket['special_priority']) ? parse_bool($ticket['special_priority']) : false);
+    if ($visitReason === 'urgencia') {
+        $specialPriority = true;
+    }
     $lateArrival = isset($ticket['lateArrival'])
         ? parse_bool($ticket['lateArrival'])
         : (isset($ticket['late_arrival']) ? parse_bool($ticket['late_arrival']) : false);
@@ -329,6 +378,10 @@ function normalize_queue_ticket(array $ticket): array
         'patientCaseId' => truncate_field(trim((string) ($ticket['patientCaseId'] ?? '')), 80),
         'patientId' => truncate_field(trim((string) ($ticket['patientId'] ?? '')), 80),
         'priorityClass' => $priorityClass,
+        'visitReason' => $visitReason,
+        'visitReasonLabel' => $visitReason !== ''
+            ? queue_visit_reason_label($visitReason)
+            : '',
         'status' => $status,
         'assignedConsultorio' => $assignedConsultorio,
         'createdAt' => $createdAt,
