@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 12:00:01 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 12:01:30 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **37%** completado (79/213)
+`████████░░░░░░░░░░░░` **38%** completado (80/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 41 | 26 | 61% |
+| 🎯 Sprint 3 | 42 | 25 | 63% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -59,10 +59,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-59** | `[L]` | Split  (4.766 líneas) — archivo monolítico con 3 responsabilidades mez... |
 | **S3-60** | `[L]` | Split  (4.198 líneas) — separar en repositorios por agregado:  (sesion... |
 | **S3-61** | `[L]` | Split  (24.990 líneas) — módulo de admin más grande del repo. Separar ... |
-
-### 🔒 En progreso — NO tomar
-
-- **S3-49** `[S]` → _Codex-erosero558558_ (expira en 117min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
