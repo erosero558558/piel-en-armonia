@@ -14,9 +14,36 @@ class AppointmentController
     {
         // GET /appointments (Admin)
         $store = $context['store'];
+        $appointments = $store['appointments'] ?? [];
+        
+        $historyByPhone = [];
+        foreach ($appointments as $appt) {
+            $phone = (string)($appt['phone'] ?? '');
+            if ($phone !== '') {
+                $historyByPhone[$phone][] = $appt;
+            }
+        }
+        
+        if (class_exists('NoShowPredictor', false) || file_exists(__DIR__ . '/../lib/prediction.php')) {
+            if (!class_exists('NoShowPredictor', false)) {
+                require_once __DIR__ . '/../lib/prediction.php';
+            }
+            foreach ($appointments as &$appt) {
+                $status = strtolower(trim((string)($appt['status'] ?? '')));
+                if ($status !== 'cancelled' && $status !== 'no_show') {
+                    $phone = (string)($appt['phone'] ?? '');
+                    // For the history, roughly pass all appts for this phone
+                    $history = $historyByPhone[$phone] ?? [];
+                    // Prediction requires arrays: [score, risk_level, factors]
+                    $appt['_noShowPrediction'] = NoShowPredictor::predict($appt, $history);
+                }
+            }
+            unset($appt);
+        }
+
         json_response([
             'ok' => true,
-            'data' => $store['appointments']
+            'data' => $appointments
         ]);
     }
 

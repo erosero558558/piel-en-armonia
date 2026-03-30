@@ -95,13 +95,22 @@ export function statusCell(item) {
     const status = normalizeAppointmentStatus(item.status);
     const paymentStatus = normalizePaymentStatus(item);
     const priority = appointmentPriority(item);
-    const note = buildStatusNotes(status, paymentStatus, priority.note);
+    let note = buildStatusNotes(status, paymentStatus, priority.note);
+
+    let predictiveHtml = '';
+    if (item._noShowPrediction && status === 'confirmed') {
+        const risk = item._noShowPrediction;
+        const scorePct = Math.round(Number(risk.score || 0) * 100);
+        if (risk.risk_level === 'high' || risk.risk_level === 'critical') {
+            predictiveHtml = `<br><span class="noshow-risk-badge" style="color:var(--signal-danger); font-size: 0.8em; font-weight:600;">🚩 Riesgo No-Show: ${scorePct}%</span>`;
+        }
+    }
 
     return buildAppointmentPillStack(
         'appointment-status-stack',
         statusTone(status),
         statusLabel(status),
-        `<small>${escapeHtml(note)}</small>`
+        `<small>${escapeHtml(note)}${predictiveHtml}</small>`
     );
 }
 

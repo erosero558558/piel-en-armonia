@@ -74,6 +74,26 @@ class NoShowPredictor
             $factors[] = 'early_morning';
         }
 
+        // Factor 4: Lead time (Tiempo desde la reserva hasta la cita)
+        $createdAt = $appointment['createdAt'] ?? '';
+        if ($date !== '' && $createdAt !== '') {
+            $createdTs = strtotime($createdAt);
+            $apptTs = strtotime($date . ' ' . ($time !== '' ? $time : '12:00:00'));
+            if ($createdTs && $apptTs && $apptTs > $createdTs) {
+                $daysDiff = ($apptTs - $createdTs) / 86400;
+                if ($daysDiff > 14) {
+                    $score += 0.15;
+                    $factors[] = 'long_lead_time_14d';
+                } elseif ($daysDiff > 7) {
+                    $score += 0.08;
+                    $factors[] = 'long_lead_time_7d';
+                } elseif ($daysDiff < 2) {
+                    $score -= 0.05;
+                    $factors[] = 'short_lead_time';
+                }
+            }
+        }
+
         // Cap score
         if ($score > 1.0) {
             $score = 1.0;
