@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:09:31 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:20:50 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **39%** completado (137/352)
+`████████░░░░░░░░░░░░` **39%** completado (138/352)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -15,7 +15,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
 | 🎯 Sprint 3 | 60 | 7 | 90% |
-| ⏸ Sprint 4 | 13 | 13 | 50% |
+| ⏸ Sprint 4 | 14 | 12 | 54% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 6 | 31 | 16% |
@@ -53,7 +53,7 @@ _Sprint completado. 24/24 tareas._
 - **S3-35** `[S3]` L...
 
 ## ⏸ Sprint 4 — Escalar el negocio
-_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
 ### 🟢 Disponibles (10)
 
@@ -65,10 +65,6 @@ _Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 | **S4-12** | `[S4]` | L |
 | **S4-14** | `[S4]` | M |
 | ... | | _+5 más_ |
-
-### 🔒 En progreso — NO tomar
-
-- **S4-13** `[S4]` → _Codex-erosero558558_ (expira en 479min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
