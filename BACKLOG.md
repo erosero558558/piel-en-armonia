@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:52:05 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:56:18 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **38%** completado (154/407)
+`████████░░░░░░░░░░░░` **38%** completado (159/420)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -26,8 +26,9 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 1 | 25 | 4% |
 | ⏸ Sprint 13 | 1 | 20 | 5% |
-| ⏸ Sprint UI | 7 | 13 | 35% |
-| ⏸ Sprint 14 | 0 | 14 | 0% |
+| ⏸ Sprint UI | 11 | 9 | 55% |
+| ⏸ Sprint 14 | 1 | 13 | 7% |
+| ⏸ Sprint 15 | 0 | 13 | 0% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -218,7 +219,7 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S12-17** `[S12]` → _Codex-erosero558558_ (expira en 225min)
+- **S12-17** `[S12]` → _Codex-erosero558558_ (expira en 221min)
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
@@ -235,23 +236,23 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 | ... | | _+15 más_ |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
-_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 
-### 🟢 Disponibles (13)
+### 🟢 Disponibles (9)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **UI3-07** | `[UI3]` | M |
-| **UI3-08** | `[UI3]` | M |
-| **UI3-09** | `[UI3]` | S |
-| **UI3-10** | `[UI3]` | M |
 | **UI3-11** | `[UI3]` | L |
-| ... | | _+8 más_ |
+| **UI3-12** | `[UI3]` | M |
+| **UI3-13** | `[UI3]` | M |
+| **UI3-14** | `[UI3]` | M |
+| **UI3-15** | `[UI3]` | M |
+| ... | | _+4 más_ |
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
-_Esperando que Sprint anterior esté completo. 14 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 
-### 🟢 Disponibles (14)
+### 🟢 Disponibles (13)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -260,7 +261,21 @@ _Esperando que Sprint anterior esté completo. 14 tareas pendientes._
 | **S14-02** | `[S14]` | M |
 | **S14-05** | `[S14]` | M |
 | **S14-06** | `[S14]` | M |
-| ... | | _+9 más_ |
+| ... | | _+8 más_ |
+
+## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
+_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
+
+### 🟢 Disponibles (13)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S15-01** | `[S15]` | S |
+| **S15-02** | `[S15]` | S |
+| **S15-03** | `[S15]` | S |
+| **S15-04** | `[S15]` | M |
+| **S15-05** | `[S15]` | M |
+| ... | | _+8 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
