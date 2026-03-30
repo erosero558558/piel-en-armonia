@@ -449,3 +449,125 @@ body[data-theme="admin"] .empty-state h3 {
 .empty-state--notifications svg { stroke: var(--color-warning); }
 .empty-state--default svg { stroke: var(--pub-text-muted); }
 
+/* ==========================================================================
+   Social Proof Widget (UI-07)
+   ========================================================================== */
+
+.social-proof-widget {
+  background: var(--pub-bg-surface);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.social-proof-quote {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  color: var(--color-gold-700);
+  margin: 0 0 var(--space-4) 0;
+  padding: 0 0 0 var(--space-4);
+  border-left: 3px solid var(--color-gold-500);
+  font-style: italic;
+}
+
+.social-proof-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.social-proof-author {
+  font-weight: 600;
+  color: var(--pub-text-primary);
+  font-size: var(--text-base);
+}
+
+.social-proof-service {
+  font-size: var(--text-sm);
+  color: var(--pub-text-muted);
+}
+
+.social-proof-service span {
+  color: var(--pub-text-primary);
+  font-weight: 500;
+}
+
+.social-proof-before-after {
+  background: var(--pub-bg-warm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--pub-border);
+  overflow: hidden;
+}
+
+.social-proof-before-after summary {
+  padding: var(--space-4);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--pub-text-primary);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background var(--transition-fast);
+}
+
+.social-proof-before-after summary:hover {
+  background: var(--color-stone-100);
+}
+
+.social-proof-before-after summary::after {
+  content: "+";
+  font-size: var(--text-xl);
+  color: var(--color-gold-500);
+}
+
+.social-proof-before-after[open] summary {
+  border-bottom: 1px solid var(--pub-border);
+  background: var(--pub-bg-surface);
+}
+
+.social-proof-before-after[open] summary::after {
+  content: "−";
+}
+
+.social-proof-images {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .social-proof-images {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.social-proof-images .image-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.social-proof-images .image-box span {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--pub-text-muted);
+  font-weight: 600;
+  text-align: center;
+}
+
+.social-proof-images img {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--pub-border);
+}
+
