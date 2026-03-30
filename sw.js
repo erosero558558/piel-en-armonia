@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aurora-derm-v21-portal-pwa-20260330';
+const CACHE_NAME = 'aurora-derm-v22-portal-pwa-20260330';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
     '/js/nueva-web-main.js?v=6.0.2',
     '/js/public-v6-shell.js',
     '/js/portal-dashboard.js',
+    '/js/portal-history.js',
     '/js/portal-login.js',
     '/js/portal-pwa.js',
     '/js/portal-session.js',

@@ -40,13 +40,17 @@
         <main class="portal-main">
             <section class="portal-section-heading">
                 <span class="portal-section-copy">Historial clínico</span>
-                <h1>Documentos y controles en un solo lugar.</h1>
-                <p>Esta vista ya existe como route real y en la siguiente tarea conectaremos recetas y certificados descargables.</p>
+                <h1>Recetas y certificados listos cuando los necesites.</h1>
+                <p>Revisa cada atención con el estado real de tus documentos y descárgalos sin volver a iniciar sesión.</p>
             </section>
 
-            <section class="portal-support-card portal-placeholder-card">
-                <h2>Tu historial estará aquí</h2>
-                <p>Muy pronto verás recetas, certificados y documentos listos para descargar con la misma sesión del portal.</p>
+            <section class="portal-section" aria-labelledby="portal-history-title">
+                <div class="portal-section-heading">
+                    <span class="portal-section-copy">Tus atenciones</span>
+                    <h2 id="portal-history-title" class="portal-section-title">Timeline del portal</h2>
+                    <p>Cada consulta muestra si tu receta o certificado ya está disponible, pendiente o aún no fue emitido.</p>
+                </div>
+                <div id="portal-history-feed" aria-live="polite"></div>
             </section>
         </main>
 
@@ -81,6 +85,7 @@
 
     <script defer src="/js/portal-session.js"></script>
     <script defer src="/js/portal-shell.js"></script>
+    <script defer src="/js/portal-history.js"></script>
     <script defer src="/js/portal-pwa.js"></script>
 </body>
 </html>

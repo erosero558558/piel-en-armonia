@@ -60,6 +60,38 @@ final class PatientPortalControllerTest extends TestCase
             'visitMode' => 'in_person',
             'dateBooked' => '2026-03-30T10:00:00-05:00',
         ]);
+        $store['appointments'][] = \normalize_appointment([
+            'id' => 89,
+            'service' => 'consulta',
+            'doctor' => 'rosero',
+            'doctorAssigned' => 'dra ana rosero',
+            'date' => '2026-03-12',
+            'time' => '09:00',
+            'name' => 'Lucia Portal',
+            'email' => 'lucia@example.com',
+            'phone' => '0991234567',
+            'patientId' => 'pt_lucia_001',
+            'patientCaseId' => 'pc_lucia_002',
+            'status' => 'completed',
+            'visitMode' => 'in_person',
+            'dateBooked' => '2026-03-11T08:00:00-05:00',
+        ]);
+        $store['appointments'][] = \normalize_appointment([
+            'id' => 90,
+            'service' => 'control',
+            'doctor' => 'rosero',
+            'doctorAssigned' => 'dra ana rosero',
+            'date' => '2026-03-18',
+            'time' => '16:15',
+            'name' => 'Lucia Portal',
+            'email' => 'lucia@example.com',
+            'phone' => '0991234567',
+            'patientId' => 'pt_lucia_001',
+            'patientCaseId' => 'pc_lucia_003',
+            'status' => 'completed',
+            'visitMode' => 'in_person',
+            'dateBooked' => '2026-03-18T15:00:00-05:00',
+        ]);
         $store['patient_cases'][] = [
             'id' => 'pc_lucia_001',
             'tenantId' => 'aurora-derm',
@@ -70,6 +102,137 @@ final class PatientPortalControllerTest extends TestCase
                 'patientLabel' => 'Lucia Portal',
                 'contactPhone' => '0991234567',
             ],
+        ];
+        $store['patient_cases'][] = [
+            'id' => 'pc_lucia_002',
+            'tenantId' => 'aurora-derm',
+            'patientId' => 'pt_lucia_001',
+            'status' => 'completed',
+            'latestActivityAt' => '2026-03-12T10:00:00-05:00',
+            'summary' => [
+                'patientLabel' => 'Lucia Portal',
+                'contactPhone' => '0991234567',
+                'serviceName' => 'Consulta Dermatológica',
+            ],
+        ];
+        $store['patient_cases'][] = [
+            'id' => 'pc_lucia_003',
+            'tenantId' => 'aurora-derm',
+            'patientId' => 'pt_lucia_001',
+            'status' => 'completed',
+            'latestActivityAt' => '2026-03-18T18:00:00-05:00',
+            'summary' => [
+                'patientLabel' => 'Lucia Portal',
+                'contactPhone' => '0991234567',
+                'serviceName' => 'Control dermatológico',
+            ],
+        ];
+        $store['patient_cases'][] = [
+            'id' => 'pc_other_001',
+            'tenantId' => 'aurora-derm',
+            'patientId' => 'pt_other_001',
+            'status' => 'completed',
+            'latestActivityAt' => '2026-03-10T09:00:00-05:00',
+            'summary' => [
+                'patientLabel' => 'Paciente Ajeno',
+                'contactPhone' => '0988888888',
+            ],
+        ];
+        $store['patients']['pc_lucia_002'] = [
+            'firstName' => 'Lucia',
+            'lastName' => 'Portal',
+            'phone' => '0991234567',
+            'ci' => '0102030405',
+        ];
+        $store['patients']['pc_lucia_003'] = [
+            'firstName' => 'Lucia',
+            'lastName' => 'Portal',
+            'phone' => '0991234567',
+            'ci' => '0102030405',
+        ];
+        $store['patients']['pc_other_001'] = [
+            'firstName' => 'Paciente',
+            'lastName' => 'Ajeno',
+            'phone' => '0988888888',
+            'ci' => '1790011122',
+        ];
+        $store['prescriptions']['rx_portal_002'] = [
+            'id' => 'rx_portal_002',
+            'caseId' => 'pc_lucia_002',
+            'medications' => [[
+                'medication' => 'Doxiciclina 100 mg',
+                'dose' => '1 cápsula',
+                'frequency' => 'cada 12 horas',
+                'duration' => '14 días',
+                'instructions' => 'Tomar después del desayuno y la cena.',
+            ]],
+            'issued_at' => '2026-03-12T14:10:00-05:00',
+            'issued_by' => 'Dra Ana Rosero',
+            'doctor' => [
+                'name' => 'Dra Ana Rosero',
+                'specialty' => 'Dermatología',
+                'msp' => '12345',
+            ],
+        ];
+        $store['prescriptions']['rx_other_001'] = [
+            'id' => 'rx_other_001',
+            'caseId' => 'pc_other_001',
+            'medications' => [[
+                'medication' => 'Prednisona 10 mg',
+                'dose' => '1 tableta',
+                'frequency' => 'cada 24 horas',
+                'duration' => '5 días',
+                'instructions' => 'Tomar después del desayuno.',
+            ]],
+            'issued_at' => '2026-03-10T10:00:00-05:00',
+            'issued_by' => 'Dr Otro',
+        ];
+        $store['certificates']['cert_portal_003'] = [
+            'id' => 'cert_portal_003',
+            'folio' => 'AD-2026-00021',
+            'caseId' => 'pc_lucia_003',
+            'type' => 'reposo_laboral',
+            'typeLabel' => 'CERTIFICADO DE REPOSO',
+            'restDays' => 3,
+            'diagnosisText' => 'Dermatitis irritativa',
+            'restrictions' => 'Reposo relativo por 72 horas',
+            'observations' => 'Control recomendado al tercer día',
+            'issuedAt' => '2026-03-18T17:15:00-05:00',
+            'doctor' => [
+                'name' => 'Dra Ana Rosero',
+                'specialty' => 'Dermatología',
+                'msp' => '12345',
+            ],
+            'clinicName' => 'Aurora Derm',
+            'clinicAddress' => 'Quito, Ecuador',
+            'clinicPhone' => '0999999999',
+            'patient' => [
+                'name' => 'Lucia Portal',
+                'identification' => '0102030405',
+            ],
+        ];
+        $store['clinical_history_drafts'][] = [
+            'draftId' => 'chd_portal_003',
+            'sessionId' => 'chs_portal_003',
+            'caseId' => 'pc_lucia_003',
+            'appointmentId' => 90,
+            'status' => 'draft',
+            'reviewStatus' => 'pending_review',
+            'documents' => [
+                'prescription' => [
+                    'status' => 'issued',
+                    'items' => [[
+                        'medication' => 'Cetirizina 10 mg',
+                        'instructions' => 'Tomar una vez al día durante 7 días.',
+                    ]],
+                ],
+                'certificate' => [
+                    'status' => 'issued',
+                    'summary' => 'Reposo por 3 días',
+                    'restDays' => 3,
+                ],
+            ],
+            'updatedAt' => '2026-03-18T18:20:00-05:00',
         ];
         \write_store($store, false);
     }
@@ -234,6 +397,85 @@ final class PatientPortalControllerTest extends TestCase
         );
     }
 
+    public function testHistoryReturnsPortalDocumentStatusesForAuthenticatedPatient(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+
+        $history = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::history(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $history['status']);
+        self::assertTrue((bool) ($history['payload']['ok'] ?? false));
+
+        $consultations = $history['payload']['data']['consultations'] ?? null;
+        self::assertIsArray($consultations);
+        self::assertCount(2, $consultations);
+
+        $first = $this->findConsultationByCaseId($consultations, 'pc_lucia_003');
+        $second = $this->findConsultationByCaseId($consultations, 'pc_lucia_002');
+
+        self::assertSame('pending', (string) ($first['documents']['prescription']['status'] ?? ''));
+        self::assertSame('available', (string) ($first['documents']['certificate']['status'] ?? ''));
+        self::assertStringContainsString(
+            'patient-portal-document&type=certificate&id=cert_portal_003',
+            (string) ($first['documents']['certificate']['downloadUrl'] ?? '')
+        );
+
+        self::assertSame('available', (string) ($second['documents']['prescription']['status'] ?? ''));
+        self::assertStringContainsString(
+            'patient-portal-document&type=prescription&id=rx_portal_002',
+            (string) ($second['documents']['prescription']['downloadUrl'] ?? '')
+        );
+        self::assertSame('not_issued', (string) ($second['documents']['certificate']['status'] ?? ''));
+    }
+
+    public function testDocumentEndpointReturnsPdfBinaryForOwnedCertificate(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+        $_GET['type'] = 'certificate';
+        $_GET['id'] = 'cert_portal_003';
+
+        $document = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::document(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $document['status']);
+        self::assertTrue((bool) ($document['payload']['ok'] ?? false));
+        self::assertSame('pdf', (string) ($document['payload']['format'] ?? ''));
+        self::assertSame('application/pdf', (string) ($document['payload']['contentType'] ?? ''));
+        self::assertStringContainsString('certificado-', (string) ($document['payload']['filename'] ?? ''));
+        self::assertGreaterThan(100, (int) ($document['payload']['contentLength'] ?? 0));
+        self::assertStringStartsWith('%PDF-', (string) ($document['payload']['binary'] ?? ''));
+    }
+
+    public function testDocumentEndpointRejectsForeignPortalPrescription(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+        $_GET['type'] = 'prescription';
+        $_GET['id'] = 'rx_other_001';
+
+        $document = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::document(['store' => \read_store()]);
+        });
+
+        self::assertSame(404, $document['status']);
+        self::assertFalse((bool) ($document['payload']['ok'] ?? true));
+        self::assertStringContainsString(
+            'Documento no disponible',
+            (string) ($document['payload']['error'] ?? '')
+        );
+    }
+
     private function authenticatePortalSession(): string
     {
         $start = $this->captureJsonResponse(function (): void {
@@ -272,6 +514,17 @@ final class PatientPortalControllerTest extends TestCase
                 'status' => $exception->status,
             ];
         }
+    }
+
+    private function findConsultationByCaseId(array $consultations, string $caseId): array
+    {
+        foreach ($consultations as $consultation) {
+            if ((string) ($consultation['caseId'] ?? '') === $caseId) {
+                return $consultation;
+            }
+        }
+
+        self::fail('Consultation for case ' . $caseId . ' was not found.');
     }
 
     private function removeDirectory(string $dir): void

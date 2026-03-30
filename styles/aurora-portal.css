@@ -333,9 +333,22 @@ body.portal-body {
 }
 
 .portal-timeline-reason {
+    margin: 0;
     color: #fff;
     font-size: 1rem;
     font-weight: 500;
+}
+
+.portal-timeline-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: var(--space-3);
+}
+
+.portal-inline-label--muted {
+    color: var(--admin-text-muted);
 }
 
 /* Detalles colapsables HTML5 */
@@ -421,6 +434,85 @@ body.portal-body {
 }
 .portal-timeline-prescription svg {
     color: var(--color-aurora-400);
+}
+
+.portal-timeline-document-grid {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+
+.portal-timeline-document {
+    display: grid;
+    gap: 10px;
+    padding: var(--space-4);
+    border-radius: var(--radius-xl);
+    background: rgba(15, 23, 42, 0.58);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.portal-timeline-document[data-status='available'] {
+    border-color: rgba(74, 222, 128, 0.2);
+    background: rgba(20, 83, 45, 0.18);
+}
+
+.portal-timeline-document[data-status='pending'] {
+    border-color: rgba(250, 204, 21, 0.22);
+    background: rgba(113, 63, 18, 0.22);
+}
+
+.portal-timeline-document__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.portal-timeline-document__copy {
+    display: grid;
+    gap: 6px;
+}
+
+.portal-timeline-document__copy strong {
+    color: #fff;
+    font-size: 0.96rem;
+}
+
+.portal-timeline-document__copy small,
+.portal-timeline-document__meta {
+    color: var(--admin-text-muted);
+    line-height: 1.5;
+}
+
+.portal-timeline-document__meta {
+    font-size: 0.82rem;
+}
+
+.portal-timeline-document__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: max-content;
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: rgba(36, 138, 101, 0.16);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    color: #d1fae5;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.portal-timeline-document__action:hover,
+.portal-timeline-document__action:focus-visible {
+    background: rgba(36, 138, 101, 0.24);
+    transform: translateY(-1px);
+}
+
+.portal-timeline-document__action[aria-busy='true'] {
+    pointer-events: none;
+    opacity: 0.8;
 }
 
 /* 10. Auth, cards y CTAs del portal */
@@ -585,6 +677,16 @@ body.portal-body {
     font-weight: 700;
 }
 
+.portal-status-chip--pending {
+    background: rgba(250, 204, 21, 0.16);
+    color: #fde68a;
+}
+
+.portal-status-chip--idle {
+    background: rgba(148, 163, 184, 0.16);
+    color: #cbd5e1;
+}
+
 .portal-card-next__doctor small + small {
     margin-top: 2px;
 }
@@ -686,6 +788,23 @@ body.portal-body {
 }
 
 .portal-placeholder-card p {
+    margin: 0;
+    color: var(--admin-text-muted);
+    line-height: 1.6;
+}
+
+.portal-history-empty {
+    padding: var(--space-5);
+}
+
+.portal-history-empty h2 {
+    margin: 0 0 var(--space-2);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+}
+
+.portal-history-empty p {
     margin: 0;
     color: var(--admin-text-muted);
     line-height: 1.6;
