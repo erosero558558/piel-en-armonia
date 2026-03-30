@@ -58,19 +58,20 @@ const filesChanged = run(`git diff --name-only HEAD~${Math.min(commits.length, 5
   .split('\n').filter(Boolean);
 
 const agentsMd = read(AGENTS_FILE);
-const doneTotal = (agentsMd.match(/- \[x\]/g) || []).length;
-const pendingTotal = (agentsMd.match(/- \[ \]/g) || []).length;
-const totalTasks = doneTotal + pendingTotal;
+// Contar solo líneas con ID de tarea real (S3-19, S3-OC1, etc.) — igual que claim.js
+const doneTotal    = (agentsMd.match(/^- \[x\] \*\*S\d+-[A-Z0-9]+\*\*/gm) || []).length;
+const pendingTotal = (agentsMd.match(/^- \[ \] \*\*S\d+-[A-Z0-9]+\*\*/gm) || []).length;
+const totalTasks   = doneTotal + pendingTotal;
 
-// Tasks completed in the period (rough: look at recent commits with task IDs)
+// Tasks completed in the period (look at recent commits with task IDs)
 const completedInPeriod = commits
-  .map(c => c.match(/\((S\d+-\d+)\)/)?.[1])
+  .map(c => c.match(/\((S\d+-[A-Z0-9]+)\)/)?.[1])
   .filter(Boolean);
 
 // Human blockers
 const humanBlockers = [];
 agentsMd.split('\n').forEach(line => {
-  const m = line.match(/^- \[ \] \*\*(S\d+-\d+)\*\*.*\[HUMAN\](.*)/);
+  const m = line.match(/^- \[ \] \*\*(S\d+-[A-Z0-9]+)\*\*.*\[HUMAN\](.*)/);
   if (m) humanBlockers.push({ id: m[1], description: line.replace(/^- \[ \] /, '').trim() });
 });
 

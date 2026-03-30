@@ -341,6 +341,39 @@ final class QueueSummaryBuilder
     }
 
     /**
+     * @param array<int,array> $called
+     * @param array<int,array> $waiting
+     */
+    private function resolveActiveConsultoriosCount(array $called, array $waiting): int
+    {
+        $activeConsultorios = [];
+        foreach ($called as $ticket) {
+            $consultorio = $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
+            if ($consultorio === null) {
+                continue;
+            }
+            $activeConsultorios[$consultorio] = true;
+        }
+
+        if ($activeConsultorios !== []) {
+            return count($activeConsultorios);
+        }
+
+        return ($called !== [] || $waiting !== []) ? 1 : 1;
+    }
+
+    private function resolveAverageServiceDurationMin(array $ticket): int
+    {
+        $queueType = strtolower(trim((string) ($ticket['queueType'] ?? 'walk_in')));
+        if ($queueType === 'appointment') {
+            return self::APPOINTMENT_AVERAGE_SERVICE_MIN;
+        }
+
+        $visitReason = strtolower(trim((string) ($ticket['visitReason'] ?? 'consulta_general')));
+        return self::WALK_IN_AVERAGE_SERVICE_MIN[$visitReason] ?? self::DEFAULT_AVERAGE_SERVICE_MIN;
+    }
+
+    /**
      * @param array<string, mixed> $context
      */
     private function hasStructuredResolutionContext(array $context): bool

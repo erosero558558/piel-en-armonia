@@ -714,22 +714,37 @@ class QueueService
 
         $tickets = $this->normalizeTickets($store['queue_tickets'] ?? []);
         $waiting = [];
+        $called = [];
         foreach ($tickets as $candidate) {
-            if ((string) ($candidate['status'] ?? '') === self::STATUS_WAITING) {
+            $status = (string) ($candidate['status'] ?? '');
+            if ($status === self::STATUS_WAITING) {
                 $waiting[] = $candidate;
+            } elseif ($status === self::STATUS_CALLED) {
+                $called[] = $candidate;
             }
         }
         $waiting = $this->priorityPolicy->sortWaitingTickets($waiting);
+        $called = $this->priorityPolicy->sortCalledTickets($called);
+        $waitingEstimates = $this->summaryBuilder->buildWaitingEstimates($waiting, $called);
 
         $position = null;
         $estimatedWaitMin = null;
-        foreach ($waiting as $index => $candidate) {
-            if ((string) ($candidate['ticketCode'] ?? '') !== $normalizedCode) {
+        foreach ($waitingEstimates as $estimate) {
+            if ((string) ($estimate['ticketCode'] ?? '') !== $normalizedCode) {
                 continue;
             }
-            $position = $index + 1;
-            $estimatedWaitMin = max(0, ($index + 1) * 8);
+            $position = (int) ($estimate['position'] ?? 0);
+            $estimatedWaitMin = max(0, (int) ($estimate['estimatedWaitMin'] ?? 0));
             break;
+        }
+        if ($position === null) {
+            foreach ($waiting as $index => $candidate) {
+                if ((string) ($candidate['ticketCode'] ?? '') !== $normalizedCode) {
+                    continue;
+                }
+                $position = $index + 1;
+                break;
+            }
         }
 
         $queueState = $this->summaryBuilder->buildQueueState(
@@ -766,6 +781,7 @@ class QueueService
                 'updatedAt' => (string) ($queueData['updatedAt'] ?? local_date('c')),
                 'waitingCount' => max(0, (int) ($queueData['waitingCount'] ?? 0)),
                 'calledCount' => max(0, (int) ($queueData['calledCount'] ?? 0)),
+                'activeConsultorios' => max(1, (int) ($queueData['activeConsultorios'] ?? 1)),
                 'delayReason' => (string) ($queueData['delayReason'] ?? ''),
                 'callingNow' => array_values(
                     array_filter(
