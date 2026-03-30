@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:42:07 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:46:51 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **35%** completado (75/213)
+`███████░░░░░░░░░░░░░` **36%** completado (76/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 37 | 30 | 55% |
+| 🎯 Sprint 3 | 38 | 29 | 57% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -65,8 +65,7 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-28** `[M]` → _unknown-agent_ (expira en 239min)
-- **S3-45** `[M]` → _Codex-erosero558558_ (expira en 237min)
+- **S3-28** `[M]` → _unknown-agent_ (expira en 234min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
