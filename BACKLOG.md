@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:10:18 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:12:29 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **33%** completado (71/213)
+`███████░░░░░░░░░░░░░` **34%** completado (72/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 33 | 34 | 49% |
+| 🎯 Sprint 3 | 34 | 33 | 51% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -31,7 +31,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (29)
+### 🟢 Disponibles (28)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -54,7 +54,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-45** | `[M]` | Gate checks específicos por tarea — ampliar  para verificar artefactos... |
 | **S3-51** | `[M]` | openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero ... |
 | **S3-52** | `[M]` | Custom GPT instructions — crear  con las instrucciones exactas para co... |
-| **S3-56** | `[M]` | PHPUnit smoke baseline — después de S3-55, definir y dejar en verde un... |
 | **S3-58** | `[M]` | conflict.js — precisión quirúrgica — cambiar de heurística solo textua... |
 | **S3-62** | `[M]` | Consolidar npm scripts —  tiene 273 scripts: demasiada superficie cogn... |
 | **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
@@ -67,8 +66,8 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-17** `[L]` → _antigravity_ (expira en 480min)
-- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 80min)
+- **S3-17** `[L]` → _antigravity_ (expira en 478min)
+- **S3-56** `[M]` → _antigravity_ (expira en 238min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

@@ -112,7 +112,6 @@ function flow_os_detect_stage(array $store): string
 {
     $cases = isset($store['patient_cases']) && is_array($store['patient_cases']) ? $store['patient_cases'] : [];
     $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
-    $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
     $approvals = isset($store['patient_case_approvals']) && is_array($store['patient_case_approvals'])
         ? $store['patient_case_approvals']
         : [];
@@ -121,39 +120,51 @@ function flow_os_detect_stage(array $store): string
     $hasClosedCase = false;
     $hasCarePlanReady = false;
     $hasFollowUpActive = false;
+    $hasScheduled = false;
+    $hasIntakeCompleted = false;
+
+    $approvalsByCaseId = [];
+    foreach ($approvals as $approval) {
+        if (!is_array($approval)) {
+            continue;
+        }
+
+        $caseId = trim((string) ($approval['patientCaseId'] ?? ''));
+        if ($caseId === '') {
+            continue;
+        }
+
+        if (!isset($approvalsByCaseId[$caseId])) {
+            $approvalsByCaseId[$caseId] = [];
+        }
+        $approvalsByCaseId[$caseId][] = $approval;
+    }
 
     foreach ($cases as $case) {
         if (!is_array($case)) {
             continue;
         }
 
-        $status = strtolower(trim((string) ($case['status'] ?? '')));
-        if ($status === '') {
-            continue;
-        }
-
-        if (in_array($status, ['resolved', 'closed', 'completed', 'archived'], true)) {
+        $caseId = trim((string) ($case['id'] ?? ''));
+        $currentStage = flow_os_resolve_case_stage(
+            $case,
+            $approvalsByCaseId[$caseId] ?? [],
+            flow_os_case_appointments($case, $appointments)
+        );
+        if ($currentStage === 'resolved') {
             $hasClosedCase = true;
             continue;
         }
 
         $hasOpenCase = true;
-        if (in_array($status, ['care_plan_ready', 'plan_ready', 'ready_for_plan'], true)) {
-            $hasCarePlanReady = true;
-        }
-        if (in_array($status, ['follow_up_active', 'under_followup', 'monitoring', 'treatment_started'], true)) {
+        if ($currentStage === 'follow_up_active') {
             $hasFollowUpActive = true;
-        }
-    }
-
-    foreach ($approvals as $approval) {
-        if (!is_array($approval)) {
-            continue;
-        }
-        $status = strtolower(trim((string) ($approval['status'] ?? '')));
-        if ($status === 'pending' || $status === 'approved') {
+        } elseif ($currentStage === 'care_plan_ready') {
             $hasCarePlanReady = true;
-            break;
+        } elseif ($currentStage === 'scheduled') {
+            $hasScheduled = true;
+        } elseif ($currentStage === 'intake_completed') {
+            $hasIntakeCompleted = true;
         }
     }
 
@@ -161,15 +172,15 @@ function flow_os_detect_stage(array $store): string
         return 'follow_up_active';
     }
 
-    if ($hasCarePlanReady || $hasOpenCase) {
+    if ($hasCarePlanReady) {
         return 'care_plan_ready';
     }
 
-    if ($appointments !== []) {
+    if ($hasScheduled || $appointments !== []) {
         return 'scheduled';
     }
 
-    if ($callbacks !== []) {
+    if ($hasIntakeCompleted) {
         return 'intake_completed';
     }
 
@@ -645,6 +656,16 @@ function flow_os_infer_case_stage(array $case, array $approvals = [], array $app
         return 'resolved';
     }
 
+    $hasCarePlanReady = $pendingApprovals > 0
+        || $hasCompletedVisit
+        || $calledAt !== ''
+        || $latestTicketId !== '';
+    $hasScheduled = $hasScheduledAppointment || $scheduledStart !== '';
+    $hasIntakeCompleted = $latestCallbackId !== '';
+    $hasLeadCaptured = trim((string) ($case['openedAt'] ?? '')) !== ''
+        || trim((string) ($case['latestActivityAt'] ?? '')) !== ''
+        || trim((string) ($summary['patientLabel'] ?? '')) !== '';
+
     if (flow_os_case_has_follow_up_signal($case, $approvals)) {
         return 'follow_up_active';
     }
@@ -653,7 +674,7 @@ function flow_os_infer_case_stage(array $case, array $approvals = [], array $app
         return 'care_plan_ready';
     }
 
-    if ($hasScheduled || $appointments !== []) {
+    if ($hasScheduled) {
         return 'scheduled';
     }
 
@@ -661,11 +682,7 @@ function flow_os_infer_case_stage(array $case, array $approvals = [], array $app
         return 'intake_completed';
     }
 
-    if ($hasClosedCase) {
-        return 'resolved';
-    }
-
-    if ($hasLeadCaptured || $callbacks !== []) {
+    if ($hasLeadCaptured) {
         return 'lead_captured';
     }
 
@@ -1237,12 +1254,30 @@ function flow_os_build_case_journey_timeline(array $case, array $callbacks, arra
             continue;
         }
 
-        if ($type === 'visit_completed' || $type === 'no_show') {
+        if ($type === 'queue_called' || $type === 'visit_completed') {
+            $candidates[] = flow_os_build_transition_entry(
+                'care_plan_ready',
+                $createdAt,
+                $title !== '' ? $title : ($type === 'queue_called' ? 'Paciente llamado a consultorio' : 'Turno completado'),
+                'clinician',
+                [
+                    'caseId' => $caseId,
+                    'sourceType' => $type,
+                    'sourceId' => trim((string) ($event['id'] ?? '')),
+                    'sourceTitle' => $title !== '' ? $title : ($type === 'queue_called' ? 'Paciente llamado a consultorio' : 'Turno completado'),
+                    'actorLabel' => $type === 'queue_called' ? 'Consultorio' : 'Clínico',
+                    'meta' => $title !== '' ? $title : ($type === 'queue_called' ? 'Paciente llamado a consultorio' : 'Turno completado'),
+                ]
+            );
+            continue;
+        }
+
+        if ($type === 'no_show') {
             $candidates[] = flow_os_build_transition_entry(
                 'resolved',
                 $createdAt,
-                $title !== '' ? $title : ($type === 'visit_completed' ? 'Consulta cerrada' : 'Paciente no asistio'),
-                $type === 'visit_completed' ? 'clinician' : 'frontdesk',
+                $title !== '' ? $title : 'Paciente no asistio',
+                'frontdesk',
                 [
                     'caseId' => $caseId,
                     'sourceType' => $type,
@@ -1414,6 +1449,7 @@ function flow_os_build_case_journey_timeline(array $case, array $callbacks, arra
 function flow_os_build_store_journey_history(array $store): array
 {
     $cases = isset($store['patient_cases']) && is_array($store['patient_cases']) ? $store['patient_cases'] : [];
+    $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
     $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
     $timelineEvents = isset($store['patient_case_timeline_events']) && is_array($store['patient_case_timeline_events'])
         ? $store['patient_case_timeline_events']
@@ -1481,7 +1517,11 @@ function flow_os_build_store_journey_history(array $store): array
         $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
         $caseCallbacks = $callbacksByCaseId[$caseId] ?? [];
         $caseApprovals = $approvalsByCaseId[$caseId] ?? [];
-        $currentStage = flow_os_detect_case_stage($case, $caseCallbacks, $caseApprovals);
+        $currentStage = flow_os_resolve_case_stage(
+            $case,
+            $caseApprovals,
+            flow_os_case_appointments($case, $appointments)
+        );
         $timeline = flow_os_build_case_journey_timeline(
             $case,
             $caseCallbacks,
