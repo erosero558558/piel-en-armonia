@@ -377,3 +377,96 @@ putenv('AURORADERM_DEBUG_EXCEPTIONS=false');
 // Auditar health en cada request (normalmente false para evitar ruido)
 // putenv('AURORADERM_AUDIT_HEALTH=false');
 
+// ── Inventario avanzado / compatibilidad canónica ───────────────────────────
+// Estas variables también están activas en runtime aunque no siempre sean parte
+// del happy path. Se documentan aquí para evitar drift entre código y example.
+
+// Compatibilidad de cifrado legacy (preferir AURORADERM_DATA_ENCRYPTION_KEY).
+// putenv('AURORADERM_DATA_KEY=clave_larga_rotada_o_base64:...');
+
+// Relay del agente interno del admin.
+// putenv('AURORADERM_ADMIN_AGENT_RELAY_URL=https://tu-relay.example.com');
+// putenv('AURORADERM_ADMIN_AGENT_API_KEY=token_largo_rotado');
+// putenv('AURORADERM_ADMIN_AGENT_API_KEY_HEADER=Authorization');
+// putenv('AURORADERM_ADMIN_AGENT_API_KEY_PREFIX=Bearer');
+// putenv('AURORADERM_ADMIN_AGENT_MODEL=gpt-4.1-mini');
+// putenv('AURORADERM_ADMIN_AGENT_TIMEOUT_SECONDS=12');
+// Lista de canales / templates permitidos para salidas externas.
+// putenv('AURORADERM_ADMIN_AGENT_EDITORIAL_ALLOWLIST=seguimiento_operativo');
+// putenv('AURORADERM_ADMIN_AGENT_EXTERNAL_ALLOWLIST=whatsapp,email');
+// putenv('AURORADERM_ADMIN_AGENT_EXTERNAL_TEMPLATE_ALLOWLIST=seguimiento_callback,seguimiento_operativo');
+// Solo para desarrollo: respuesta mock del relay remoto.
+// putenv('AURORADERM_ADMIN_AGENT_RELAY_MOCK_RESPONSE={"choices":[{"message":{"content":"ok"}}]}');
+
+// Branding, catálogo clínico, pricing y uploads de soporte.
+// putenv('AURORADERM_PRIMARY_DOCTOR_NAME=Dr. Javier Rosero');
+// putenv('AURORADERM_PRIMARY_DOCTOR_MSP=12345');
+// putenv('AURORADERM_PAYMENT_CURRENCY=USD');
+// Accepta 0.15 o 15 para representar 15% de IVA.
+// putenv('AURORADERM_VAT_RATE=15');
+// Override opcional del catálogo de servicios.
+// putenv('AURORADERM_SERVICES_CATALOG_FILE=/abs/path/services-catalog.json');
+// Endpoint backend alternativo para Figo si el router no usa el default.
+// putenv('AURORADERM_FIGO_ENDPOINT=https://tu-backend-figo.example/chat');
+// Directorio/base URL para comprobantes de transferencia.
+// putenv('AURORADERM_TRANSFER_UPLOAD_DIR=/abs/path/uploads/transfer-proofs');
+// putenv('AURORADERM_TRANSFER_PUBLIC_BASE_URL=https://pielarmonia.com/uploads/transfer-proofs');
+
+// Observabilidad y networking.
+// Redis es opcional; si no se define, health/metrics lo reportan como disabled.
+// putenv('AURORADERM_REDIS_HOST=127.0.0.1');
+// CA bundle custom para cURL/streams cuando el servidor no confía en la CA por defecto.
+// putenv('AURORADERM_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt');
+// Microsoft Clarity (también se acepta el alias legacy PIELARMONIA_CLARITY_PROJECT_ID).
+// putenv('MICROSOFT_CLARITY_PROJECT_ID=abcd1234');
+// Logging remoto opcional.
+// putenv('PAPERTRAIL_HOST=logs.papertrailapp.com');
+// putenv('PAPERTRAIL_PORT=12345');
+
+// OpenAI directo para flujos clínicos que aún no pasan por router OpenClaw.
+// putenv('OPENAI_API_KEY=sk-proj-REEMPLAZAR');
+
+// Compatibilidad adicional de Operator Auth.
+// Alias legacy de allowlist; preferir AURORADERM_OPERATOR_AUTH_ALLOWLIST.
+// putenv('AURORADERM_OPERATOR_AUTH_ALLOWED_EMAILS=doctor@auroraderm.com,recepcion@auroraderm.com');
+// Scope OIDC adicional requerido por algunos brokers.
+// putenv('OPENCLAW_AUTH_BROKER_SCOPE=openid profile email');
+// Permitir que el cliente proponga modelo OpenClaw (default false por seguridad).
+// putenv('OPENCLAW_ALLOW_CLIENT_MODEL=false');
+
+// Compatibilidad avanzada de backups offsite.
+// Alias legacy del webhook remoto; preferir AURORADERM_BACKUP_OFFSITE_*.
+// putenv('AURORADERM_BACKUP_WEBHOOK_URL=https://tu-backup-endpoint.example/upload');
+// putenv('AURORADERM_BACKUP_WEBHOOK_TOKEN=token_largo_rotado');
+// putenv('AURORADERM_BACKUP_WEBHOOK_TOKEN_HEADER=Authorization');
+
+// Compatibilidad avanzada de Figo / AI.
+// Rutas alternativas equivalentes al endpoint principal.
+// putenv('FIGO_ENDPOINT=https://tu-backend-figo.example/chat');
+// putenv('FIGO_URL=https://tu-backend-figo.example/chat');
+// putenv('FIGO_CHAT_API_URL=https://tu-backend-figo.example/chat');
+// putenv('FIGO_CHAT_URL=https://tu-backend-figo.example/chat');
+// Rutas a JSON config legados.
+// putenv('FIGO_CHAT_CONFIG_PATH=/abs/path/figo-chat.config.json');
+// putenv('FIGO_BACKEND_CONFIG_PATH=/abs/path/figo-backend.config.json');
+// Endurecimiento extra del fallback local.
+// putenv('FIGO_BACKEND_ALLOW_LOCAL_FALLBACK=false');
+// putenv('FIGO_AI_ALLOW_LOCAL_FALLBACK=false');
+// Compatibilidad de endpoint / key IA.
+// putenv('FIGO_AI_URL=https://openrouter.ai/api/v1/chat/completions');
+// putenv('FIGO_AI_KEY=sk-or-v1-REEMPLAZAR');
+// putenv('FIGO_AI_API_KEY_HEADER=Authorization');
+// putenv('FIGO_AI_API_KEY_PREFIX=Bearer');
+// putenv('FIGO_AI_KEY_HEADER=Authorization');
+// putenv('FIGO_AI_KEY_PREFIX=Bearer');
+// Timeouts/ventanas avanzadas del cliente IA.
+// putenv('FIGO_AI_TIMEOUT_SECONDS=8');
+// putenv('FIGO_AI_CONNECT_TIMEOUT_SECONDS=3');
+// putenv('FIGO_AI_FAILFAST_WINDOW_SECONDS=45');
+// putenv('FIGO_AI_MAX_TOKENS=256');
+// Overrides compat del gateway OpenClaw usado por Figo.
+// putenv('FIGO_OPENCLAW_GATEWAY_ENDPOINT=http://127.0.0.1:4141/v1/responses');
+// putenv('FIGO_OPENCLAW_GATEWAY_API_KEY=REEMPLAZAR_TOKEN_OPENCLAW');
+// putenv('FIGO_OPENCLAW_GATEWAY_MODEL=openclaw:main');
+// putenv('FIGO_OPENCLAW_GATEWAY_KEY_HEADER=Authorization');
+// putenv('FIGO_OPENCLAW_GATEWAY_KEY_PREFIX=Bearer');
