@@ -183,6 +183,12 @@ function cron_task_reminders(array $payload): array
         return ['ok' => false, 'error' => 'Store corrupt or empty'];
     }
 
+    $appointmentReminderSummary = LeadOpsService::queueAppointmentReminders($store, [
+        'today' => $today,
+        'tomorrow' => $tomorrow,
+    ]);
+    $sent += (int) ($appointmentReminderSummary['queued'] ?? 0);
+
     foreach ($store['appointments'] as &$appt) {
         $status = (string) ($appt['status'] ?? '');
         $date = (string) ($appt['date'] ?? '');
@@ -195,12 +201,18 @@ function cron_task_reminders(array $payload): array
 
         if (maybe_send_reminder_email($appt)) {
             $appt['reminderSentAt'] = local_date('c');
+            $appt['reminderChannel'] = 'email';
             $sent++;
+            $appointmentReminderSummary['emailFallbackSent'] = (int) ($appointmentReminderSummary['emailFallbackSent'] ?? 0) + 1;
         } else {
             $failed++;
+            $appointmentReminderSummary['emailFallbackFailed'] = (int) ($appointmentReminderSummary['emailFallbackFailed'] ?? 0) + 1;
         }
     }
     unset($appt);
+
+    $skipped = (int) ($appointmentReminderSummary['skipped'] ?? 0);
+    $failed += (int) ($appointmentReminderSummary['queueUnavailable'] ?? 0);
 
     $birthdaySummary = LeadOpsService::queueBirthdayGreetings($store, [
         'today' => $today,
@@ -218,6 +230,7 @@ function cron_task_reminders(array $payload): array
         'sent' => $sent,
         'skipped' => $skipped,
         'failed' => $failed,
+        'appointmentReminders' => $appointmentReminderSummary,
         'birthdays' => $birthdaySummary,
     ];
 }

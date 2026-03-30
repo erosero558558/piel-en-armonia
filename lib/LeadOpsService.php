@@ -192,6 +192,132 @@ final class LeadOpsService
         return $summary;
     }
 
+    public static function queueAppointmentReminders(array &$store, array $options = []): array
+    {
+        $today = self::normalizeBirthdayDate((string) ($options['today'] ?? local_date('Y-m-d')));
+        if ($today === '') {
+            $today = local_date('Y-m-d');
+        }
+
+        $tomorrow = self::normalizeBirthdayDate((string) ($options['tomorrow'] ?? ''));
+        if ($tomorrow === '') {
+            try {
+                $tomorrow = (new DateTimeImmutable($today))->modify('+1 day')->format('Y-m-d');
+            } catch (Throwable $e) {
+                $tomorrow = date('Y-m-d', strtotime('+1 day'));
+            }
+        }
+
+        $queueAvailable = false;
+        if (function_exists('whatsapp_openclaw_repository')) {
+            $queueAvailable = true;
+        } elseif (file_exists(__DIR__ . '/whatsapp_openclaw/bootstrap.php')) {
+            require_once __DIR__ . '/whatsapp_openclaw/bootstrap.php';
+            $queueAvailable = function_exists('whatsapp_openclaw_repository');
+        }
+
+        $appointments = isset($store['appointments']) && is_array($store['appointments'])
+            ? array_values($store['appointments'])
+            : [];
+
+        $summary = [
+            'today' => $today,
+            'tomorrow' => $tomorrow,
+            'queued' => 0,
+            'alreadySent' => 0,
+            'missingPhone' => 0,
+            'missingTime' => 0,
+            'notConfirmed' => 0,
+            'notTomorrow' => 0,
+            'queueUnavailable' => 0,
+            'tokensCreated' => 0,
+            'candidates' => 0,
+            'skipped' => 0,
+        ];
+
+        foreach ($appointments as $index => $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $summary['candidates']++;
+
+            $status = trim((string) ($appointment['status'] ?? ''));
+            if ($status !== 'confirmed') {
+                $summary['notConfirmed']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            $date = self::normalizeBirthdayDate((string) ($appointment['date'] ?? ''));
+            if ($date !== $tomorrow) {
+                $summary['notTomorrow']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            $reminderSentAt = trim((string) ($appointment['reminderSentAt'] ?? ''));
+            if ($reminderSentAt !== '') {
+                $summary['alreadySent']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            $phone = self::normalizeBirthdayPhone((string) ($appointment['phone'] ?? ''));
+            if ($phone === '') {
+                $summary['missingPhone']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            $time = trim((string) ($appointment['time'] ?? ''));
+            if ($time === '') {
+                $summary['missingTime']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            if (!$queueAvailable) {
+                $summary['queueUnavailable']++;
+                continue;
+            }
+
+            if (trim((string) ($appointment['rescheduleToken'] ?? '')) === '') {
+                $appointment['rescheduleToken'] = bin2hex(random_bytes(16));
+                $summary['tokensCreated']++;
+            }
+
+            $text = self::buildAppointmentReminderText($appointment);
+            $record = whatsapp_openclaw_repository()->enqueueOutbox([
+                'phone' => $phone,
+                'source' => 'system',
+                'type' => 'text',
+                'text' => $text,
+                'status' => 'pending',
+                'priority' => 'normal',
+                'category' => 'appointment_reminder',
+                'template' => 'appointment_reminder_24h',
+                'meta' => [
+                    'appointmentId' => (int) ($appointment['id'] ?? 0),
+                    'date' => $date,
+                    'time' => $time,
+                    'doctor' => (string) ($appointment['doctor'] ?? ''),
+                    'rescheduleToken' => (string) ($appointment['rescheduleToken'] ?? ''),
+                ],
+            ]);
+
+            $appointment['phone'] = $phone;
+            $appointment['reminderSentAt'] = local_date('c');
+            $appointment['reminderChannel'] = 'whatsapp';
+            $appointment['reminderOutboxId'] = (string) ($record['id'] ?? '');
+            $appointments[$index] = $appointment;
+            $summary['queued']++;
+        }
+
+        $store['appointments'] = $appointments;
+        return $summary;
+    }
+
     public static function enrichCallbacks(array $callbacks, array $store, ?array $funnelMetrics = null): array
     {
         $enriched = [];
@@ -1140,6 +1266,30 @@ final class LeadOpsService
         return "Hola {$name}, hoy queremos saludarte por tu cumpleaños desde Aurora Derm. "
             . "Que tengas un dia tranquilo, acompanado y con mucha salud. "
             . "Gracias por permitirnos acompanarte en el cuidado de tu piel.";
+    }
+
+    private static function buildAppointmentReminderText(array $appointment): string
+    {
+        $context = function_exists('build_appointment_email_context')
+            ? build_appointment_email_context($appointment)
+            : [
+                'name' => (string) ($appointment['name'] ?? 'Paciente'),
+                'doctorLabel' => (string) ($appointment['doctor'] ?? 'su especialista'),
+                'timeLabel' => (string) ($appointment['time'] ?? ''),
+                'rescheduleUrl' => AppConfig::BASE_URL . '/#citas',
+            ];
+
+        $name = self::extractBirthdayFirstName((string) ($context['name'] ?? 'Paciente'));
+        $doctor = self::firstNonEmptyString((string) ($context['doctorLabel'] ?? ''), 'su especialista');
+        $time = self::firstNonEmptyString((string) ($context['timeLabel'] ?? ''), (string) ($appointment['time'] ?? ''));
+        $rescheduleUrl = self::firstNonEmptyString(
+            (string) ($context['rescheduleUrl'] ?? ''),
+            AppConfig::BASE_URL . '/#citas'
+        );
+
+        return "Hola {$name}, le recordamos que manana tiene consulta con {$doctor} a las {$time}. "
+            . "Si desea confirmar, puede responder a este mensaje. "
+            . "Si necesita reagendar, use este enlace: {$rescheduleUrl}";
     }
 
     private static function extractBirthdayFirstName(string $value): string
