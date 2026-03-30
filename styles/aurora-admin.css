@@ -516,3 +516,108 @@ body.admin-body {
 .quick-action-btn:hover svg {
   transform: scale(1.1);
 }
+
+/* ==========================================================================
+   Responsive Tablet & Mobile (UI3-06)
+   ========================================================================== */
+.admin-sidebar-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--admin-text-primary);
+  cursor: pointer;
+  padding: var(--space-2);
+  margin-right: var(--space-4);
+}
+.admin-sidebar-toggle svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1024px) {
+  .admin-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    width: var(--sidebar-width);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    background: var(--admin-bg-surface);
+  }
+
+  body.sidebar-open .admin-sidebar {
+    transform: translateX(0);
+  }
+
+  /* Optional overlay */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 40;
+  }
+  body.sidebar-open .sidebar-overlay {
+    display: block;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .admin-search {
+    width: 100%;
+    order: 3;
+  }
+
+  .admin-stats {
+    margin-left: auto;
+  }
+
+  .stat-badge:not(:first-child) {
+    display: none; /* Hide secondary stats to save space */
+  }
+
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-wrapper {
+    gap: var(--space-4);
+  }
+  
+  .bento-card {
+    padding: var(--space-4);
+  }
+  
+  .admin-content-canvas {
+    border-radius: var(--radius-xl) 0 0 0;
+  }
+}

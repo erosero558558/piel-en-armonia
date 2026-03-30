@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:39:09 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:42:43 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **36%** completado (145/407)
+`███████░░░░░░░░░░░░░` **37%** completado (151/407)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 62 | 5 | 93% |
+| 🎯 Sprint 3 | 63 | 4 | 94% |
 | ⏸ Sprint 4 | 15 | 11 | 58% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -26,7 +26,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 10 | 0 | 30 | 0% |
 | ⏸ Sprint 12 | 1 | 25 | 4% |
 | ⏸ Sprint 13 | 1 | 20 | 5% |
-| ⏸ Sprint UI | 0 | 20 | 0% |
+| ⏸ Sprint UI | 5 | 15 | 25% |
 | ⏸ Sprint 14 | 0 | 14 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -40,11 +40,10 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (4)
+### 🟢 Disponibles (3)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S3-44** | `[S3]` | S |
 | **S3-46** | `[S3]` | S |
 | **S3-47** | `[S3]` | S |
 | **S3-50** | `[S3]` | S |
@@ -205,7 +204,7 @@ _Esperando que Sprint anterior esté completo. 30 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S10-11** `[S10]` → _antigravity_ (expira en 470min)
+- **S10-11** `[S10]` → _antigravity_ (expira en 467min)
 
 ## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
 _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
@@ -223,7 +222,7 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S12-17** `[S12]` → _Codex-erosero558558_ (expira en 238min)
+- **S12-17** `[S12]` → _Codex-erosero558558_ (expira en 235min)
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
@@ -240,18 +239,18 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 | ... | | _+15 más_ |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
-_Esperando que Sprint anterior esté completo. 20 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 15 tareas pendientes._
 
-### 🟢 Disponibles (20)
+### 🟢 Disponibles (15)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **UI3-01** | `[UI3]` | M |
-| **UI3-02** | `[UI3]` | S |
-| **UI3-03** | `[UI3]` | M |
-| **UI3-04** | `[UI3]` | M |
-| **UI3-05** | `[UI3]` | M |
-| ... | | _+15 más_ |
+| **UI3-06** | `[UI3]` | L |
+| **UI3-07** | `[UI3]` | M |
+| **UI3-08** | `[UI3]` | M |
+| **UI3-09** | `[UI3]` | S |
+| **UI3-10** | `[UI3]` | M |
+| ... | | _+10 más_ |
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 14 tareas pendientes._

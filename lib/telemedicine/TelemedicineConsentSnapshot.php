@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../common.php';
 require_once __DIR__ . '/../validation.php';
+require_once __DIR__ . '/../consent/ConsentVersioning.php';
 
 final class TelemedicineConsentSnapshot
 {
@@ -15,11 +16,16 @@ final class TelemedicineConsentSnapshot
             $acceptedAt = local_date('c');
         }
 
+        $privacyVersion = ConsentVersioning::getActiveVersion('privacy_policy');
+        $telemedicineVersion = ConsentVersioning::getActiveVersion('telemedicine_consent');
+
         return [
             'consentAccepted' => $accepted,
             'consentAcceptedAt' => $acceptedAt,
-            'policyVersion' => self::policyVersion(),
-            'medicalDisclaimerVersion' => self::medicalDisclaimerVersion(),
+            'policyVersion' => $privacyVersion['version'],
+            'policyHash' => $privacyVersion['hash'],
+            'medicalDisclaimerVersion' => $telemedicineVersion['version'],
+            'medicalDisclaimerHash' => $telemedicineVersion['hash'],
             'sourceRoute' => trim((string) ($context['sourceRoute'] ?? '/api.php?resource=appointments')),
             'locale' => trim((string) ($context['locale'] ?? $appointment['locale'] ?? 'es')),
             'frontendSurface' => trim((string) ($context['frontendSurface'] ?? $appointment['frontendSurface'] ?? 'legacy_booking')),
@@ -29,13 +35,11 @@ final class TelemedicineConsentSnapshot
 
     public static function policyVersion(): string
     {
-        $raw = getenv('PIELARMONIA_POLICY_VERSION');
-        return is_string($raw) && trim($raw) !== '' ? trim($raw) : '2026-03-03';
+        return ConsentVersioning::getActiveVersion('privacy_policy')['version'];
     }
 
     public static function medicalDisclaimerVersion(): string
     {
-        $raw = getenv('PIELARMONIA_MEDICAL_DISCLAIMER_VERSION');
-        return is_string($raw) && trim($raw) !== '' ? trim($raw) : '2026-03-03';
+        return ConsentVersioning::getActiveVersion('telemedicine_consent')['version'];
     }
 }
