@@ -55,6 +55,29 @@ const FILE_ZONES = {
   'openclaw':     ['lib/openclaw/', 'js/openclaw-', 'controllers/OpenclawController'],
   'clinical':     ['lib/clinical_history/', 'controllers/ClinicalHistory'],
   'agents_md':    ['AGENTS.md', 'BACKLOG.md'],
+
+  // ── UI LANE: ANTIGRAVITY EXCLUSIVO ──────────────────────────────────────────
+  // Archivos de diseño que SOLO Antigravity puede tocar.
+  // Si otro agente toca estos archivos → HIGH severity conflict.
+  'ui_design':    [
+    'styles/tokens.css',
+    'styles/base.css',
+    'styles/components.css',
+    'styles/aurora-public.css',
+    'styles/aurora-admin.css',
+    'styles/aurora-clinical.css',
+    'styles/aurora-portal.css',
+    'styles/aurora-service.css',
+    'DESIGN_SYSTEM.md',
+    'templates/pdf/prescription.html',
+    'templates/pdf/certificate.html',
+    'dev/components.html',
+  ],
+};
+
+// Zonas que son exclusivas (solo un agente tipo puede tocarlas)
+const EXCLUSIVE_ZONES = {
+  'ui_design': 'Antigravity', // Solo Antigravity toca el design system
 };
 
 function getZonesForTask(taskId, agentsMd) {
