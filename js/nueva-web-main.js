@@ -169,21 +169,40 @@ document.addEventListener('DOMContentLoaded', () => {
         u(50);
     }
     const hb = document.getElementById('navHamburger'),
-        ov = document.getElementById('navOverlay');
+        md = document.getElementById('mobileDrawer'),
+        mo = document.getElementById('menuOverlay');
+        
     const closeMenu = () => {
         hb?.classList.remove('open');
-        ov?.classList.remove('open');
+        hb?.setAttribute('aria-expanded', 'false');
+        md?.classList.remove('open');
+        mo?.classList.remove('active');
+        mo?.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
     };
+
     hb?.addEventListener('click', () => {
-        const o = hb.classList.toggle('open');
-        ov?.classList.toggle('open', o);
-        document.body.style.overflow = o ? 'hidden' : '';
+        const o = md?.classList.toggle('open');
+        if (o) {
+            hb.classList.add('open');
+            hb.setAttribute('aria-expanded', 'true');
+            mo?.classList.add('active');
+            mo?.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        } else {
+            closeMenu();
+        }
     });
-    ov?.addEventListener('click', (e) => {
-        if (e.target === ov) closeMenu();
+
+    mo?.addEventListener('click', closeMenu);
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && md?.classList.contains('open')) {
+            closeMenu();
+        }
     });
-    ov?.querySelectorAll('.nav-mobile-menu a').forEach((a) => {
+
+    md?.querySelectorAll('a').forEach((a) => {
         a.addEventListener('click', closeMenu);
     });
 });
