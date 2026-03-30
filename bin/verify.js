@@ -274,6 +274,30 @@ const checks = {
             displayRuntime.includes('queueDisplaySmartRotation')
         );
     },
+    'S3-28': () => {
+        const workbench = read(
+            resolve(
+                ROOT,
+                'src/apps/admin-v3/ui/frame/templates/sections/appointments/workbench.js'
+            )
+        );
+        const actions = read(
+            resolve(ROOT, 'src/apps/admin-v3/sections/appointments/actions.js')
+        );
+        const dailyRender = read(
+            resolve(
+                ROOT,
+                'src/apps/admin-v3/sections/appointments/render/daily.js'
+            )
+        );
+        return (
+            workbench.includes('appointmentsDailyAgenda') &&
+            actions.includes("queue-checkin") &&
+            actions.includes('markArrived') &&
+            dailyRender.includes('data-overbooking-slot') &&
+            dailyRender.includes('appointment-mark-arrived')
+        );
+    },
     'S3-24': () => fileExists('es/agendar/index.html'),
     'S3-30': () => fileExists('es/telemedicina/consulta/index.html'),
     'S3-32': () => fileExists('es/pago/index.html'),

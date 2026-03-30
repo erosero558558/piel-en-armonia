@@ -1,0 +1,277 @@
+/*
+ * Aurora Derm — Public Web Layout (UI-04)
+ * Generado por Antigravity
+ */
+
+/* ==========================================================================
+   Navbar Glassmorphism
+   ========================================================================== */
+
+.navbar-glass {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  background: hsla(0, 0%, 100%, 0.85);
+  backdrop-filter: var(--glass-blur);
+  z-index: 1000;
+  border-bottom: 1px solid var(--pub-border);
+  transition: all var(--transition-normal);
+}
+
+.brand-clinical {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: var(--pub-text-primary);
+  letter-spacing: var(--tracking-tight);
+}
+
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-aurora-600);
+  border-radius: var(--radius-full);
+}
+
+.nav-desktop-links {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .nav-desktop-links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  .nav-desktop-links a {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--pub-text-body);
+    transition: color var(--transition-fast);
+  }
+  .nav-desktop-links a:hover {
+    color: var(--color-aurora-600);
+  }
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Solo mostrar botones secundarios extra en Desktop */
+.nav-actions .btn-secondary {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .nav-actions .btn-secondary {
+    display: inline-flex;
+  }
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: var(--space-2);
+}
+
+@media (min-width: 1024px) {
+  .menu-toggle {
+    display: none;
+  }
+}
+
+.menu-toggle span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background-color: var(--pub-text-primary);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+/* ==========================================================================
+   Mobile Drawer Overlay
+   ========================================================================== */
+
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: var(--pub-bg-surface);
+  z-index: 999;
+  padding: 100px var(--space-6) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  transform: translateY(-100%);
+  transition: transform var(--transition-spring);
+}
+
+.mobile-drawer.open {
+  transform: translateY(0);
+}
+
+.mobile-drawer a {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--pub-text-primary);
+}
+
+/* ==========================================================================
+   Hero Clinical Selection
+   ========================================================================== */
+
+.hero-clinical {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  padding-top: 100px;
+  background-color: var(--pub-bg-base);
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .hero-clinical {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding-top: 80px; /* space for navbar */
+  }
+}
+
+.hero-visual {
+  order: -1;
+  position: relative;
+  height: 50vh;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .hero-visual {
+    order: 2;
+    height: 100%;
+  }
+}
+
+.hero-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+}
+
+.hero-content {
+  padding: var(--space-8) var(--space-4);
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+@media (min-width: 1024px) {
+  .hero-content {
+    order: 1;
+    padding: var(--space-12) var(--space-12);
+    text-align: left;
+    margin: 0;
+  }
+}
+
+.hero-headline {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  margin-bottom: var(--space-6);
+  line-height: var(--leading-tight);
+}
+
+@media (min-width: 768px) {
+  .hero-headline {
+    font-size: var(--text-6xl);
+  }
+}
+
+.hero-headline em {
+  font-style: italic;
+  color: var(--color-aurora-600);
+}
+
+.hero-subheadline {
+  font-size: var(--text-lg);
+  color: var(--pub-text-muted);
+  margin-bottom: var(--space-8);
+  line-height: var(--leading-relaxed);
+}
+
+.hero-ctas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+@media (min-width: 480px) {
+  .hero-ctas {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-ctas {
+    justify-content: flex-start;
+  }
+}
+
+/* ==========================================================================
+   Trust Badges Bar
+   ========================================================================== */
+
+.trust-badges-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  justify-content: center;
+  margin-top: var(--space-12);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--pub-border);
+}
+
+@media (min-width: 1024px) {
+  .trust-badges-bar {
+    justify-content: flex-start;
+  }
+}
+
+.trust-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--pub-text-body);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.trust-badge svg {
+  color: var(--color-gold-500);
+  width: 16px;
+  height: 16px;
+}

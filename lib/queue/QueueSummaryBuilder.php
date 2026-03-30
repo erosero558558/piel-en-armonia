@@ -77,6 +77,7 @@ final class QueueSummaryBuilder
             $callingNowByConsultorio[$consultorio] = [
                 'id' => (int) ($ticket['id'] ?? 0),
                 'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
+                'appointmentId' => (int) ($ticket['appointmentId'] ?? 0),
                 'patientCaseId' => (string) ($ticket['patientCaseId'] ?? ''),
                 'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
                 'assignedConsultorio' => $consultorio,
@@ -110,6 +111,7 @@ final class QueueSummaryBuilder
             $nextTickets[] = [
                 'id' => $ticketId,
                 'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
+                'appointmentId' => (int) ($ticket['appointmentId'] ?? 0),
                 'patientCaseId' => (string) ($ticket['patientCaseId'] ?? ''),
                 'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
                 'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
