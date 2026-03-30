@@ -19,45 +19,50 @@
  *   node bin/dispatch.js list-roles        ← ver todos los roles
  */
 
+'use strict';
+
 const { readFileSync, existsSync, readdirSync } = require('fs');
 const { resolve, join } = require('path');
 
-const ROOT        = resolve(__dirname, '..');
+const ROOT = process.env.AURORA_DERM_ROOT
+  ? resolve(process.env.AURORA_DERM_ROOT)
+  : resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
-const CLAIMS_DIR  = resolve(ROOT, 'data/claims/tasks');
+const CLAIMS_DIR = resolve(ROOT, 'data/claims/tasks');
 const LEGACY_FILE = resolve(ROOT, 'data/claims/tasks.json');
 
-function read(f) {
-  return existsSync(f) ? readFileSync(f, 'utf8') : '';
+function read(filePath) {
+  return existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
 }
-
-// ── Claims — usa v2 (archivos individuales) + fallback legacy ─────────────────
 
 function loadAllClaims() {
   const claims = {};
-  // v2: individual files
+
   try {
-    const files = readdirSync(CLAIMS_DIR).filter(f => f.endsWith('.json'));
-    for (const f of files) {
-      const id = f.replace('.json', '');
-      try { claims[id] = JSON.parse(readFileSync(join(CLAIMS_DIR, f), 'utf8')); } catch {}
+    const files = readdirSync(CLAIMS_DIR).filter((file) => file.endsWith('.json'));
+    for (const file of files) {
+      const id = file.replace('.json', '');
+      try {
+        claims[id] = JSON.parse(readFileSync(join(CLAIMS_DIR, file), 'utf8'));
+      } catch {}
     }
   } catch {}
-  // legacy fallback
+
   try {
     const legacy = JSON.parse(read(LEGACY_FILE));
     for (const [id, data] of Object.entries(legacy)) {
-      if (!claims[id]) claims[id] = data;
+      if (!claims[id]) {
+        claims[id] = data;
+      }
     }
   } catch {}
+
   return claims;
 }
 
-function isExpired(claim) {
-  return claim?.expiresAt && new Date(claim.expiresAt) < new Date();
+function isExpired(claim, now = new Date()) {
+  return claim?.expiresAt && new Date(claim.expiresAt) < now;
 }
-
-// ── Task parser — captura S3-09, S3-OC1, S2-14, UI-01, UI-19, etc. ─────────────
 
 function parseTasks(md) {
   const tasks = [];
@@ -66,66 +71,58 @@ function parseTasks(md) {
   let sprintNum = 0;
 
   for (const line of lines) {
-    // Sprint normal: ### Sprint 3
     if (line.match(/^### .*Sprint (\d+)/)) {
       sprint = line.trim();
-      const m = line.match(/Sprint (\d+)/);
-      if (m) sprintNum = parseInt(m[1]);
-    }
-    // Sprint UI: ### 🎨 Sprint UI — Fase 1 o Fase 2
-    if (line.match(/^### .*Sprint UI/)) {
-      sprint = line.trim();
-      sprintNum = 99; // UI sprint always sorts last, Antigravity picks it first via role filter
+      const match = line.match(/Sprint (\d+)/);
+      if (match) {
+        sprintNum = parseInt(match[1], 10);
+      }
     }
 
-    // Captura: S3-09, S3-OC1, S2-14, S4-21, UI-01, UI-19, UI2-01, UI2-20, etc.
-    const m = line.match(/^- \[([ x])\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
-    if (m) {
+    if (line.match(/^### .*Sprint UI/)) {
+      sprint = line.trim();
+      sprintNum = 99;
+    }
+
+    const match = line.match(
+      /^- \[([ x])\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/
+    );
+    if (match) {
       tasks.push({
-        id:          m[2],
-        done:        m[1] === 'x',
-        size:        m[4],
-        human:       line.includes('[HUMAN]'),
-        critical:    line.includes('\uD83D\uDD34') || line.toLowerCase().includes('cr\u00edtico') || line.includes('**Es el documento'),
-        uiTag:       line.includes('[UI]'),
+        id: match[2],
+        done: match[1] === 'x',
+        size: match[3],
+        human: line.includes('[HUMAN]'),
+        critical:
+          line.includes('\uD83D\uDD34') ||
+          line.toLowerCase().includes('cr\u00edtico') ||
+          line.includes('**Es el documento'),
+        uiTag: line.includes('[UI]'),
         sprint,
         sprintNum,
-        description: m[5].trim(),
-        line:        line.trim(),
+        description: match[4].trim(),
+        line: line.trim(),
       });
     }
   }
+
   return tasks;
 }
-
-// ── ROLE_AFFINITY — actualizado para junio 2026 ───────────────────────────────
-//
-// PRIORIDADES JUNIO 2026 (lo que el médico necesita el día 1):
-//   S3-19  Receta digital PDF                    (backend+frontend)
-//   S3-20  Evolución clínica append-only         (backend+frontend)
-//   S3-15  Anamnesis en admin                    (frontend)
-//   S3-09  Vista operador expandida               (frontend)
-//   S3-11  Ticket con QR                         (backend+frontend)
-//   S3-18  Plan de tratamiento PDF               (frontend)
-//   S3-24  Booking público                       (fullstack, XL)
-//   S3-25  Confirmación WhatsApp+email            (backend)
-//   S3-28  Agenda diaria en admin                (frontend)
 
 const ROLE_AFFINITY = {
   backend: {
     description: 'PHP, APIs, servicios, lógica de negocio',
-    // Ordenados por impacto en el médico del día 1
     prefer: [
-      'S3-19', // Receta digital — genera PDF con membrete
-      'S3-20', // Evolución clínica — append-only, HCE
-      'S3-25', // Confirmación WhatsApp+email al agendar
-      'S3-27', // Lista de espera de citas
-      'S3-11', // Ticket QR backend (TicketPrinter)
-      'S3-14', // Métricas de espera — QueueAssistantMetricsStore
-      'S3-09', // Vista operador — PatientCaseService::hydrateStore
-      'S3-10', // Acciones post-consulta (backend de botones)
-      'S3-34', // Estado de cuenta por paciente
-      'S3-33', // Verificación de transferencia
+      'S3-19',
+      'S3-20',
+      'S3-25',
+      'S3-27',
+      'S3-11',
+      'S3-14',
+      'S3-09',
+      'S3-10',
+      'S3-34',
+      'S3-33',
     ],
     keywords: [
       'php', 'controller', 'service', 'endpoint', 'api', 'backend',
@@ -135,22 +132,23 @@ const ROLE_AFFINITY = {
     sprints: ['Sprint 3', 'Sprint 4'],
     avoid: ['blog', 'html estático', 'css', 'texto seo', 'contenido'],
     sizes: ['M', 'L', 'S'],
+    wipLimit: 2,
   },
 
   frontend: {
     description: 'HTML, CSS, UI, vistas en admin y público',
     prefer: [
-      'S3-15', // Anamnesis — formulario en admin
-      'S3-09', // Vista operador expandida
-      'S3-28', // Agenda diaria — vista en admin
-      'S3-18', // Plan de tratamiento — template PDF
-      'S3-13', // Sala inteligente (turnos pantalla TV)
-      'S3-17', // Comparación before/after — slider
-      'S3-26', // Reagendamiento self-service (vista pública)
-      'S3-30', // Sala teleconsulta (UI premium)
-      'S3-32', // Checkout integrado
-      'S4-08', // Portal del paciente
-      'S4-13', // App kiosco offline-first
+      'S3-15',
+      'S3-09',
+      'S3-28',
+      'S3-18',
+      'S3-13',
+      'S3-17',
+      'S3-26',
+      'S3-30',
+      'S3-32',
+      'S4-08',
+      'S4-13',
     ],
     keywords: [
       'html', 'css', 'vista', 'página', 'modal', 'form', 'formulario',
@@ -161,18 +159,19 @@ const ROLE_AFFINITY = {
     sprints: ['Sprint 3', 'Sprint 4'],
     avoid: ['ClinicalHistoryService::php', '\\$router->add', 'mutate_store'],
     sizes: ['M', 'L', 'S'],
+    wipLimit: 1,
   },
 
   content: {
     description: 'Blog posts, SEO copy, textos de servicio',
     prefer: [
-      'S2-14', // Blog dermatología
-      'S2-15', // Blog acné
-      'S2-16', // Blog manchas
-      'S2-17', // Blog laser
-      'S2-18', // Blog cuidado piel hombres
-      'S4-14', // Página de precios
-      'S4-18', // Referidos
+      'S2-14',
+      'S2-15',
+      'S2-16',
+      'S2-17',
+      'S2-18',
+      'S4-14',
+      'S4-18',
     ],
     keywords: [
       'blog', 'rss', 'seo', 'contenido', 'texto', 'artículo', 'copy',
@@ -181,17 +180,18 @@ const ROLE_AFFINITY = {
     sprints: ['Sprint 2', 'Sprint 4'],
     avoid: ['php', 'api', 'controller', 'queue', 'turnero', 'backend', 'hce'],
     sizes: ['S', 'M'],
+    wipLimit: 1,
   },
 
   devops: {
     description: 'CI/CD, limpieza, auditorías, performance, testing',
     prefer: [
-      'S4-21', // Auditoria final pre-launch
-      'S4-22', // Lighthouse score
-      'S4-23', // Cache headers
-      'S4-24', // Security headers
-      'S4-25', // Dead code cleanup
-      'S1-12', // Tests de contrato
+      'S4-21',
+      'S4-22',
+      'S4-23',
+      'S4-24',
+      'S4-25',
+      'S1-12',
     ],
     keywords: [
       'audit', 'limpieza', 'dead code', 'ci', 'pipeline', 'lighthouse',
@@ -200,6 +200,7 @@ const ROLE_AFFINITY = {
     sprints: ['Sprint 4', 'Sprint 1'],
     avoid: ['blog', 'html', 'texto', 'contenido', 'formulario'],
     sizes: ['S', 'M'],
+    wipLimit: 2,
   },
 
   fullstack: {
@@ -213,6 +214,7 @@ const ROLE_AFFINITY = {
     sprints: ['Sprint 3', 'Sprint 4', 'Sprint 2', 'Sprint 5', 'Sprint 6'],
     avoid: [],
     sizes: ['S', 'M', 'L', 'XL'],
+    wipLimit: 2,
   },
 
   ui: {
@@ -228,128 +230,149 @@ const ROLE_AFFINITY = {
       'design system', 'token', 'css variable', 'layout', 'grid',
       'animación', 'hover', 'glassmorphism', 'dark mode', 'responsive',
     ],
-    // UI tasks have sprintNum=99, this filter ensures ONLY Sprint UI comes back
     sprints: ['Sprint UI'],
     avoid: ['php', 'controller', 'service', 'repository', 'api.php', 'routes.php'],
     sizes: ['S', 'M', 'L', 'XL'],
     exclusive: true,
     agent: 'Antigravity',
+    wipLimit: 1,
   },
 };
 
-// ── Scoring ───────────────────────────────────────────────────────────────────
-
 function scoreTask(task, role, claims) {
   const config = ROLE_AFFINITY[role];
-  if (!config) return -9999;
+  if (!config) {
+    return -9999;
+  }
 
-  // Hard filters
   const claim = claims[task.id];
-  if (claim && !isExpired(claim)) return -9999;
-  if (task.done)  return -9999;
-  if (task.human) return -500;
-
-  // ── Hard filter: rol ui SOLO acepta tareas con [UI] tag ───────────────────
-  if (role === 'ui' && !task.uiTag) return -9999;
-  // Hard filter inverso: rutas excludes chat no aplican cuando ya se tiene
-  // el uiTag — ui tasks never avoid php/controller in keywords scan below
+  if (claim && !isExpired(claim)) {
+    return -9999;
+  }
+  if (task.done) {
+    return -9999;
+  }
+  if (task.human) {
+    return -500;
+  }
+  if (role === 'ui' && !task.uiTag) {
+    return -9999;
+  }
 
   let score = 0;
 
-  // UI tag bonus — garantiza que UI tasks flotan primero en el rol ui
-  if (task.uiTag) score += 150;
-
-  // Explicit priority list for this role
-  const prefIdx = config.prefer.indexOf(task.id);
-  if (prefIdx !== -1) score += 200 - prefIdx * 3;
-
-  // Critical flag (from LAUNCH.md analysis)
-  if (task.critical) score += 50;
-
-  // Keyword affinity in description
-  const desc = task.description.toLowerCase();
-  if (!task.uiTag) { // skip avoid check for UI tasks
-    config.keywords.forEach(kw => { if (desc.includes(kw.toLowerCase())) score += 20; });
-    config.avoid.forEach(kw    => { if (desc.includes(kw.toLowerCase())) score -= 40; });
-  } else {
-    config.keywords.forEach(kw => { if (desc.includes(kw.toLowerCase())) score += 15; });
+  if (task.uiTag) {
+    score += 150;
   }
 
-  // Sprint preference (current sprint first)
-  const sprintOrder = config.sprints.map(s => s.replace('Sprint ', ''));
-  const spIdx = sprintOrder.findIndex(s => task.sprint.includes(s) || String(task.sprintNum) === s);
-  if (spIdx !== -1) score += (sprintOrder.length - spIdx) * 15;
-  else score -= 25;
+  const prefIdx = config.prefer.indexOf(task.id);
+  if (prefIdx !== -1) {
+    score += 200 - prefIdx * 3;
+  }
 
-  // Size affinity
-  const sizePref = (config.sizes || ['S','M','L','XL']).indexOf(task.size);
-  if (sizePref !== -1) score += 10 - sizePref * 2;
+  if (task.critical) {
+    score += 50;
+  }
+
+  const desc = task.description.toLowerCase();
+  if (!task.uiTag) {
+    config.keywords.forEach((kw) => {
+      if (desc.includes(kw.toLowerCase())) {
+        score += 20;
+      }
+    });
+    config.avoid.forEach((kw) => {
+      if (desc.includes(kw.toLowerCase())) {
+        score -= 40;
+      }
+    });
+  } else {
+    config.keywords.forEach((kw) => {
+      if (desc.includes(kw.toLowerCase())) {
+        score += 15;
+      }
+    });
+  }
+
+  const sprintOrder = config.sprints.map((s) => s.replace('Sprint ', ''));
+  const spIdx = sprintOrder.findIndex(
+    (s) => task.sprint.includes(s) || String(task.sprintNum) === s
+  );
+  if (spIdx !== -1) {
+    score += (sprintOrder.length - spIdx) * 15;
+  } else {
+    score -= 25;
+  }
+
+  const sizePref = (config.sizes || ['S', 'M', 'L', 'XL']).indexOf(task.size);
+  if (sizePref !== -1) {
+    score += 10 - sizePref * 2;
+  }
 
   return score;
-
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
-const args    = process.argv.slice(2);
-const roleArg = args.find(a => a.startsWith('--role='))?.split('=')[1]
-  || (args.indexOf('--role') !== -1 ? args[args.indexOf('--role') + 1] : null)
-  || 'fullstack';
-const listAll = args.includes('--all');
-
-if (roleArg === 'list-roles') {
-  console.log('\n🎭 Roles disponibles:\n');
-  Object.entries(ROLE_AFFINITY).forEach(([role, cfg]) => {
-    console.log(`  ${role.padEnd(12)} — ${cfg.description}`);
-  });
-  console.log('\n  Uso: node bin/dispatch.js --role <rol> [--all]\n');
-  process.exit(0);
+function resolveRoleArg(argv = process.argv.slice(2)) {
+  return argv.find((arg) => arg.startsWith('--role='))?.split('=')[1]
+    || (argv.indexOf('--role') !== -1 ? argv[argv.indexOf('--role') + 1] : null)
+    || 'fullstack';
 }
 
-if (!ROLE_AFFINITY[roleArg]) {
-  console.error(`❌ Rol desconocido: "${roleArg}". Usa: ${Object.keys(ROLE_AFFINITY).join(', ')}`);
-  process.exit(1);
+function resolveWipLimit(roleArg, {
+  argv = process.argv.slice(2),
+  env = process.env,
+} = {}) {
+  const inlineArg = argv.find((arg) => arg.startsWith('--wip-limit='));
+  const nextArgIndex = argv.indexOf('--wip-limit');
+  const rawValue = inlineArg
+    ? inlineArg.split('=')[1]
+    : nextArgIndex !== -1
+      ? argv[nextArgIndex + 1]
+      : env[`DISPATCH_WIP_LIMIT_${String(roleArg).toUpperCase()}`]
+        ?? env.DISPATCH_WIP_LIMIT_DEFAULT
+        ?? ROLE_AFFINITY[roleArg]?.wipLimit
+        ?? 0;
+
+  const parsed = Number.parseInt(String(rawValue), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
-const md     = read(AGENTS_FILE);
-const tasks  = parseTasks(md);
-const claims = loadAllClaims();
-const config = ROLE_AFFINITY[roleArg];
+function getActiveClaimsForRole(tasks, claims, roleArg, now = new Date()) {
+  return tasks
+    .filter((task) => {
+      const claim = claims[task.id];
+      if (!claim || isExpired(claim, now)) {
+        return false;
+      }
 
-const scored = tasks
-  .map(t => ({ ...t, score: scoreTask(t, roleArg, claims) }))
-  .filter(t => t.score > -500)
-  .sort((a, b) => b.score - a.score);
-
-console.log(`\n🎭 Dispatch — rol: ${roleArg}`);
-console.log(`   ${config.description}`);
-
-// Bloqueadas actualmente
-const blocked = tasks.filter(t => !t.done && t.human);
-if (blocked.length > 0) {
-  console.log(`\n⚠️  Tareas bloqueadas [HUMAN] (${blocked.length}) — el director debe resolverlas:`);
-  blocked.forEach(t => console.log(`   ${t.id} [${t.size}] ${t.description.slice(0, 60)}...`));
+      return scoreTask(task, roleArg, {}) > -500;
+    })
+    .map((task) => ({
+      ...task,
+      claim: claims[task.id],
+    }));
 }
 
-if (scored.length === 0) {
-  const total   = tasks.length;
-  const done    = tasks.filter(t => t.done).length;
-  const pending = tasks.filter(t => !t.done && !t.human).length;
-  const pct     = Math.round((done / total) * 100);
+function formatNoTasksMessage(roleArg, tasks) {
+  const total = tasks.length;
+  const done = tasks.filter((task) => task.done).length;
+  const pending = tasks.filter((task) => !task.done && !task.human).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const lines = [];
 
-  console.log(`\n🎉 Sin tareas asignadas para rol "${roleArg}".`);
-  console.log(`   Progreso: ${done}/${total} (${pct}%) — ${pending} pendientes globales\n`);
+  lines.push(`\n🎉 Sin tareas asignadas para rol "${roleArg}".`);
+  lines.push(`   Progreso: ${done}/${total} (${pct}%) — ${pending} pendientes globales\n`);
 
   if (pending === 0 && done >= total) {
-    console.log(`╔══════════════════════════════════════════════════════════════╗`);
-    console.log(`║  🏁  BACKLOG COMPLETADO — INICIO DEL CICLO DE MEJORA        ║`);
-    console.log(`╚══════════════════════════════════════════════════════════════╝\n`);
+    lines.push(`╔══════════════════════════════════════════════════════════════╗`);
+    lines.push(`║  🏁  BACKLOG COMPLETADO — INICIO DEL CICLO DE MEJORA        ║`);
+    lines.push(`╚══════════════════════════════════════════════════════════════╝\n`);
   }
 
-  console.log(`╔══════════════════════════════════════════════════════════════╗`);
-  console.log(`║  QUÉ HACER CUANDO NO HAY TAREAS DISPONIBLES                 ║`);
-  console.log(`╚══════════════════════════════════════════════════════════════╝`);
-  console.log(`
+  lines.push(`╔══════════════════════════════════════════════════════════════╗`);
+  lines.push(`║  QUÉ HACER CUANDO NO HAY TAREAS DISPONIBLES                 ║`);
+  lines.push(`╚══════════════════════════════════════════════════════════════╝`);
+  lines.push(`
   1. Cambiar de rol (si eres fullstack):
        node bin/dispatch.js --role backend
        node bin/dispatch.js --role frontend
@@ -383,44 +406,194 @@ if (scored.length === 0) {
   REGLA DE ORO: un agente nunca está sin trabajo.
   Si no hay tareas asignadas → audita → crea tareas → empuja.
 `);
-  process.exit(0);
+
+  return lines.join('\n');
 }
 
-const best = scored[0];
-console.log(`\n📋 Tarea recomendada:`);
-console.log(`   ID:      ${best.id}  [${best.size}]${best.critical ? '  🔴 CRÍTICA PARA JUNIO' : ''}`);
-console.log(`   Sprint:  ${best.sprint.replace(/^### /, '')}`);
-console.log(`   Tarea:   ${best.line.replace(/^- \[[ x]\] /, '').slice(0, 130)}`);
+function formatMinutesRemaining(expiresAt, now = new Date()) {
+  if (!expiresAt) {
+    return 'sin TTL';
+  }
+  const diffMinutes = Math.max(
+    0,
+    Math.round((new Date(expiresAt).getTime() - now.getTime()) / 60000)
+  );
+  return `${diffMinutes}m restantes`;
+}
 
-// Lookup full task description in AGENTS.md for context
-const taskSection = (() => {
-  const lines = md.split('\n');
-  const idx   = lines.findIndex(l => l.includes(`**${best.id}**`));
-  if (idx === -1) return '';
-  // Grab up to 3 lines of context
-  return lines.slice(idx, idx + 1).join('\n');
-})();
+function buildDispatchResult({
+  roleArg = 'fullstack',
+  listAll = false,
+  md = read(AGENTS_FILE),
+  claims = loadAllClaims(),
+  wipLimit = resolveWipLimit(roleArg),
+  now = new Date(),
+} = {}) {
+  if (!ROLE_AFFINITY[roleArg]) {
+    return {
+      ok: false,
+      exitCode: 1,
+      error: `❌ Rol desconocido: "${roleArg}". Usa: ${Object.keys(ROLE_AFFINITY).join(', ')}`,
+    };
+  }
 
-console.log(`\n   ── Flujo completo ──`);
-console.log(`   1. git pull origin main`);
-console.log(`   2. node bin/claim.js claim ${best.id} "<tu-nombre>"`);
-console.log(`   3. git add data/claims/tasks/${best.id}.json && HUSKY=0 git commit --no-verify -m "claim: ${best.id}" && git push`);
-console.log(`   4. Leer AGENTS.md → buscar **${best.id}** para contexto completo`);
-console.log(`   5. Leer PRODUCT.md si es tu primera tarea (entiende el producto)`);
-console.log(`   6. Hacer el trabajo`);
-console.log(`   7. node bin/gate.js ${best.id}     ← validar ANTES de marcar done`);
-console.log(`   8. node bin/claim.js release ${best.id}`);
-console.log(`   9. Marcar [x] en AGENTS.md`);
-console.log(`  10. git add . && HUSKY=0 git commit --no-verify -m "feat(${best.id}): descripción" && git push`);
-console.log(`\n   Si te bloqueas: node bin/stuck.js ${best.id} "razón exacta"\n`);
+  const tasks = parseTasks(md);
+  const config = ROLE_AFFINITY[roleArg];
+  const blocked = tasks.filter((task) => !task.done && task.human);
+  const activeClaimsForRole = getActiveClaimsForRole(tasks, claims, roleArg, now);
+  const wipLimited = wipLimit > 0 && activeClaimsForRole.length >= wipLimit;
+  const scored = wipLimited
+    ? []
+    : tasks
+      .map((task) => ({ ...task, score: scoreTask(task, roleArg, claims) }))
+      .filter((task) => task.score > -500)
+      .sort((a, b) => b.score - a.score);
 
-if (listAll && scored.length > 1) {
-  console.log(`📊 Top 10 para rol "${roleArg}":`);
-  scored.slice(0, 10).forEach((t, i) => {
-    const claimed     = claims[t.id] && !isExpired(claims[t.id]);
-    const status      = claimed ? '🔒' : (t.critical ? '🔴' : '✅');
-    const description = t.line.replace(/^- \[[ x]\] /, '').slice(0, 65);
-    console.log(`   ${i + 1}. ${status} ${t.id} [${t.size}] (${t.score}pts) ${description}...`);
+  return {
+    ok: true,
+    exitCode: 0,
+    roleArg,
+    listAll,
+    config,
+    tasks,
+    claims,
+    scored,
+    blocked,
+    best: wipLimited ? null : scored[0] || null,
+    wipLimit,
+    wipLimited,
+    activeClaimsForRole,
+  };
+}
+
+function formatDispatchText(result) {
+  if (!result.ok) {
+    return `${result.error}\n`;
+  }
+
+  const {
+    roleArg,
+    listAll,
+    config,
+    tasks,
+    claims,
+    blocked,
+    scored,
+    best,
+    wipLimit,
+    wipLimited,
+    activeClaimsForRole,
+  } = result;
+  const lines = [];
+
+  lines.push(`\n🎭 Dispatch — rol: ${roleArg}`);
+  lines.push(`   ${config.description}`);
+
+  if (blocked.length > 0) {
+    lines.push(`\n⚠️  Tareas bloqueadas [HUMAN] (${blocked.length}) — el director debe resolverlas:`);
+    blocked.forEach((task) => {
+      lines.push(`   ${task.id} [${task.size}] ${task.description.slice(0, 60)}...`);
+    });
+  }
+
+  if (wipLimited) {
+    lines.push(`\n⛔ WIP limit reached — termina una tarea antes.`);
+    lines.push(`   Rol/lane: ${roleArg} | Límite: ${wipLimit} | Claims activos: ${activeClaimsForRole.length}`);
+    lines.push(`\n   Claims activos en este rol:`);
+    activeClaimsForRole.forEach((task) => {
+      lines.push(
+        `   - ${task.id} [${task.size}] → ${task.claim.agent || 'sin agente'} (${formatMinutesRemaining(task.claim.expiresAt)})`
+      );
+    });
+    lines.push(`\n   Libera o cierra una tarea antes de pedir otra con dispatch.\n`);
+    return `${lines.join('\n')}\n`;
+  }
+
+  if (scored.length === 0) {
+    lines.push(formatNoTasksMessage(roleArg, tasks));
+    return `${lines.join('\n')}\n`;
+  }
+
+  lines.push(`\n📋 Tarea recomendada:`);
+  lines.push(`   ID:      ${best.id}  [${best.size}]${best.critical ? '  🔴 CRÍTICA PARA JUNIO' : ''}`);
+  lines.push(`   Sprint:  ${best.sprint.replace(/^### /, '')}`);
+  lines.push(`   Tarea:   ${best.line.replace(/^- \[[ x]\] /, '').slice(0, 130)}`);
+  lines.push(`\n   ── Flujo completo ──`);
+  lines.push(`   1. git pull origin main`);
+  lines.push(`   2. node bin/claim.js claim ${best.id} "<tu-nombre>"`);
+  lines.push(`   3. git add data/claims/tasks/${best.id}.json && HUSKY=0 git commit --no-verify -m "claim: ${best.id}" && git push`);
+  lines.push(`   4. Leer AGENTS.md → buscar **${best.id}** para contexto completo`);
+  lines.push(`   5. Leer PRODUCT.md si es tu primera tarea (entiende el producto)`);
+  lines.push(`   6. Hacer el trabajo`);
+  lines.push(`   7. node bin/gate.js ${best.id}     ← validar ANTES de marcar done`);
+  lines.push(`   8. node bin/claim.js release ${best.id}`);
+  lines.push(`   9. Marcar [x] en AGENTS.md`);
+  lines.push(`  10. git add . && HUSKY=0 git commit --no-verify -m "feat(${best.id}): descripción" && git push`);
+  lines.push(`\n   Si te bloqueas: node bin/stuck.js ${best.id} "razón exacta"\n`);
+
+  if (listAll && scored.length > 1) {
+    lines.push(`📊 Top 10 para rol "${roleArg}":`);
+    scored.slice(0, 10).forEach((task, index) => {
+      const claimed = claims[task.id] && !isExpired(claims[task.id]);
+      const status = claimed ? '🔒' : (task.critical ? '🔴' : '✅');
+      const description = task.line.replace(/^- \[[ x]\] /, '').slice(0, 65);
+      lines.push(`   ${index + 1}. ${status} ${task.id} [${task.size}] (${task.score}pts) ${description}...`);
+    });
+    lines.push('');
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+function main(argv = process.argv.slice(2)) {
+  const roleArg = resolveRoleArg(argv);
+  const listAll = argv.includes('--all');
+
+  if (roleArg === 'list-roles') {
+    console.log('\n🎭 Roles disponibles:\n');
+    Object.entries(ROLE_AFFINITY).forEach(([role, cfg]) => {
+      console.log(`  ${role.padEnd(12)} — ${cfg.description}`);
+    });
+    console.log('\n  Uso: node bin/dispatch.js --role <rol> [--all] [--wip-limit <n>]\n');
+    return 0;
+  }
+
+  const result = buildDispatchResult({
+    roleArg,
+    listAll,
+    wipLimit: resolveWipLimit(roleArg, { argv }),
   });
-  console.log();
+  const output = formatDispatchText(result);
+
+  if (result.ok) {
+    console.log(output.trimEnd());
+  } else {
+    console.error(output.trimEnd());
+  }
+
+  return result.exitCode;
 }
+
+if (require.main === module) {
+  process.exit(main());
+}
+
+module.exports = {
+  AGENTS_FILE,
+  CLAIMS_DIR,
+  LEGACY_FILE,
+  ROLE_AFFINITY,
+  ROOT,
+  buildDispatchResult,
+  formatDispatchText,
+  formatMinutesRemaining,
+  getActiveClaimsForRole,
+  isExpired,
+  loadAllClaims,
+  main,
+  parseTasks,
+  read,
+  resolveRoleArg,
+  resolveWipLimit,
+  scoreTask,
+};
