@@ -13,12 +13,12 @@
  */
 
 const { execSync } = require('child_process');
-const { readFileSync, writeFileSync, existsSync } = require('fs');
-const { resolve } = require('path');
+const { readFileSync, writeFileSync, existsSync, readdirSync } = require('fs');
+const { resolve, join } = require('path');
 
 const ROOT = resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
-const CLAIMS_FILE = resolve(ROOT, 'data/claims/tasks.json');
+const CLAIMS_DIR  = resolve(ROOT, 'data/claims/tasks'); // v2: archivos individuales
 
 const hoursArg = parseInt(process.argv.find(a => a.startsWith('--hours='))?.split('=')[1] || '24');
 const asMarkdown = process.argv.includes('--md') || process.argv.includes('--write');
@@ -32,7 +32,15 @@ function run(cmd) {
 function read(f) { return existsSync(f) ? readFileSync(f, 'utf8') : ''; }
 
 function loadClaims() {
-  try { return JSON.parse(read(CLAIMS_FILE)); } catch { return {}; }
+  const claims = {};
+  try {
+    const files = readdirSync(CLAIMS_DIR).filter(f => f.endsWith('.json'));
+    for (const f of files) {
+      const id = f.replace('.json', '');
+      try { claims[id] = JSON.parse(readFileSync(join(CLAIMS_DIR, f), 'utf8')); } catch {}
+    }
+  } catch {}
+  return claims;
 }
 
 // ── Data collection ───────────────────────────────────────────────────────────

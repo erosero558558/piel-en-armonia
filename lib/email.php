@@ -586,6 +586,30 @@ function build_preconsultation_notification_rows(array $payload): array
 }
 
 /**
+ * @param string $service
+ * @return string
+ */
+function get_service_preparation_instructions(string $service): string
+{
+    switch (strtolower(trim($service))) {
+        case 'consulta':
+            return 'Por favor, acuda con 10 min de anticipación. Evite maquillaje pesado o productos cubrientes para facilitar la valoración de la textura de su piel.';
+        case 'video':
+        case 'telefono':
+            return 'Asegúrese de contar con buena luz y conexión. Tenga a mano fotos claras de las zonas a tratar y los nombres de cremas o medicación que esté usando.';
+        case 'acne':
+            return 'Recomendamos no utilizar cremas densas ni bloqueadores con color al menos 2h antes de la cita para no alterar la apariencia de las lesiones.';
+        case 'cancer':
+            return 'Dado que la revisión de lunares es de cuerpo entero, sugerimos vestir ropa cómoda y fácil de retirar.';
+        case 'laser':
+        case 'rejuvenecimiento':
+            return 'Evite exposición solar fuerte y suspenda exfoliantes o retinol 48h antes de su cita. Venga con la piel limpia si es posible.';
+        default:
+            return 'Llegue 10 min antes y traiga cualquier examen previo o receta que considere relevante.';
+    }
+}
+
+/**
  * Builds the responsive HTML confirmation email for patient appointments.
  *
  * @param array<string,mixed> $appointment
@@ -596,6 +620,8 @@ function build_appointment_email_html(array $appointment): string
     $name = htmlspecialchars($context['name'], ENT_QUOTES, 'UTF-8');
     $dateLabel = htmlspecialchars($context['dateLabel'], ENT_QUOTES, 'UTF-8');
     $checkinToken = htmlspecialchars($context['checkinToken'], ENT_QUOTES, 'UTF-8');
+    $prepInstructions = htmlspecialchars(get_service_preparation_instructions((string) ($appointment['service'] ?? '')), ENT_QUOTES, 'UTF-8');
+
     $checkinBlock = $context['checkinToken'] !== ''
         ? '<div style="margin:0 0 20px;padding:16px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;">'
             . '<p style="margin:0 0 8px;font-weight:700;color:#0d1a2f;">Codigo de llegada al kiosco</p>'
@@ -603,6 +629,11 @@ function build_appointment_email_html(array $appointment): string
             . '<p style="margin:0;font-size:15px;font-weight:700;letter-spacing:0.08em;color:#0f172a;">' . $checkinToken . '</p>'
         . '</div>'
         : '';
+
+    $prepBlock = '<div style="margin:0 0 20px;padding:16px;border-radius:12px;background:#fef9c3;border:1px solid #fef08a;">'
+        . '<p style="margin:0 0 8px;font-weight:700;color:#854d0e;">Instrucciones de preparación</p>'
+        . '<p style="margin:0;line-height:1.6;color:#713f12;">' . $prepInstructions . '</p>'
+        . '</div>';
 
     $content = '<h2 style="margin:0 0 20px;color:#0d1a2f;font-size:20px;">Cita Confirmada</h2>'
         . '<p style="margin:0 0 15px;line-height:1.6;color:#555;">Hola <strong>' . $name . '</strong>,</p>'
@@ -613,6 +644,7 @@ function build_appointment_email_html(array $appointment): string
             'padding:8px 0;color:#64748b;font-weight:bold;width:120px;',
             'padding:8px 0;color:#334155;'
         )
+        . $prepBlock
         . $checkinBlock
         . '<p style="margin:0 0 25px;line-height:1.6;color:#555;">Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.</p>'
         . build_email_cta_button($context['rescheduleUrl'], 'Reprogramar Cita')
@@ -627,15 +659,21 @@ function build_appointment_email_html(array $appointment): string
 function build_appointment_email_text(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
+    $prepInstructions = get_service_preparation_instructions((string) ($appointment['service'] ?? ''));
 
     $body = "Hola " . $context['name'] . ",\n\n";
     $body .= "Tu cita ha sido registrada exitosamente.\n\n";
     $body .= "Detalles:\n";
     $body .= build_appointment_detail_text($context, false);
+    
+    $body .= "Instrucciones previas:\n";
+    $body .= $prepInstructions . "\n\n";
+
     if ($context['checkinToken'] !== '') {
         $body .= "Codigo de llegada al kiosco: " . $context['checkinToken'] . "\n";
-        $body .= "Puedes usar este codigo o tu QR de confirmacion cuando llegues.\n";
+        $body .= "Puedes usar este codigo o tu QR de confirmacion cuando llegues.\n\n";
     }
+    
     $body .= "Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.\n\n";
     $body .= "Si deseas reprogramar, visita: " . $context['rescheduleUrl'] . "\n\n";
     $body .= "Si tienes dudas, responde este correo o escribe por WhatsApp: " . AppConfig::WHATSAPP_NUMBER . ".\n\n";

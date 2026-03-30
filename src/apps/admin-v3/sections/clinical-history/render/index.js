@@ -787,6 +787,14 @@ function emptyDraft() {
                 signedAt: '',
                 confidential: true,
             },
+            carePlan: {
+                status: 'draft',
+                diagnosis: '',
+                treatments: '',
+                followUpFrequency: '',
+                goals: '',
+                generatedAt: '',
+            },
             interconsultForms: [],
             interconsultReports: [],
             labOrders: [],
@@ -3591,6 +3599,20 @@ function normalizeDocuments(documents) {
             restDays: normalizeNullableInt(source?.certificate?.restDays),
             signedAt: normalizeString(source?.certificate?.signedAt),
             confidential: source?.certificate?.confidential !== false,
+        },
+        carePlan: {
+            ...defaults.carePlan,
+            ...(source.carePlan && typeof source.carePlan === 'object'
+                ? source.carePlan
+                : {}),
+            status: normalizeString(
+                source?.carePlan?.status || defaults.carePlan.status
+            ),
+            diagnosis: normalizeString(source?.carePlan?.diagnosis),
+            treatments: normalizeString(source?.carePlan?.treatments),
+            followUpFrequency: normalizeString(source?.carePlan?.followUpFrequency),
+            goals: normalizeString(source?.carePlan?.goals),
+            generatedAt: normalizeString(source?.carePlan?.generatedAt),
         },
         interconsultForms,
         interconsultReports,
@@ -10983,6 +11005,68 @@ function buildClinicalHistoryDocumentsSection(draft, disabled) {
     );
 }
 
+function buildClinicalHistoryCarePlanSection(draft, disabled) {
+    return buildClinicalHistorySection(
+        'Plan de Tratamiento',
+        'Detalle de diagnostico, tratamientos, costos y seguimiento.',
+        `
+            ${buildClinicalHistoryInlineGrid([
+                textareaField(
+                    'document_care_plan_diagnosis',
+                    'Diagnostico Resumido',
+                    draft.documents.carePlan.diagnosis,
+                    {
+                        rows: 3,
+                        disabled,
+                        placeholder: 'Acne severo, etc.',
+                    }
+                ),
+                textareaField(
+                    'document_care_plan_treatments',
+                    'Tratamientos, Sesiones, Costos',
+                    draft.documents.carePlan.treatments,
+                    {
+                        rows: 4,
+                        disabled,
+                        placeholder: 'Pelling Facial | 3 sesiones | $150\\nLaser Q-Switched | 1 sesion | $200',
+                    }
+                ),
+            ])}
+            ${buildClinicalHistoryInlineGrid([
+                inputField(
+                    'document_care_plan_followup',
+                    'Frecuencia de seguimiento',
+                    draft.documents.carePlan.followUpFrequency,
+                    {
+                        disabled,
+                        placeholder: 'Ej. Cada 2 semanas',
+                    }
+                ),
+                textareaField(
+                    'document_care_plan_goals',
+                    'Metas Terapeuticas',
+                    draft.documents.carePlan.goals,
+                    {
+                        rows: 3,
+                        disabled,
+                        placeholder: 'Reduccion del 80% de lesiones inflamatorias',
+                    }
+                ),
+            ])}
+            <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button
+                    type="button"
+                    class="clinical-history-action-btn"
+                    data-clinical-review-action="deliver-care-plan"
+                    ${disabled ? 'disabled' : ''}
+                >
+                    Generar PDF del Plan de Tratamiento
+                </button>
+            </div>
+        `
+    );
+}
+
 function buildDraftForm(review, draft, saving) {
     const disabled = saving || normalizeString(draft.sessionId) === '';
     const pregnancyValue = pregnancySelectValue(
@@ -10999,6 +11083,7 @@ function buildDraftForm(review, draft, saving) {
             ${buildClinicalHistoryLabOrderSection(review, draft, disabled)}
             ${buildClinicalHistoryImagingOrderSection(review, draft, disabled)}
             ${buildClinicalHistoryConsentSection(review, draft, disabled)}
+            ${buildClinicalHistoryCarePlanSection(draft, disabled)}
             ${buildClinicalHistoryDocumentsSection(draft, disabled)}
         </div>
     `;
@@ -11738,6 +11823,13 @@ function serializeDraftForm(form, baseDraft) {
             ...snapshot.documents.certificate,
             summary: readValue('document_certificate_summary'),
             restDays: readValue('document_certificate_rest_days'),
+        },
+        carePlan: {
+            ...snapshot.documents.carePlan,
+            diagnosis: readValue('document_care_plan_diagnosis'),
+            treatments: readValue('document_care_plan_treatments'),
+            followUpFrequency: readValue('document_care_plan_followup'),
+            goals: readValue('document_care_plan_goals'),
         },
     });
 
@@ -12518,6 +12610,13 @@ function buildGovernanceActionPayload(action) {
         };
     }
 
+    if (action === 'deliver-care-plan') {
+        return {
+            sessionId,
+            action: 'deliver_care_plan',
+        };
+    }
+
     if (action === 'deliver-certified-copy') {
         return {
             sessionId,
@@ -12669,6 +12768,13 @@ async function submitGovernanceAction(action) {
                     ? `Export listo para ${targetLabel}. Usa imprimir o Guardar como PDF en la nueva ventana.`
                     : `La exportacion se preparo para ${targetLabel}, pero el navegador bloqueo la ventana emergente.`,
                 exportOpened ? 'success' : 'warning'
+            );
+        } else if (action === 'deliver-care-plan') {
+            const pdfUrl = '/api.php?resource=care-plan-pdf&session_id=' + encodeURIComponent(sessionId);
+            window.open(pdfUrl, '_blank');
+            createToast(
+                `Plan de Tratamiento renderizado en PDF para ${targetLabel}.`,
+                'success'
             );
         } else if (action === 'request-certified-copy') {
             createToast(
@@ -13387,6 +13493,11 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'export-full-record') {
             await submitGovernanceAction('export-full-record');
+            return;
+        }
+
+        if (action === 'deliver-care-plan') {
+            await submitGovernanceAction('deliver-care-plan');
             return;
         }
 

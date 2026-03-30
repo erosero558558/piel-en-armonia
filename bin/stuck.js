@@ -19,12 +19,12 @@
  *   node bin/stuck.js S6-11 "Stripe secret key no está en .env - necesita el dueño"
  */
 
-const { readFileSync, writeFileSync, existsSync, mkdirSync } = require('fs');
-const { resolve } = require('path');
+const { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } = require('fs');
+const { resolve, join } = require('path');
 
-const ROOT = resolve(__dirname, '..');
+const ROOT       = resolve(__dirname, '..');
 const STUCK_FILE = resolve(ROOT, 'data/claims/stuck.json');
-const CLAIMS_FILE = resolve(ROOT, 'data/claims/tasks.json');
+const CLAIMS_DIR = resolve(ROOT, 'data/claims/tasks'); // v2
 
 function read(f) { return existsSync(f) ? readFileSync(f, 'utf8') : '{}'; }
 function write(f, d) {
@@ -32,7 +32,16 @@ function write(f, d) {
   writeFileSync(f, JSON.stringify(d, null, 2) + '\n', 'utf8');
 }
 function loadStuck() { try { return JSON.parse(read(STUCK_FILE)); } catch { return {}; } }
-function loadClaims() { try { return JSON.parse(read(CLAIMS_FILE)); } catch { return {}; } }
+
+// v2: load a single claim from individual file
+function loadClaim(id) {
+  const f = resolve(CLAIMS_DIR, `${id}.json`);
+  try { return existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : null; } catch { return null; }
+}
+function deleteClaim(id) {
+  const f = resolve(CLAIMS_DIR, `${id}.json`);
+  try { if (existsSync(f)) require('fs').unlinkSync(f); } catch {}
+}
 
 const [,, command, ...args] = process.argv;
 
@@ -77,7 +86,7 @@ if (command === 'clear') {
 const taskId = command;
 const reason = args.join(' ');
 
-if (!taskId.match(/^S\d+-\d+$/)) {
+if (!taskId.match(/^S\d+-[A-Z0-9]+$/)) {
   console.error(`\nUsage: node bin/stuck.js <TASK-ID> "<razón>"`);
   console.error(`       node bin/stuck.js list`);
   console.error(`       node bin/stuck.js clear <TASK-ID>`);
@@ -92,14 +101,12 @@ if (!reason) {
 }
 
 // Get agent name from claim if available
-const claims = loadClaims();
-const claim = claims[taskId];
+const claim = loadClaim(taskId);
 const agent = claim?.agent || process.env.AGENT_NAME || 'unknown';
 
-// Release the claim so another agent can try
-if (claim && claim.agent) {
-  delete claims[taskId];
-  write(CLAIMS_FILE, claims);
+// Release the claim so another agent can try (v2: delete individual file)
+if (claim) {
+  deleteClaim(taskId);
   console.log(`🔓 Claim released for ${taskId}`);
 }
 
@@ -118,7 +125,8 @@ console.log(`\n🚧 Bloqueado registrado: ${taskId}`);
 console.log(`   Razón: ${reason}`);
 console.log(`   El claim ha sido liberado para que otro agente pueda intentarlo.`);
 console.log(`\n   Próximos pasos:`);
-console.log(`   1. git add data/claims/ && HUSKY=0 git commit --no-verify -m "stuck: ${taskId} — ${reason.slice(0,50)}" && git push`);
+console.log(`   1. git add data/claims/ && HUSKY=0 git commit --no-verify -m "stuck: ${taskId} — ${reason.slice(0,50)}" && git push origin main`);
 console.log(`   2. El dueño verá este bloqueo en: npm run report`);
 console.log(`   3. El dueño responde en BLOCKERS.md o en el commit`);
 console.log(`   4. Cuando esté resuelto: node bin/stuck.js clear ${taskId}\n`);
+
