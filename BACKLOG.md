@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 3:16:33 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 4:04:36 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **48%** completado (215/449)
+`██████████░░░░░░░░░░` **48%** completado (216/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -28,7 +28,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 13 | 4 | 17 | 19% |
 | ⏸ Sprint UI | 18 | 2 | 90% |
 | ⏸ Sprint 14 | 2 | 12 | 14% |
-| ⏸ Sprint 15 | 1 | 12 | 8% |
+| ⏸ Sprint 15 | 2 | 11 | 15% |
 | ⏸ Sprint 16 | 0 | 13 | 0% |
 | ⏸ Sprint 17 | 0 | 12 | 0% |
 | ⏸ Sprint 18 | 0 | 4 | 0% |
@@ -137,7 +137,7 @@ _Sprint completado. 20/20 tareas._
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
 _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 
-### 🟢 Disponibles (9)
+### 🟢 Disponibles (8)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -146,7 +146,11 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 | **S8-12** | `[S8]` | M |
 | **S8-13** | `[S8]` | M |
 | **S8-14** | `[S8]` | M |
-| ... | | _+4 más_ |
+| ... | | _+3 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S8-17** `[S8]` → _antigravity_ (expira en 76min)
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
 _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
@@ -215,7 +219,7 @@ _Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **UI3-15** `[UI3]` → _codex_ (expira en 237min)
+- **UI3-15** `[UI3]` → _codex_ (expira en 189min)
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
@@ -232,9 +236,9 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | ... | | _+7 más_ |
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
-_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 
-### 🟢 Disponibles (12)
+### 🟢 Disponibles (11)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -243,7 +247,7 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | **S15-04** | `[S15]` | M |
 | **S15-05** | `[S15]` | M |
 | **S15-06** | `[S15]` | S |
-| ... | | _+7 más_ |
+| ... | | _+6 más_ |
 
 ## ⏸ Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
 _Esperando que Sprint anterior esté completo. 13 tareas pendientes._
