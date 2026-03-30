@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 12:04:18 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 12:07:49 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **38%** completado (81/213)
+`████████░░░░░░░░░░░░` **38%** completado (82/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -18,7 +18,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
-| ⏸ Sprint 7 | 0 | 37 | 0% |
+| ⏸ Sprint 7 | 1 | 36 | 3% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -147,9 +147,9 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 - **S6-24** `[M]` — necesita: S6-23 primero
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 37 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 36 tareas pendientes._
 
-### 🟢 Disponibles (37)
+### 🟢 Disponibles (36)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -158,7 +158,7 @@ _Esperando que Sprint anterior esté completo. 37 tareas pendientes._
 | **S7-05** | `[S]` | Auditar permisos por rol en endpoints OpenClaw —  tiene  pero no verif... |
 | **S7-08** | `[S]` | Backup y restore automatizado — no hay ninguna tarea que valide backup... |
 | **S7-09** | `[S]` | k8s readiness/liveness probes —  no tiene  ni . Kubernetes no puede de... |
-| ... | | _+32 más_ |
+| ... | | _+31 más_ |
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 0/0 tareas._
