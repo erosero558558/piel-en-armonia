@@ -67,6 +67,25 @@
   gap: var(--space-4);
 }
 
+.skeleton {
+  display: block;
+  border-radius: var(--radius-full);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(146, 165, 187, 0.18) 0%,
+      rgba(146, 165, 187, 0.32) 50%,
+      rgba(146, 165, 187, 0.18) 100%
+    );
+  background-size: 200% 100%;
+  animation: aurora-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes aurora-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Solo mostrar botones secundarios extra en Desktop */
 .nav-actions .btn-secondary {
   display: none;
