@@ -48,7 +48,8 @@ final class PatientPortalControllerTest extends TestCase
             'id' => 101,
             'service' => 'consulta',
             'doctor' => 'rosero',
-            'date' => '2026-04-02',
+            'doctorAssigned' => 'dra ana rosero',
+            'date' => '2099-04-02',
             'time' => '10:30',
             'name' => 'Lucia Portal',
             'email' => 'lucia@example.com',
@@ -56,6 +57,7 @@ final class PatientPortalControllerTest extends TestCase
             'patientId' => 'pt_lucia_001',
             'patientCaseId' => 'pc_lucia_001',
             'status' => 'confirmed',
+            'visitMode' => 'in_person',
             'dateBooked' => '2026-03-30T10:00:00-05:00',
         ]);
         $store['patient_cases'][] = [
@@ -161,6 +163,102 @@ final class PatientPortalControllerTest extends TestCase
             'patient_portal_not_found',
             (string) ($response['payload']['code'] ?? '')
         );
+    }
+
+    public function testDashboardReturnsNextAppointmentSummaryForAuthenticatedPatient(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+
+        $dashboard = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::dashboard(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $dashboard['status']);
+        self::assertTrue((bool) ($dashboard['payload']['ok'] ?? false));
+        self::assertTrue((bool) ($dashboard['payload']['data']['authenticated'] ?? false));
+        self::assertSame(
+            'Lucia Portal',
+            (string) ($dashboard['payload']['data']['patient']['name'] ?? '')
+        );
+        self::assertSame(
+            '2 abr 2099',
+            substr((string) ($dashboard['payload']['data']['nextAppointment']['dateLabel'] ?? ''), 4)
+        );
+        self::assertSame(
+            '10:30',
+            (string) ($dashboard['payload']['data']['nextAppointment']['timeLabel'] ?? '')
+        );
+        self::assertSame(
+            'Dra Ana Rosero',
+            (string) ($dashboard['payload']['data']['nextAppointment']['doctorName'] ?? '')
+        );
+        self::assertSame(
+            'Consulta presencial',
+            (string) ($dashboard['payload']['data']['nextAppointment']['appointmentTypeLabel'] ?? '')
+        );
+        self::assertSame(
+            'Consulta Dermatológica',
+            (string) ($dashboard['payload']['data']['nextAppointment']['serviceName'] ?? '')
+        );
+        self::assertStringContainsString(
+            'Llega 10 minutos antes',
+            (string) ($dashboard['payload']['data']['nextAppointment']['preparation'] ?? '')
+        );
+        self::assertStringContainsString(
+            '/?reschedule=',
+            (string) ($dashboard['payload']['data']['nextAppointment']['rescheduleUrl'] ?? '')
+        );
+        self::assertStringContainsString(
+            'https://wa.me/',
+            (string) ($dashboard['payload']['data']['nextAppointment']['whatsappUrl'] ?? '')
+        );
+    }
+
+    public function testDashboardRejectsMissingPortalSession(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        $dashboard = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::dashboard(['store' => \read_store()]);
+        });
+
+        self::assertSame(401, $dashboard['status']);
+        self::assertFalse((bool) ($dashboard['payload']['ok'] ?? true));
+        self::assertSame(
+            'patient_portal_auth_required',
+            (string) ($dashboard['payload']['code'] ?? '')
+        );
+    }
+
+    private function authenticatePortalSession(): string
+    {
+        $start = $this->captureJsonResponse(function (): void {
+            $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+                'phone' => '0991234567',
+            ], JSON_UNESCAPED_UNICODE);
+            \PatientPortalController::start(['store' => \read_store()]);
+        });
+
+        $outbox = \whatsapp_openclaw_repository()->listPendingOutbox(10);
+        self::assertCount(1, $outbox);
+        preg_match('/\*(\d{6})\*/', (string) (($outbox[0]['payload']['text'] ?? '')), $matches);
+        $otp = (string) ($matches[1] ?? '');
+        self::assertSame(6, strlen($otp));
+
+        $complete = $this->captureJsonResponse(function () use ($otp, $start): void {
+            $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+                'phone' => '0991234567',
+                'challengeId' => $start['payload']['data']['challengeId'] ?? '',
+                'code' => $otp,
+            ], JSON_UNESCAPED_UNICODE);
+            \PatientPortalController::complete(['store' => \read_store()]);
+        });
+
+        return (string) ($complete['payload']['data']['token'] ?? '');
     }
 
     private function captureJsonResponse(callable $callable): array

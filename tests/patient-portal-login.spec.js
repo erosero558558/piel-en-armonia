@@ -64,6 +64,40 @@ test.describe('Patient portal login page', () => {
             });
         });
 
+        await page.route('**/api.php?resource=patient-portal-dashboard', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    ok: true,
+                    data: {
+                        authenticated: true,
+                        patient: {
+                            patientId: 'pt_lucia_001',
+                            name: 'Lucia Portal',
+                        },
+                        nextAppointment: {
+                            id: 101,
+                            dateLabel: 'jue 2 abr 2026',
+                            timeLabel: '10:30',
+                            doctorName: 'Dra Ana Rosero',
+                            appointmentTypeLabel: 'Consulta presencial',
+                            serviceName: 'Consulta Dermatológica',
+                            preparation: 'Llega 10 minutos antes y trae tus medicamentos a la consulta.',
+                            rescheduleUrl: '/?reschedule=tok_demo_001',
+                            whatsappUrl: 'https://wa.me/593982453672?text=hola',
+                            locationLabel: 'Consultorio Aurora Derm',
+                        },
+                        support: {
+                            bookingUrl: '/#citas',
+                            historyUrl: '/es/portal/historial/',
+                            whatsappUrl: 'https://wa.me/593982453672?text=hola',
+                        },
+                    },
+                }),
+            });
+        });
+
         await page.goto('/es/portal/login/');
 
         await expect(page.locator('h1')).toContainText('Ingresa sin contraseñas');

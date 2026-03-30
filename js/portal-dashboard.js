@@ -1,191 +1,325 @@
-/**
- * js/portal-dashboard.js
- * Asynchronous orchestrator for the Patient Portal (UI2-12).
- * Fills #portal-next-appointment and #portal-active-plans from Aurora APIs.
- */
+(function (window, document) {
+    'use strict';
 
-// Inject dynamic skeleton CSS for the Portal environment if it doesn't have aurora-admin.css
-if (!document.getElementById('portal-skeleton-css')) {
-    const style = document.createElement('style');
-    style.id = 'portal-skeleton-css';
-    style.textContent = `
-        .skeleton {
-            background: linear-gradient(90deg, var(--bg-level-2, #1e293b) 25%, var(--bg-level-3, #334155) 50%, var(--bg-level-2, #1e293b) 75%);
-            background-size: 200% 100%;
-            animation: aurora-shimmer 1.5s infinite linear;
-            border-radius: var(--radius-md, 8px);
-        }
-        @keyframes aurora-shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-    `;
-    document.head.appendChild(style);
-}
+    const portalShell = window.AuroraPatientPortalShell || null;
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const nextApptContainer = document.getElementById('portal-next-appointment');
-    const activePlansContainer = document.getElementById('portal-active-plans');
-
-    if (!nextApptContainer || !activePlansContainer) return;
-
-    // 1. Render Initial Skeletons
-    nextApptContainer.innerHTML = renderSkeletonCard('next-appt');
-    activePlansContainer.innerHTML = renderSkeletonCard('plans');
-
-    try {
-        // 2. Parallel API Fetching
-        // Using mock parameters to simulate an authenticated payload
-        const [apptRes, histRes] = await Promise.allSettled([
-            fetch('/api.php?resource=appointment&patient_id=P-TEST', { headers: { 'Authorization': 'Bearer mock-session' } }),
-            fetch('/api.php?resource=clinical-history&patient_id=P-TEST', { headers: { 'Authorization': 'Bearer mock-session' } })
-        ]);
-
-        // 3. Process Appointments
-        if (apptRes.status === 'fulfilled' && apptRes.value.ok) {
-            const data = await apptRes.value.json().catch(() => null);
-            // Wait, standard API return arrays or objects.
-            const appointments = Array.isArray(data) ? data : (data?.data || []);
-            
-            // Filter future appointments, just grab the first for "Next Visit".
-            const nextVisit = appointments.length > 0 ? appointments[0] : null;
-
-            if (nextVisit) {
-                nextApptContainer.innerHTML = renderNextAppointment(nextVisit);
-            } else {
-                nextApptContainer.innerHTML = renderEmptyState('No tienes citas pendientes', 'Agendar Nueva Cita');
+    if (!document.getElementById('portal-skeleton-css')) {
+        const style = document.createElement('style');
+        style.id = 'portal-skeleton-css';
+        style.textContent = `
+            .skeleton {
+                background: linear-gradient(90deg, rgba(148, 163, 184, 0.12) 25%, rgba(248, 250, 252, 0.24) 50%, rgba(148, 163, 184, 0.12) 75%);
+                background-size: 200% 100%;
+                animation: aurora-portal-shimmer 1.4s infinite linear;
+                border-radius: 16px;
             }
-        } else {
-            nextApptContainer.innerHTML = renderEmptyState('No tienes citas pendientes', 'Agendar Nueva Cita');
-        }
-
-        // 4. Process Active Clinical Plans
-        if (histRes.status === 'fulfilled' && histRes.value.ok) {
-            const data = await histRes.value.json().catch(() => null);
-            const plans = Array.isArray(data) ? data : (data?.data || []);
-
-            if (plans.length > 0) {
-                activePlansContainer.innerHTML = plans.map(p => renderClinicalPlan(p)).join('');
-            } else {
-                activePlansContainer.innerHTML = `
-                    <div style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
-                        <p style="margin-bottom: 8px;">No tienes planes de tratamiento activos.</p>
-                        <small>Tu historial clínico está al día.</small>
-                    </div>
-                `;
+            @keyframes aurora-portal-shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
             }
-        } else {
-            activePlansContainer.innerHTML = `
-                <div style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
-                    <p>No tienes planes de tratamiento activos.</p>
-                </div>
-            `;
-        }
-
-    } catch (err) {
-        console.error('Portal Data Error:', err);
-        nextApptContainer.innerHTML = renderEmptyState('No tienes citas pendientes', 'Agendar Nueva Cita');
-        activePlansContainer.innerHTML = `<div style="text-align: center; padding: 32px;">No tienes planes de tratamiento activos.</div>`;
+        `;
+        document.head.appendChild(style);
     }
-});
 
-// -- Render Functions --
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
 
-function renderSkeletonCard(type) {
-    if (type === 'next-appt') {
+    function readSession() {
+        return portalShell && typeof portalShell.getSession === 'function'
+            ? portalShell.getSession()
+            : null;
+    }
+
+    function isFreshSession(session) {
+        return Boolean(
+            portalShell &&
+                typeof portalShell.isFreshSession === 'function' &&
+                portalShell.isFreshSession(session)
+        );
+    }
+
+    function redirectToLogin() {
+        if (portalShell && typeof portalShell.redirectToLogin === 'function') {
+            portalShell.redirectToLogin();
+            return;
+        }
+
+        window.location.replace('/es/portal/login/');
+    }
+
+    async function requestJson(resource, token) {
+        const response = await window.fetch(`/api.php?resource=${resource}`, {
+            headers: {
+                Accept: 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
+
+        const body = await response.json().catch(() => ({}));
+        return {
+            ok: response.ok,
+            status: response.status,
+            body,
+        };
+    }
+
+    function renderSkeletonCard() {
         return `
-            <section class="portal-card-next" style="opacity: 0.7;">
-                <div class="portal-card-next__header" style="justify-content: space-between; display: flex;">
-                    <div class="skeleton" style="width: 100px; height: 16px;"></div>
-                    <div class="skeleton" style="width: 20px; height: 20px;"></div>
+            <section class="portal-card-next" data-portal-next-skeleton style="opacity:0.78;">
+                <div class="portal-card-next__header">
+                    <div class="skeleton" style="width: 132px; height: 14px;"></div>
+                    <div class="skeleton" style="width: 44px; height: 14px;"></div>
                 </div>
-                <div class="portal-card-next__time" style="margin: 16px 0; display:flex; flex-direction:column; gap:8px;">
-                    <div class="skeleton" style="width: 150px; height: 24px;"></div>
-                    <div class="skeleton" style="width: 200px; height: 14px;"></div>
+                <div class="portal-card-next__time" style="display:flex; flex-direction:column; gap:12px;">
+                    <div class="skeleton" style="width: 78%; height: 34px;"></div>
+                    <div class="skeleton" style="width: 54%; height: 16px;"></div>
                 </div>
-                <div class="portal-card-next__doctor" style="display: flex; gap: 12px; align-items: center; margin-top: 16px;">
-                    <div class="skeleton" style="width: 48px; height: 48px; border-radius: 50%;"></div>
-                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
-                        <div class="skeleton" style="width: 120px; height: 14px;"></div>
-                        <div class="skeleton" style="width: 180px; height: 12px;"></div>
+                <div class="portal-card-next__doctor">
+                    <div class="skeleton portal-card-next__avatar" style="border-radius:50%;"></div>
+                    <div style="display:flex; flex-direction:column; gap:8px; flex:1;">
+                        <div class="skeleton" style="width: 46%; height: 14px;"></div>
+                        <div class="skeleton" style="width: 68%; height: 12px;"></div>
                     </div>
+                </div>
+                <div class="portal-appointment-prep" style="margin-top:18px;">
+                    <div class="skeleton" style="width: 34%; height: 14px; margin-bottom:10px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 48px;"></div>
+                </div>
+                <div class="portal-cta-row" style="margin-top:18px;">
+                    <div class="skeleton" style="width: 48%; height: 44px;"></div>
+                    <div class="skeleton" style="width: 48%; height: 44px;"></div>
                 </div>
             </section>
         `;
-    } else {
+    }
+
+    function renderActionSkeletons() {
         return `
-            <article class="portal-plan-card" style="opacity: 0.7; display: flex; gap: 16px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 12px;">
-                <div class="skeleton" style="width: 40px; height: 40px; border-radius: 8px;"></div>
-                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: center;">
-                    <div class="skeleton" style="width: 60%; height: 16px;"></div>
-                    <div class="skeleton" style="width: 40%; height: 12px;"></div>
+            <article class="portal-support-card" style="opacity:0.78;">
+                <div class="skeleton" style="width: 42px; height: 42px; border-radius: 14px;"></div>
+                <div style="display:flex; flex-direction:column; gap:8px; flex:1;">
+                    <div class="skeleton" style="width: 52%; height: 16px;"></div>
+                    <div class="skeleton" style="width: 90%; height: 12px;"></div>
+                </div>
+            </article>
+            <article class="portal-support-card" style="opacity:0.78;">
+                <div class="skeleton" style="width: 42px; height: 42px; border-radius: 14px;"></div>
+                <div style="display:flex; flex-direction:column; gap:8px; flex:1;">
+                    <div class="skeleton" style="width: 48%; height: 16px;"></div>
+                    <div class="skeleton" style="width: 82%; height: 12px;"></div>
                 </div>
             </article>
         `;
     }
-}
 
-function renderEmptyState(message, ctaText) {
-    return `
-        <section class="portal-card-next" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 32px 16px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1);">
-            <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 50%; margin-bottom: 16px;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted, #94a3b8);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            </div>
-            <strong style="margin-bottom: 4px; font-size: 16px;">${message}</strong>
-            <button class="btn-primary" style="margin-top: 16px; pointer-events: auto; padding: 8px 16px; border-radius: 100px; font-size: 14px;">${ctaText}</button>
-        </section>
-    `;
-}
+    function doctorInitials(name) {
+        return String(name || '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part.charAt(0).toUpperCase())
+            .join('') || 'AD';
+    }
 
-function renderNextAppointment(appt) {
-    const rawDate = appt.date || appt.appointment_date || 'Pronto';
-    const time = appt.time || appt.appointment_time || 'Por confirmar';
-    const typeLabel = appt.type === 'telemedicine' ? 'Teleconsulta' : (appt.service_name || 'Consulta Presencial');
-    const docName = appt.doctor_name || 'Médico Asignado';
+    function renderNextAppointment(appointment) {
+        const safeAppointment =
+            appointment && typeof appointment === 'object' ? appointment : {};
+        const rescheduleUrl = String(safeAppointment.rescheduleUrl || '').trim();
+        const whatsappUrl = String(safeAppointment.whatsappUrl || '').trim();
 
-    return `
-        <section class="portal-card-next">
-            <div class="portal-card-next__header">
-                <span class="portal-card-next__kicker">Próxima Visita</span>
-                <svg class="portal-card-next__menu" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-            </div>
-            <div class="portal-card-next__time">
-                <strong>${rawDate}</strong>
-                <span>${time} · Consultorio</span>
-            </div>
-            
-            <div class="portal-card-next__doctor" style="align-items: center;">
-                <img src="https://i.pravatar.cc/150?u=${docName}" alt="${docName}" />
-                <div style="flex:1;">
-                    <span>${docName}</span>
-                    <small>${typeLabel}</small>
+        return `
+            <section class="portal-card-next" data-portal-next-appointment-card>
+                <div class="portal-card-next__header">
+                    <span class="portal-card-next__kicker">Próxima cita confirmada</span>
+                    <span class="portal-status-chip">Activa</span>
                 </div>
-            </div>
+                <div class="portal-card-next__time">
+                    <strong data-portal-next-date>${escapeHtml(safeAppointment.dateLabel || safeAppointment.date || 'Por confirmar')}</strong>
+                    <span data-portal-next-time>${escapeHtml(safeAppointment.timeLabel || safeAppointment.time || 'Por confirmar')} · ${escapeHtml(safeAppointment.locationLabel || 'Aurora Derm')}</span>
+                </div>
+                <div class="portal-card-next__doctor">
+                    <div class="portal-card-next__avatar" aria-hidden="true">${escapeHtml(doctorInitials(safeAppointment.doctorName))}</div>
+                    <div style="flex:1;">
+                        <span data-portal-next-doctor>${escapeHtml(safeAppointment.doctorName || 'Especialista Aurora Derm')}</span>
+                        <small data-portal-next-type>${escapeHtml(safeAppointment.appointmentTypeLabel || 'Consulta presencial')}</small>
+                        <small data-portal-next-service>${escapeHtml(safeAppointment.serviceName || 'Consulta Aurora Derm')}</small>
+                    </div>
+                </div>
+                <div class="portal-appointment-prep">
+                    <span class="portal-inline-label">Preparación requerida</span>
+                    <p data-portal-next-preparation>${escapeHtml(safeAppointment.preparation || 'Te avisaremos si hace falta una preparación adicional.')}</p>
+                </div>
+                <div class="portal-cta-row">
+                    ${
+                        whatsappUrl
+                            ? `<a class="btn btn-primary" data-portal-next-whatsapp href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`
+                            : ''
+                    }
+                    ${
+                        rescheduleUrl
+                            ? `<a class="btn btn-secondary" data-portal-next-reagendar href="${escapeHtml(rescheduleUrl)}">Reagendar</a>`
+                            : ''
+                    }
+                </div>
+            </section>
+        `;
+    }
 
-            <div style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px; text-align: center;">
-                <button class="btn-ghost" style="width: 100%; border-radius: 8px; color: var(--color-aurora-400);">Reagendar Cita</button>
-            </div>
-        </section>
-    `;
-}
+    function renderEmptyState(support) {
+        const safeSupport = support && typeof support === 'object' ? support : {};
+        const bookingUrl = String(safeSupport.bookingUrl || '/#citas').trim() || '/#citas';
+        const whatsappUrl = String(safeSupport.whatsappUrl || '').trim();
 
-function renderClinicalPlan(history) {
-    const badgeType = history.status === 'completed' ? 'badge-success' : 'badge-primary';
-    const statusLabel = history.status === 'completed' ? 'Completado' : 'Activo';
-    const protocolName = history.protocol_name || history.reason_for_visit || 'Tratamiento General';
-    
-    return `
-        <article class="portal-plan-card">
-            <div class="portal-plan-card__icon" style="color:var(--color-aurora-400); background:rgba(82, 113, 255, 0.1);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            </div>
-            <div class="portal-plan-card__info" style="flex: 1;">
-                <strong style="display:flex; justify-content:space-between; align-items:center;">
-                    ${protocolName}
-                    <span class="badge ${badgeType}" style="font-size: 10px; padding: 2px 6px;">${statusLabel}</span>
-                </strong>
-                <span>Actualizado: ${history.date || new Date().toISOString().split('T')[0]}</span>
-            </div>
-        </article>
-    `;
-}
+        return `
+            <section class="portal-card-next portal-empty-state" data-portal-empty-state>
+                <span class="portal-card-next__kicker">Sin cita pendiente</span>
+                <strong>No tienes una cita activa por ahora</strong>
+                <p>Agenda tu próxima consulta desde el sitio o escríbenos y te ayudamos a encontrar el mejor horario.</p>
+                <div class="portal-cta-row">
+                    <a class="btn btn-primary" data-portal-booking-cta href="${escapeHtml(bookingUrl)}">Agendar nueva cita</a>
+                    ${
+                        whatsappUrl
+                            ? `<a class="btn btn-secondary" data-portal-empty-whatsapp href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer">Pedir ayuda</a>`
+                            : ''
+                    }
+                </div>
+            </section>
+        `;
+    }
+
+    function renderErrorState() {
+        return `
+            <section class="portal-card-next portal-empty-state">
+                <span class="portal-card-next__kicker">Portal temporalmente ocupado</span>
+                <strong>No pudimos cargar tu próxima cita</strong>
+                <p>Intenta recargar en unos segundos o escríbenos por WhatsApp para confirmarla.</p>
+            </section>
+        `;
+    }
+
+    function renderSupportActions(support) {
+        const safeSupport = support && typeof support === 'object' ? support : {};
+        const items = [
+            {
+                href: String(safeSupport.historyUrl || '/es/portal/historial/').trim() || '/es/portal/historial/',
+                label: 'Historial',
+                copy: 'Consulta recetas, certificados y próximos documentos desde una misma vista.',
+                icon: 'docs',
+            },
+            {
+                href: String(safeSupport.whatsappUrl || '').trim(),
+                label: 'Soporte por WhatsApp',
+                copy: 'Habla con recepción si necesitas mover tu horario o confirmar indicaciones.',
+                icon: 'whatsapp',
+                external: true,
+            },
+            {
+                href: String(safeSupport.bookingUrl || '/#citas').trim() || '/#citas',
+                label: 'Nueva reserva',
+                copy: 'Si ya cerraste tu tratamiento, agenda tu siguiente control desde aquí.',
+                icon: 'calendar',
+            },
+        ];
+
+        return items
+            .filter((item) => item.href !== '')
+            .map((item) => {
+                const icon =
+                    item.icon === 'whatsapp'
+                        ? 'W'
+                        : item.icon === 'calendar'
+                            ? 'A'
+                            : 'H';
+                return `
+                    <a class="portal-support-card" href="${escapeHtml(item.href)}"${item.external ? ' target="_blank" rel="noopener noreferrer"' : ''}>
+                        <span class="portal-support-card__icon" aria-hidden="true">${icon}</span>
+                        <span class="portal-support-card__body">
+                            <strong>${escapeHtml(item.label)}</strong>
+                            <small>${escapeHtml(item.copy)}</small>
+                        </span>
+                    </a>
+                `;
+            })
+            .join('');
+    }
+
+    async function hydrateDashboard() {
+        const nextAppointmentContainer = document.getElementById('portal-next-appointment');
+        const actionsContainer = document.getElementById('portal-appointment-actions');
+        if (!(nextAppointmentContainer instanceof HTMLElement)) {
+            return;
+        }
+
+        const session = readSession();
+        if (!isFreshSession(session)) {
+            if (portalShell && typeof portalShell.clearSession === 'function') {
+                portalShell.clearSession();
+            }
+            redirectToLogin();
+            return;
+        }
+
+        nextAppointmentContainer.innerHTML = renderSkeletonCard();
+        if (actionsContainer instanceof HTMLElement) {
+            actionsContainer.innerHTML = renderActionSkeletons();
+        }
+
+        try {
+            const result = await requestJson('patient-portal-dashboard', String(session.token || ''));
+            if (!result.ok || !result.body || result.body.ok !== true) {
+                if (result.status === 401) {
+                    if (portalShell && typeof portalShell.clearSession === 'function') {
+                        portalShell.clearSession();
+                    }
+                    redirectToLogin();
+                    return;
+                }
+
+                throw new Error(
+                    result.body && result.body.error
+                        ? result.body.error
+                        : 'portal_dashboard_unavailable'
+                );
+            }
+
+            const payload = result.body.data && typeof result.body.data === 'object' ? result.body.data : {};
+            const patient = payload.patient && typeof payload.patient === 'object' ? payload.patient : {};
+            const nextAppointment =
+                payload.nextAppointment && typeof payload.nextAppointment === 'object'
+                    ? payload.nextAppointment
+                    : null;
+            const support = payload.support && typeof payload.support === 'object' ? payload.support : {};
+
+            if (portalShell && typeof portalShell.updatePatient === 'function' && patient.name) {
+                portalShell.updatePatient(patient);
+            }
+
+            nextAppointmentContainer.innerHTML = nextAppointment
+                ? renderNextAppointment(nextAppointment)
+                : renderEmptyState(support);
+
+            if (actionsContainer instanceof HTMLElement) {
+                actionsContainer.innerHTML = renderSupportActions(support);
+            }
+        } catch (error) {
+            console.error('[portal-dashboard] failed to load next appointment', error);
+            nextAppointmentContainer.innerHTML = renderErrorState();
+            if (actionsContainer instanceof HTMLElement) {
+                actionsContainer.innerHTML = renderSupportActions({
+                    bookingUrl: '/#citas',
+                    historyUrl: '/es/portal/historial/',
+                    whatsappUrl: 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%20con%20mi%20portal%20de%20Aurora%20Derm.',
+                });
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', hydrateDashboard);
+})(window, document);
