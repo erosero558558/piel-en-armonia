@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:23:37 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:23:39 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,20 +7,20 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **37%** completado (138/373)
+`████████░░░░░░░░░░░░` **38%** completado (140/373)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 60 | 7 | 90% |
+| 🎯 Sprint 3 | 61 | 6 | 91% |
 | ⏸ Sprint 4 | 14 | 12 | 54% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 6 | 31 | 16% |
 | ✅ Sprint UI | 19 | 0 | 100% |
-| ⏸ Sprint UI | 2 | 18 | 10% |
+| ⏸ Sprint UI | 3 | 17 | 15% |
 | ⏸ Sprint 8 | 0 | 17 | 0% |
 | ⏸ Sprint 9 | 0 | 27 | 0% |
 | ⏸ Sprint 10 | 0 | 30 | 0% |
@@ -38,12 +38,11 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (6)
+### 🟢 Disponibles (5)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S3-38** | `[S3]` | M |
-| **S3-43** | `[S3]` | S |
 | **S3-44** | `[S3]` | S |
 | **S3-46** | `[S3]` | S |
 | **S3-47** | `[S3]` | S |
@@ -152,9 +151,9 @@ _Esperando que Sprint anterior esté completo. 31 tareas pendientes._
 _Sprint completado. 19/19 tareas._
 
 ## ⏸ Sprint UI — Fase 2: Follow-ups del Audit
-_Esperando que Sprint anterior esté completo. 18 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
 
-### 🟢 Disponibles (18)
+### 🟢 Disponibles (17)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -163,7 +162,7 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 | **UI2-03** | `[UI2]` | S |
 | **UI2-04** | `[UI2]` | S |
 | **UI2-05** | `[UI2]` | M |
-| ... | | _+13 más_ |
+| ... | | _+12 más_ |
 
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
 _Esperando que Sprint anterior esté completo. 17 tareas pendientes._
