@@ -764,15 +764,73 @@ function build_cancellation_email_text(array $appointment): string
     $body .= "- Equipo " . AppConfig::BRAND_NAME;
 
     return $body;
+/**
+ * Sends patient confirmation WhatsApp.
+ *
+ * @param array<string,mixed> $appointment
+ */
+function maybe_send_appointment_whatsapp(array $appointment): bool
+{
+    if (!function_exists('whatsapp_openclaw_repository')) {
+        $bootstrapPath = __DIR__ . '/whatsapp_openclaw/bootstrap.php';
+        if (is_file($bootstrapPath)) {
+            require_once $bootstrapPath;
+        } else {
+            return false;
+        }
+    }
+
+    $phone = trim((string) ($appointment['phone'] ?? ''));
+    if ($phone === '') {
+        return false;
+    }
+
+    $context = build_appointment_email_context($appointment);
+    $prepInstructions = get_service_preparation_instructions((string) ($appointment['service'] ?? ''));
+    
+    $body = "Hola " . $context['name'] . " 👋,\n";
+    $body .= "Tu cita está *confirmada*. Aquí tienes los detalles:\n\n";
+    $body .= "📋 *Servicio:* " . $context['serviceLabel'] . "\n";
+    $body .= "👩‍⚕️ *Doctor:* " . $context['doctorLabel'] . "\n";
+    $body .= "🗓 *Fecha:* " . $context['dateLabel'] . "\n";
+    $body .= "⏰ *Hora:* " . $context['timeLabel'] . "\n\n";
+    
+    $body .= "💡 *Preparación previa:*\n";
+    $body .= $prepInstructions . "\n\n";
+
+    if ($context['checkinToken'] !== '') {
+        $body .= "🔑 *Tu código para ingreso:* " . $context['checkinToken'] . "\n\n";
+    }
+
+    $body .= "📍 " . AppConfig::BRAND_NAME . "\n" . AppConfig::ADDRESS . "\n\n";
+    $body .= "Si necesitas *reprogramar*, entra a este enlace:\n" . $context['rescheduleUrl'];
+
+    try {
+        whatsapp_openclaw_repository()->enqueueOutbox([
+            'phone' => $phone,
+            'status' => 'pending',
+            'type' => 'text',
+            'payload' => [
+                'text' => $body
+            ]
+        ]);
+        return true;
+    } catch (\Throwable $e) {
+        error_log("No se pudo encolar WhatsApp de confirmación: " . $e->getMessage());
+        return false;
+    }
 }
 
 /**
- * Sends patient confirmation email and optional ICS attachment.
+ * Sends patient confirmation email and optional ICS attachment, plus WhatsApp.
  *
  * @param array<string,mixed> $appointment
  */
 function maybe_send_appointment_email(array $appointment): bool
 {
+    // WhatsApp notification
+    maybe_send_appointment_whatsapp($appointment);
+
     $subject = build_email_subject('Confirmacion de cita');
     $htmlBody = build_appointment_email_html($appointment);
     $textBody = build_appointment_email_text($appointment);

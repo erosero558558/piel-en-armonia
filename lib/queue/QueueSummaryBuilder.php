@@ -7,6 +7,15 @@ require_once __DIR__ . '/TicketPriorityPolicy.php';
 
 final class QueueSummaryBuilder
 {
+    private const DEFAULT_AVERAGE_SERVICE_MIN = 12;
+    private const APPOINTMENT_AVERAGE_SERVICE_MIN = 14;
+    private const WALK_IN_AVERAGE_SERVICE_MIN = [
+        'consulta_general' => 12,
+        'control' => 10,
+        'procedimiento' => 18,
+        'urgencia' => 8,
+    ];
+
     private TicketPriorityPolicy $priorityPolicy;
 
     public function __construct(?TicketPriorityPolicy $priorityPolicy = null)
@@ -79,7 +88,15 @@ final class QueueSummaryBuilder
         ksort($callingNowByConsultorio);
         $callingNow = array_values($callingNowByConsultorio);
 
-        $estimatedWaitMin = max(0, count($waiting) * 8);
+        $activeConsultorios = $this->resolveActiveConsultoriosCount($called, $waiting);
+        $waitingEstimates = $this->buildWaitingEstimates($waiting, $called);
+        $estimatedWaitMin = 0;
+        if ($waitingEstimates !== []) {
+            $estimatedWaitMin = max(
+                0,
+                (int) ($waitingEstimates[count($waitingEstimates) - 1]['estimatedWaitMin'] ?? 0)
+            );
+        }
         $delayReason = $this->resolveDelayReason(count($waiting), $assistancePendingCount);
 
         $nextTickets = [];
@@ -89,6 +106,7 @@ final class QueueSummaryBuilder
             }
             $ticketId = (int) ($ticket['id'] ?? 0);
             $activeHelp = $helpRequestsByTicketId[$ticketId] ?? null;
+            $waitEstimate = $waitingEstimates[$index] ?? null;
             $nextTickets[] = [
                 'id' => $ticketId,
                 'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
@@ -109,7 +127,7 @@ final class QueueSummaryBuilder
                 'specialPriority' => (bool) ($ticket['specialPriority'] ?? false),
                 'lateArrival' => (bool) ($ticket['lateArrival'] ?? false),
                 'reprintRequestedAt' => (string) ($ticket['reprintRequestedAt'] ?? ''),
-                'estimatedWaitMin' => max(0, ($index + 1) * 8),
+                'estimatedWaitMin' => max(0, (int) ($waitEstimate['estimatedWaitMin'] ?? 0)),
             ];
         }
 
@@ -122,6 +140,7 @@ final class QueueSummaryBuilder
                 'counts' => $counts,
                 'waitingCount' => count($waiting),
                 'calledCount' => count($called),
+                'activeConsultorios' => $activeConsultorios,
                 'estimatedWaitMin' => $estimatedWaitMin,
                 'delayReason' => $delayReason,
                 'assistancePendingCount' => $assistancePendingCount,
@@ -153,6 +172,7 @@ final class QueueSummaryBuilder
             'waitingCount' => (int) ($data['waitingCount'] ?? 0),
             'calledCount' => (int) ($data['calledCount'] ?? 0),
             'counts' => is_array($data['counts'] ?? null) ? $data['counts'] : [],
+            'activeConsultorios' => max(1, (int) ($data['activeConsultorios'] ?? 1)),
             'callingNowByConsultorio' => [
                 '1' => $consultorio1,
                 '2' => $consultorio2,
@@ -168,6 +188,32 @@ final class QueueSummaryBuilder
                 ? $data['recentResolvedHelpRequests']
                 : [],
         ];
+    }
+
+    /**
+     * @param array<int,array> $waiting
+     * @param array<int,array> $called
+     * @return array<int,array{ticketId:int,ticketCode:string,position:int,estimatedWaitMin:int,durationMin:int}>
+     */
+    public function buildWaitingEstimates(array $waiting, array $called = []): array
+    {
+        $activeConsultorios = $this->resolveActiveConsultoriosCount($called, $waiting);
+        $cumulativeWorkMin = 0;
+        $estimates = [];
+
+        foreach ($waiting as $index => $ticket) {
+            $durationMin = $this->resolveAverageServiceDurationMin($ticket);
+            $cumulativeWorkMin += $durationMin;
+            $estimates[] = [
+                'ticketId' => (int) ($ticket['id'] ?? 0),
+                'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
+                'position' => $index + 1,
+                'estimatedWaitMin' => (int) ceil($cumulativeWorkMin / $activeConsultorios),
+                'durationMin' => $durationMin,
+            ];
+        }
+
+        return $estimates;
     }
 
     /**
