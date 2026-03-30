@@ -133,7 +133,7 @@ function map_appointment_status(string $status): string
         return 'no_show';
     }
 
-    return in_array($normalized, ['confirmed', 'pending', 'cancelled', 'completed', 'no_show'], true)
+    return in_array($normalized, ['confirmed', 'pending', 'arrived', 'cancelled', 'completed', 'no_show'], true)
         ? $normalized
         : 'confirmed';
 }

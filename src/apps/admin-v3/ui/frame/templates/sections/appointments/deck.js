@@ -74,3 +74,20 @@ export function renderAppointmentsFocusPanel() {
         </article>
     `;
 }
+
+export function renderAppointmentsDailyAgendaPanel() {
+    return `
+        <article class="sony-panel appointments-daily-panel">
+            <header class="section-header">
+                <div>
+                    <p class="sony-kicker">Agenda diaria</p>
+                    <h3>Hoy</h3>
+                    <p id="appointmentsDailySummary">Sin citas activas en agenda.</p>
+                </div>
+                <span class="appointments-deck-chip" id="appointmentsDailyChip">Sin sobrecupos</span>
+            </header>
+            <div id="appointmentsOverbookingAlerts" class="appointments-daily-alerts"></div>
+            <div id="appointmentsDailyList" class="appointments-daily-list"></div>
+        </article>
+    `;
+}

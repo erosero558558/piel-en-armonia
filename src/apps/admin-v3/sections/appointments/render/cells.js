@@ -21,6 +21,9 @@ function buildStatusNotes(status, paymentStatus, priorityNote) {
     if (paymentStatus === 'pending_transfer_review') {
         return 'Transferencia por validar';
     }
+    if (status === 'arrived') {
+        return 'Paciente reportado en recepcion';
+    }
     if (status === 'no_show') {
         return 'Paciente ausente';
     }
@@ -50,6 +53,7 @@ function buildActionButton(label, action, id) {
 
 function buildRowActions(item, paymentStatus, phoneHref) {
     const id = Number(item.id || 0);
+    const status = normalizeAppointmentStatus(item.status);
     const actions = [];
 
     if (phoneHref) {
@@ -59,6 +63,10 @@ function buildRowActions(item, paymentStatus, phoneHref) {
     if (TRANSFER_REVIEW_PAYMENT_STATUSES.has(paymentStatus)) {
         actions.push(buildActionButton('Aprobar', 'approve-transfer', id));
         actions.push(buildActionButton('Rechazar', 'reject-transfer', id));
+    }
+
+    if (status === 'confirmed' || status === 'pending') {
+        actions.push(buildActionButton('Marcar llego', 'mark-arrived', id));
     }
 
     actions.push(buildActionButton('No show', 'mark-no-show', id));

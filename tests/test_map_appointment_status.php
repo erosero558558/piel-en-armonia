@@ -1,6 +1,7 @@
 <?php
 
-require_once __DIR__ . '/../api-lib.php';
+require_once __DIR__ . '/../lib/common.php';
+require_once __DIR__ . '/../lib/validation.php';
 
 function run_tests()
 {
@@ -8,6 +9,7 @@ function run_tests()
         // Valid inputs
         ['input' => 'confirmed', 'expected' => 'confirmed'],
         ['input' => 'pending', 'expected' => 'pending'],
+        ['input' => 'arrived', 'expected' => 'arrived'],
         ['input' => 'cancelled', 'expected' => 'cancelled'],
         ['input' => 'completed', 'expected' => 'completed'],
         ['input' => 'no_show', 'expected' => 'no_show'],
@@ -16,6 +18,7 @@ function run_tests()
         // Case insensitivity
         ['input' => 'Confirmed', 'expected' => 'confirmed'],
         ['input' => 'PENDING', 'expected' => 'pending'],
+        ['input' => 'ARRIVED', 'expected' => 'arrived'],
         ['input' => 'CaNcElLeD', 'expected' => 'cancelled'],
         ['input' => 'NoShow', 'expected' => 'no_show'],
 

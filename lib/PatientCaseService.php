@@ -921,11 +921,22 @@ final class PatientCaseService
             (string) ($appointment['name'] ?? ''),
             isset($summary['patientLabel']) ? (string) $summary['patientLabel'] : '',
         ]);
-        $summary['milestones'] = $this->mergeMilestone($summary['milestones'] ?? [], 'bookedAt', $this->resolveOpenedAt($appointment));
-        $case['summary'] = $summary;
-
         $status = $this->deriveAppointmentCaseStatus($appointment);
         $terminalAt = $this->resolveTerminalAt($appointment, $scheduledStart);
+        $summary['milestones'] = $this->mergeMilestone(
+            $summary['milestones'] ?? [],
+            'bookedAt',
+            $this->resolveOpenedAt($appointment)
+        );
+        if ($status === 'arrived') {
+            $summary['milestones'] = $this->mergeMilestone(
+                $summary['milestones'] ?? [],
+                'arrivedAt',
+                $terminalAt
+            );
+        }
+        $case['summary'] = $summary;
+
         $this->applyCaseStatus($case, $status, $terminalAt);
         $this->touchCase($case, $this->resolveOpenedAt($appointment));
     }
@@ -1410,6 +1421,9 @@ final class PatientCaseService
     private function deriveAppointmentCaseStatus(array $appointment): string
     {
         $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
+        if ($status === 'arrived') {
+            return 'arrived';
+        }
         if ($status === 'cancelled') {
             return 'cancelled';
         }

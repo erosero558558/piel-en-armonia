@@ -90,6 +90,36 @@ final class AppointmentUpdateClinicalGateTest extends TestCase
         self::assertCount(1, $store['patient_cases'] ?? []);
     }
 
+    public function testUpdateArrivedAdvancesPatientCaseWhenClinicalStorageIsReady(): void
+    {
+        $appointmentId = $this->seedAppointment();
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+            'id' => $appointmentId,
+            'status' => 'arrived',
+        ], JSON_UNESCAPED_UNICODE);
+
+        try {
+            \AppointmentController::update(['store' => \read_store()]);
+            self::fail('Se esperaba TestingExitException');
+        } catch (\TestingExitException $e) {
+            self::assertSame(200, $e->status);
+            self::assertTrue((bool) ($e->payload['ok'] ?? false));
+        }
+
+        $store = \read_store();
+        self::assertSame('arrived', (string) ($store['appointments'][0]['status'] ?? ''));
+        self::assertNotSame('', (string) ($store['appointments'][0]['patientCaseId'] ?? ''));
+        self::assertSame('arrived', (string) ($store['patient_cases'][0]['status'] ?? ''));
+
+        $summary = isset($store['patient_cases'][0]['summary']) && is_array($store['patient_cases'][0]['summary'])
+            ? $store['patient_cases'][0]['summary']
+            : [];
+        $milestones = isset($summary['milestones']) && is_array($summary['milestones'])
+            ? $summary['milestones']
+            : [];
+        self::assertNotSame('', (string) ($milestones['arrivedAt'] ?? ''));
+    }
+
     public function testUpdateSkipsPatientCaseHydrationWhenClinicalStorageIsNotReady(): void
     {
         $this->enableClinicalStorageGate();

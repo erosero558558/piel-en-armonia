@@ -24,6 +24,7 @@ const PAYMENT_LABELS = Object.freeze({
 const STATUS_LABELS = Object.freeze({
     confirmed: 'Confirmada',
     pending: 'Pendiente',
+    arrived: 'Llego',
     completed: 'Completada',
     cancelled: 'Cancelada',
     no_show: 'No show',
@@ -36,6 +37,7 @@ const PAYMENT_TONES = Object.freeze({
 });
 
 const STATUS_TONES = Object.freeze({
+    arrived: 'success',
     completed: 'success',
     cancelled: 'danger',
     no_show: 'danger',

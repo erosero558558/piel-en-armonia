@@ -27,6 +27,11 @@ export async function markNoShow(id) {
     mutateAppointmentInState(id, { status: 'no_show' });
 }
 
+export async function markArrived(id) {
+    await patchAppointment(id, { status: 'arrived' });
+    mutateAppointmentInState(id, { status: 'arrived' });
+}
+
 export async function cancelAppointment(id) {
     await patchAppointment(id, { status: 'cancelled' });
     mutateAppointmentInState(id, { status: 'cancelled' });

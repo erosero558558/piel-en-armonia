@@ -5,6 +5,7 @@ import {
     clearAppointmentReviewContext,
     clearAppointmentFilters,
     exportAppointmentsCsv,
+    markArrived,
     markNoShow,
     rejectTransfer,
     setAppointmentDensity,
@@ -198,6 +199,10 @@ export async function handleAppointmentAction(action, element) {
         case 'mark-no-show':
             await markNoShow(Number(element.dataset.id || 0));
             createToast('Marcado como no show', 'warning');
+            return true;
+        case 'mark-arrived':
+            await markArrived(Number(element.dataset.id || 0));
+            createToast('Paciente marcado como llego', 'success');
             return true;
         case 'cancel-appointment':
             await cancelAppointment(Number(element.dataset.id || 0));

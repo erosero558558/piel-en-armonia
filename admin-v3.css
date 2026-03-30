@@ -851,6 +851,11 @@ body.admin-v3-mode .reviews-stage {
     grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
 }
 
+body.admin-v3-mode .appointments-signal-rail {
+    display: grid;
+    gap: 20px;
+}
+
 body.admin-v3-mode .dashboard-hero-panel,
 body.admin-v3-mode .appointments-command-deck,
 body.admin-v3-mode .callbacks-command-deck,
@@ -1992,6 +1997,8 @@ body.admin-v3-mode .appointment-service,
 body.admin-v3-mode .appointment-date-stack,
 body.admin-v3-mode .appointment-payment-stack,
 body.admin-v3-mode .appointment-status-stack,
+body.admin-v3-mode .appointments-daily-list,
+body.admin-v3-mode .appointments-daily-alerts,
 body.admin-v3-mode .review-card-heading,
 body.admin-v3-mode .callback-card-heading,
 body.admin-v3-mode .callback-card-grid,
@@ -2007,10 +2014,79 @@ body.admin-v3-mode .time-slots-list {
 body.admin-v3-mode .operations-action-list,
 body.admin-v3-mode .reviews-summary-rail,
 body.admin-v3-mode .appointments-focus-tags,
+body.admin-v3-mode .appointments-overbooking-alert__patients,
+body.admin-v3-mode .appointments-daily-item__meta,
+body.admin-v3-mode .appointments-daily-item__actions,
 body.admin-v3-mode .availability-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+}
+
+body.admin-v3-mode .appointments-daily-panel {
+    display: grid;
+    gap: 16px;
+}
+
+body.admin-v3-mode .appointments-overbooking-alert,
+body.admin-v3-mode .appointments-daily-item {
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface-alt);
+}
+
+body.admin-v3-mode .appointments-overbooking-alert {
+    display: grid;
+    gap: 12px;
+    border-color: rgba(157, 106, 16, 0.22);
+    background: rgba(157, 106, 16, 0.08);
+}
+
+body.admin-v3-mode .appointments-overbooking-alert__head,
+body.admin-v3-mode .appointments-daily-item__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+body.admin-v3-mode .appointments-overbooking-alert__head > div,
+body.admin-v3-mode .appointments-daily-item__time,
+body.admin-v3-mode .appointments-daily-item__body {
+    display: grid;
+    gap: 6px;
+}
+
+body.admin-v3-mode .appointments-overbooking-alert__head p,
+body.admin-v3-mode .appointments-daily-item__head p,
+body.admin-v3-mode .appointments-daily-empty {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .appointments-daily-item {
+    display: grid;
+    grid-template-columns: minmax(80px, auto) minmax(0, 1fr);
+    gap: 16px;
+    align-items: flex-start;
+}
+
+body.admin-v3-mode .appointments-daily-item__time strong {
+    font-size: 1.1rem;
+    letter-spacing: -0.03em;
+}
+
+body.admin-v3-mode .appointments-daily-item__time small,
+body.admin-v3-mode .appointments-daily-item__meta span {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .appointments-daily-empty {
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px dashed var(--admin3-line);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 body.admin-v3-mode .appointments-review-context {
@@ -3240,6 +3316,10 @@ body.admin-v3-mode .clinical-media-flow-form-grid {
 
     body.admin-v3-mode .callbacks-ops-card.wide {
         grid-column: auto;
+    }
+
+    body.admin-v3-mode .appointments-daily-item {
+        grid-template-columns: 1fr;
     }
 
     body.admin-v3-mode .dashboard-card-journey {

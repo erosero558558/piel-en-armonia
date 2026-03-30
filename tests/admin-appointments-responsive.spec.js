@@ -245,7 +245,12 @@ test.describe('Admin appointments responsive triage', () => {
             targetRow.locator(
                 'td[data-label="Acciones"] .table-actions button, td[data-label="Acciones"] .table-actions a'
             )
-        ).toHaveCount(5);
+        ).toHaveCount(6);
+        await expect(
+            targetRow.locator(
+                'td[data-label="Acciones"] button[data-action="mark-arrived"]'
+            )
+        ).toHaveCount(1);
     });
 
     test('habilita filtro de triage accionable y muestra chips contextuales', async ({

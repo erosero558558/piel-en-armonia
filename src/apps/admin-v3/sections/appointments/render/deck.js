@@ -7,9 +7,11 @@ import {
 import {
     appointmentTimestamp,
     humanizeToken,
+    normalizeAppointmentStatus,
     paymentLabel,
     relativeWindow,
     statusLabel,
+    statusTone,
 } from '../utils.js';
 
 function normalizeReviewStatus(status) {
@@ -602,6 +604,108 @@ function renderQueueReview(review) {
     `;
 }
 
+function canMarkAppointmentArrived(item) {
+    const status = normalizeAppointmentStatus(item?.status);
+    return status === 'confirmed' || status === 'pending';
+}
+
+function buildDailyAgendaSummary(ops) {
+    if (!Array.isArray(ops?.dailyAgenda) || ops.dailyAgenda.length === 0) {
+        return 'Sin citas activas en agenda.';
+    }
+
+    const parts = [
+        `${ops.dailyAgenda.length} cita(s) activas`,
+        `${ops.confirmedTodayCount || 0} por recibir`,
+    ];
+
+    if ((ops.arrivedCount || 0) > 0) {
+        parts.push(`${ops.arrivedCount} ya llego/llegaron`);
+    }
+
+    if ((ops.overbookingAlerts || []).length > 0) {
+        parts.push(`${ops.overbookingAlerts.length} alerta(s) de sobrecupo`);
+    }
+
+    return parts.join(' · ');
+}
+
+function buildOverbookingAlertsHtml(alerts) {
+    if (!Array.isArray(alerts) || alerts.length === 0) {
+        return '';
+    }
+
+    return alerts
+        .map(
+            (alert) => `
+                <article class="appointments-overbooking-alert">
+                    <div class="appointments-overbooking-alert__head">
+                        <div>
+                            <strong>${escapeHtml(alert.time || '--:--')} · ${escapeHtml(alert.doctorLabel || 'Sin asignar')}</strong>
+                            <p>${escapeHtml(alert.count || 0)} paciente(s) comparten la misma ventana hoy.</p>
+                        </div>
+                        <span class="appointment-pill" data-tone="warning">Sobrecupo</span>
+                    </div>
+                    <div class="appointments-overbooking-alert__patients">
+                        ${(alert.patientNames || [])
+                            .map(
+                                (name) =>
+                                    `<span class="appointment-pill">${escapeHtml(name)}</span>`
+                            )
+                            .join('')}
+                    </div>
+                </article>
+            `
+        )
+        .join('');
+}
+
+function buildDailyAgendaItemHtml(item) {
+    const status = normalizeAppointmentStatus(item.status);
+    const actionHtml = canMarkAppointmentArrived(item)
+        ? `<button type="button" data-action="mark-arrived" data-id="${Number(item.id || 0)}">Marcar llego</button>`
+        : '';
+
+    return `
+        <article class="appointments-daily-item" data-status="${escapeHtml(status)}">
+            <div class="appointments-daily-item__time">
+                <strong>${escapeHtml(item.time || '--:--')}</strong>
+                <small>${escapeHtml(relativeWindow(appointmentTimestamp(item)))}</small>
+            </div>
+            <div class="appointments-daily-item__body">
+                <div class="appointments-daily-item__head">
+                    <div>
+                        <strong>${escapeHtml(item.name || 'Sin nombre')}</strong>
+                        <p>${escapeHtml(humanizeToken(item.service, 'Servicio pendiente'))} · ${escapeHtml(humanizeToken(item.doctor, 'Sin asignar'))}</p>
+                    </div>
+                    <span class="appointment-pill" data-tone="${escapeHtml(statusTone(status))}">${escapeHtml(statusLabel(status))}</span>
+                </div>
+                <div class="appointments-daily-item__meta">
+                    <span>${escapeHtml(paymentLabel(item.paymentStatus || item.payment_status))}</span>
+                    <span>${escapeHtml(item.phone || 'Sin telefono')}</span>
+                </div>
+                ${
+                    actionHtml
+                        ? `<div class="appointments-daily-item__actions">${actionHtml}</div>`
+                        : ''
+                }
+            </div>
+        </article>
+    `;
+}
+
+function buildDailyAgendaListHtml(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+        return `
+            <p class="appointments-daily-empty">
+                Sin citas activas para hoy en esta agenda.
+            </p>
+        `;
+    }
+
+    return items.map(buildDailyAgendaItemHtml).join('');
+}
+
 export function renderOpsDeck(
     ops,
     visibleCount,
@@ -640,33 +744,68 @@ export function renderOpsDeck(
     setText(
         '#appointmentsOpsTodayMeta',
         ops.todayCount > 0
-            ? `${ops.todayCount} cita(s) en agenda de hoy`
+            ? `${ops.confirmedTodayCount || 0} por recibir${
+                  (ops.arrivedCount || 0) > 0
+                      ? ` · ${ops.arrivedCount} llego/llegaron`
+                      : ''
+              }${
+                  (ops.overbookingAlerts || []).length > 0
+                      ? ` · ${(ops.overbookingAlerts || []).length} sobrecupo(s)`
+                      : ''
+              }`
             : 'Carga diaria limpia'
     );
 
     const summary =
         totalCount > 0
-            ? `${ops.pendingTransferCount} transferencia(s), ${ops.triageCount} frente(s) accionables y ${visibleCount} cita(s) visibles.`
+            ? `${ops.pendingTransferCount} transferencia(s), ${ops.triageCount} frente(s) accionables y ${visibleCount} cita(s) visibles${
+                  (ops.overbookingAlerts || []).length > 0
+                      ? `, ${(ops.overbookingAlerts || []).length} alerta(s) de sobrecupo`
+                      : ''
+              }.`
             : 'Sin citas cargadas.';
     setText('#appointmentsDeckSummary', summary);
     setText(
         '#appointmentsWorkbenchHint',
-        ops.pendingTransferCount > 0
-            ? 'Primero valida pagos; luego ordena la mesa por fecha o paciente.'
-            : ops.triageCount > 0
-              ? 'La agenda tiene incidencias abiertas dentro de esta misma mesa.'
-              : 'Filtros, orden y tabla en un workbench unico.'
+        (ops.overbookingAlerts || []).length > 0
+            ? 'Revisa sobrecupos del dia antes de seguir operando la mesa.'
+            : ops.pendingTransferCount > 0
+              ? 'Primero valida pagos; luego ordena la mesa por fecha o paciente.'
+              : ops.triageCount > 0
+                ? 'La agenda tiene incidencias abiertas dentro de esta misma mesa.'
+                : 'Filtros, orden y tabla en un workbench unico.'
     );
 
     const chip = document.getElementById('appointmentsDeckChip');
     if (chip) {
         const state =
-            ops.pendingTransferCount > 0 || ops.noShowCount > 0
+            ops.pendingTransferCount > 0 ||
+            ops.noShowCount > 0 ||
+            (ops.overbookingAlerts || []).length > 0
                 ? 'warning'
                 : 'success';
         chip.textContent =
             state === 'warning' ? 'Atencion operativa' : 'Agenda estable';
         chip.setAttribute('data-state', state);
+    }
+
+    setText('#appointmentsDailySummary', buildDailyAgendaSummary(ops));
+    setHtml(
+        '#appointmentsOverbookingAlerts',
+        buildOverbookingAlertsHtml(ops.overbookingAlerts || [])
+    );
+    setHtml(
+        '#appointmentsDailyList',
+        buildDailyAgendaListHtml(ops.dailyAgenda || [])
+    );
+
+    const dailyChip = document.getElementById('appointmentsDailyChip');
+    if (dailyChip) {
+        const warningCount = (ops.overbookingAlerts || []).length;
+        const state = warningCount > 0 ? 'warning' : 'success';
+        dailyChip.textContent =
+            warningCount > 0 ? `${warningCount} sobrecupo(s)` : 'Sin sobrecupos';
+        dailyChip.setAttribute('data-state', state);
     }
 
     const focus = queueReview?.focus || ops.focus;
