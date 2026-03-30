@@ -134,6 +134,7 @@ function buildAdminFunnelMetricsFixture(overrides = {}) {
     const {
         summary: summaryOverride = {},
         queueAssistant: queueAssistantRaw = {},
+        conversionDashboard: conversionDashboardRaw = {},
         checkoutAbandonByStep = [],
         checkoutEntryBreakdown = [],
         paymentMethodBreakdown = [],
@@ -157,6 +158,20 @@ function buildAdminFunnelMetricsFixture(overrides = {}) {
         typeof queueAssistantOverride.last7d === 'object'
             ? queueAssistantOverride.last7d
             : {};
+    const conversionDashboardOverride =
+        conversionDashboardRaw && typeof conversionDashboardRaw === 'object'
+            ? conversionDashboardRaw
+            : {};
+    const conversionTodayOverride =
+        conversionDashboardOverride.today &&
+        typeof conversionDashboardOverride.today === 'object'
+            ? conversionDashboardOverride.today
+            : {};
+    const conversionLast7dOverride =
+        conversionDashboardOverride.last7d &&
+        typeof conversionDashboardOverride.last7d === 'object'
+            ? conversionDashboardOverride.last7d
+            : {};
 
     return {
         summary: {
@@ -176,6 +191,27 @@ function buildAdminFunnelMetricsFixture(overrides = {}) {
         sourceBreakdown,
         abandonReasonBreakdown,
         errorCodeBreakdown,
+        conversionDashboard: {
+            today: {
+                visits: 0,
+                whatsappClicks: 0,
+                bookingConfirmed: 0,
+                ...conversionTodayOverride,
+            },
+            last7d: {
+                days: 7,
+                visits: 0,
+                whatsappClicks: 0,
+                bookingConfirmed: 0,
+                visitsPerDay: 0,
+                whatsappClicksPerDay: 0,
+                bookingConfirmedPerDay: 0,
+                ...conversionLast7dOverride,
+            },
+            dailySeries: conversionDashboardOverride.dailySeries || [],
+            topServices: conversionDashboardOverride.topServices || [],
+            generatedAt: conversionDashboardOverride.generatedAt || '',
+        },
         queueAssistant: {
             today: {
                 actioned: 0,

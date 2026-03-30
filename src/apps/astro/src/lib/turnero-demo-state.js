@@ -36,6 +36,13 @@ const BASE_STATE = Object.freeze({
         snapshotAgeSeconds: 52,
         bellState: 'primed',
     },
+    sandbox: {
+        scheduledTicket: 'A-042',
+        walkInTicket: 'B-117',
+        callRoom: 'Consultorio 2',
+        scheduledChannel: 'QR cita',
+        walkInChannel: 'Recepcion',
+    },
     releases: {
         operator: 'stable-2026.03.1',
         kiosk: 'stable-2026.03.1',
@@ -674,6 +681,7 @@ export function buildTurneroDemoState(locale = 'es') {
         },
         operator: { ...BASE_STATE.operator },
         display: { ...BASE_STATE.display },
+        sandbox: { ...BASE_STATE.sandbox },
         releases: { ...BASE_STATE.releases },
     };
 

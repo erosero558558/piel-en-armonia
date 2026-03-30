@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 9:11:46 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 12:53:28 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,28 +7,28 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **39%** completado (165/420)
+`██████████░░░░░░░░░░` **48%** completado (201/420)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 63 | 4 | 94% |
-| ⏸ Sprint 4 | 15 | 11 | 58% |
-| ⏸ Sprint 5 | 0 | 22 | 0% |
+| 🎯 Sprint 3 | 66 | 1 | 99% |
+| ⏸ Sprint 4 | 24 | 2 | 92% |
+| ⏸ Sprint 5 | 3 | 19 | 14% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 6 | 31 | 16% |
 | ✅ Sprint UI | 19 | 0 | 100% |
-| ⏸ Sprint UI | 4 | 16 | 20% |
-| ⏸ Sprint 8 | 0 | 17 | 0% |
+| ✅ Sprint UI | 20 | 0 | 100% |
+| ⏸ Sprint 8 | 2 | 15 | 12% |
 | ⏸ Sprint 9 | 1 | 26 | 4% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 2 | 24 | 8% |
-| ⏸ Sprint 13 | 1 | 20 | 5% |
+| ⏸ Sprint 13 | 2 | 19 | 10% |
 | ⏸ Sprint UI | 15 | 5 | 75% |
-| ⏸ Sprint 14 | 1 | 13 | 7% |
-| ⏸ Sprint 15 | 0 | 13 | 0% |
+| ⏸ Sprint 14 | 2 | 12 | 14% |
+| ⏸ Sprint 15 | 1 | 12 | 8% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -41,31 +41,12 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (3)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S3-46** | `[S3]` | S |
-| **S3-47** | `[S3]` | S |
-| **S3-50** | `[S3]` | S |
-
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
 
 - **S3-35** `[S3]` L...
 
 ## ⏸ Sprint 4 — Escalar el negocio
-_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
-
-### 🟢 Disponibles (9)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S4-07** | `[S4]` | XL |
-| **S4-09** | `[S4]` | L |
-| **S4-12** | `[S4]` | L |
-| **S4-14** | `[S4]` | M |
-| **S4-15** | `[S4]` | M |
-| ... | | _+4 más_ |
+_Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -73,18 +54,18 @@ _Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 - **S4-11** `[S4]` — necesita: S4-06 primero
 
 ## ⏸ Sprint 5 — Portal del Paciente (PWA)
-_Esperando que Sprint anterior esté completo. 22 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 19 tareas pendientes._
 
-### 🟢 Disponibles (13)
+### 🟢 Disponibles (10)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S5-01** | `[S5]` | M |
 | **S5-02** | `[S5]` | L |
 | **S5-09** | `[S5]` | S |
-| **S5-10** | `[S5]` | M |
-| **S5-11** | `[S5]` | M |
-| ... | | _+8 más_ |
+| **S5-12** | `[S5]` | M |
+| **S5-14** | `[S5]` | M |
+| ... | | _+5 más_ |
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -147,33 +128,22 @@ _Esperando que Sprint anterior esté completo. 31 tareas pendientes._
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._
 
-## ⏸ Sprint UI — Fase 2: Follow-ups del Audit
-_Esperando que Sprint anterior esté completo. 16 tareas pendientes._
-
-### 🟢 Disponibles (16)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **UI2-02** | `[UI2]` | S |
-| **UI2-03** | `[UI2]` | S |
-| **UI2-04** | `[UI2]` | S |
-| **UI2-05** | `[UI2]` | M |
-| **UI2-06** | `[UI2]` | S |
-| ... | | _+11 más_ |
+## ✅ Sprint UI — Fase 2: Follow-ups del Audit
+_Sprint completado. 20/20 tareas._
 
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
-_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 15 tareas pendientes._
 
-### 🟢 Disponibles (17)
+### 🟢 Disponibles (15)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S8-01** | `[S8]` | M |
-| **S8-02** | `[S8]` | M |
 | **S8-03** | `[S8]` | L |
 | **S8-04** | `[S8]` | M |
 | **S8-05** | `[S8]` | M |
-| ... | | _+12 más_ |
+| **S8-20** | `[S8]` | M |
+| **S8-06** | `[S8]` | M |
+| ... | | _+10 más_ |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
 _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
@@ -218,7 +188,7 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 | ... | | _+19 más_ |
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Esperando que Sprint anterior esté completo. 20 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 19 tareas pendientes._
 
 ### 🟢 Disponibles (19)
 
@@ -230,10 +200,6 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 | **S13-03** | `[S13]` | M |
 | **S13-04** | `[S13]` | M |
 | ... | | _+14 más_ |
-
-### 🔒 En progreso — NO tomar
-
-- **S13-19** `[S13]` → _Codex-erosero558558_ (expira en 226min)
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 5 tareas pendientes._
@@ -249,9 +215,9 @@ _Esperando que Sprint anterior esté completo. 5 tareas pendientes._
 | **UI3-20** | `[UI3]` | M |
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
-_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
-### 🟢 Disponibles (12)
+### 🟢 Disponibles (11)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -260,25 +226,25 @@ _Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 | **S14-02** | `[S14]` | M |
 | **S14-05** | `[S14]` | M |
 | **S14-06** | `[S14]` | M |
-| ... | | _+7 más_ |
+| ... | | _+6 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S14-03** `[S14]` → _antigravity_ (expira en 226min)
+- **S14-12** `[S14]` → _antigravity_ (expira en 33min)
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
-_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
-### 🟢 Disponibles (13)
+### 🟢 Disponibles (12)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S15-01** | `[S15]` | S |
 | **S15-02** | `[S15]` | S |
 | **S15-03** | `[S15]` | S |
 | **S15-04** | `[S15]` | M |
 | **S15-05** | `[S15]` | M |
-| ... | | _+8 más_ |
+| **S15-06** | `[S15]` | S |
+| ... | | _+7 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

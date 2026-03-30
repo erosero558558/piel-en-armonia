@@ -142,6 +142,10 @@
                 modal.querySelector('#cert-form-container').classList.add('cert-hidden');
                 modal.querySelector('#cert-success-container').classList.remove('cert-hidden');
                 
+                if (window.showToast) {
+                    window.showToast('Certificado generado exitosamente', 'success');
+                }
+                
                 modal.querySelector('#cert-success-folio').textContent = data.folio;
                 
                 modal.querySelector('#cert-btn-download').onclick = () => window.open(data.pdf_url, '_blank');
@@ -161,7 +165,11 @@
                 }));
 
             } catch (err) {
-                alert('No se pudo generar el certificado: ' + err.message);
+                if (window.showToast) {
+                    window.showToast('No se pudo generar el certificado: ' + err.message, 'error');
+                } else {
+                    alert('No se pudo generar el certificado: ' + err.message);
+                }
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Generar PDF Oficial';
             }

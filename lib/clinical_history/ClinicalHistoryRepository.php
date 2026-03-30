@@ -357,6 +357,21 @@ final class ClinicalHistoryRepository
         return ClinicalHistorySessionRepository::normalizeAdmissionChangeLog($changeLog);
     }
 
+    public static function normalizeAdmission001(
+        array $admission,
+        array $patient = [],
+        array $intake = [],
+        array $context = []
+    ): array
+    {
+        return ClinicalHistorySessionRepository::normalizeAdmission001(
+            $admission,
+            $patient,
+            $intake,
+            $context
+        );
+    }
+
     public static function evaluateHcu001(array $admission, array $context = []): array
     {
         return ClinicalHistorySessionRepository::evaluateHcu001($admission, $context);

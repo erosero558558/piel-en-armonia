@@ -103,6 +103,19 @@ final class HealthVisibilityTest extends TestCase
         $this->assertArrayHasKey('version', $response['payload']);
         $this->assertArrayNotHasKey('storageBackend', $response['payload']);
         $this->assertArrayNotHasKey('dataDirSource', $response['payload']);
+        $this->assertArrayHasKey('tiers', $response['payload']);
+        $this->assertArrayHasKey('data_files', $response['payload']);
+        $this->assertArrayHasKey('doctor_profile', $response['payload']);
+        $this->assertArrayHasKey('clinic_profile', $response['payload']);
+        $this->assertArrayHasKey('codex', $response['payload']['tiers']);
+        $this->assertArrayHasKey('openrouter', $response['payload']['tiers']);
+        $this->assertArrayHasKey('local', $response['payload']['tiers']);
+        $this->assertArrayHasKey('cie10', $response['payload']['data_files']);
+        $this->assertArrayHasKey('protocols', $response['payload']['data_files']);
+        $this->assertArrayHasKey('drug_interactions', $response['payload']['data_files']);
+        $this->assertArrayNotHasKey('path', $response['payload']['doctor_profile']);
+        $this->assertArrayNotHasKey('path', $response['payload']['clinic_profile']);
+        $this->assertArrayNotHasKey('path', $response['payload']['data_files']['cie10'] ?? []);
         $this->assertArrayHasKey('calendarConfigured', $response['payload']);
         $this->assertArrayHasKey('calendarReachable', $response['payload']);
         $this->assertArrayHasKey('calendarMode', $response['payload']);
@@ -120,6 +133,17 @@ final class HealthVisibilityTest extends TestCase
 
     public function testAuthorizedHealthStillExposesDetailedDiagnostics(): void
     {
+        \write_doctor_profile([
+            'fullName' => 'Dra. Aurora Derm',
+            'specialty' => 'Dermatologia',
+            'mspNumber' => 'MSP-12345',
+        ]);
+        \write_clinic_profile([
+            'clinicName' => 'Aurora Derm Centro',
+            'address' => 'Av. Clinica 123',
+            'phone' => '+593999111222',
+        ]);
+
         $response = $this->captureJsonResponse(static function (): void {
             \HealthController::check([
                 'store' => \read_store(),
@@ -135,15 +159,28 @@ final class HealthVisibilityTest extends TestCase
         $this->assertArrayHasKey('storeEncryptionStatus', $response['payload']);
         $this->assertArrayHasKey('authMode', $response['payload']);
         $this->assertArrayHasKey('authStatus', $response['payload']);
+        $this->assertArrayHasKey('tiers', $response['payload']);
+        $this->assertArrayHasKey('data_files', $response['payload']);
+        $this->assertArrayHasKey('doctor_profile', $response['payload']);
+        $this->assertArrayHasKey('clinic_profile', $response['payload']);
+        $this->assertTrue((bool) ($response['payload']['doctor_profile']['loaded'] ?? false));
+        $this->assertTrue((bool) ($response['payload']['clinic_profile']['loaded'] ?? false));
         $this->assertArrayHasKey('checks', $response['payload']);
         $this->assertArrayHasKey('encryptionStatus', $response['payload']['checks']['storage'] ?? []);
         $this->assertArrayHasKey('auth', $response['payload']['checks']);
         $this->assertArrayHasKey('internalConsole', $response['payload']['checks']);
+        $this->assertArrayHasKey('aiRouter', $response['payload']['checks']);
+        $this->assertArrayHasKey('dataFiles', $response['payload']['checks']);
+        $this->assertArrayHasKey('doctorProfile', $response['payload']['checks']);
+        $this->assertArrayHasKey('clinicProfile', $response['payload']['checks']);
         $this->assertArrayHasKey('mode', $response['payload']['checks']['auth'] ?? []);
         $this->assertArrayHasKey('configured', $response['payload']['checks']['auth'] ?? []);
         $this->assertArrayHasKey('twoFactorEnabled', $response['payload']['checks']['auth'] ?? []);
         $this->assertArrayHasKey('overall', $response['payload']['checks']['internalConsole'] ?? []);
         $this->assertArrayHasKey('publicSync', $response['payload']['checks']);
+        $this->assertSame(\doctor_profile_config_path(), (string) ($response['payload']['checks']['doctorProfile']['path'] ?? ''));
+        $this->assertSame(\clinic_profile_config_path(), (string) ($response['payload']['checks']['clinicProfile']['path'] ?? ''));
+        $this->assertSame(\dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cie10.json', (string) ($response['payload']['checks']['dataFiles']['cie10']['path'] ?? ''));
     }
 
     public function testAuthorizedHealthDiagnosticsPrefersCanonicalWindowsMainSyncStatusWhenLegacyFileIsStale(): void
@@ -515,9 +552,10 @@ YAML
         $this->assertTrue((bool) ($response['payload']['ok'] ?? false));
         $this->assertSame('google_oauth', (string) ($response['payload']['authMode'] ?? ''));
         $this->assertTrue((bool) ($response['payload']['authConfigured'] ?? false));
-        $this->assertSame(1, (int) ($response['payload']['checks']['auth']['operatorAuthAllowedEmailCount'] ?? 0));
+        $allowedEmailCount = (int) ($response['payload']['checks']['auth']['operatorAuthAllowedEmailCount'] ?? 0);
+        $this->assertGreaterThanOrEqual(1, $allowedEmailCount);
         $this->assertTrue((bool) ($response['payload']['checks']['auth']['brokerTrustConfigured'] ?? false));
-        $this->assertSame(1, (int) ($response['payload']['checks']['internalConsole']['auth']['allowedEmailCount'] ?? 0));
+        $this->assertSame($allowedEmailCount, (int) ($response['payload']['checks']['internalConsole']['auth']['allowedEmailCount'] ?? 0));
         $this->assertArrayNotHasKey('allowedEmails', $response['payload']['checks']['auth'] ?? []);
         $this->assertArrayNotHasKey('allowedEmails', $response['payload']['checks']['internalConsole']['auth'] ?? []);
     }

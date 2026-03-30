@@ -659,3 +659,54 @@ body.admin-body {
     padding: var(--space-2) var(--space-4);
   }
 }
+
+/* Accesibilidad: Estilos de impresión de fichas (UI2-04) */
+@media print {
+  /* Ocultar interfaz y modo kiosco/dashboard */
+  .admin-sidebar, .admin-navbar, .admin-header, button, .btn, .admin-pagination, .admin-actions {
+    display: none !important;
+  }
+  
+  /* Reset layout */
+  body, .admin-layout, .admin-main, .admin-content-shell {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Textos nítidos en papel */
+  * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 12pt !important;
+  }
+
+  /* Romper de forma segura las tablas */
+  .data-table-container {
+    overflow: visible !important;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+}
+
+/* Skeleton Loaders (UI2-16 / UI2-11) */
+.skeleton {
+  background: linear-gradient(90deg, #1a1a2e 25%, #23234a 50%, #1a1a2e 75%);
+  background-size: 200% 100%;
+  animation: aurora-shimmer 1.5s infinite linear;
+  border-radius: var(--radius-md, 8px);
+}
+
+@keyframes aurora-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

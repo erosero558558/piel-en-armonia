@@ -191,8 +191,17 @@ body[data-theme="admin"] .badge-primary {
   box-shadow: 0 0 0 3px hsla(165, 55%, 48%, 0.2);
 }
 
+.input.is-error, .select.is-error, .textarea.is-error {
+  border-color: var(--status-error);
+  box-shadow: 0 0 0 1px var(--status-error);
+}
+
+.input.is-success, .select.is-success, .textarea.is-success {
+  border-color: var(--color-aurora-600);
+}
+
 .input::placeholder, .textarea::placeholder {
-  color: var(--pub-text-muted);
+  color: var(--color-neutral-500);
 }
 
 .select {

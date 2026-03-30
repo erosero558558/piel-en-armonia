@@ -120,17 +120,17 @@
         ></section>
 
         <main class="display-layout">
-            <section class="display-panel display-panel--hero">
+            <section class="display-panel display-panel--hero" aria-label="Turno actual llamado">
                 <h1>Llamando ahora</h1>
-                <div class="display-called-grid">
-                    <div id="displayConsultorio1" aria-live="assertive"></div>
-                    <div id="displayConsultorio2" aria-live="assertive"></div>
+                <div class="display-called-grid" aria-live="polite" role="status">
+                    <div id="displayConsultorio1" aria-live="assertive" role="status"></div>
+                    <div id="displayConsultorio2" aria-live="assertive" role="status"></div>
                 </div>
             </section>
 
-            <section class="display-panel display-panel--queue">
+            <section class="display-panel display-panel--queue" aria-label="Próximos turnos en espera">
                 <h2>Siguientes en espera</h2>
-                <ol id="displayNextList" class="display-next-list" aria-live="polite">
+                <ol id="displayNextList" class="display-next-list" aria-live="polite" role="status">
                     <li class="display-empty">No hay turnos pendientes.</li>
                 </ol>
                 <p class="display-privacy-note">

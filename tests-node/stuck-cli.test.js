@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { execFileSync, spawnSync } = require('node:child_process');
-const { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } = require('node:fs');
+const { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } = require('node:fs');
 const { join, resolve } = require('node:path');
 const { tmpdir } = require('node:os');
 
@@ -45,13 +45,17 @@ function setupTempRepo(taskId = 'S9-99') {
   return repoDir;
 }
 
-function runStuck(repoDir, args) {
+function runStuck(repoDir, args, extraEnv = {}) {
   return spawnSync(process.execPath, [SCRIPT_PATH, ...args], {
     cwd: REPO_ROOT,
     encoding: 'utf8',
     env: {
       ...process.env,
       AURORA_DERM_ROOT: repoDir,
+      AURORADERM_SKIP_ENV_FILE: '1',
+      PIELARMONIA_SKIP_ENV_FILE: '1',
+      PIELARMONIA_DATA_DIR: join(repoDir, 'data'),
+      ...extraEnv,
     },
   });
 }
@@ -108,6 +112,38 @@ test('bin/stuck.js clear removes the active blocker section and auto-commits the
     assert.match(blockers, /_No hay blockers activos generados por `bin\/stuck\.js`\._/);
     assert.doesNotMatch(blockers, /### S9-98/);
     assert.equal(lastCommit, 'fix: resolved blocker S9-98');
+  } finally {
+    rmSync(repoDir, { recursive: true, force: true });
+  }
+});
+
+test('bin/stuck.js queues a director WhatsApp notification when AURORADERM_DIRECTOR_PHONE is configured', () => {
+  const repoDir = setupTempRepo('S9-97');
+
+  try {
+    const result = runStuck(
+      repoDir,
+      ['S9-97', 'Necesita decision del director'],
+      { AURORADERM_DIRECTOR_PHONE: '+593999000001' }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /WhatsApp al director encolado:/);
+
+    const outboxDir = join(repoDir, 'data', 'whatsapp-openclaw', 'outbox');
+    const files = readdirSync(outboxDir);
+    assert.equal(files.length, 1);
+
+    const record = JSON.parse(readFileSync(join(outboxDir, files[0]), 'utf8'));
+    assert.equal(record.phone, '593999000001');
+    assert.equal(record.type, 'text');
+    assert.equal(record.status, 'pending');
+    assert.match(String(record.text || ''), /Tarea: S9-97/);
+    assert.match(String(record.text || ''), /Agente: TestAgent/);
+    assert.match(String(record.text || ''), /Razon: Necesita decision del director/);
+    assert.equal(record.meta.taskId, 'S9-97');
+    assert.equal(record.meta.agent, 'TestAgent');
+    assert.equal(record.meta.source, 'bin/stuck.js');
   } finally {
     rmSync(repoDir, { recursive: true, force: true });
   }

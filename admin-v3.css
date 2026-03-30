@@ -951,6 +951,7 @@ body.admin-v3-mode .callbacks-next-panel,
 body.admin-v3-mode .reviews-spotlight-panel,
 body.admin-v3-mode .dashboard-card-operations,
 body.admin-v3-mode .dashboard-card-journey,
+body.admin-v3-mode .dashboard-card-conversion,
 body.admin-v3-mode #funnelSummary,
 body.admin-v3-mode .appointments-workbench,
 body.admin-v3-mode .callbacks-workbench,
@@ -997,6 +998,7 @@ body.admin-v3-mode .callbacks-next-panel,
 body.admin-v3-mode .reviews-spotlight-panel,
 body.admin-v3-mode .dashboard-card-operations,
 body.admin-v3-mode .dashboard-card-journey,
+body.admin-v3-mode .dashboard-card-conversion,
 body.admin-v3-mode #funnelSummary,
 body.admin-v3-mode .appointments-workbench,
 body.admin-v3-mode .callbacks-workbench,
@@ -1005,6 +1007,12 @@ body.admin-v3-mode .availability-container {
 }
 
 body.admin-v3-mode .dashboard-card-journey {
+    display: grid;
+    gap: 16px;
+    grid-column: span 2;
+}
+
+body.admin-v3-mode .dashboard-card-conversion {
     display: grid;
     gap: 16px;
     grid-column: span 2;
@@ -1943,6 +1951,18 @@ body.admin-v3-mode .dashboard-secondary-summary {
     color: var(--admin3-muted);
 }
 
+body.admin-v3-mode .dashboard-card-conversion > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+body.admin-v3-mode .dashboard-card-conversion > header small,
+body.admin-v3-mode .dashboard-card-conversion small {
+    color: var(--admin3-muted);
+}
+
 body.admin-v3-mode .dashboard-card-assistant {
     display: grid;
     gap: 16px;
@@ -1998,6 +2018,10 @@ body.admin-v3-mode .dashboard-assistant-chart-card canvas {
     body.admin-v3-mode .dashboard-assistant-chart-grid {
         grid-template-columns: minmax(0, 1fr);
     }
+
+    body.admin-v3-mode .dashboard-conversion-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 body.admin-v3-mode .dashboard-secondary-links {
@@ -2014,6 +2038,39 @@ body.admin-v3-mode .dashboard-secondary-link {
 
 body.admin-v3-mode .dashboard-secondary-metrics {
     margin-top: 12px;
+}
+
+body.admin-v3-mode .dashboard-conversion-daily-metrics {
+    margin-top: 0;
+}
+
+body.admin-v3-mode .dashboard-conversion-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+body.admin-v3-mode .dashboard-conversion-list-card {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+
+body.admin-v3-mode .dashboard-conversion-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+body.admin-v3-mode .dashboard-conversion-list li > div {
+    display: grid;
+    gap: 4px;
+}
+
+body.admin-v3-mode .dashboard-conversion-list li small {
+    margin: 0;
+    color: var(--admin3-muted);
 }
 
 body.admin-v3-mode .dashboard-analytics-disclosure {

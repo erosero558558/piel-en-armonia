@@ -1,4 +1,9 @@
-import { formatNumber, setHtml, setText } from '../../../shared/ui/render.js';
+import {
+    escapeHtml,
+    formatNumber,
+    setHtml,
+    setText,
+} from '../../../shared/ui/render.js';
 import { breakdownList } from '../markup.js';
 
 function asObject(value) {
@@ -220,6 +225,177 @@ function buildAssistantSummary(metrics) {
     return `${fragments.join(' | ')}.`;
 }
 
+function humanizeLabel(value, fallback = 'Sin datos') {
+    const normalized = String(value || '')
+        .trim()
+        .replace(/[_-]+/g, ' ');
+    if (!normalized) {
+        return fallback;
+    }
+
+    return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizeConversionDashboard(raw, serviceFunnel = []) {
+    const source = asObject(raw);
+    const today = asObject(source.today);
+    const last7d = asObject(source.last7d);
+    const dailySeries = asArray(source.dailySeries)
+        .map((entry) => ({
+            day: String(entry?.day || entry?.label || '').trim(),
+            label: String(entry?.label || entry?.day || '').trim(),
+            visits: readCount(entry, ['visits']),
+            whatsappClicks: readCount(entry, [
+                'whatsappClicks',
+                'whatsapp_clicks',
+            ]),
+            bookingConfirmed: readCount(entry, [
+                'bookingConfirmed',
+                'booking_confirmed',
+            ]),
+        }))
+        .filter((entry) => entry.label !== '')
+        .slice(-7);
+    const topServices = (asArray(source.topServices).length > 0
+        ? asArray(source.topServices)
+        : asArray(serviceFunnel)
+    )
+        .map((entry) => ({
+            serviceSlug: String(entry?.serviceSlug || entry?.service_slug || '')
+                .trim()
+                .toLowerCase(),
+            detailViews: readCount(entry, ['detailViews', 'detail_views']),
+            bookingIntent: readCount(entry, ['bookingIntent', 'booking_intent']),
+            checkoutStarts: readCount(entry, [
+                'checkoutStarts',
+                'checkout_starts',
+            ]),
+            bookingConfirmed: readCount(entry, [
+                'bookingConfirmed',
+                'booking_confirmed',
+            ]),
+            detailToConfirmedPct: Number(
+                firstValue(entry, [
+                    'detailToConfirmedPct',
+                    'detail_to_confirmed_pct',
+                ], 0)
+            ),
+        }))
+        .filter((entry) => entry.serviceSlug !== '')
+        .slice(0, 5);
+
+    return {
+        today: {
+            visits: readCount(today, ['visits']),
+            whatsappClicks: readCount(today, [
+                'whatsappClicks',
+                'whatsapp_clicks',
+            ]),
+            bookingConfirmed: readCount(today, [
+                'bookingConfirmed',
+                'booking_confirmed',
+            ]),
+        },
+        last7d: {
+            visits: readCount(last7d, ['visits']),
+            whatsappClicks: readCount(last7d, [
+                'whatsappClicks',
+                'whatsapp_clicks',
+            ]),
+            bookingConfirmed: readCount(last7d, [
+                'bookingConfirmed',
+                'booking_confirmed',
+            ]),
+            visitsPerDay: Number(
+                firstValue(last7d, ['visitsPerDay', 'visits_per_day'], 0)
+            ),
+            whatsappClicksPerDay: Number(
+                firstValue(last7d, [
+                    'whatsappClicksPerDay',
+                    'whatsapp_clicks_per_day',
+                ], 0)
+            ),
+            bookingConfirmedPerDay: Number(
+                firstValue(last7d, [
+                    'bookingConfirmedPerDay',
+                    'booking_confirmed_per_day',
+                ], 0)
+            ),
+        },
+        dailySeries,
+        topServices,
+    };
+}
+
+function resolveConversionStatus(conversion) {
+    if (conversion.today.whatsappClicks > 0) {
+        return { label: 'Con traccion', tone: 'success' };
+    }
+    if (conversion.today.visits > 0 || conversion.topServices.length > 0) {
+        return { label: 'Moviendose', tone: 'warning' };
+    }
+    return { label: 'Sin datos', tone: 'neutral' };
+}
+
+function buildConversionSummary(conversion) {
+    if (
+        conversion.today.visits <= 0 &&
+        conversion.today.whatsappClicks <= 0 &&
+        conversion.topServices.length === 0
+    ) {
+        return 'Sin eventos de conversion todavia. El panel se poblara cuando entren visitas al flujo y clicks a WhatsApp desde la web publica.';
+    }
+
+    return `Hoy entraron ${formatNumber(conversion.today.visits)} visita(s) al flujo y ${formatNumber(conversion.today.whatsappClicks)} click(s) a WhatsApp. En 7 dias vamos en ${Number(conversion.last7d.visitsPerDay || 0).toFixed(1)} visita(s)/dia y ${Number(conversion.last7d.whatsappClicksPerDay || 0).toFixed(1)} click(s)/dia.`;
+}
+
+function buildConversionDailyList(rows) {
+    const activeRows = asArray(rows).filter(
+        (entry) =>
+            entry.visits > 0 ||
+            entry.whatsappClicks > 0 ||
+            entry.bookingConfirmed > 0
+    );
+
+    if (activeRows.length === 0) {
+        return '<li><div><span>Sin datos</span><small>Esperando eventos diarios del funnel.</small></div><strong>0</strong></li>';
+    }
+
+    return activeRows
+        .map(
+            (entry) => `<li data-conversion-day="true"><div><span>${escapeHtml(
+                entry.label
+            )}</span><small>WhatsApp ${escapeHtml(
+                formatNumber(entry.whatsappClicks)
+            )} · Confirmadas ${escapeHtml(
+                formatNumber(entry.bookingConfirmed)
+            )}</small></div><strong>${escapeHtml(
+                formatNumber(entry.visits)
+            )}</strong></li>`
+        )
+        .join('');
+}
+
+function buildTopServicesList(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+        return '<li><div><span>Sin ranking</span><small>Esperando vistas y cierres por servicio.</small></div><strong>0%</strong></li>';
+    }
+
+    return rows
+        .map(
+            (entry) => `<li data-conversion-service="true"><div><span>${escapeHtml(
+                humanizeLabel(entry.serviceSlug, 'Sin datos')
+            )}</span><small>${escapeHtml(
+                formatNumber(entry.bookingConfirmed)
+            )} confirmadas · ${escapeHtml(
+                formatNumber(entry.checkoutStarts)
+            )} checkout</small></div><strong>${escapeHtml(
+                Number(entry.detailToConfirmedPct || 0).toFixed(1)
+            )}%</strong></li>`
+        )
+        .join('');
+}
+
 function setAssistantUtilityMetrics(metrics) {
     const { today, last7d, topIntent, topHelpReason, topReviewOutcome } =
         metrics;
@@ -311,6 +487,59 @@ export function setFunnelMetrics(funnel) {
     setHtml(
         '#funnelErrorCodeList',
         breakdownList(funnel.errorCodeBreakdown, 'code', 'count')
+    );
+    const conversion = normalizeConversionDashboard(
+        funnel.conversionDashboard,
+        funnel.topServices || funnel.serviceFunnel || []
+    );
+    const conversionStatus = resolveConversionStatus(conversion);
+    const conversionChip = document.getElementById('dashboardConversionChip');
+    if (conversionChip) {
+        conversionChip.textContent = conversionStatus.label;
+        conversionChip.setAttribute('data-state', conversionStatus.tone);
+    }
+    setText('#dashboardConversionSummary', buildConversionSummary(conversion));
+    setText('#funnelDailyVisitsToday', formatNumber(conversion.today.visits));
+    setText(
+        '#funnelDailyWhatsappToday',
+        formatNumber(conversion.today.whatsappClicks)
+    );
+    setText(
+        '#funnelDailyVisitsAvg',
+        Number(conversion.last7d.visitsPerDay || 0).toFixed(1)
+    );
+    setText(
+        '#funnelDailyWhatsappAvg',
+        Number(conversion.last7d.whatsappClicksPerDay || 0).toFixed(1)
+    );
+    const topService = conversion.topServices[0] || null;
+    setText(
+        '#dashboardConversionTopService',
+        topService
+            ? humanizeLabel(topService.serviceSlug, 'Sin ranking')
+            : 'Sin ranking'
+    );
+    setText(
+        '#dashboardConversionTopServiceMeta',
+        topService
+            ? `${formatNumber(topService.bookingConfirmed)} confirmadas · ${formatNumber(topService.checkoutStarts)} checkout · ${Number(topService.detailToConfirmedPct || 0).toFixed(1)}% detalle->confirmada`
+            : 'Cuando existan vistas y reservas, aqui aparecera el servicio con mejor cierre.'
+    );
+    setText(
+        '#dashboardConversionPaceHeadline',
+        `${formatNumber(conversion.last7d.bookingConfirmed)} confirmadas`
+    );
+    setText(
+        '#dashboardConversionPaceMeta',
+        `${Number(conversion.last7d.bookingConfirmedPerDay || 0).toFixed(1)} por dia · ${formatNumber(conversion.last7d.visits)} visitas · ${formatNumber(conversion.last7d.whatsappClicks)} click(s) WhatsApp`
+    );
+    setHtml(
+        '#dashboardConversionDailyList',
+        buildConversionDailyList(conversion.dailySeries)
+    );
+    setHtml(
+        '#dashboardConversionTopServices',
+        buildTopServicesList(conversion.topServices)
     );
     const queueAssistant = normalizeQueueAssistant(
         funnel.queueAssistant || funnel.queue_assistant || {}

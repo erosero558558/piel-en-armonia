@@ -216,6 +216,7 @@ function app_downloads_surface_ui_map(): array
 
         $surfaces[$surfaceId] = [
             'id' => $surfaceId,
+            'status' => (string) ($surfaceDefinition['status'] ?? 'missing'),
             'family' => (string) ($surfaceDefinition['family'] ?? ''),
             'webFallbackUrl' => (string) ($surfaceDefinition['webFallbackUrl'] ?? '/'),
             'guideUrl' => (string) ($surfaceDefinition['guideUrl'] ?? ('/app-downloads/?surface=' . $surfaceId)),

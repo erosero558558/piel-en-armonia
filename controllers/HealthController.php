@@ -7,6 +7,9 @@ require_once __DIR__ . '/../lib/TurneroOperatorAccess.php';
 require_once __DIR__ . '/../lib/telemedicine/TelemedicineOpsSnapshot.php';
 require_once __DIR__ . '/../lib/PatientCaseService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
+require_once __DIR__ . '/../lib/openclaw/AIRouter.php';
+require_once __DIR__ . '/../lib/DoctorProfileStore.php';
+require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
 
 class HealthController
@@ -96,6 +99,10 @@ class HealthController
             ? whatsapp_openclaw_health_snapshot($store)
             : ['configured' => false];
         $leadOpsSnapshot = LeadOpsService::buildHealthSnapshot($store);
+        $aiRouterSnapshot = self::collectAiRouterSnapshot();
+        $dataFilesSnapshot = self::collectDataFilesSnapshot();
+        $doctorProfileSnapshot = self::collectDoctorProfileSnapshot();
+        $clinicProfileSnapshot = self::collectClinicProfileSnapshot();
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
         $confirmedAppointments = 0;
         foreach ($appointments as $appointment) {
@@ -219,6 +226,12 @@ class HealthController
             'leadOpsMode' => (string) ($leadOpsSnapshot['mode'] ?? 'disabled'),
             'leadOpsPendingCallbacks' => (int) ($leadOpsSnapshot['pendingCallbacks'] ?? 0),
             'leadOpsWorkerDegraded' => (bool) ($leadOpsSnapshot['degraded'] ?? true),
+            'aiRouterMode' => (string) ($aiRouterSnapshot['router_mode'] ?? 'unknown'),
+            'aiRouterActiveProvider' => (string) ($aiRouterSnapshot['active_provider'] ?? 'local_heuristic'),
+            'aiRouterDegraded' => (bool) ($aiRouterSnapshot['degraded'] ?? false),
+            'doctorProfileLoaded' => (bool) ($doctorProfileSnapshot['loaded'] ?? false),
+            'clinicProfileLoaded' => (bool) ($clinicProfileSnapshot['loaded'] ?? false),
+            'healthDataFilesOk' => (bool) ($dataFilesSnapshot['ok'] ?? false),
             'publicSyncConfigured' => (bool) ($publicSyncCheck['configured'] ?? false),
             'publicSyncHealthy' => (bool) ($publicSyncCheck['healthy'] ?? false),
             'publicSyncRepoHygieneIssue' => (bool) ($publicSyncCheck['repoHygieneIssue'] ?? false),
@@ -270,6 +283,10 @@ class HealthController
             'servicesCatalogVersion' => (string) ($servicesCatalog['version'] ?? 'unknown'),
             'servicesCatalogCount' => (int) ($servicesCatalog['servicesCount'] ?? 0),
             'servicesCatalogConfigured' => (bool) ($servicesCatalog['configured'] ?? false),
+            'tiers' => self::publicAiRouterSummary($aiRouterSnapshot),
+            'data_files' => self::publicDataFilesSummary($dataFilesSnapshot),
+            'doctor_profile' => self::publicProfileSummary($doctorProfileSnapshot),
+            'clinic_profile' => self::publicProfileSummary($clinicProfileSnapshot),
             'idempotency' => $idempotencySnapshot,
             'checks' => [
                 'storage' => [
@@ -320,6 +337,10 @@ class HealthController
                 'turneroPilot' => $turneroPilotSnapshot,
                 'whatsappOpenclaw' => $whatsappOpenclawSnapshot,
                 'leadOps' => $leadOpsSnapshot,
+                'aiRouter' => $aiRouterSnapshot,
+                'dataFiles' => $dataFilesSnapshot,
+                'doctorProfile' => $doctorProfileSnapshot,
+                'clinicProfile' => $clinicProfileSnapshot,
                 'backup' => $backupCheck,
                 'publicSync' => $publicSyncCheck,
                 'patientFlow' => $patientFlowSnapshot,
@@ -528,6 +549,11 @@ class HealthController
             'version' => (string) ($detailedPayload['version'] ?? app_runtime_version()),
             'timestamp' => (string) ($detailedPayload['timestamp'] ?? local_date('c')),
         ];
+        foreach (['tiers', 'data_files', 'doctor_profile', 'clinic_profile'] as $field) {
+            if (array_key_exists($field, $detailedPayload)) {
+                $payload[$field] = $detailedPayload[$field];
+            }
+        }
         foreach (self::publicCalendarSummaryFields($detailedPayload) as $key => $value) {
             $payload[$key] = $value;
         }
@@ -599,6 +625,298 @@ class HealthController
                 ? array_values($raw['dirtyPathsSample'])
                 : [],
         ];
+    }
+
+    private static function collectAiRouterSnapshot(): array
+    {
+        $status = [
+            'router_mode' => 'unknown',
+            'active_provider' => 'local_heuristic',
+            'active_tier' => 'tier_3',
+            'degraded' => false,
+            'providers' => [],
+            'last_updated' => gmdate('c'),
+        ];
+
+        if (class_exists('OpenclawAIRouter')) {
+            $routerStatus = (new OpenclawAIRouter())->getStatus();
+            if (is_array($routerStatus)) {
+                $status = array_merge($status, $routerStatus);
+            }
+        }
+
+        $providers = is_array($status['providers'] ?? null) ? array_values($status['providers']) : [];
+        $codexProvider = self::findAiProviderSnapshot($providers, static fn(array $provider): bool => (string) ($provider['provider'] ?? '') === 'codex_oauth');
+        $openRouterProviders = array_values(array_filter(
+            $providers,
+            static fn(array $provider): bool => str_starts_with((string) ($provider['provider'] ?? ''), 'openrouter:')
+        ));
+        $localProvider = self::findAiProviderSnapshot($providers, static fn(array $provider): bool => (string) ($provider['provider'] ?? '') === 'local_heuristic');
+
+        return [
+            'ok' => true,
+            'router_mode' => (string) ($status['router_mode'] ?? 'unknown'),
+            'active_provider' => (string) ($status['active_provider'] ?? 'local_heuristic'),
+            'active_tier' => (string) ($status['active_tier'] ?? 'tier_3'),
+            'degraded' => (bool) ($status['degraded'] ?? false),
+            'last_updated' => (string) ($status['last_updated'] ?? gmdate('c')),
+            'tiers' => [
+                'codex' => [
+                    'available' => self::isAiCodexConfigured(),
+                    'active' => (bool) ($codexProvider['active'] ?? false),
+                    'cooldown_remaining_seconds' => (int) ($codexProvider['cooldown_remaining_seconds'] ?? 0),
+                ],
+                'openrouter' => [
+                    'available' => self::isAiOpenRouterConfigured(),
+                    'active' => self::anyAiProviderActive($openRouterProviders),
+                    'providers_configured' => count($openRouterProviders),
+                    'cooldown_remaining_seconds' => self::maxAiProviderCooldown($openRouterProviders),
+                ],
+                'local' => [
+                    'available' => true,
+                    'active' => (bool) ($localProvider['active'] ?? false),
+                    'cooldown_remaining_seconds' => (int) ($localProvider['cooldown_remaining_seconds'] ?? 0),
+                ],
+            ],
+            'providers' => $providers,
+        ];
+    }
+
+    private static function publicAiRouterSummary(array $snapshot): array
+    {
+        return [
+            'ok' => (bool) ($snapshot['ok'] ?? false),
+            'router_mode' => (string) ($snapshot['router_mode'] ?? 'unknown'),
+            'active_provider' => (string) ($snapshot['active_provider'] ?? 'local_heuristic'),
+            'active_tier' => (string) ($snapshot['active_tier'] ?? 'tier_3'),
+            'degraded' => (bool) ($snapshot['degraded'] ?? false),
+            'codex' => self::publicAiTierSummary($snapshot['tiers']['codex'] ?? null),
+            'openrouter' => self::publicAiTierSummary($snapshot['tiers']['openrouter'] ?? null),
+            'local' => self::publicAiTierSummary($snapshot['tiers']['local'] ?? null),
+        ];
+    }
+
+    private static function publicAiTierSummary($raw): array
+    {
+        if (!is_array($raw)) {
+            return [
+                'available' => false,
+                'active' => false,
+            ];
+        }
+
+        $payload = [
+            'available' => (bool) ($raw['available'] ?? false),
+            'active' => (bool) ($raw['active'] ?? false),
+        ];
+
+        if (array_key_exists('providers_configured', $raw)) {
+            $payload['providers_configured'] = (int) ($raw['providers_configured'] ?? 0);
+        }
+
+        return $payload;
+    }
+
+    private static function collectDataFilesSnapshot(): array
+    {
+        $cie10Path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cie10.json';
+        $protocolsPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'protocols';
+        $drugInteractionsPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'drug-interactions.json';
+
+        $cie10 = [
+            'exists' => is_file($cie10Path),
+            'readable' => is_readable($cie10Path),
+            'path' => $cie10Path,
+        ];
+        $protocolEntries = self::countDirectoryEntries($protocolsPath);
+        $protocols = [
+            'exists' => is_dir($protocolsPath),
+            'readable' => is_readable($protocolsPath),
+            'entries' => $protocolEntries,
+            'path' => $protocolsPath,
+        ];
+        $drugInteractions = [
+            'exists' => is_file($drugInteractionsPath),
+            'readable' => is_readable($drugInteractionsPath),
+            'path' => $drugInteractionsPath,
+        ];
+
+        return [
+            'ok' => $cie10['exists'] && $protocols['exists'] && $drugInteractions['exists'],
+            'cie10' => $cie10,
+            'protocols' => $protocols,
+            'drug_interactions' => $drugInteractions,
+        ];
+    }
+
+    private static function publicDataFilesSummary(array $snapshot): array
+    {
+        return [
+            'ok' => (bool) ($snapshot['ok'] ?? false),
+            'cie10' => self::publicFileCheckSummary($snapshot['cie10'] ?? null),
+            'protocols' => self::publicFileCheckSummary($snapshot['protocols'] ?? null),
+            'drug_interactions' => self::publicFileCheckSummary($snapshot['drug_interactions'] ?? null),
+        ];
+    }
+
+    private static function publicFileCheckSummary($raw): array
+    {
+        if (!is_array($raw)) {
+            return [
+                'exists' => false,
+            ];
+        }
+
+        $payload = [
+            'exists' => (bool) ($raw['exists'] ?? false),
+            'readable' => (bool) ($raw['readable'] ?? false),
+        ];
+
+        if (array_key_exists('entries', $raw)) {
+            $payload['entries'] = (int) ($raw['entries'] ?? 0);
+        }
+
+        return $payload;
+    }
+
+    private static function collectDoctorProfileSnapshot(): array
+    {
+        $path = doctor_profile_config_path();
+        $profile = read_doctor_profile();
+
+        return [
+            'ok' => self::isValidJsonConfigFile($path),
+            'loaded' => self::isValidJsonConfigFile($path),
+            'path' => $path,
+            'file_exists' => is_file($path),
+            'name_present' => trim((string) ($profile['fullName'] ?? '')) !== '',
+            'specialty_present' => trim((string) ($profile['specialty'] ?? '')) !== '',
+            'msp_present' => trim((string) ($profile['mspNumber'] ?? '')) !== '',
+            'signature_present' => trim((string) ($profile['signatureImage'] ?? '')) !== '',
+            'updated_at' => trim((string) ($profile['updatedAt'] ?? '')),
+        ];
+    }
+
+    private static function collectClinicProfileSnapshot(): array
+    {
+        $path = clinic_profile_config_path();
+        $profile = read_clinic_profile();
+
+        return [
+            'ok' => self::isValidJsonConfigFile($path),
+            'loaded' => self::isValidJsonConfigFile($path),
+            'path' => $path,
+            'file_exists' => is_file($path),
+            'name_present' => trim((string) ($profile['clinicName'] ?? '')) !== '',
+            'address_present' => trim((string) ($profile['address'] ?? '')) !== '',
+            'phone_present' => trim((string) ($profile['phone'] ?? '')) !== '',
+            'logo_present' => trim((string) ($profile['logoImage'] ?? '')) !== '',
+        ];
+    }
+
+    private static function publicProfileSummary(array $snapshot): array
+    {
+        $payload = [
+            'ok' => (bool) ($snapshot['ok'] ?? false),
+            'loaded' => (bool) ($snapshot['loaded'] ?? false),
+        ];
+
+        foreach ([
+            'name_present',
+            'specialty_present',
+            'msp_present',
+            'signature_present',
+            'address_present',
+            'phone_present',
+            'logo_present',
+        ] as $field) {
+            if (array_key_exists($field, $snapshot)) {
+                $payload[$field] = (bool) ($snapshot[$field] ?? false);
+            }
+        }
+
+        return $payload;
+    }
+
+    private static function findAiProviderSnapshot(array $providers, callable $matcher): array
+    {
+        foreach ($providers as $provider) {
+            if (is_array($provider) && $matcher($provider)) {
+                return $provider;
+            }
+        }
+
+        return [];
+    }
+
+    private static function anyAiProviderActive(array $providers): bool
+    {
+        foreach ($providers as $provider) {
+            if ((bool) ($provider['active'] ?? false)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function maxAiProviderCooldown(array $providers): int
+    {
+        $max = 0;
+        foreach ($providers as $provider) {
+            $max = max($max, (int) ($provider['cooldown_remaining_seconds'] ?? 0));
+        }
+
+        return $max;
+    }
+
+    private static function isAiCodexConfigured(): bool
+    {
+        return api_figo_env_gateway_endpoint() !== '' || trim((string) (getenv('OPENCLAW_CODEX_ENDPOINT') ?: '')) !== '';
+    }
+
+    private static function isAiOpenRouterConfigured(): bool
+    {
+        return api_first_non_empty([
+            getenv('OPENCLAW_OPENROUTER_KEY'),
+            getenv('OPENROUTER_API_KEY'),
+        ]) !== '';
+    }
+
+    private static function countDirectoryEntries(string $path): int
+    {
+        if (!is_dir($path)) {
+            return 0;
+        }
+
+        $entries = @scandir($path);
+        if (!is_array($entries)) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            $count++;
+        }
+
+        return $count;
+    }
+
+    private static function isValidJsonConfigFile(string $path): bool
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            return false;
+        }
+
+        $raw = @file_get_contents($path);
+        if (!is_string($raw) || trim($raw) === '') {
+            return false;
+        }
+
+        return is_array(json_decode($raw, true));
     }
 
     private static function resolveCalendarReachable(

@@ -234,6 +234,64 @@ test.describe('Public V6 software suite', () => {
         expect(requestCount).toBeGreaterThan(0);
     });
 
+    test('software demo surface runs kiosk to operator sandbox with shared demo state', async ({
+        page,
+    }) => {
+        await gotoPublicRoute(page, '/es/software/turnero-clinicas/demo/');
+
+        const root = page.locator('[data-v6-demo-sandbox-root]');
+        await expect(root).toBeVisible();
+        await expect(
+            page.locator('[data-v6-section-nav="software-surface"] [data-v6-section-link]')
+        ).toHaveCount(6);
+        await expect(page.locator('[data-v6-demo-sandbox-ticket-state]')).toContainText(
+            'Esperando check-in del kiosco'
+        );
+        await expect(page.locator('[data-v6-demo-sandbox-call]')).toBeDisabled();
+
+        await page.locator('[data-v6-demo-sandbox-checkin="scheduled"]').click();
+
+        await expect(root).toHaveAttribute('data-state', 'queued');
+        await expect(page.locator('[data-v6-demo-sandbox-ticket-code]')).toContainText(
+            'A-042'
+        );
+        await expect(page.locator('[data-v6-demo-sandbox-ticket-state]')).toContainText(
+            'En cola'
+        );
+        await expect(page.locator('[data-v6-demo-sandbox-ticket-channel]')).toContainText(
+            'QR cita'
+        );
+        await expect(page.locator('[data-v6-demo-sandbox-ticket-wait]')).toContainText(
+            /\d+\smin/
+        );
+        await expect(page.locator('[data-v6-demo-sandbox-call]')).toBeEnabled();
+        await expect(
+            page.locator('[data-v6-demo-sandbox-next-list] li').first()
+        ).toContainText('A-042');
+
+        await page.locator('[data-v6-demo-sandbox-call]').click();
+
+        await expect(root).toHaveAttribute('data-state', 'called');
+        await expect(page.locator('[data-v6-demo-sandbox-ticket-state]')).toContainText(
+            'Llamado a consultorio'
+        );
+        await expect(page.locator('[data-v6-demo-sandbox-ticket-wait]')).toContainText(
+            'Ahora'
+        );
+        await expect(
+            page.locator('[data-v6-demo-sandbox-calling-list] li').first()
+        ).toContainText('A-042');
+        await expect(
+            page.locator('[data-v6-demo-sandbox-calling-list] li').first()
+        ).toContainText('Consultorio 2');
+
+        await page.locator('[data-v6-demo-sandbox-reset]').click();
+
+        await expect(root).toHaveAttribute('data-state', 'kiosk');
+        await expect(page.locator('[data-v6-demo-sandbox-ticket-code]')).toContainText('--');
+        await expect(page.locator('[data-v6-demo-sandbox-call]')).toBeDisabled();
+    });
+
     test('software surfaces expose distinct visual tokens by stage', async ({
         page,
     }) => {

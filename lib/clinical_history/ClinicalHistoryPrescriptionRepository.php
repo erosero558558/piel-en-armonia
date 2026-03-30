@@ -108,4 +108,9 @@ final class ClinicalHistoryPrescriptionRepository
     
             return trim(implode("\n", array_filter($lines, static fn ($value): bool => self::trimString($value) !== '')));
         }
+
+    private static function trimString($value): string
+        {
+            return trim((string) $value);
+        }
 }

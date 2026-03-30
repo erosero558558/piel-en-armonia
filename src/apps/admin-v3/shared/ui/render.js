@@ -52,35 +52,20 @@ function normalizeToastOptions(options) {
 }
 
 export function createToast(message, type = 'info', options = {}) {
-    const container = qs('#toastContainer');
-    if (!(container instanceof HTMLElement)) return;
     const toastOptions = normalizeToastOptions(options);
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
-    if (toastOptions.sticky) {
-        toast.dataset.sticky = 'true';
-    }
-    toast.innerHTML = `
-        <div class="toast-body">${escapeHtml(message)}</div>
-        <button type="button" data-action="close-toast" class="toast-close" aria-label="Cerrar">x</button>
-    `;
-    container.appendChild(toast);
-
     const durationMs = toastOptions.sticky
         ? 0
         : Number.isFinite(toastOptions.durationMs)
           ? Math.max(0, Number(toastOptions.durationMs))
           : 4500;
 
-    if (durationMs > 0) {
-        window.setTimeout(() => {
-            if (toast.parentElement) toast.remove();
-        }, durationMs);
+    if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+        return window.showToast(message, type, durationMs);
     }
-
-    return toast;
+    
+    // Fallback if global is missing
+    console.warn('[Toast Fallback]', type, message);
+    return null;
 }
 
 export function setText(selector, value) {

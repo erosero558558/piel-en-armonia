@@ -33,6 +33,7 @@ class AnalyticsController
             Metrics::increment('conversion_funnel_events_total', $labels);
             FunnelMetricsService::recordDerivedMetrics($event, $labels);
         }
+        FunnelTimelineStore::recordEvent($event, $labels);
 
         json_response([
             'ok' => true,

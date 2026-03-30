@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../common.php';
+require_once __DIR__ . '/ClinicalHistoryPrescriptionRepository.php';
 
 final class ClinicalHistoryEvolutionRepository
 {
@@ -112,5 +113,45 @@ final class ClinicalHistoryEvolutionRepository
             ];
     
             return trim(implode("\n", array_filter($lines, static fn ($line): bool => is_string($line) && trim($line) !== '')));
+        }
+
+    private static function normalizePrescriptionItems($items): array
+        {
+            return ClinicalHistoryPrescriptionRepository::normalizePrescriptionItems($items);
+        }
+
+    private static function prescriptionItemIsStarted(array $item): bool
+        {
+            return ClinicalHistoryPrescriptionRepository::prescriptionItemIsStarted($item);
+        }
+
+    private static function prescriptionItemIsComplete(array $item): bool
+        {
+            return ClinicalHistoryPrescriptionRepository::prescriptionItemIsComplete($item);
+        }
+
+    /**
+     * @return array<int,string>
+     */
+    private static function normalizeStringList($items): array
+        {
+            if (!is_array($items)) {
+                return [];
+            }
+
+            $normalized = [];
+            foreach ($items as $item) {
+                $value = self::trimString($item);
+                if ($value !== '') {
+                    $normalized[] = $value;
+                }
+            }
+
+            return array_values($normalized);
+        }
+
+    private static function trimString($value): string
+        {
+            return trim((string) $value);
         }
 }

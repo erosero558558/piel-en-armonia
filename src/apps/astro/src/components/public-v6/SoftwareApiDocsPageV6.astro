@@ -1,0 +1,439 @@
+---
+import '../../styles/public-v6/software.css';
+import PageHeadV6 from './PageHeadV6.astro';
+
+const { locale = 'es', navModel = {}, page = {}, docs = {} } = Astro.props;
+
+const pageHeadUi =
+    navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object'
+        ? navModel.ui.pageHead
+        : {};
+const breadcrumb = Array.isArray(page?.breadcrumb) ? page.breadcrumb : [];
+const switchLabel = navModel?.header?.switchLabel || '';
+const switchHref = navModel?.header?.switchHref || '';
+const menuLabel = navModel?.header?.menuLabel || '';
+const contactHref =
+    navModel?.header?.contactHref ||
+    'https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede';
+
+const copy =
+    locale === 'en'
+        ? {
+              heroEyebrow: 'Developer docs',
+              heroTitle: 'OpenAPI reference for Flow OS external integrations',
+              heroDeck: 'Review the public contract before wiring booking, callbacks, reviews, payments, telemetry, and telemedicine operations into another clinic stack.',
+              downloadLabel: 'Download OpenAPI YAML',
+              editorLabel: 'Open Swagger Editor',
+              overviewLabel: 'Contract snapshot',
+              serversLabel: 'Servers',
+              securityLabel: 'Auth and guardrails',
+              endpointsLabel: 'Endpoint groups',
+              examplesLabel: 'Examples',
+              finalLabel: 'Next step',
+              sectionOverview: 'Contract snapshot',
+              sectionServers: 'Environments',
+              sectionSecurity: 'Auth and limits',
+              sectionEndpoints: 'Resources',
+              sectionExamples: 'Examples',
+              sectionFinal: 'Shipping',
+              overviewEyebrow: 'OpenAPI 3.1',
+              overviewTitle: 'One contract, legacy routing included',
+              overviewDeck: 'The API is still reached through `api.php?resource=...`, and the spec already documents that routing note so external teams do not guess the transport.',
+              routingTitle: 'Routing note',
+              routingBody: 'Logical resources are exposed through `api.php` with the `resource` query parameter. The OpenAPI file already maps that legacy shape explicitly.',
+              schemaTitle: 'Schemas',
+              schemaBody: 'Appointments, callbacks, reviews, availability, payments, health, and telemedicine stay typed in the same contract.',
+              serversEyebrow: 'Deploy targets',
+              serversTitle: 'Production and local dev are both documented',
+              serversDeck: 'The same YAML lists the production host and the local host used in preview and CI smoke flows.',
+              serverUrl: 'Base URL',
+              securityEyebrow: 'Security',
+              securityTitle: 'Cookie auth, CSRF, and rate limits are called out',
+              securityDeck: 'Protected mutations require admin session and CSRF. Public writes remain rate-limited per IP to keep the intake layer safe.',
+              rateLimitTitle: 'Published rate limits',
+              rateLimitWindow: 'per 60 s',
+              endpointEyebrow: 'Resources',
+              endpointTitle: 'Endpoint groups pulled from the current spec',
+              endpointDeck: 'Every group below is derived from `docs/openapi.yaml`, so this page stays aligned with the contract that engineers actually import.',
+              endpointCount: 'operations',
+              exampleEyebrow: 'Examples',
+              exampleTitle: 'Use the same resource format the backend expects',
+              exampleDeck: 'The examples stay intentionally simple: public availability lookup and appointment creation over the documented `resource` transport.',
+              finalEyebrow: 'Integrate',
+              finalTitle: 'Need sandbox support or tenant-specific onboarding?',
+              finalDeck: 'Share the integration scope and we can walk through auth, rate limits, rollout order, and the Aurora Derm reference tenant.',
+              rateLimits: [
+                  { resource: 'appointments', method: 'POST', limit: 5 },
+                  { resource: 'callbacks', method: 'POST', limit: 5 },
+                  { resource: 'reviews', method: 'POST', limit: 3 },
+                  { resource: 'payment-intent', method: 'POST', limit: 8 },
+                  { resource: 'transfer-proof', method: 'POST', limit: 6 },
+                  { resource: 'reschedule', method: 'PATCH', limit: 5 },
+              ],
+              examples: {
+                  availability: `GET /api.php?resource=availability`,
+                  appointment: `POST /api.php?resource=appointments
+Content-Type: application/json
+
+{
+  "service": "consulta",
+  "doctor": "rosero",
+  "date": "2026-04-02",
+  "time": "10:00",
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "phone": "0991234567",
+  "privacyConsent": true
+}`,
+              },
+          }
+        : {
+              heroEyebrow: 'Documentacion developer',
+              heroTitle: 'Referencia OpenAPI para integraciones externas de Flow OS',
+              heroDeck: 'Revisa el contrato publico antes de conectar agenda, callbacks, reviews, pagos, telemetria y operacion de telemedicina con otro stack clinico.',
+              downloadLabel: 'Descargar OpenAPI YAML',
+              editorLabel: 'Abrir Swagger Editor',
+              overviewLabel: 'Resumen',
+              serversLabel: 'Servidores',
+              securityLabel: 'Auth y guardrails',
+              endpointsLabel: 'Grupos de endpoints',
+              examplesLabel: 'Ejemplos',
+              finalLabel: 'Siguiente paso',
+              sectionOverview: 'Resumen',
+              sectionServers: 'Entornos',
+              sectionSecurity: 'Auth y limites',
+              sectionEndpoints: 'Recursos',
+              sectionExamples: 'Ejemplos',
+              sectionFinal: 'Integracion',
+              overviewEyebrow: 'OpenAPI 3.1',
+              overviewTitle: 'Un solo contrato, incluso con routing legacy',
+              overviewDeck: 'La API sigue entrando por `api.php?resource=...`, y la spec ya documenta esa nota de routing para que equipos externos no adivinen el transporte.',
+              routingTitle: 'Nota de routing',
+              routingBody: 'Los recursos logicos se exponen por `api.php` usando el query param `resource`. El archivo OpenAPI ya modela esa forma legacy de manera explicita.',
+              schemaTitle: 'Schemas',
+              schemaBody: 'Citas, callbacks, reviews, disponibilidad, pagos, health y telemedicina quedan tipados dentro del mismo contrato.',
+              serversEyebrow: 'Targets',
+              serversTitle: 'Produccion y dev local ya vienen documentados',
+              serversDeck: 'El mismo YAML lista el host productivo y el host local usado en preview y en los smoke flows de CI.',
+              serverUrl: 'Base URL',
+              securityEyebrow: 'Seguridad',
+              securityTitle: 'Cookie auth, CSRF y rate limits ya quedan explicitados',
+              securityDeck: 'Las mutaciones protegidas requieren sesion admin y CSRF. Las escrituras publicas siguen limitadas por IP para proteger la capa de intake.',
+              rateLimitTitle: 'Rate limits publicados',
+              rateLimitWindow: 'por 60 s',
+              endpointEyebrow: 'Recursos',
+              endpointTitle: 'Grupos de endpoints sacados de la spec vigente',
+              endpointDeck: 'Cada grupo de abajo se deriva de `docs/openapi.yaml`, asi que esta pagina sigue el mismo contrato que los integradores importan.',
+              endpointCount: 'operaciones',
+              exampleEyebrow: 'Ejemplos',
+              exampleTitle: 'Usa el mismo formato `resource` que espera el backend',
+              exampleDeck: 'Los ejemplos son deliberadamente simples: consulta publica de disponibilidad y creacion de cita sobre el transporte documentado.',
+              finalEyebrow: 'Integrar',
+              finalTitle: 'Necesitas sandbox o onboarding por tenant?',
+              finalDeck: 'Comparte el alcance de integracion y te guiamos en auth, rate limits, orden de rollout y tenant de referencia Aurora Derm.',
+              rateLimits: [
+                  { resource: 'appointments', method: 'POST', limit: 5 },
+                  { resource: 'callbacks', method: 'POST', limit: 5 },
+                  { resource: 'reviews', method: 'POST', limit: 3 },
+                  { resource: 'payment-intent', method: 'POST', limit: 8 },
+                  { resource: 'transfer-proof', method: 'POST', limit: 6 },
+                  { resource: 'reschedule', method: 'PATCH', limit: 5 },
+              ],
+              examples: {
+                  availability: `GET /api.php?resource=availability`,
+                  appointment: `POST /api.php?resource=appointments
+Content-Type: application/json
+
+{
+  "service": "consulta",
+  "doctor": "rosero",
+  "date": "2026-04-02",
+  "time": "10:00",
+  "name": "Juan Perez",
+  "email": "juan@example.com",
+  "phone": "0991234567",
+  "privacyConsent": true
+}`,
+              },
+          };
+
+const actionClass = (variant = 'secondary') => [
+    'v6-suite-action',
+    variant === 'primary'
+        ? 'is-primary'
+        : variant === 'ghost'
+            ? 'is-ghost'
+            : 'is-secondary',
+];
+
+const servers = Array.isArray(docs?.servers) ? docs.servers : [];
+const securitySchemes = Array.isArray(docs?.securitySchemes)
+    ? docs.securitySchemes
+    : [];
+const endpointGroups = Array.isArray(docs?.groups) ? docs.groups : [];
+const counts =
+    docs?.counts && typeof docs.counts === 'object' ? docs.counts : {};
+
+const sectionDefs = [
+    { id: 'v6-api-docs-overview', label: copy.sectionOverview },
+    { id: 'v6-api-docs-servers', label: copy.sectionServers },
+    { id: 'v6-api-docs-security', label: copy.sectionSecurity },
+    { id: 'v6-api-docs-endpoints', label: copy.sectionEndpoints },
+    { id: 'v6-api-docs-examples', label: copy.sectionExamples },
+    { id: 'v6-api-docs-final', label: copy.sectionFinal },
+];
+const sectionIndexById = Object.fromEntries(
+    sectionDefs.map((item, index) => [item.id, String(index + 1).padStart(2, '0')])
+);
+const menuItems = sectionDefs.map((item) => ({
+    label: item.label,
+    href: `#${item.id}`,
+}));
+---
+
+<PageHeadV6
+    breadcrumb={breadcrumb}
+    heading={page.heading}
+    locale={locale}
+    switchLabel={switchLabel}
+    switchHref={switchHref}
+    menuLabel={menuLabel}
+    menuItems={menuItems}
+    copy={pageHeadUi}
+/>
+
+<div class="v6-suite-surface-page is-api-docs" data-v6-api-docs-page>
+    <section class="v6-suite-surface-hero">
+        <div class="v6-suite-shell v6-suite-surface-hero__shell">
+            <div class="v6-suite-surface-hero__copy">
+                <p class="v6-suite-eyebrow">{copy.heroEyebrow}</p>
+                <h2>{copy.heroTitle}</h2>
+                <p class="v6-suite-lead">{copy.heroDeck}</p>
+                <div class="v6-suite-actions">
+                    <a
+                        class:list={actionClass('primary')}
+                        href="/docs/openapi.yaml"
+                        data-v6-api-docs-download
+                    >
+                        {copy.downloadLabel}
+                    </a>
+                    <a
+                        class:list={actionClass('secondary')}
+                        href="https://editor.swagger.io/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {copy.editorLabel}
+                    </a>
+                </div>
+            </div>
+
+            <aside class="v6-suite-hero__board v6-suite-hero__board--surface v6-suite-api-docs-hero-board">
+                <article class="v6-suite-surface-scene__headline">
+                    <p>{copy.overviewLabel}</p>
+                    <h3>{docs?.info?.title || 'OpenAPI'}</h3>
+                    <span>{docs?.info?.version || docs?.info?.openapi || ''}</span>
+                </article>
+                <div class="v6-suite-metrics v6-suite-metrics--surface">
+                    <article class="v6-suite-metric">
+                        <strong data-v6-api-docs-openapi-version>{docs?.info?.openapi || '--'}</strong>
+                        <h3>OpenAPI</h3>
+                        <p>{docs?.info?.version || '--'}</p>
+                    </article>
+                    <article class="v6-suite-metric">
+                        <strong>{counts.operations || 0}</strong>
+                        <h3>{copy.endpointCount}</h3>
+                        <p>{counts.paths || 0} resources</p>
+                    </article>
+                    <article class="v6-suite-metric">
+                        <strong>{counts.schemas || 0}</strong>
+                        <h3>{copy.sectionOverview}</h3>
+                        <p>{securitySchemes.length} security schemes</p>
+                    </article>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <div class="v6-suite-shell v6-suite-surface-shell">
+        <aside class="v6-suite-surface-rail" data-v6-suite-rail="surface">
+            <p>{page.heading || ''}</p>
+            <nav data-v6-section-nav="software-surface" aria-label={pageHeadUi.pageNavigationLabel || ''}>
+                {menuItems.map((item) => (
+                    <a data-v6-section-link href={item.href}>{item.label}</a>
+                ))}
+            </nav>
+        </aside>
+
+        <div class="v6-suite-surface-shell__body">
+            <section
+                id="v6-api-docs-overview"
+                class="v6-suite-section is-tight v6-suite-surface-block"
+                data-v6-api-docs-section="overview"
+            >
+                <header class="v6-suite-section__head">
+                    <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                        <span>{sectionIndexById['v6-api-docs-overview']}</span>
+                    </div>
+                    <p>{copy.overviewEyebrow}</p>
+                    <h2>{copy.overviewTitle}</h2>
+                    <span>{copy.overviewDeck}</span>
+                </header>
+                <div class="v6-suite-api-docs-summary">
+                    <article class="v6-suite-card v6-suite-api-docs-summary-card">
+                        <h3>{copy.routingTitle}</h3>
+                        <p>{copy.routingBody}</p>
+                    </article>
+                    <article class="v6-suite-card v6-suite-api-docs-summary-card">
+                        <h3>{copy.schemaTitle}</h3>
+                        <p>{copy.schemaBody}</p>
+                    </article>
+                </div>
+            </section>
+
+            <section
+                id="v6-api-docs-servers"
+                class="v6-suite-section is-tight v6-suite-surface-block"
+                data-v6-api-docs-section="servers"
+            >
+                <header class="v6-suite-section__head">
+                    <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                        <span>{sectionIndexById['v6-api-docs-servers']}</span>
+                    </div>
+                    <p>{copy.serversEyebrow}</p>
+                    <h2>{copy.serversTitle}</h2>
+                    <span>{copy.serversDeck}</span>
+                </header>
+                <div class="v6-suite-api-docs-server-grid">
+                    {servers.map((server) => (
+                        <article class="v6-suite-card v6-suite-api-docs-server" data-v6-api-docs-server>
+                            <p>{server.description}</p>
+                            <h3>{copy.serverUrl}</h3>
+                            <code>{server.url}</code>
+                        </article>
+                    ))}
+                </div>
+            </section>
+
+            <section
+                id="v6-api-docs-security"
+                class="v6-suite-section is-tight v6-suite-surface-block"
+                data-v6-api-docs-section="security"
+            >
+                <header class="v6-suite-section__head">
+                    <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                        <span>{sectionIndexById['v6-api-docs-security']}</span>
+                    </div>
+                    <p>{copy.securityEyebrow}</p>
+                    <h2>{copy.securityTitle}</h2>
+                    <span>{copy.securityDeck}</span>
+                </header>
+                <div class="v6-suite-api-docs-security-grid">
+                    {securitySchemes.map((scheme) => (
+                        <article class="v6-suite-card v6-suite-api-docs-security-card">
+                            <h3>{scheme.key}</h3>
+                            <p>{scheme.type}</p>
+                            <span>{scheme.in} • {scheme.name}</span>
+                        </article>
+                    ))}
+                    <article class="v6-suite-card v6-suite-api-docs-security-card is-rate-limits">
+                        <h3>{copy.rateLimitTitle}</h3>
+                        <ul class="v6-suite-api-docs-rate-limits">
+                            {copy.rateLimits.map((limit) => (
+                                <li>
+                                    <strong>{limit.resource}</strong>
+                                    <span>{limit.method}</span>
+                                    <small>{limit.limit} req {copy.rateLimitWindow}</small>
+                                </li>
+                            ))}
+                        </ul>
+                    </article>
+                </div>
+            </section>
+
+            <section
+                id="v6-api-docs-endpoints"
+                class="v6-suite-section is-tight v6-suite-surface-block"
+                data-v6-api-docs-section="endpoints"
+            >
+                <header class="v6-suite-section__head">
+                    <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                        <span>{sectionIndexById['v6-api-docs-endpoints']}</span>
+                    </div>
+                    <p>{copy.endpointEyebrow}</p>
+                    <h2>{copy.endpointTitle}</h2>
+                    <span>{copy.endpointDeck}</span>
+                </header>
+                <div class="v6-suite-api-docs-group-grid">
+                    {endpointGroups.map((group) => (
+                        <article class="v6-suite-card v6-suite-api-docs-group" data-v6-api-docs-group>
+                            <div class="v6-suite-api-docs-group__head">
+                                <h3>{group.title}</h3>
+                                <span>{group.count} {copy.endpointCount}</span>
+                            </div>
+                            <ul class="v6-suite-api-docs-endpoint-list">
+                                {group.items.map((item) => (
+                                    <li>
+                                        <strong>{item.method}</strong>
+                                        <code>{item.route}</code>
+                                        <span>{item.summary}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </article>
+                    ))}
+                </div>
+            </section>
+
+            <section
+                id="v6-api-docs-examples"
+                class="v6-suite-section is-tight v6-suite-surface-block"
+                data-v6-api-docs-section="examples"
+            >
+                <header class="v6-suite-section__head">
+                    <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                        <span>{sectionIndexById['v6-api-docs-examples']}</span>
+                    </div>
+                    <p>{copy.exampleEyebrow}</p>
+                    <h2>{copy.exampleTitle}</h2>
+                    <span>{copy.exampleDeck}</span>
+                </header>
+                <div class="v6-suite-api-docs-code-grid">
+                    <article class="v6-suite-card v6-suite-api-docs-code-card">
+                        <h3>Availability</h3>
+                        <pre data-v6-api-docs-code><code>{copy.examples.availability}</code></pre>
+                    </article>
+                    <article class="v6-suite-card v6-suite-api-docs-code-card">
+                        <h3>Appointments</h3>
+                        <pre data-v6-api-docs-code><code>{copy.examples.appointment}</code></pre>
+                    </article>
+                </div>
+            </section>
+
+            <section
+                id="v6-api-docs-final"
+                class="v6-suite-final is-inline v6-suite-surface-block"
+                data-v6-api-docs-section="final"
+            >
+                <div class="v6-suite-final__shell">
+                    <div>
+                        <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                            <span>{sectionIndexById['v6-api-docs-final']}</span>
+                        </div>
+                        <p class="v6-suite-eyebrow">{copy.finalEyebrow}</p>
+                        <h2>{copy.finalTitle}</h2>
+                        <p>{copy.finalDeck}</p>
+                    </div>
+                    <div class="v6-suite-actions v6-suite-actions--final">
+                        <a class:list={actionClass('primary')} href="/docs/openapi.yaml">
+                            {copy.downloadLabel}
+                        </a>
+                        <a class:list={actionClass('secondary')} href={contactHref}>
+                            {navModel?.header?.contactLabel || 'Solicitar propuesta'}
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>

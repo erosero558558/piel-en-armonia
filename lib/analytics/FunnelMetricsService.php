@@ -6,6 +6,7 @@ require_once __DIR__ . '/AnalyticsLabelNormalizer.php';
 require_once __DIR__ . '/PrometheusCounterParser.php';
 require_once __DIR__ . '/../QueueAssistantMetricsStore.php';
 require_once __DIR__ . '/RetentionReportService.php';
+require_once __DIR__ . '/FunnelTimelineStore.php';
 
 final class FunnelMetricsService
 {
@@ -266,6 +267,14 @@ final class FunnelMetricsService
         $checkoutAbandon = (int) ($eventTotals['checkout_abandon'] ?? 0);
         $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : [];
 
+        $serviceFunnel = self::buildServiceFunnelBreakdown(
+            $serviceDetailBreakdown,
+            $serviceBookingIntentBreakdown,
+            $serviceCheckoutBreakdown,
+            $serviceConfirmedBreakdown
+        );
+        $conversionTimeline = FunnelTimelineStore::buildReport();
+
         return [
             'summary' => [
                 'viewBooking' => $viewBooking,
@@ -293,12 +302,20 @@ final class FunnelMetricsService
             'serviceBookingIntentBreakdown' => self::toList($serviceBookingIntentBreakdown),
             'serviceCheckoutBreakdown' => self::toList($serviceCheckoutBreakdown),
             'serviceConfirmedBreakdown' => self::toList($serviceConfirmedBreakdown),
-            'serviceFunnel' => self::buildServiceFunnelBreakdown(
-                $serviceDetailBreakdown,
-                $serviceBookingIntentBreakdown,
-                $serviceCheckoutBreakdown,
-                $serviceConfirmedBreakdown
-            ),
+            'serviceFunnel' => $serviceFunnel,
+            'conversionDashboard' => [
+                'today' => is_array($conversionTimeline['today'] ?? null)
+                    ? $conversionTimeline['today']
+                    : [],
+                'last7d' => is_array($conversionTimeline['last7d'] ?? null)
+                    ? $conversionTimeline['last7d']
+                    : [],
+                'dailySeries' => is_array($conversionTimeline['dailySeries'] ?? null)
+                    ? $conversionTimeline['dailySeries']
+                    : [],
+                'topServices' => self::buildTopServices($serviceFunnel),
+                'generatedAt' => (string) ($conversionTimeline['generatedAt'] ?? gmdate('c')),
+            ],
             'surfaceFunnel' => self::buildSurfaceFunnelBreakdown($surfaceFunnelBreakdown),
             'retention' => RetentionReportService::buildSnapshot($store),
             'idempotency' => self::buildIdempotencySnapshot($rawMetrics),
@@ -319,6 +336,15 @@ final class FunnelMetricsService
                 'reason' => AnalyticsLabelNormalizer::normalize($labels['reason'] ?? 'unknown'),
             ]);
         }
+    }
+
+    /**
+     * @param array<int,array<string,int|float|string>> $serviceFunnel
+     * @return array<int,array<string,int|float|string>>
+     */
+    private static function buildTopServices(array $serviceFunnel): array
+    {
+        return array_slice(array_values($serviceFunnel), 0, 5);
     }
 
     /**

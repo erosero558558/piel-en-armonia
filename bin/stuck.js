@@ -20,7 +20,7 @@
  *   node bin/stuck.js S6-11 "Stripe secret key no está en .env - necesita el dueño"
  */
 
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const {
   readFileSync,
   writeFileSync,
@@ -31,12 +31,15 @@ const {
 } = require('fs');
 const { resolve, join, relative } = require('path');
 
+const SOURCE_ROOT = resolve(__dirname, '..');
 const ROOT = process.env.AURORA_DERM_ROOT
   ? resolve(process.env.AURORA_DERM_ROOT)
-  : resolve(__dirname, '..');
+  : SOURCE_ROOT;
 const STUCK_FILE = resolve(ROOT, 'data/claims/stuck.json');
 const CLAIMS_DIR = resolve(ROOT, 'data/claims/tasks');
 const BLOCKERS_FILE = resolve(ROOT, 'BLOCKERS.md');
+const WHATSAPP_DATA_DIR = resolve(ROOT, 'data/whatsapp-openclaw');
+const DIRECTOR_WHATSAPP_SCRIPT = resolve(__dirname, 'notify-director-blocker-whatsapp.php');
 const AUTO_BLOCKERS_START = '<!-- AUTO-BLOCKERS:START -->';
 const AUTO_BLOCKERS_END = '<!-- AUTO-BLOCKERS:END -->';
 
@@ -190,6 +193,55 @@ function shortenReason(reason) {
   return compact.length <= 60 ? compact : `${compact.slice(0, 57)}...`;
 }
 
+function notifyDirector(taskId, reason, agent) {
+  if (!existsSync(DIRECTOR_WHATSAPP_SCRIPT)) {
+    return { ok: false, skipped: true, reason: 'helper_missing' };
+  }
+
+  const env = {
+    ...process.env,
+    PIELARMONIA_DATA_DIR: resolve(ROOT, 'data'),
+  };
+
+  if (ROOT !== SOURCE_ROOT) {
+    env.AURORADERM_SKIP_ENV_FILE = '1';
+    env.PIELARMONIA_SKIP_ENV_FILE = '1';
+  }
+
+  const result = spawnSync('php', [DIRECTOR_WHATSAPP_SCRIPT, taskId, agent, reason], {
+    cwd: SOURCE_ROOT,
+    encoding: 'utf8',
+    env,
+  });
+
+  const stdout = String(result.stdout || '').trim();
+  const stderr = String(result.stderr || '').trim();
+  let payload = null;
+
+  if (stdout !== '') {
+    try {
+      payload = JSON.parse(stdout);
+    } catch {
+      payload = null;
+    }
+  }
+
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      skipped: false,
+      reason: payload?.reason || 'notify_failed',
+      error: payload?.error || stderr || stdout || `php_exit_${result.status}`,
+    };
+  }
+
+  if (payload && typeof payload === 'object') {
+    return payload;
+  }
+
+  return { ok: false, skipped: true, reason: 'empty_response' };
+}
+
 function autoCommit(taskId, reason, mode) {
   if (!isGitRepo()) {
     return { committed: false, message: 'skip: not a git repo' };
@@ -199,7 +251,8 @@ function autoCommit(taskId, reason, mode) {
     relative(ROOT, BLOCKERS_FILE),
     relative(ROOT, STUCK_FILE),
     relative(ROOT, CLAIMS_DIR),
-  ];
+    relative(ROOT, WHATSAPP_DATA_DIR),
+  ].filter((path) => existsSync(resolve(ROOT, path)));
 
   git(['add', '-A', ...pathsToStage]);
 
@@ -328,12 +381,20 @@ function markStuck(taskId, reason) {
 
   writeJson(STUCK_FILE, stuck);
   updateBlockersMarkdown(stuck);
+  const directorNotification = notifyDirector(taskId, reason, agent);
 
   const commit = autoCommit(taskId, reason, 'stuck');
 
   console.log(`\n🚧 Bloqueado registrado: ${taskId}`);
   console.log(`   Razón: ${reason}`);
   console.log(`   BLOCKERS.md actualizado con tarea, fecha, agente y razón.`);
+  if (directorNotification.ok) {
+    console.log(`   WhatsApp al director encolado: ${directorNotification.phone} (${directorNotification.outboxId})`);
+  } else if (directorNotification.skipped) {
+    console.log(`   WhatsApp al director omitido: ${directorNotification.reason}`);
+  } else {
+    console.log(`   WhatsApp al director falló: ${directorNotification.error || directorNotification.reason || 'unknown_error'}`);
+  }
   if (commit.committed) {
     console.log(`   Commit automático creado: ${commit.message}`);
     console.log(`   Siguiente paso: git push origin main`);

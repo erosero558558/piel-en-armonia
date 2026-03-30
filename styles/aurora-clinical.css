@@ -375,3 +375,36 @@
   color: var(--text-inverse, #ffffff) !important;
   border-color: var(--color-aurora-600) !important;
 }
+
+/* Accesibilidad: Estilos de impresión clínica (UI2-04) */
+@media print {
+  /* Ocultar elementos de interfaz no relevantes para el registro legal */
+  .clinical-sidebar, .clinical-nav, button, .btn, .clinical-actions {
+    display: none !important;
+  }
+  
+  /* Reset de layout para impresión continua */
+  body, .clinical-layout, .clinical-main, .clinical-workspace {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  
+  /* Tipografía base de lectura (Documentos médicos suelen ser 12pt) */
+  * {
+    font-size: 12pt !important;
+    line-height: 1.5 !important;
+    color: #000 !important;
+    background: transparent !important;
+  }
+  
+  /* Asegurar que las tarjetas se impriman completas (evitar page-break) */
+  .clinical-panel, .patient-vital-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid;
+  }
+}

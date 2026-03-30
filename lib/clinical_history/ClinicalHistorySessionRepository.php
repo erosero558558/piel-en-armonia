@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../common.php';
+require_once __DIR__ . '/ClinicalHistoryEvolutionRepository.php';
+require_once __DIR__ . '/ClinicalHistoryPrescriptionRepository.php';
+require_once __DIR__ . '/ClinicalHistoryDiagnosisRepository.php';
 
 final class ClinicalHistorySessionRepository
 {
@@ -200,6 +203,46 @@ final class ClinicalHistorySessionRepository
                     ? self::trimString($seed['occurredAt'] ?? ($seed['createdAt'] ?? $now))
                     : $now,
             ];
+        }
+
+    public static function normalizeHcu005Draft(array $draft): array
+        {
+            return ClinicalHistoryEvolutionRepository::normalizeHcu005Draft($draft);
+        }
+
+    public static function normalizeHcu005Section(array $section, array $fallback = []): array
+        {
+            return ClinicalHistoryEvolutionRepository::normalizeHcu005Section($section, $fallback);
+        }
+
+    public static function renderHcu005Summary(array $section): string
+        {
+            return ClinicalHistoryEvolutionRepository::renderHcu005Summary($section);
+        }
+
+    public static function renderHcu005Content(array $section): string
+        {
+            return ClinicalHistoryEvolutionRepository::renderHcu005Content($section);
+        }
+
+    public static function normalizePrescriptionItems($items): array
+        {
+            return ClinicalHistoryPrescriptionRepository::normalizePrescriptionItems($items);
+        }
+
+    public static function renderPrescriptionMedicationMirror(array $items): string
+        {
+            return ClinicalHistoryPrescriptionRepository::renderPrescriptionMedicationMirror($items);
+        }
+
+    public static function renderPrescriptionDirectionsMirror(array $items): string
+        {
+            return ClinicalHistoryPrescriptionRepository::renderPrescriptionDirectionsMirror($items);
+        }
+
+    public static function normalizeInterconsultationDiagnoses($items): array
+        {
+            return ClinicalHistoryDiagnosisRepository::normalizeInterconsultationDiagnoses($items);
         }
 
     public static function findSessionBySessionId(array $store, string $sessionId): ?array
@@ -2349,6 +2392,177 @@ final class ClinicalHistorySessionRepository
             }
     
             return array_values($normalized);
+        }
+
+    public static function normalizeAdmission001(
+        array $admission,
+        array $patient = [],
+        array $intake = [],
+        array $context = []
+    ): array
+        {
+            $defaults = [
+                'identity' => [
+                    'documentType' => 'cedula',
+                    'documentNumber' => '',
+                    'apellidoPaterno' => '',
+                    'apellidoMaterno' => '',
+                    'primerNombre' => '',
+                    'segundoNombre' => '',
+                ],
+                'demographics' => [
+                    'birthDate' => '',
+                    'ageYears' => null,
+                    'sexAtBirth' => '',
+                    'maritalStatus' => '',
+                    'educationLevel' => '',
+                    'occupation' => '',
+                    'employer' => '',
+                    'nationalityCountry' => '',
+                    'culturalGroup' => '',
+                    'birthPlace' => '',
+                ],
+                'residence' => [
+                    'addressLine' => '',
+                    'neighborhood' => '',
+                    'zoneType' => '',
+                    'parish' => '',
+                    'canton' => '',
+                    'province' => '',
+                    'phone' => '',
+                ],
+                'coverage' => [
+                    'healthInsuranceType' => '',
+                ],
+                'referral' => [
+                    'referredBy' => '',
+                ],
+                'emergencyContact' => [
+                    'name' => '',
+                    'kinship' => '',
+                    'phone' => '',
+                ],
+                'admissionMeta' => [
+                    'admissionDate' => '',
+                    'admissionKind' => '',
+                    'admittedBy' => '',
+                    'transitionMode' => 'legacy_inferred',
+                ],
+                'history' => [
+                    'admissionHistory' => [],
+                    'changeLog' => [],
+                ],
+            ];
+
+            $facts = is_array($intake['datosPaciente'] ?? null)
+                ? $intake['datosPaciente']
+                : [];
+            $normalizedPatient = self::normalizePatient($patient);
+            $identity = is_array($admission['identity'] ?? null) ? $admission['identity'] : [];
+            $demographics = is_array($admission['demographics'] ?? null) ? $admission['demographics'] : [];
+            $residence = is_array($admission['residence'] ?? null) ? $admission['residence'] : [];
+            $coverage = is_array($admission['coverage'] ?? null) ? $admission['coverage'] : [];
+            $referral = is_array($admission['referral'] ?? null) ? $admission['referral'] : [];
+            $emergency = is_array($admission['emergencyContact'] ?? null) ? $admission['emergencyContact'] : [];
+            $admissionMeta = is_array($admission['admissionMeta'] ?? null) ? $admission['admissionMeta'] : [];
+            $history = is_array($admission['history'] ?? null) ? $admission['history'] : [];
+
+            $documentType = self::trimString(
+                $identity['documentType']
+                    ?? $normalizedPatient['documentType']
+                    ?? $defaults['identity']['documentType']
+            );
+            if (!in_array($documentType, ['cedula', 'passport', 'other'], true)) {
+                $documentType = $defaults['identity']['documentType'];
+            }
+
+            $transitionMode = self::trimString(
+                $admissionMeta['transitionMode']
+                    ?? $context['transitionMode']
+                    ?? $defaults['admissionMeta']['transitionMode']
+            );
+            if ($transitionMode === '') {
+                $transitionMode = $defaults['admissionMeta']['transitionMode'];
+            }
+
+            return [
+                'identity' => array_merge($defaults['identity'], [
+                    'documentType' => $documentType,
+                    'documentNumber' => self::trimString(
+                        $identity['documentNumber'] ?? $normalizedPatient['documentNumber'] ?? ''
+                    ),
+                    'apellidoPaterno' => self::trimString($identity['apellidoPaterno'] ?? ''),
+                    'apellidoMaterno' => self::trimString($identity['apellidoMaterno'] ?? ''),
+                    'primerNombre' => self::trimString($identity['primerNombre'] ?? ''),
+                    'segundoNombre' => self::trimString($identity['segundoNombre'] ?? ''),
+                ]),
+                'demographics' => array_merge($defaults['demographics'], [
+                    'birthDate' => self::trimString(
+                        $demographics['birthDate']
+                            ?? $facts['fechaNacimiento']
+                            ?? $normalizedPatient['birthDate']
+                            ?? ''
+                    ),
+                    'ageYears' => self::nullablePositiveInt(
+                        $demographics['ageYears']
+                            ?? $facts['edadAnios']
+                            ?? $normalizedPatient['ageYears']
+                            ?? null
+                    ),
+                    'sexAtBirth' => self::trimString(
+                        $demographics['sexAtBirth']
+                            ?? $facts['sexoBiologico']
+                            ?? $normalizedPatient['sexAtBirth']
+                            ?? ''
+                    ),
+                    'maritalStatus' => self::trimString($demographics['maritalStatus'] ?? ''),
+                    'educationLevel' => self::trimString($demographics['educationLevel'] ?? ''),
+                    'occupation' => self::trimString($demographics['occupation'] ?? ''),
+                    'employer' => self::trimString($demographics['employer'] ?? ''),
+                    'nationalityCountry' => self::trimString($demographics['nationalityCountry'] ?? ''),
+                    'culturalGroup' => self::trimString($demographics['culturalGroup'] ?? ''),
+                    'birthPlace' => self::trimString($demographics['birthPlace'] ?? ''),
+                ]),
+                'residence' => array_merge($defaults['residence'], [
+                    'addressLine' => self::trimString($residence['addressLine'] ?? ''),
+                    'neighborhood' => self::trimString($residence['neighborhood'] ?? ''),
+                    'zoneType' => self::trimString($residence['zoneType'] ?? ''),
+                    'parish' => self::trimString($residence['parish'] ?? ''),
+                    'canton' => self::trimString($residence['canton'] ?? ''),
+                    'province' => self::trimString($residence['province'] ?? ''),
+                    'phone' => self::trimString(
+                        $residence['phone']
+                            ?? $facts['telefono']
+                            ?? $normalizedPatient['phone']
+                            ?? ''
+                    ),
+                ]),
+                'coverage' => array_merge($defaults['coverage'], [
+                    'healthInsuranceType' => self::trimString($coverage['healthInsuranceType'] ?? ''),
+                ]),
+                'referral' => array_merge($defaults['referral'], [
+                    'referredBy' => self::trimString($referral['referredBy'] ?? ''),
+                ]),
+                'emergencyContact' => array_merge($defaults['emergencyContact'], [
+                    'name' => self::trimString($emergency['name'] ?? ''),
+                    'kinship' => self::trimString($emergency['kinship'] ?? ''),
+                    'phone' => self::trimString($emergency['phone'] ?? ''),
+                ]),
+                'admissionMeta' => array_merge($defaults['admissionMeta'], [
+                    'admissionDate' => self::trimString($admissionMeta['admissionDate'] ?? ''),
+                    'admissionKind' => self::trimString($admissionMeta['admissionKind'] ?? ''),
+                    'admittedBy' => self::trimString($admissionMeta['admittedBy'] ?? ''),
+                    'transitionMode' => $transitionMode,
+                ]),
+                'history' => [
+                    'admissionHistory' => self::normalizeAdmissionHistory(
+                        $history['admissionHistory'] ?? $admission['admissionHistory'] ?? []
+                    ),
+                    'changeLog' => self::normalizeAdmissionChangeLog(
+                        $history['changeLog'] ?? $admission['changeLog'] ?? []
+                    ),
+                ],
+            ];
         }
 
     public static function evaluateHcu001(array $admission, array $context = []): array

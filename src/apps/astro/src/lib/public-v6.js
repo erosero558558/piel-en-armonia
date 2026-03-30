@@ -2246,6 +2246,12 @@ function mapPublicSectionSwitch(pathname, locale) {
 function mapSoftwareSwitch(pathname, locale) {
     const safePath = normalizePath(pathname);
     const safeLocale = normalizeLocale(locale);
+    if (safeLocale === 'es' && safePath === '/es/software/turnero-clinicas/api-docs/') {
+        return '/en/software/clinic-flow-suite/api-docs/';
+    }
+    if (safeLocale === 'en' && safePath === '/en/software/clinic-flow-suite/api-docs/') {
+        return '/es/software/turnero-clinicas/api-docs/';
+    }
     const sourceMap = SOFTWARE_ROUTE_MAP[safeLocale];
     const targetMap = SOFTWARE_ROUTE_MAP[safeLocale === 'es' ? 'en' : 'es'];
     const entry = Object.entries(sourceMap).find(

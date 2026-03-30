@@ -1886,6 +1886,184 @@ test.describe('Admin turnero sala', () => {
         expect(finalExecutionIndex).toBeGreaterThan(repoDiagnosisIndex);
     });
 
+    test('queue monta clinic onboarding studio y genera perfil operativo por tenant', async ({
+        page,
+    }) => {
+        const clinicId = 'clinica-onboarding-demo';
+        const profileFingerprint = 'aa11bb22';
+        const turneroClinicProfile = buildQueuePilotClinicProfile({
+            clinicId,
+            branding: {
+                name: 'Clínica Onboarding Demo',
+                short_name: 'Onboarding Demo',
+                base_url: 'https://onboarding-demo.example',
+            },
+            release: {
+                mode: 'web_pilot',
+                admin_mode_default: 'basic',
+                separate_deploy: true,
+                native_apps_blocking: false,
+            },
+            runtime_meta: {
+                source: 'remote',
+                profileFingerprint,
+            },
+        });
+        const turneroV2Readiness = buildPilotReadiness({
+            clinicId,
+            profileFingerprint,
+        });
+        const turneroRemoteReleaseReadiness = buildRemoteReadiness({
+            clinicId,
+            profileFingerprint,
+        });
+        const turneroPublicShellDrift = buildShellDrift({
+            pageOk: true,
+            driftStatus: 'ready',
+        });
+        const turneroReleaseEvidenceBundle = buildEvidenceSnapshot({
+            turneroClinicProfile,
+            pilotReadiness: turneroV2Readiness,
+            remoteReleaseReadiness: turneroRemoteReleaseReadiness,
+            publicShellDrift: turneroPublicShellDrift,
+        });
+
+        await installQueueAdminAuthMock(page, 'csrf_queue_clinic_onboarding');
+        await installQueueOperationalAppsApiMocks(page, {
+            updatedAt: turneroReleaseEvidenceBundle.generatedAt,
+            queueState: buildQueueIdleState(
+                turneroReleaseEvidenceBundle.generatedAt
+            ),
+            dataOverrides: {
+                turneroClinicProfile,
+                turneroV2Readiness,
+                turneroRemoteReleaseReadiness,
+                turneroPublicShellDrift,
+                turneroReleaseEvidenceBundle,
+            },
+        });
+
+        await openAdminQueue(page, '');
+        await page.locator('#queueDomainDeployment').dispatchEvent('click');
+        await openQueuePilotDetailGroup(page, 'queueOpsPilotAdvancedGroup');
+
+        const clinicOnboardingHost = page.locator(
+            '#queueClinicOnboardingConsoleHost'
+        );
+        await expect(clinicOnboardingHost).toBeVisible();
+        await expect(clinicOnboardingHost).toContainText(
+            'Clinic Onboarding Studio'
+        );
+        await expect(clinicOnboardingHost).toContainText('TurneroClinicProfile');
+
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="clinic-brand-name"]'
+            )
+            .fill('Clinica Tenant Uno');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="clinic-short-name"]'
+            )
+            .fill('Tenant Uno');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="clinic-id"]'
+            )
+            .fill('tenant-uno');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="clinic-base-url"]'
+            )
+            .fill('https://tenant-uno.flowos.ec');
+        await page
+            .locator('#queueClinicOnboardingConsoleHost [data-action="save-clinic"]')
+            .dispatchEvent('click');
+
+        await page
+            .locator('#queueClinicOnboardingConsoleHost [data-field="staff-name"]')
+            .fill('Dra. Maria Perez');
+        await page
+            .locator('#queueClinicOnboardingConsoleHost [data-action="add-staff"]')
+            .dispatchEvent('click');
+
+        await page
+            .locator('#queueClinicOnboardingConsoleHost [data-field="staff-name"]')
+            .fill('Andrea Frontdesk');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="staff-role"]'
+            )
+            .selectOption('frontdesk');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="staff-station"]'
+            )
+            .selectOption('frontdesk');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="staff-shift"]'
+            )
+            .selectOption('full');
+        await page
+            .locator('#queueClinicOnboardingConsoleHost [data-action="add-staff"]')
+            .dispatchEvent('click');
+
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="service-label"]'
+            )
+            .fill('Dermatologia general');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="service-duration"]'
+            )
+            .fill('45');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-action="add-service"]'
+            )
+            .dispatchEvent('click');
+
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="service-label"]'
+            )
+            .fill('Teledermatologia');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="service-category"]'
+            )
+            .selectOption('telemedicina');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="service-mode"]'
+            )
+            .selectOption('virtual');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-field="service-duration"]'
+            )
+            .fill('30');
+        await page
+            .locator(
+                '#queueClinicOnboardingConsoleHost [data-action="add-service"]'
+            )
+            .dispatchEvent('click');
+
+        await expect(clinicOnboardingHost).toHaveAttribute('data-state', 'ready');
+        await expect(clinicOnboardingHost).toContainText('Dra. Maria Perez');
+        await expect(clinicOnboardingHost).toContainText('Andrea Frontdesk');
+        await expect(clinicOnboardingHost).toContainText('Dermatologia general');
+        await expect(clinicOnboardingHost).toContainText('Teledermatologia');
+        await expect(clinicOnboardingHost).toContainText(
+            'https://tenant-uno.flowos.ec/admin.html#queue'
+        );
+        await expect(
+            clinicOnboardingHost.locator('[data-role="profile-json"]')
+        ).toContainText('"clinic_id": "tenant-uno"');
+    });
+
     test('monta el surface sync console y permite agregar handoffs locales', async ({
         page,
     }, testInfo) => {

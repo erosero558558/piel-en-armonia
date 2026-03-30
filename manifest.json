@@ -12,12 +12,26 @@
         "standalone"
     ],
     "background_color": "#ffffff",
-    "theme_color": "#f6f2eb",
+    "theme_color": "#248a65",
     "orientation": "portrait",
     "categories": [
         "business",
         "productivity",
         "medical"
+    ],
+    "shortcuts": [
+        {
+            "name": "Agendar cita",
+            "url": "/es/agendar/"
+        },
+        {
+            "name": "Ver mis recetas",
+            "url": "/es/portal/historial/"
+        },
+        {
+            "name": "WhatsApp",
+            "url": "https://wa.me/593982453672"
+        }
     ],
     "icons": [
         {

@@ -920,6 +920,16 @@ CONTEXTO DEL PACIENTE:
   }
 
   function showToast(msg) {
+    if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+      // openclaw usually sends success messages by default with an emoji, let's map it
+      const type = msg.includes('❌') || msg.toLowerCase().includes('error') ? 'error' 
+                 : msg.includes('⚠️') ? 'warning' 
+                 : 'success';
+      window.showToast(msg, type);
+      return;
+    }
+    
+    // Fallback if global toast system is missing
     const toast = document.createElement('div');
     toast.className = 'oc-toast';
     toast.textContent = msg;

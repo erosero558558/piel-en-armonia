@@ -94,6 +94,7 @@ const QUEUE_POLL_MS = 2500;
 const QUEUE_POLL_MAX_MS = 15000;
 const QUEUE_STALE_THRESHOLD_MS = 30000;
 const KIOSK_SENIOR_MODE_STORAGE_KEY = 'queueKioskSeniorMode';
+const KIOSK_AUDIO_ANNOUNCE_STORAGE_KEY = 'queueKioskAudioAnnounce';
 const KIOSK_IDLE_RESET_DEFAULT_MS = 90000;
 const KIOSK_IDLE_RESET_MIN_MS = 5000;
 const KIOSK_IDLE_RESET_MAX_MS = 15 * 60 * 1000;
@@ -177,6 +178,8 @@ const state = {
     voiceGuideSupported: false,
     voiceGuideBusy: false,
     voiceGuideUtterance: null,
+    audioAnnounceEnabled: true,
+    audioContext: null,
     clinicProfile: null,
     surfaceBootstrap: null,
     surfaceSyncPack: null,
@@ -3270,6 +3273,40 @@ function toggleSeniorMode({ source = 'ui' } = {}) {
     setSeniorModeEnabled(!state.seniorMode, { persist: true, source });
 }
 
+function readAudioAnnouncePreference() {
+    return readClinicScopedStorageValue(
+        KIOSK_AUDIO_ANNOUNCE_STORAGE_KEY,
+        state.clinicProfile,
+        {
+            fallbackValue: true,
+            normalizeValue: normalizeStoredBoolean,
+        }
+    );
+}
+
+function persistAudioAnnouncePreference(enabled) {
+    persistClinicScopedStorageValue(
+        KIOSK_AUDIO_ANNOUNCE_STORAGE_KEY,
+        state.clinicProfile,
+        enabled ? '1' : '0'
+    );
+}
+
+function syncAudioAnnounceToggle() {
+    const toggle = getById('kioskAudioAnnounceToggle');
+    if (toggle instanceof HTMLInputElement) {
+        toggle.checked = state.audioAnnounceEnabled;
+    }
+}
+
+function setAudioAnnounceEnabled(enabled, { persist = false, source = 'system' } = {}) {
+    state.audioAnnounceEnabled = Boolean(enabled);
+    syncAudioAnnounceToggle();
+    if (persist) {
+        persistAudioAnnouncePreference(state.audioAnnounceEnabled);
+    }
+}
+
 function supportsVoiceGuide() {
     return (
         typeof window !== 'undefined' &&
@@ -5116,6 +5153,56 @@ function renderTicketResult(payload, originLabel) {
             <p class="ticket-result-print">${printState}</p>
         </article>
     `;
+
+    playTicketAudio(ticket);
+}
+
+function playTicketAudio(ticket) {
+    if (!state.audioAnnounceEnabled) return;
+
+    const ticketCode = String(ticket?.ticketCode || '');
+    if (!ticketCode || ticketCode === '--') return;
+
+    if (supportsVoiceGuide()) {
+        try {
+            const text = `Turno número ${ticketCode} emitido. Por favor espere su llamado.`;
+            const utterance = new window.SpeechSynthesisUtterance(text);
+            utterance.lang = KIOSK_VOICE_GUIDE_LANG;
+            utterance.rate = 0.92;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+            return;
+        } catch (_error) {
+            // fallback below
+        }
+    }
+
+    if (!state.audioContext) {
+        try {
+            state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (_error) {
+            return;
+        }
+    }
+    
+    if (state.audioContext.state === 'suspended') {
+        state.audioContext.resume().catch(() => {});
+    }
+
+    try {
+        const ctx = state.audioContext;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+    } catch (_error) {}
 }
 
 function renderPendingTicketResult({
@@ -6218,6 +6305,7 @@ function bindKioskStarControls() {
     const seniorToggle = getById('kioskSeniorToggle');
     const voiceGuideBtn = getById('kioskVoiceGuideBtn');
     const receptionHelpBtn = getById('kioskReceptionHelpBtn');
+    const audioAnnounceToggle = getById('kioskAudioAnnounceToggle');
 
     if (quickCheckin instanceof HTMLButtonElement) {
         quickCheckin.addEventListener('click', () => {
@@ -6260,6 +6348,12 @@ function bindKioskStarControls() {
         receptionHelpBtn.addEventListener('click', () => {
             registerKioskActivity();
             requestReceptionSupport({ source: 'button' });
+        });
+    }
+    if (audioAnnounceToggle instanceof HTMLInputElement) {
+        audioAnnounceToggle.addEventListener('change', (e) => {
+            registerKioskActivity();
+            setAudioAnnounceEnabled(e.target.checked, { persist: true, source: 'user' });
         });
     }
 }
@@ -6430,6 +6524,10 @@ function initKiosk() {
     void loadTurneroClinicProfile().then((profile) => {
         applyKioskClinicProfile(profile);
         setSeniorModeEnabled(readSeniorModePreference(), {
+            persist: false,
+            source: 'clinic_profile',
+        });
+        setAudioAnnounceEnabled(readAudioAnnouncePreference(), {
             persist: false,
             source: 'clinic_profile',
         });

@@ -36,6 +36,7 @@ import { renderTurneroReleaseWarRoom } from '../../../../../../../../queue-share
 import { mountTurneroReleaseStrategyDigitalTwinStudio } from '../../../../../../../../queue-shared/turnero-release-strategy-digital-twin-studio.js';
 import { mountQueueIncidentExecutionWorkbenchCard } from './incident-execution-workbench.js';
 import { getSurfaceTelemetryState } from '../telemetry/state.js';
+import { mountTurneroAdminClinicOnboardingConsole } from '../../../../../../../../queue-shared/turnero-admin-clinic-onboarding-console.js';
 import {
     getInstallHubSurfaceDefinition,
     getInstallHubSurfaceTelemetryCopy,
@@ -1214,6 +1215,9 @@ async function hydrateQueueOpsPilotReleaseEvidence(
     const multiClinicControlTowerHost = document.getElementById(
         'queueMultiClinicControlTowerHost'
     );
+    const clinicOnboardingConsoleHost = document.getElementById(
+        'queueClinicOnboardingConsoleHost'
+    );
     const boardOpsHubHost = document.getElementById(
         'queueReleaseBoardOpsHubHost'
     );
@@ -1659,6 +1663,27 @@ async function hydrateQueueOpsPilotReleaseEvidence(
         }
     }
 
+    if (clinicOnboardingConsoleHost instanceof HTMLElement) {
+        try {
+            mountTurneroAdminClinicOnboardingConsole(
+                clinicOnboardingConsoleHost,
+                {
+                    clinicProfile:
+                        pilot.clinicProfile ||
+                        pilot.turneroClinicProfile ||
+                        releaseControlCenterModel?.turneroClinicProfile ||
+                        snapshot.turneroClinicProfile ||
+                        null,
+                    staffRows: [],
+                    serviceRows: [],
+                    storage: options.storage || window.localStorage,
+                }
+            );
+        } catch (_error) {
+            clinicOnboardingConsoleHost.innerHTML = '';
+        }
+    }
+
     if (boardOpsHubHost instanceof HTMLElement) {
         try {
             mountTurneroReleaseBoardOpsHub(boardOpsHubHost, {
@@ -2049,6 +2074,11 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
             <div
                 id="queueMultiClinicControlTowerHost"
                 class="queue-ops-pilot__multi-clinic-control-tower-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueClinicOnboardingConsoleHost"
+                class="queue-ops-pilot__clinic-onboarding-console-host"
                 aria-live="polite"
             ></div>
             <div

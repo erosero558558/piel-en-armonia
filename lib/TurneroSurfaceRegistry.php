@@ -67,6 +67,7 @@ function turnero_surface_registry_normalize_surface(array $surface): array
 
     return [
         'id' => strtolower(trim((string) ($surface['id'] ?? ''))),
+        'status' => strtolower(trim((string) ($surface['status'] ?? 'missing'))),
         'family' => strtolower(trim((string) ($surface['family'] ?? ''))),
         'route' => (string) ($surface['route'] ?? ''),
         'productName' => (string) ($surface['productName'] ?? ''),

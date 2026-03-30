@@ -597,6 +597,105 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#throughputChart')).toBeVisible();
     });
 
+    test('dashboard muestra conversion publica con visitas por dia, clicks WhatsApp y top servicios', async ({
+        page,
+    }) => {
+        await setupAuthenticatedAdminMocks(page, {
+            funnelMetrics: {
+                conversionDashboard: {
+                    today: {
+                        visits: 18,
+                        whatsappClicks: 5,
+                        bookingConfirmed: 2,
+                    },
+                    last7d: {
+                        days: 7,
+                        visits: 84,
+                        whatsappClicks: 21,
+                        bookingConfirmed: 9,
+                        visitsPerDay: 12,
+                        whatsappClicksPerDay: 3,
+                        bookingConfirmedPerDay: 1.3,
+                    },
+                    dailySeries: [
+                        {
+                            day: '2026-03-24',
+                            label: '2026-03-24',
+                            visits: 10,
+                            whatsappClicks: 2,
+                            bookingConfirmed: 1,
+                        },
+                        {
+                            day: '2026-03-25',
+                            label: '2026-03-25',
+                            visits: 11,
+                            whatsappClicks: 2,
+                            bookingConfirmed: 1,
+                        },
+                        {
+                            day: '2026-03-26',
+                            label: '2026-03-26',
+                            visits: 12,
+                            whatsappClicks: 3,
+                            bookingConfirmed: 1,
+                        },
+                        {
+                            day: '2026-03-27',
+                            label: '2026-03-27',
+                            visits: 13,
+                            whatsappClicks: 3,
+                            bookingConfirmed: 2,
+                        },
+                    ],
+                    topServices: [
+                        {
+                            serviceSlug: 'botox',
+                            detailViews: 20,
+                            bookingIntent: 8,
+                            checkoutStarts: 6,
+                            bookingConfirmed: 3,
+                            detailToConfirmedPct: 15,
+                        },
+                        {
+                            serviceSlug: 'acne_rosacea',
+                            detailViews: 14,
+                            bookingIntent: 5,
+                            checkoutStarts: 4,
+                            bookingConfirmed: 2,
+                            detailToConfirmedPct: 14.3,
+                        },
+                    ],
+                },
+            },
+        });
+
+        await page.goto('/admin.html');
+        await openDashboardSection(page);
+        await expect(page.locator('#dashboardConversionChip')).toHaveText(
+            'Con traccion'
+        );
+        await expect(page.locator('#funnelDailyVisitsToday')).toHaveText('18');
+        await expect(page.locator('#funnelDailyWhatsappToday')).toHaveText('5');
+        await expect(page.locator('#funnelDailyVisitsAvg')).toHaveText('12.0');
+        await expect(page.locator('#funnelDailyWhatsappAvg')).toHaveText(
+            '3.0'
+        );
+        await expect(page.locator('#dashboardConversionTopService')).toHaveText(
+            'Botox'
+        );
+        await expect(page.locator('#dashboardConversionPaceHeadline')).toHaveText(
+            '9 confirmadas'
+        );
+        await expect(
+            page.locator('#dashboardConversionDailyList [data-conversion-day="true"]')
+        ).toHaveCount(4);
+        await expect(
+            page.locator(
+                '#dashboardConversionTopServices [data-conversion-service="true"]'
+            )
+        ).toHaveCount(2);
+    });
+
     test('inicio operativo simplifica accesos y resuelve tareas en un clic', async ({
         page,
     }) => {

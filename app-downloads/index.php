@@ -140,6 +140,7 @@ $initialPayload = build_app_downloads_runtime_payload([
     'lock' => $lock,
     'oneTap' => $oneTap,
 ]);
+$isPublished = ($surfaceUiMap[$surface]['status'] ?? 'missing') === 'published';
 ?>
 <!doctype html>
 <html lang="es">
@@ -188,6 +189,9 @@ $initialPayload = build_app_downloads_runtime_payload([
                         >
                             <span><?php echo app_downloads_page_escape((string) ($surfaceUi['catalog']['eyebrow'] ?? '')); ?></span>
                             <strong><?php echo app_downloads_page_escape((string) ($surfaceUi['catalog']['title'] ?? $surfaceKey)); ?></strong>
+                            <?php if (($surfaceUi['status'] ?? 'missing') !== 'published'): ?>
+                                <span class="badge" style="background:var(--color-stone-200);color:var(--color-stone-800);font-size:10px;margin-top:4px;">En Desarrollo</span>
+                            <?php endif; ?>
                             <small><?php echo app_downloads_page_escape((string) ($surfaceUi['catalog']['description'] ?? '')); ?></small>
                         </a>
                     <?php endforeach; ?>
@@ -311,21 +315,27 @@ $initialPayload = build_app_downloads_runtime_payload([
                         <code id="appDownloadsFeedUrl"><?php echo app_downloads_page_escape($absoluteFeedUrl); ?></code>
                     </div>
                     <div class="app-downloads-actions">
-                        <a
-                            id="appDownloadsPrimaryAction"
-                            href="<?php echo app_downloads_page_escape($absoluteDownloadUrl); ?>"
-                            class="app-downloads-primary-btn"
-                            <?php echo (($surfaceUiMap[$surface]['family'] ?? '') !== 'android') ? 'download' : ''; ?>
-                        >
-                            <?php echo (($surfaceUiMap[$surface]['family'] ?? '') === 'android') ? 'Descargar APK' : 'Descargar instalador'; ?>
-                        </a>
-                        <button
-                            id="appDownloadsCopyDownloadBtn"
-                            type="button"
-                            data-copy-target="download"
-                        >
-                            Copiar descarga
-                        </button>
+                        <?php if ($isPublished && $absoluteDownloadUrl !== ''): ?>
+                            <a
+                                id="appDownloadsPrimaryAction"
+                                href="<?php echo app_downloads_page_escape($absoluteDownloadUrl); ?>"
+                                class="app-downloads-primary-btn"
+                                <?php echo (($surfaceUiMap[$surface]['family'] ?? '') !== 'android') ? 'download' : ''; ?>
+                            >
+                                <?php echo (($surfaceUiMap[$surface]['family'] ?? '') === 'android') ? 'Descargar APK' : 'Descargar instalador'; ?>
+                            </a>
+                            <button
+                                id="appDownloadsCopyDownloadBtn"
+                                type="button"
+                                data-copy-target="download"
+                            >
+                                Copiar descarga
+                            </button>
+                        <?php else: ?>
+                            <button type="button" class="app-downloads-primary-btn" disabled style="opacity:0.5; cursor:not-allowed;">
+                                Artefacto no disponible (<?php echo app_downloads_page_escape($surfaceUiMap[$surface]['status'] ?? 'missing'); ?>)
+                            </button>
+                        <?php endif; ?>
                         <a id="appDownloadsOpenPreparedBtn" href="<?php echo app_downloads_page_escape($absolutePreparedSurfaceUrl); ?>" target="_blank" rel="noopener">
                             Abrir ruta preparada
                         </a>

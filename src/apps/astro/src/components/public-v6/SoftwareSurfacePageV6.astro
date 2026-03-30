@@ -68,28 +68,6 @@ const hasSteps = Boolean(steps.title && stepItems.length);
 const hasAdvantages = Boolean(advantages.title && advantageCards.length);
 const hasConnections = Boolean(connections.title && connectionItems.length);
 const hasFinalCta = Boolean(finalCta.title || finalCta.deck || finalActions.length);
-
-const sectionDefs = [
-    hasShowcase
-        ? { id: 'v6-suite-surface-demo', label: mockup.title || page.heading || '' }
-        : null,
-    hasSteps ? { id: 'v6-suite-surface-steps', label: steps.title } : null,
-    hasAdvantages
-        ? { id: 'v6-suite-surface-advantages', label: advantages.title }
-        : null,
-    hasConnections
-        ? { id: 'v6-suite-surface-connections', label: connections.title }
-        : null,
-    hasFinalCta ? { id: 'v6-suite-surface-final', label: finalCta.title || page.heading || '' } : null,
-].filter((item) => item && item.label);
-const sectionIndexById = Object.fromEntries(
-    sectionDefs.map((item, index) => [item.id, String(index + 1).padStart(2, '0')])
-);
-
-const menuItems = sectionDefs.map((item) => ({
-    label: item.label,
-    href: `#${item.id}`,
-}));
 const normalizeText = (value) =>
     typeof value === 'string' && value.trim().length ? value.trim() : '';
 const normalizeHref = (value) => {
@@ -132,6 +110,118 @@ const surfacePageKey = ['demo', 'status', 'dashboard'].includes(
     : showcaseKind;
 const stageIndex = String(suiteStory.currentIndex || 1).padStart(2, '0');
 const stageTotal = String(suiteStory.total || 0).padStart(2, '0');
+const isDemoSurface = surfacePageKey === 'demo';
+const demoSandboxCopy =
+    locale === 'en'
+        ? {
+              title: 'Interactive queue sandbox',
+              eyebrow: 'Try the flow',
+              deck: 'Run the public story end to end: kiosk check-in, ticket issued, and operator call from the same demo tenant.',
+              stages: {
+                  kiosk: 'Kiosk ready',
+                  queued: 'Ticket issued',
+                  called: 'Operator called',
+              },
+              kioskTitle: '1. Kiosk check-in',
+              kioskDeck: 'Choose an arrival path and generate a sandbox ticket without leaving the page.',
+              scheduled: 'I have an appointment',
+              walkIn: 'Walk-in patient',
+              kioskIdle: 'The kiosk is ready to issue the next sandbox ticket.',
+              kioskQueued: 'The ticket is now attached to the demo queue.',
+              kioskCalled: 'Check-in completed. The operator already called the ticket.',
+              ticketTitle: '2. Issued ticket',
+              ticketDeck: 'The same ticket becomes visible for the patient and the operator.',
+              ticketCode: 'Ticket',
+              ticketState: 'State',
+              ticketChannel: 'Channel',
+              ticketWait: 'Estimated wait',
+              ticketIdle: 'Waiting for kiosk check-in',
+              ticketQueued: 'Queued',
+              ticketCalled: 'Called to room',
+              operatorTitle: '3. Operator console',
+              operatorDeck: 'The operator unlocks only after check-in and calls the same ticket shown above.',
+              operatorIdle: 'Waiting for kiosk activity',
+              operatorQueued: 'Ready to call the next ticket',
+              operatorCalled: 'Ticket called in room',
+              callAction: 'Call next ticket',
+              resetAction: 'Reset demo',
+              queueTitle: 'Live queue slice',
+              queueCalling: 'Calling now',
+              queueNext: 'Next in line',
+              queueEmpty: 'No sandbox ticket generated yet.',
+              scheduledChannel: 'Appointment QR',
+              walkInChannel: 'Front desk',
+              callRoomLabel: 'Room',
+              waitNow: 'Now',
+          }
+        : {
+              title: 'Sandbox interactivo del turnero',
+              eyebrow: 'Prueba el flujo',
+              deck: 'Recorre la historia publica completa: kiosco, ticket emitido y llamado del operador dentro del mismo tenant demo.',
+              stages: {
+                  kiosk: 'Kiosco listo',
+                  queued: 'Turno emitido',
+                  called: 'Operador lo llama',
+              },
+              kioskTitle: '1. Check-in en kiosco',
+              kioskDeck: 'Elige una llegada y genera un ticket sandbox sin salir de la pagina.',
+              scheduled: 'Tengo cita',
+              walkIn: 'Soy walk-in',
+              kioskIdle: 'El kiosco esta listo para emitir el siguiente ticket sandbox.',
+              kioskQueued: 'El ticket ya quedo enlazado a la cola demo.',
+              kioskCalled: 'Check-in completado. El operador ya llamo el ticket.',
+              ticketTitle: '2. Turno emitido',
+              ticketDeck: 'El mismo ticket queda visible para paciente y operador.',
+              ticketCode: 'Turno',
+              ticketState: 'Estado',
+              ticketChannel: 'Canal',
+              ticketWait: 'Espera estimada',
+              ticketIdle: 'Esperando check-in del kiosco',
+              ticketQueued: 'En cola',
+              ticketCalled: 'Llamado a consultorio',
+              operatorTitle: '3. Consola operador',
+              operatorDeck: 'El operador se desbloquea solo cuando el check-in ya genero el ticket y llama exactamente el mismo turno.',
+              operatorIdle: 'Esperando actividad del kiosco',
+              operatorQueued: 'Listo para llamar el siguiente turno',
+              operatorCalled: 'Turno llamado en consultorio',
+              callAction: 'Llamar siguiente turno',
+              resetAction: 'Reiniciar demo',
+              queueTitle: 'Corte de cola en vivo',
+              queueCalling: 'Llamando ahora',
+              queueNext: 'Siguientes en cola',
+              queueEmpty: 'Todavia no se genera un ticket sandbox.',
+              scheduledChannel: 'QR cita',
+              walkInChannel: 'Recepcion',
+              callRoomLabel: 'Consultorio',
+              waitNow: 'Ahora',
+          };
+const demoSandboxCopyJson = JSON.stringify(demoSandboxCopy);
+const hasInteractiveDemo = isDemoSurface;
+const sectionDefs = [
+    hasShowcase
+        ? { id: 'v6-suite-surface-demo', label: mockup.title || page.heading || '' }
+        : null,
+    hasInteractiveDemo
+        ? { id: 'v6-suite-surface-sandbox', label: demoSandboxCopy.title }
+        : null,
+    hasSteps ? { id: 'v6-suite-surface-steps', label: steps.title } : null,
+    hasAdvantages
+        ? { id: 'v6-suite-surface-advantages', label: advantages.title }
+        : null,
+    hasConnections
+        ? { id: 'v6-suite-surface-connections', label: connections.title }
+        : null,
+    hasFinalCta
+        ? { id: 'v6-suite-surface-final', label: finalCta.title || page.heading || '' }
+        : null,
+].filter((item) => item && item.label);
+const sectionIndexById = Object.fromEntries(
+    sectionDefs.map((item, index) => [item.id, String(index + 1).padStart(2, '0')])
+);
+const menuItems = sectionDefs.map((item) => ({
+    label: item.label,
+    href: `#${item.id}`,
+}));
 const isStatusSurface = surfacePageKey === 'status';
 const ticketStatusCopy =
     locale === 'en'
@@ -575,6 +665,139 @@ const actionClass = (variant = 'secondary') => [
         }
 
         {
+            hasInteractiveDemo ? (
+                <section
+                    id="v6-suite-surface-sandbox"
+                    class:list={[
+                        'v6-suite-section',
+                        'is-tight',
+                        'v6-suite-surface-block',
+                        'is-sandbox',
+                        'is-surface-sandbox',
+                        `is-page-${surfacePageKey}`,
+                    ]}
+                    data-v6-suite-surface-section="sandbox"
+                    data-v6-suite-surface-section-order={sectionIndexById['v6-suite-surface-sandbox'] || ''}
+                >
+                    <header class="v6-suite-section__head">
+                        <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                            <span>{sectionIndexById['v6-suite-surface-sandbox'] || ''}</span>
+                        </div>
+                        {demoSandboxCopy.eyebrow ? <p>{demoSandboxCopy.eyebrow}</p> : null}
+                        <h2>{demoSandboxCopy.title}</h2>
+                        {demoSandboxCopy.deck ? <span>{demoSandboxCopy.deck}</span> : null}
+                    </header>
+
+                    <div class="v6-suite-demo-sandbox" data-v6-demo-sandbox-root data-state="kiosk">
+                        <div class="v6-suite-demo-sandbox__stages" aria-hidden="true">
+                            <article
+                                class="v6-suite-demo-sandbox__stage is-active"
+                                data-v6-demo-sandbox-stage="kiosk"
+                            >
+                                <strong>01</strong>
+                                <span>{demoSandboxCopy.stages.kiosk}</span>
+                            </article>
+                            <article class="v6-suite-demo-sandbox__stage" data-v6-demo-sandbox-stage="queued">
+                                <strong>02</strong>
+                                <span>{demoSandboxCopy.stages.queued}</span>
+                            </article>
+                            <article class="v6-suite-demo-sandbox__stage" data-v6-demo-sandbox-stage="called">
+                                <strong>03</strong>
+                                <span>{demoSandboxCopy.stages.called}</span>
+                            </article>
+                        </div>
+
+                        <div class="v6-suite-demo-sandbox__grid">
+                            <article class="v6-suite-demo-sandbox__card is-kiosk">
+                                <p>{demoSandboxCopy.kioskTitle}</p>
+                                <h3>{demoSandboxCopy.kioskDeck}</h3>
+                                <div class="v6-suite-actions v6-suite-demo-sandbox__actions">
+                                    <button
+                                        type="button"
+                                        class="v6-suite-action is-primary"
+                                        data-v6-demo-sandbox-checkin="scheduled"
+                                    >
+                                        {demoSandboxCopy.scheduled}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="v6-suite-action is-secondary"
+                                        data-v6-demo-sandbox-checkin="walkin"
+                                    >
+                                        {demoSandboxCopy.walkIn}
+                                    </button>
+                                </div>
+                                <span data-v6-demo-sandbox-kiosk-detail>{demoSandboxCopy.kioskIdle}</span>
+                            </article>
+
+                            <article class="v6-suite-demo-sandbox__card is-ticket">
+                                <p>{demoSandboxCopy.ticketTitle}</p>
+                                <h3>{demoSandboxCopy.ticketDeck}</h3>
+                                <dl class="v6-suite-demo-sandbox__ticket">
+                                    <div>
+                                        <dt>{demoSandboxCopy.ticketCode}</dt>
+                                        <dd data-v6-demo-sandbox-ticket-code>--</dd>
+                                    </div>
+                                    <div>
+                                        <dt>{demoSandboxCopy.ticketState}</dt>
+                                        <dd data-v6-demo-sandbox-ticket-state>{demoSandboxCopy.ticketIdle}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>{demoSandboxCopy.ticketChannel}</dt>
+                                        <dd data-v6-demo-sandbox-ticket-channel>--</dd>
+                                    </div>
+                                    <div>
+                                        <dt>{demoSandboxCopy.ticketWait}</dt>
+                                        <dd data-v6-demo-sandbox-ticket-wait>--</dd>
+                                    </div>
+                                </dl>
+                            </article>
+
+                            <article class="v6-suite-demo-sandbox__card is-operator">
+                                <p>{demoSandboxCopy.operatorTitle}</p>
+                                <h3>{demoSandboxCopy.operatorDeck}</h3>
+                                <div class="v6-suite-actions v6-suite-demo-sandbox__actions">
+                                    <button
+                                        type="button"
+                                        class="v6-suite-action is-primary"
+                                        data-v6-demo-sandbox-call
+                                        disabled
+                                    >
+                                        {demoSandboxCopy.callAction}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="v6-suite-action is-ghost"
+                                        data-v6-demo-sandbox-reset
+                                        disabled
+                                    >
+                                        {demoSandboxCopy.resetAction}
+                                    </button>
+                                </div>
+                                <span data-v6-demo-sandbox-operator-detail>{demoSandboxCopy.operatorIdle}</span>
+                            </article>
+                        </div>
+
+                        <div class="v6-suite-demo-sandbox__queue">
+                            <article class="v6-suite-demo-sandbox__lane">
+                                <p>{demoSandboxCopy.queueCalling}</p>
+                                <ul data-v6-demo-sandbox-calling-list>
+                                    <li>{demoSandboxCopy.queueEmpty}</li>
+                                </ul>
+                            </article>
+                            <article class="v6-suite-demo-sandbox__lane">
+                                <p>{demoSandboxCopy.queueNext}</p>
+                                <ol data-v6-demo-sandbox-next-list>
+                                    <li>{demoSandboxCopy.queueEmpty}</li>
+                                </ol>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+            ) : null
+        }
+
+        {
             hasSteps ? (
                 <section
                     id="v6-suite-surface-steps"
@@ -775,12 +998,345 @@ const actionClass = (variant = 'secondary') => [
     set:html={demoStateJson}
 ></script>
 {
+    hasInteractiveDemo ? (
+        <script
+            type="application/json"
+            data-v6-demo-sandbox-copy
+            set:html={demoSandboxCopyJson}
+        ></script>
+    ) : null
+}
+{
     isStatusSurface ? (
         <script
             type="application/json"
             data-v6-ticket-status-copy
             set:html={ticketStatusCopyJson}
         ></script>
+    ) : null
+}
+{
+    hasInteractiveDemo ? (
+        <script is:inline>
+            (() => {
+                const root = document.querySelector('[data-v6-demo-sandbox-root]');
+                if (!(root instanceof HTMLElement)) {
+                    return;
+                }
+
+                const stateNode = document.querySelector(
+                    '[data-v6-turnero-demo-state="demo"]'
+                );
+                const copyNode = document.querySelector('[data-v6-demo-sandbox-copy]');
+
+                let demoState = {};
+                let copy = {};
+                try {
+                    demoState = JSON.parse(stateNode?.textContent || '{}');
+                } catch (error) {
+                    demoState = {};
+                }
+                try {
+                    copy = JSON.parse(copyNode?.textContent || '{}');
+                } catch (error) {
+                    copy = {};
+                }
+
+                const sandbox =
+                    demoState && typeof demoState.sandbox === 'object'
+                        ? demoState.sandbox
+                        : {};
+                const queue =
+                    demoState && typeof demoState.queue === 'object'
+                        ? demoState.queue
+                        : {};
+
+                const normalizeText = (value) =>
+                    typeof value === 'string' && value.trim().length
+                        ? value.trim()
+                        : '';
+                const normalizeTicket = (value) =>
+                    normalizeText(value)
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9-]/g, '');
+                const formatWait = (value) =>
+                    Number.isFinite(value) ? `${value} min` : '--';
+                const uniqueTickets = (items) => {
+                    const seen = new Set();
+                    return items.filter((item) => {
+                        if (!item || !item.ticketCode || seen.has(item.ticketCode)) {
+                            return false;
+                        }
+                        seen.add(item.ticketCode);
+                        return true;
+                    });
+                };
+
+                const scheduledTicket = normalizeTicket(
+                    sandbox.scheduledTicket || queue.nextTicket || 'A-042'
+                );
+                const walkInTicket = normalizeTicket(
+                    sandbox.walkInTicket || 'B-117'
+                );
+                const currentTicket = normalizeTicket(queue.currentTicket || 'A-041');
+                const currentRoom = normalizeText(queue.currentRoom || '1');
+                const scheduledWait = Number.isFinite(queue.waitingMinutes)
+                    ? Math.max(4, Math.round(queue.waitingMinutes / 2))
+                    : 6;
+                const walkInWait = Number.isFinite(queue.waitingMinutes)
+                    ? queue.waitingMinutes + 8
+                    : 14;
+                const callRoom = normalizeText(sandbox.callRoom || 'Consultorio 2');
+
+                const nodes = {
+                    kioskDetail: root.querySelector('[data-v6-demo-sandbox-kiosk-detail]'),
+                    ticketCode: root.querySelector('[data-v6-demo-sandbox-ticket-code]'),
+                    ticketState: root.querySelector('[data-v6-demo-sandbox-ticket-state]'),
+                    ticketChannel: root.querySelector(
+                        '[data-v6-demo-sandbox-ticket-channel]'
+                    ),
+                    ticketWait: root.querySelector('[data-v6-demo-sandbox-ticket-wait]'),
+                    operatorDetail: root.querySelector(
+                        '[data-v6-demo-sandbox-operator-detail]'
+                    ),
+                    scheduledButton: root.querySelector(
+                        '[data-v6-demo-sandbox-checkin="scheduled"]'
+                    ),
+                    walkInButton: root.querySelector(
+                        '[data-v6-demo-sandbox-checkin="walkin"]'
+                    ),
+                    callButton: root.querySelector('[data-v6-demo-sandbox-call]'),
+                    resetButton: root.querySelector('[data-v6-demo-sandbox-reset]'),
+                    callingList: root.querySelector('[data-v6-demo-sandbox-calling-list]'),
+                    nextList: root.querySelector('[data-v6-demo-sandbox-next-list]'),
+                    stageNodes: Array.from(
+                        root.querySelectorAll('[data-v6-demo-sandbox-stage]')
+                    ),
+                };
+
+                const setText = (node, value) => {
+                    if (node instanceof HTMLElement) {
+                        node.textContent = value;
+                    }
+                };
+
+                const renderList = (node, items, emptyMessage) => {
+                    if (!(node instanceof HTMLElement)) {
+                        return;
+                    }
+                    node.innerHTML = '';
+                    if (!items.length) {
+                        const emptyItem = document.createElement('li');
+                        emptyItem.textContent = emptyMessage;
+                        node.appendChild(emptyItem);
+                        return;
+                    }
+
+                    items.forEach((item) => {
+                        const entry = document.createElement('li');
+                        const ticket = document.createElement('strong');
+                        ticket.textContent = item.ticketCode;
+                        const detail = document.createElement('span');
+                        detail.textContent = item.detail;
+                        entry.append(ticket, detail);
+                        node.appendChild(entry);
+                    });
+                };
+
+                const state = {
+                    stage: 'kiosk',
+                    mode: '',
+                    ticketCode: '',
+                    channel: '',
+                    waitLabel: '--',
+                };
+
+                const applyQueuedMode = (mode) => {
+                    state.stage = 'queued';
+                    state.mode = mode;
+                    state.ticketCode =
+                        mode === 'walkin' ? walkInTicket : scheduledTicket;
+                    state.channel =
+                        mode === 'walkin'
+                            ? copy.walkInChannel ||
+                              sandbox.walkInChannel ||
+                              'Recepcion'
+                            : copy.scheduledChannel ||
+                              sandbox.scheduledChannel ||
+                              'QR cita';
+                    state.waitLabel =
+                        mode === 'walkin'
+                            ? formatWait(walkInWait)
+                            : formatWait(scheduledWait);
+                    render();
+                };
+
+                const buildQueueLists = () => {
+                    if (state.stage === 'kiosk') {
+                        return {
+                            calling: [],
+                            next: [],
+                        };
+                    }
+
+                    if (state.stage === 'queued') {
+                        return {
+                            calling: [
+                                {
+                                    ticketCode: currentTicket,
+                                    detail: `${copy.callRoomLabel || 'Consultorio'} ${currentRoom}`,
+                                },
+                            ],
+                            next: uniqueTickets([
+                                {
+                                    ticketCode: state.ticketCode,
+                                    detail: state.waitLabel,
+                                },
+                                {
+                                    ticketCode:
+                                        state.ticketCode === scheduledTicket
+                                            ? walkInTicket
+                                            : scheduledTicket,
+                                    detail:
+                                        state.ticketCode === scheduledTicket
+                                            ? formatWait(walkInWait)
+                                            : formatWait(scheduledWait),
+                                },
+                            ]),
+                        };
+                    }
+
+                    return {
+                        calling: [
+                            {
+                                ticketCode: state.ticketCode,
+                                detail: callRoom,
+                            },
+                        ],
+                        next: uniqueTickets([
+                            {
+                                ticketCode:
+                                    state.ticketCode === scheduledTicket
+                                        ? walkInTicket
+                                        : scheduledTicket,
+                                detail:
+                                    state.ticketCode === scheduledTicket
+                                        ? formatWait(walkInWait)
+                                        : formatWait(scheduledWait),
+                            },
+                            {
+                                ticketCode: normalizeTicket(queue.nextTicket || ''),
+                                detail: formatWait(
+                                    Number.isFinite(queue.waitingMinutes)
+                                        ? queue.waitingMinutes
+                                        : 18
+                                ),
+                            },
+                        ]),
+                    };
+                };
+
+                const render = () => {
+                    root.dataset.state = state.stage;
+
+                    nodes.stageNodes.forEach((node) => {
+                        if (!(node instanceof HTMLElement)) {
+                            return;
+                        }
+                        node.classList.toggle(
+                            'is-active',
+                            node.dataset.v6DemoSandboxStage === state.stage
+                        );
+                    });
+
+                    if (nodes.scheduledButton instanceof HTMLButtonElement) {
+                        nodes.scheduledButton.disabled = state.stage !== 'kiosk';
+                    }
+                    if (nodes.walkInButton instanceof HTMLButtonElement) {
+                        nodes.walkInButton.disabled = state.stage !== 'kiosk';
+                    }
+                    if (nodes.callButton instanceof HTMLButtonElement) {
+                        nodes.callButton.disabled = state.stage !== 'queued';
+                    }
+                    if (nodes.resetButton instanceof HTMLButtonElement) {
+                        nodes.resetButton.disabled = state.stage === 'kiosk';
+                    }
+
+                    if (state.stage === 'kiosk') {
+                        setText(nodes.kioskDetail, copy.kioskIdle || '');
+                        setText(nodes.ticketCode, '--');
+                        setText(nodes.ticketState, copy.ticketIdle || '');
+                        setText(nodes.ticketChannel, '--');
+                        setText(nodes.ticketWait, '--');
+                        setText(nodes.operatorDetail, copy.operatorIdle || '');
+                    } else if (state.stage === 'queued') {
+                        setText(nodes.kioskDetail, copy.kioskQueued || '');
+                        setText(nodes.ticketCode, state.ticketCode);
+                        setText(nodes.ticketState, copy.ticketQueued || '');
+                        setText(nodes.ticketChannel, state.channel);
+                        setText(nodes.ticketWait, state.waitLabel);
+                        setText(nodes.operatorDetail, copy.operatorQueued || '');
+                    } else {
+                        setText(nodes.kioskDetail, copy.kioskCalled || '');
+                        setText(nodes.ticketCode, state.ticketCode);
+                        setText(nodes.ticketState, copy.ticketCalled || '');
+                        setText(nodes.ticketChannel, state.channel);
+                        setText(nodes.ticketWait, copy.waitNow || 'Ahora');
+                        setText(
+                            nodes.operatorDetail,
+                            `${copy.operatorCalled || ''} · ${callRoom}`.trim()
+                        );
+                    }
+
+                    const queueLists = buildQueueLists();
+                    renderList(
+                        nodes.callingList,
+                        queueLists.calling,
+                        copy.queueEmpty || 'Sin ticket demo'
+                    );
+                    renderList(
+                        nodes.nextList,
+                        queueLists.next,
+                        copy.queueEmpty || 'Sin ticket demo'
+                    );
+                };
+
+                if (nodes.scheduledButton instanceof HTMLButtonElement) {
+                    nodes.scheduledButton.addEventListener('click', () => {
+                        applyQueuedMode('scheduled');
+                    });
+                }
+
+                if (nodes.walkInButton instanceof HTMLButtonElement) {
+                    nodes.walkInButton.addEventListener('click', () => {
+                        applyQueuedMode('walkin');
+                    });
+                }
+
+                if (nodes.callButton instanceof HTMLButtonElement) {
+                    nodes.callButton.addEventListener('click', () => {
+                        if (state.stage !== 'queued') {
+                            return;
+                        }
+                        state.stage = 'called';
+                        render();
+                    });
+                }
+
+                if (nodes.resetButton instanceof HTMLButtonElement) {
+                    nodes.resetButton.addEventListener('click', () => {
+                        state.stage = 'kiosk';
+                        state.mode = '';
+                        state.ticketCode = '';
+                        state.channel = '';
+                        state.waitLabel = '--';
+                        render();
+                    });
+                }
+
+                render();
+            })();
+        </script>
     ) : null
 }
 {

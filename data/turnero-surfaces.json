@@ -10,6 +10,7 @@
     "surfaces": [
         {
             "id": "operator",
+            "status": "published",
             "family": "desktop",
             "route": "/operador-turnos.html",
             "productName": "Turnero Operador",
@@ -80,6 +81,7 @@
         },
         {
             "id": "kiosk",
+            "status": "registry_only",
             "family": "desktop",
             "route": "/kiosco-turnos.html",
             "productName": "Turnero Kiosco",
@@ -146,6 +148,7 @@
         },
         {
             "id": "sala_tv",
+            "status": "registry_only",
             "family": "android",
             "route": "/sala-turnos.html",
             "productName": "Turnero Sala TV",

@@ -34,6 +34,8 @@
         <script src="js/cie10-autocomplete.js"></script>
         <script src="js/protocol-panel.js"></script>
         <script src="js/certificate-modal.js"></script>
+        <script src="js/aurora-toast.js"></script>
+        <script src="js/aurora-shortcuts.js"></script>
     
 <!-- UI-01: Global Design Tokens & Typography -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -117,7 +119,7 @@
                     </button>
                     <div class="admin-search">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" placeholder="Buscar paciente, C.I o número de caso...">
+                        <input type="text" class="input" placeholder="Buscar paciente, C.I o número de caso...">
                     </div>
                     <div class="admin-stats">
                         <button id="adminThemeToggle" class="btn-ghost" aria-label="Cambiar tema" style="padding: 8px; border-radius: 50%;"></button>
@@ -383,6 +385,38 @@
                             }
                         });
                     });
+                }
+            });
+
+            // UI2-16: Skeleton loaders en admin dashboard
+            document.addEventListener('DOMContentLoaded', () => {
+                const kpiContent = document.querySelectorAll('.kpi-value, .kpi-meta');
+                const agendaUI = document.getElementById('dailyAgendaUI');
+                const timelineItems = document.querySelectorAll('.timeline-content');
+                
+                const injectSkeletons = () => {
+                    kpiContent.forEach(el => el.classList.add('skeleton'));
+                    if (agendaUI && !agendaUI.innerHTML.trim()) {
+                        agendaUI.innerHTML = '<div class="skeleton" style="height: 60px; width: 100%; border-radius: 8px;"></div><div class="skeleton" style="height: 60px; width: 100%; border-radius: 8px;"></div>';
+                    }
+                    timelineItems.forEach(el => el.classList.add('skeleton'));
+                };
+
+                const removeSkeletons = () => {
+                    kpiContent.forEach(el => el.classList.remove('skeleton'));
+                    timelineItems.forEach(el => el.classList.remove('skeleton'));
+                    // agendaUI let it be handled by its own JS renderer from the core
+                };
+
+                if (document.documentElement.getAttribute('data-admin-ready') !== 'true') {
+                    injectSkeletons();
+                    const observer = new MutationObserver(() => {
+                        if (document.documentElement.getAttribute('data-admin-ready') === 'true') {
+                            removeSkeletons();
+                            observer.disconnect();
+                        }
+                    });
+                    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-admin-ready'] });
                 }
             });
         </script>

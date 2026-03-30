@@ -166,6 +166,79 @@ class AnalyticsServiceFunnelMetricsTest extends TestCase
         $this->assertSame(75.0, (float) ($botox['intentToCheckoutPct'] ?? -1));
         $this->assertSame(50.0, (float) ($botox['checkoutToConfirmedPct'] ?? -1));
         $this->assertSame(15.0, (float) ($botox['detailToConfirmedPct'] ?? -1));
+
+        $this->assertArrayHasKey('conversionDashboard', $payload);
+        $conversionDashboard = is_array($payload['conversionDashboard'] ?? null)
+            ? $payload['conversionDashboard']
+            : [];
+        $this->assertArrayHasKey('topServices', $conversionDashboard);
+        $topServices = is_array($conversionDashboard['topServices'] ?? null)
+            ? $conversionDashboard['topServices']
+            : [];
+        $this->assertSame('botox', (string) ($topServices[0]['serviceSlug'] ?? ''));
+    }
+
+    public function testRecordEventBuildsDailyConversionDashboard(): void
+    {
+        $events = [
+            [
+                'event' => 'view_booking',
+                'params' => [
+                    'source' => 'booking_form',
+                ],
+            ],
+            [
+                'event' => 'view_booking',
+                'params' => [
+                    'source' => 'booking_form',
+                ],
+            ],
+            [
+                'event' => 'whatsapp_click',
+                'params' => [
+                    'source' => 'hero_cta',
+                ],
+            ],
+            [
+                'event' => 'booking_confirmed',
+                'params' => [
+                    'source' => 'booking_form',
+                ],
+            ],
+        ];
+
+        foreach ($events as $payload) {
+            $GLOBALS['__TEST_JSON_BODY'] = json_encode($payload, JSON_UNESCAPED_UNICODE);
+            try {
+                \AnalyticsController::recordEvent([]);
+                $this->fail('Should have thrown TestingExitException');
+            } catch (\TestingExitException $e) {
+                $this->assertSame(202, $e->status);
+            }
+        }
+
+        $report = \AnalyticsController::buildFunnelMetricsData(['store' => ['appointments' => []]]);
+        $conversionDashboard = is_array($report['conversionDashboard'] ?? null)
+            ? $report['conversionDashboard']
+            : [];
+        $today = is_array($conversionDashboard['today'] ?? null)
+            ? $conversionDashboard['today']
+            : [];
+        $last7d = is_array($conversionDashboard['last7d'] ?? null)
+            ? $conversionDashboard['last7d']
+            : [];
+        $dailySeries = is_array($conversionDashboard['dailySeries'] ?? null)
+            ? $conversionDashboard['dailySeries']
+            : [];
+
+        $this->assertSame(2, (int) ($today['visits'] ?? -1));
+        $this->assertSame(1, (int) ($today['whatsappClicks'] ?? -1));
+        $this->assertSame(1, (int) ($today['bookingConfirmed'] ?? -1));
+        $this->assertSame(2, (int) ($last7d['visits'] ?? -1));
+        $this->assertSame(1, (int) ($last7d['whatsappClicks'] ?? -1));
+        $this->assertSame(1, (int) ($last7d['bookingConfirmed'] ?? -1));
+        $this->assertCount(7, $dailySeries);
+        $this->assertSame(\local_date('Y-m-d'), (string) ($dailySeries[6]['day'] ?? ''));
     }
 
     public function testRecordEventAcceptsRolloutContextLabels(): void

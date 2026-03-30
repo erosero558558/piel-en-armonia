@@ -187,23 +187,56 @@ export function renderDashboardOperationsGrid() {
                 <ul id="dashboardClinicalEventFeed" class="sony-list dashboard-attention-list"></ul>
             </article>
 
-            <article class="sony-panel" id="funnelSummary">
+            <article class="sony-panel dashboard-card-conversion" id="funnelSummary">
                 <header>
-                    <h3>Herramientas secundarias</h3>
-                    <small>Atajos de apoyo sin salir del shell RC1</small>
+                    <div>
+                        <h3>Conversion publica</h3>
+                        <small id="dashboardConversionMeta">Visitas al flujo, clicks a WhatsApp y servicios con mejor traccion.</small>
+                    </div>
+                    <span class="dashboard-signal-chip" id="dashboardConversionChip" data-state="neutral">
+                        Sin datos
+                    </span>
                 </header>
-                <p class="dashboard-secondary-summary">
-                    Este corte prioriza el shell diario del consultorio: historia clinica, agenda y horarios siguen a un click sin abrir superficies laterales.
+                <p class="dashboard-secondary-summary" id="dashboardConversionSummary">
+                    Cuando el funnel publico reciba eventos, aqui veras el ritmo diario y los servicios que mejor convierten.
                 </p>
-                <div class="dashboard-secondary-links">
-                    <a href="#clinical-history" class="dashboard-secondary-link" data-section="clinical-history">Abrir historia clinica</a>
-                    <a href="#availability" class="dashboard-secondary-link" data-section="availability">Abrir horarios</a>
-                </div>
                 <div class="sony-panel-stats dashboard-secondary-metrics">
                     <div><span>Reservas</span><strong id="funnelViewBooking">0</strong></div>
                     <div><span>Checkout</span><strong id="funnelStartCheckout">0</strong></div>
                     <div><span>Confirmadas</span><strong id="funnelBookingConfirmed">0</strong></div>
                     <div><span>Abandono</span><strong id="funnelAbandonRate">0%</strong></div>
+                </div>
+                <div class="sony-panel-stats dashboard-conversion-daily-metrics">
+                    <div><span>Visitas hoy</span><strong id="funnelDailyVisitsToday">0</strong></div>
+                    <div><span>WhatsApp hoy</span><strong id="funnelDailyWhatsappToday">0</strong></div>
+                    <div><span>Visitas/dia</span><strong id="funnelDailyVisitsAvg">0.0</strong></div>
+                    <div><span>WhatsApp/dia</span><strong id="funnelDailyWhatsappAvg">0.0</strong></div>
+                </div>
+                <div class="dashboard-signal-stack dashboard-conversion-signal-stack">
+                    <article class="dashboard-signal-card">
+                        <span>Servicio lider</span>
+                        <strong id="dashboardConversionTopService">Sin ranking</strong>
+                        <small id="dashboardConversionTopServiceMeta">
+                            Cuando existan vistas y reservas, aqui aparecera el servicio con mejor cierre.
+                        </small>
+                    </article>
+                    <article class="dashboard-signal-card">
+                        <span>Ritmo 7d</span>
+                        <strong id="dashboardConversionPaceHeadline">0 confirmadas</strong>
+                        <small id="dashboardConversionPaceMeta">
+                            Aun no hay serie diaria suficiente para resumir el embudo reciente.
+                        </small>
+                    </article>
+                </div>
+                <div class="dashboard-conversion-grid">
+                    <article class="dashboard-signal-card dashboard-conversion-list-card">
+                        <span>Visitas y WhatsApp por dia</span>
+                        <ul id="dashboardConversionDailyList" class="sony-list dashboard-attention-list dashboard-conversion-list"></ul>
+                    </article>
+                    <article class="dashboard-signal-card dashboard-conversion-list-card">
+                        <span>Top servicios</span>
+                        <ul id="dashboardConversionTopServices" class="sony-list dashboard-attention-list dashboard-conversion-list"></ul>
+                    </article>
                 </div>
             </article>
         </div>

@@ -56,6 +56,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://pielarmonia.com/es/gift-cards/</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://pielarmonia.com/es/</loc>
     <lastmod>2026-03-15</lastmod>
     <changefreq>daily</changefreq>
@@ -82,6 +88,12 @@
   <url>
     <loc>https://pielarmonia.com/es/legal/terminos/</loc>
     <lastmod>2026-03-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/membresia/</loc>
+    <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -114,6 +126,18 @@
     <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/promociones/</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/referidos/</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/acne-rosacea/</loc>

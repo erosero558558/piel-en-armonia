@@ -37,4 +37,9 @@ final class ClinicalHistoryDiagnosisRepository
                 'cie10' => self::trimString($diagnosis['cie10'] ?? ''),
             ];
         }
+
+    private static function trimString($value): string
+        {
+            return trim((string) $value);
+        }
 }

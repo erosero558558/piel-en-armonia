@@ -21,12 +21,14 @@ const LEGAL_SLUG_MAP_EN_TO_ES = {
 const SOFTWARE_ROUTE_MAP = {
     es: {
         landing: '/es/software/turnero-clinicas/',
+        apiDocs: '/es/software/turnero-clinicas/api-docs/',
         demo: '/es/software/turnero-clinicas/demo/',
         status: '/es/software/turnero-clinicas/estado-turno/',
         dashboard: '/es/software/turnero-clinicas/dashboard/',
     },
     en: {
         landing: '/en/software/clinic-flow-suite/',
+        apiDocs: '/en/software/clinic-flow-suite/api-docs/',
         demo: '/en/software/clinic-flow-suite/demo/',
         status: '/en/software/clinic-flow-suite/queue-status/',
         dashboard: '/en/software/clinic-flow-suite/dashboard/',
@@ -96,6 +98,24 @@ const SEO_CASES = [
         otherLocale: 'es',
         otherLocalePath: '/es/telemedicina/',
         xDefaultPath: '/es/telemedicina/',
+    },
+    {
+        path: '/es/software/turnero-clinicas/api-docs/',
+        canonicalPath: '/es/software/turnero-clinicas/api-docs/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/software/turnero-clinicas/api-docs/',
+        otherLocale: 'en',
+        otherLocalePath: '/en/software/clinic-flow-suite/api-docs/',
+        xDefaultPath: '/es/software/turnero-clinicas/api-docs/',
+    },
+    {
+        path: '/en/software/clinic-flow-suite/api-docs/',
+        canonicalPath: '/en/software/clinic-flow-suite/api-docs/',
+        currentLocale: 'en',
+        currentLocalePath: '/en/software/clinic-flow-suite/api-docs/',
+        otherLocale: 'es',
+        otherLocalePath: '/es/software/turnero-clinicas/api-docs/',
+        xDefaultPath: '/es/software/turnero-clinicas/api-docs/',
     },
     {
         path: '/es/servicios/acne-rosacea/',

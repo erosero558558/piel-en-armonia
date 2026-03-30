@@ -2187,7 +2187,7 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     );
 });
 
-test('approval blocked refreshes Compliance MSP blockers and toast detail in workspace', async ({
+test('approval blocked refreshes Compliance MSP blockers in workspace', async ({
     page,
 }) => {
     const readyRecord = buildClinicalRecordPayload({
@@ -2409,7 +2409,7 @@ test('approval blocked refreshes Compliance MSP blockers and toast detail in wor
     ).toContainText('Bloqueada');
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
-    ).toContainText('Faltan campos MVP');
+    ).toContainText('Faltan campos MSP');
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('Documento de identidad');
