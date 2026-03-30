@@ -389,6 +389,68 @@ function createTaskCheckDefinitions(context) {
         },
       },
     ],
+    'S13-03': [
+      {
+        name: '404 and 500 pages use the Design System shell',
+        evaluate: () => {
+          const page404 = fileIncludes(
+            '404.html',
+            [
+              '/styles/tokens.css',
+              '/styles/base.css',
+              '/styles/components.css',
+              '/styles/aurora-public.css',
+              '/styles/error-pages.css',
+              'Aurora Derm',
+              'wa.me/593982453672',
+              '/es/index.html',
+              '/es/servicios/index.html',
+            ],
+            '404.html usa tokens/base/components/aurora-public y CTAs de recovery'
+          );
+          const page500 = fileIncludes(
+            '500.html',
+            [
+              '/styles/tokens.css',
+              '/styles/base.css',
+              '/styles/components.css',
+              '/styles/aurora-public.css',
+              '/styles/error-pages.css',
+              'Aurora Derm',
+              'wa.me/593982453672',
+              '/es/index.html',
+              '/es/servicios/index.html',
+            ],
+            '500.html usa tokens/base/components/aurora-public y CTAs de recovery'
+          );
+
+          if (page404.ok && page500.ok) {
+            return pass(`${page404.detail}; ${page500.detail}`);
+          }
+
+          return fail([page404.detail, page500.detail].filter(Boolean).join(' | '));
+        },
+      },
+      {
+        name: 'Error page smoke and contract coverage exist',
+        evaluate: () => {
+          const smoke = filePresence(
+            'tests/error-pages.spec.js',
+            'Existe tests/error-pages.spec.js'
+          );
+          const contract = filePresence(
+            'tests-node/error-pages-contract.test.js',
+            'Existe tests-node/error-pages-contract.test.js'
+          );
+
+          if (smoke.ok && contract.ok) {
+            return pass(`${smoke.detail}; ${contract.detail}`);
+          }
+
+          return fail([smoke.detail, contract.detail].filter(Boolean).join(' | '));
+        },
+      },
+    ],
   };
 }
 

@@ -786,6 +786,22 @@ function createVerificationChecks() {
             }
         },
 
+        // ── Sprint 13 ──────────────────────────────────────────────────────
+        'S13-03': () =>
+            ['404.html', '500.html'].every((relativePath) => {
+                const content = readRepoFile(relativePath);
+                return (
+                    fileExists(relativePath) &&
+                    content.includes('/styles/tokens.css') &&
+                    content.includes('/styles/components.css') &&
+                    content.includes('/styles/aurora-public.css') &&
+                    content.includes('/styles/error-pages.css') &&
+                    content.includes('wa.me/593982453672') &&
+                    content.includes('/es/index.html') &&
+                    content.includes('/es/servicios/index.html')
+                );
+            }),
+
         // ── Sprint UI Fase 2 ──────────────────────────────────────────────
         'UI2-20': () =>
             PHASE_TWO_AUDIT_CHECK_KEYS.every(
