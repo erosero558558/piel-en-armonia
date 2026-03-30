@@ -165,6 +165,17 @@ const CLINICAL_RED_FLAG_LABELS = Object.freeze({
     anafilaxia: 'Anafilaxia',
     embarazo: 'Embarazo',
 });
+const CLINICAL_MSP_FIELD_LABELS = Object.freeze({
+    patient_name: 'Nombre del paciente',
+    patient_id: 'Documento de identidad',
+    reason_for_visit: 'Motivo de consulta',
+    physical_exam: 'Examen físico',
+    cie10_code: 'Diagnóstico CIE-10',
+    cie10_type: 'Tipo de diagnóstico (PRE / DEF)',
+    treatment_plan: 'Plan de tratamiento',
+    evolution_note: 'Nota de evolución clínica',
+    doctor_msp: 'Registro MSP del profesional',
+});
 const CLINICAL_HISTORY_CERTIFICATE_ISSUED_EVENT = 'aurora:certificate-issued';
 
 let scheduledAutoSelection = '';
@@ -3176,24 +3187,54 @@ function evaluateConsentPacket(packet) {
 }
 
 function complianceMspStatusMeta(status) {
-    switch (normalizeString(status)) {
+    return normalizeComplianceMspStatus({
+        status,
+    });
+}
+
+function labelForComplianceMspField(field) {
+    const normalized = normalizeString(field);
+    return CLINICAL_MSP_FIELD_LABELS[normalized] || normalized;
+}
+
+function normalizeComplianceMspStatus(statusSource) {
+    const source =
+        statusSource && typeof statusSource === 'object' ? statusSource : {};
+    const normalizedStatus = normalizeString(source.status);
+    const missingFields = normalizeStringList(source.missingFields);
+    const missingFieldLabels = (
+        normalizeStringList(source.missingFieldLabels).length > 0
+            ? normalizeStringList(source.missingFieldLabels)
+            : missingFields.map((field) => labelForComplianceMspField(field))
+    ).filter(Boolean);
+
+    switch (normalizedStatus) {
         case 'complete':
             return {
                 status: 'complete',
                 label: 'Compliance MSP OK',
                 summary: 'Cumple con los campos mínimos requeridos.',
+                missingFields,
+                missingFieldLabels,
             };
         case 'incomplete':
             return {
                 status: 'incomplete',
                 label: 'Faltan campos MSP',
-                summary: 'Faltan campos obligatorios para cerrar el registro.',
+                summary:
+                    missingFieldLabels.length > 0
+                        ? `Faltan campos obligatorios para cerrar el registro: ${missingFieldLabels.join(', ')}.`
+                        : 'Faltan campos obligatorios para cerrar el registro.',
+                missingFields,
+                missingFieldLabels,
             };
         default:
             return {
                 status: 'incomplete',
                 label: 'Faltan campos MSP',
                 summary: 'Validación MSP pendiente.',
+                missingFields,
+                missingFieldLabels,
             };
     }
 }
@@ -3919,7 +3960,9 @@ function normalizeLegalReadiness(readiness) {
             source?.hcu012AReportStatus?.status
         ),
         hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
-        complianceMspStatus: complianceMspStatusMeta(source?.complianceMspStatus?.status),
+        complianceMspStatus: normalizeComplianceMspStatus(
+            source?.complianceMspStatus
+        ),
     };
 }
 
@@ -6960,6 +7003,37 @@ function buildLegalReadinessPanel(review) {
                         `
                     )
                     .join('')}
+                ${
+                    complianceMspStatus.status === 'incomplete' &&
+                    complianceMspStatus.missingFieldLabels.length > 0
+                        ? `
+                            <article class="clinical-history-event-card" data-tone="danger">
+                                <div class="clinical-history-event-head">
+                                    <span class="clinical-history-mini-chip" data-tone="danger">
+                                        ${escapeHtml(complianceMspStatus.label)}
+                                    </span>
+                                    <span class="clinical-history-mini-chip">
+                                        ${escapeHtml(
+                                            `${complianceMspStatus.missingFieldLabels.length} campo(s)`
+                                        )}
+                                    </span>
+                                </div>
+                                <p>${escapeHtml(complianceMspStatus.summary)}</p>
+                                <div class="clinical-history-mini-chip-row">
+                                    ${complianceMspStatus.missingFieldLabels
+                                        .map(
+                                            (label) => `
+                                                <span class="clinical-history-mini-chip" data-tone="danger">
+                                                    ${escapeHtml(label)}
+                                                </span>
+                                            `
+                                        )
+                                        .join('')}
+                                </div>
+                            </article>
+                        `
+                        : ''
+                }
             </div>
         </article>
     `;
@@ -13481,15 +13555,42 @@ async function saveClinicalHistoryReview(mode, question) {
 
         return nextReview;
     } catch (error) {
+        const payload =
+            error?.payload && typeof error.payload === 'object'
+                ? error.payload
+                : {};
+        const nextReview =
+            payload.data && typeof payload.data === 'object'
+                ? normalizeReviewPayload(payload.data)
+                : null;
+        const blockingReason =
+            Array.isArray(payload.blockingReasons) &&
+            payload.blockingReasons.length > 0 &&
+            payload.blockingReasons[0] &&
+            typeof payload.blockingReasons[0] === 'object'
+                ? normalizeString(
+                      payload.blockingReasons[0].message ||
+                          payload.blockingReasons[0].label
+                  )
+                : '';
+
         setClinicalHistoryState({
             saving: false,
             error:
                 error?.message ||
                 'No se pudo guardar la revision clinica del caso.',
+            current: nextReview || getClinicalHistorySlice().current || null,
+            draftForm: nextReview ? cloneValue(nextReview.draft) : currentDraftSource(),
+            dirty: nextReview ? false : getClinicalHistorySlice().dirty,
+            lastLoadedAt: nextReview ? Date.now() : getClinicalHistorySlice().lastLoadedAt,
         });
         syncDraftStatusMeta();
+        if (nextReview) {
+            renderClinicalHistorySection();
+        }
         createToast(
-            error?.message ||
+            blockingReason ||
+                error?.message ||
                 'No se pudo guardar la revision clinica del caso.',
             'error'
         );

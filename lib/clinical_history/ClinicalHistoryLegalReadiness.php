@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../DoctorProfileStore.php';
+
 final class ClinicalHistoryLegalReadiness
 {
     /**
@@ -629,12 +631,18 @@ final class ClinicalHistoryLegalReadiness
             );
         }
 
+        $doctorProfile = function_exists('doctor_profile_document_fields')
+            ? doctor_profile_document_fields([])
+            : [];
         $complianceMspMissing = ComplianceMSP::validate([
             'patient' => $session['patient'] ?? [],
             'intake' => $draft['intake'] ?? [],
             'hcu005' => $hcu005,
             'doctor' => $session['doctor'] ?? '',
+            'doctor_msp' => self::resolveDoctorMsp($session, $doctorProfile),
+            'doctor_profile' => $doctorProfile,
         ]);
+        $complianceMspMissingLabels = ComplianceMSP::labelsFor($complianceMspMissing);
 
         self::appendChecklist(
             $checklist,
@@ -643,15 +651,21 @@ final class ClinicalHistoryLegalReadiness
             'Compliance MSP',
             $complianceMspMissing === []
                 ? 'Todos los campos clínicos mínimos obligatorios están cubiertos.'
-                : 'Faltan campos clínicos mínimos MVP.',
-            ['missingFields' => $complianceMspMissing]
+                : 'Faltan campos clínicos mínimos MVP: ' . implode(', ', $complianceMspMissingLabels) . '.',
+            [
+                'missingFields' => $complianceMspMissing,
+                'missingFieldLabels' => $complianceMspMissingLabels,
+            ]
         );
         if ($complianceMspMissing !== []) {
             $blockingReasons[] = self::blockingReason(
                 'compliance_msp_incomplete',
                 'Faltan campos mínimos de Compliance MSP',
-                'Revisa y completa los siguientes campos: ' . implode(', ', $complianceMspMissing),
-                ['missingFields' => $complianceMspMissing]
+                'Revisa y completa los siguientes campos: ' . implode(', ', $complianceMspMissingLabels),
+                [
+                    'missingFields' => $complianceMspMissing,
+                    'missingFieldLabels' => $complianceMspMissingLabels,
+                ]
             );
         }
 
@@ -814,10 +828,11 @@ final class ClinicalHistoryLegalReadiness
             'complianceMspStatus' => [
                 'status' => $complianceMspMissing === [] ? 'complete' : 'incomplete',
                 'missingFields' => $complianceMspMissing,
+                'missingFieldLabels' => $complianceMspMissingLabels,
                 'label' => $complianceMspMissing === [] ? 'Compliance MSP OK' : 'Faltan campos MVP',
                 'summary' => $complianceMspMissing === []
                     ? 'Cumple con los campos mínimos requeridos.'
-                    : 'Faltan campos obligatorios descritos en ComplianceMSP para cerrar el registro.',
+                    : 'Faltan campos obligatorios descritos en ComplianceMSP para cerrar el registro: ' . implode(', ', $complianceMspMissingLabels) . '.',
             ],
             'normativeSources' => [
                 'MSP-AM-5216A',
@@ -831,6 +846,19 @@ final class ClinicalHistoryLegalReadiness
                 'MSP-HCU-FORM-024',
             ],
         ];
+    }
+
+    /**
+     * @param array<string,mixed> $session
+     * @param array<string,mixed> $doctorProfile
+     */
+    private static function resolveDoctorMsp(array $session, array $doctorProfile): string
+    {
+        $doctor = is_array($session['doctor'] ?? null) ? $session['doctor'] : [];
+
+        return ClinicalHistoryRepository::trimString(
+            $session['doctorMsp'] ?? $session['doctor_msp'] ?? $doctor['msp'] ?? $doctor['mspNumber'] ?? $doctorProfile['msp'] ?? ''
+        );
     }
 
     /**

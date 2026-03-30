@@ -56,6 +56,38 @@ class PatientCaseController
         ]);
     }
 
+    public static function search(array $context): void
+    {
+        $q = trim((string) ($_GET['q'] ?? ''));
+        if ($q === '') {
+            json_response(['ok' => true, 'data' => []]);
+        }
+        
+        // UI3-08 Mock data for frontend UI testing
+        $mockResults = [
+            [
+                'id' => 'pt-001',
+                'name' => 'Juan Garcia',
+                'document' => '1712345678',
+                'lastVisit' => '2026-03-25',
+                'avatarUrl' => null
+            ],
+            [
+                'id' => 'pt-002',
+                'name' => 'Maria Silva',
+                'document' => '0923456781',
+                'lastVisit' => '2025-11-10',
+                'avatarUrl' => null
+            ]
+        ];
+        
+        $filtered = array_values(array_filter($mockResults, function($pt) use ($q) {
+            return stripos($pt['name'], $q) !== false || stripos($pt['document'], $q) !== false;
+        }));
+        
+        json_response(['ok' => true, 'data' => $filtered]);
+    }
+
     public static function store(array $context): void
     {
         require_rate_limit('public-preconsultation', 4, 60);

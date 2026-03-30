@@ -645,11 +645,18 @@ final class ClinicalHistoryController
     private static function emitMutationResponse(array $result): void
     {
         if (($result['ok'] ?? false) !== true) {
-            json_response([
+            $payload = [
                 'ok' => false,
                 'error' => (string) ($result['error'] ?? 'Error de historia clinica'),
                 'code' => (string) ($result['errorCode'] ?? 'clinical_history_error'),
-            ], (int) ($result['statusCode'] ?? 500));
+            ];
+            if (array_key_exists('data', $result)) {
+                $payload['data'] = $result['data'];
+            }
+            if (array_key_exists('blockingReasons', $result)) {
+                $payload['blockingReasons'] = $result['blockingReasons'];
+            }
+            json_response($payload, (int) ($result['statusCode'] ?? 500));
         }
 
         $payload = [

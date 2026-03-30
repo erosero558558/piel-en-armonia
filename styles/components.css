@@ -377,3 +377,66 @@ body[data-theme="admin"] .avatar {
 body[data-theme="admin"] .divider {
   background-color: var(--admin-border);
 }
+
+/* ==========================================================================
+   Empty States (UI3-07)
+   ========================================================================== */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  background: var(--pub-bg-surface);
+  border: 1px dashed var(--pub-border);
+  border-radius: var(--radius-xl);
+  color: var(--pub-text-muted);
+}
+
+.empty-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-4);
+  stroke: var(--pub-text-muted);
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.empty-state h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--pub-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state p {
+  font-size: var(--text-sm);
+  max-width: 400px;
+  margin: 0 auto var(--space-6);
+}
+
+body[data-theme="admin"] .empty-state {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--admin-border);
+  color: var(--admin-text-muted);
+}
+
+body[data-theme="admin"] .empty-state svg {
+  stroke: var(--admin-text-muted);
+}
+
+body[data-theme="admin"] .empty-state h3 {
+  color: var(--admin-text-primary);
+}
+
+/* Variantes */
+.empty-state--patients svg { stroke: var(--color-aurora-400); }
+.empty-state--agenda svg { stroke: var(--color-gold-400); }
+.empty-state--queue svg { stroke: var(--color-success); }
+.empty-state--notifications svg { stroke: var(--color-warning); }
+.empty-state--default svg { stroke: var(--pub-text-muted); }
+

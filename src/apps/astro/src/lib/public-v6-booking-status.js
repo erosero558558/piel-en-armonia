@@ -1,7 +1,5 @@
 import { homePath, mapServiceHint } from './content.js';
 
-const WHATSAPP_NUMBER = '593982453672';
-
 const BOOKING_STATUS_COPY = {
     service: {
         es: {

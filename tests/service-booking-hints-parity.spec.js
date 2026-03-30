@@ -16,13 +16,13 @@ const SERVICE_CASES = [
         route: '/es/servicios/cancer-piel/',
         bookingText: 'Reserva online en mantenimiento',
         ctaLabel: 'Abrir reserva de esta especialidad',
-        ctaHref: '/es/?service=oncologia#citas',
+        ctaHref: '/es/?service=cancer#citas',
     },
     {
         route: '/en/services/botox/',
         bookingText: 'Online booking under maintenance',
         ctaLabel: 'Open booking for this specialty',
-        ctaHref: '/en/?service=botox#citas',
+        ctaHref: '/en/?service=rejuvenecimiento#citas',
     },
     {
         route: '/en/services/verrugas/',

@@ -45,6 +45,14 @@ final class ClinicalHistoryControllerTest extends TestCase
         require_once __DIR__ . '/../../api-lib.php';
         require_once __DIR__ . '/../../controllers/ClinicalHistoryController.php';
 
+        \write_doctor_profile([
+            'fullName' => 'Dra. Aurora Demo',
+            'specialty' => 'Dermatologia clinica',
+            'mspNumber' => 'MSP-445566',
+            'signatureImage' => '',
+            'updatedAt' => '2026-03-30T09:00:00-05:00',
+        ]);
+
         $store = read_store();
         $store['appointments'] = [];
         $store['callbacks'] = [];

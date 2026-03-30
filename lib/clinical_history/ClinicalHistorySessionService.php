@@ -1438,6 +1438,8 @@ public function  mutateClinicalRecord(array $store, array $payload, string $mode
                     'statusCode' => 409,
                     'error' => 'La nota final no esta lista para aprobar.',
                     'errorCode' => 'clinical_history_approval_blocked',
+                    'data' => $this->buildAdminPayload($store, $session, $draft),
+                    'blockingReasons' => $legalReadiness['blockingReasons'] ?? [],
                 ];
             }
 
