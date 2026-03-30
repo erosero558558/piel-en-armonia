@@ -46,6 +46,10 @@ Parametros manuales recomendados (SFTP si tu hosting no abre puerto 21):
 - `protocol`: `sftp`
 - `server_port`: `22`
 - `security`: `strict` (solo aplica a FTPS)
+
+Para staging, el workflow `Deploy Staging (FTP/FTPS)` prefiere `STAGING_FTP_*`.
+Si esos secrets todavia no existen, cae temporalmente a `FTP_*` para que el
+pipeline siga operable mientras creas la cuenta FTP dedicada en cPanel.
 - `server_dir`: `/public_html/`
 - `dry_run`: `false`
 - `clean_slate`: `false`

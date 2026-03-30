@@ -14,6 +14,7 @@ on:
                 options:
                     - ftps
                     - ftp
+                    - sftp
             server_port:
                 description: 'Puerto remoto (21 FTP/FTPS, 22 SFTP)'
                 required: false
@@ -64,6 +65,9 @@ jobs:
             FTP_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
             FTP_CLEAN_SLATE: ${{ github.event.inputs.clean_slate || 'false' }}
             PROD_URL: ${{ vars.STAGING_URL || 'https://staging.pielarmonia.com' }}
+            STAGING_DEPLOY_SERVER: ${{ secrets.STAGING_FTP_SERVER || secrets.FTP_SERVER || '' }}
+            STAGING_DEPLOY_USERNAME: ${{ secrets.STAGING_FTP_USERNAME || secrets.FTP_USERNAME || '' }}
+            STAGING_DEPLOY_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD || secrets.FTP_PASSWORD || '' }}
             TELEMEDICINE_STAGING_STATUS: unknown
             TELEMEDICINE_STAGING_REASON: not_evaluated
             TELEMEDICINE_STAGING_FAILURES: -1
@@ -107,17 +111,20 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  if [ -z "${{ secrets.STAGING_FTP_SERVER }}" ]; then
-                    echo "::error::Falta el secret STAGING_FTP_SERVER"
+                  if [ -z "${STAGING_DEPLOY_SERVER}" ]; then
+                    echo "::error::Faltan las credenciales efectivas de servidor para staging. Configura STAGING_FTP_SERVER o FTP_SERVER."
                     exit 1
                   fi
-                  if [ -z "${{ secrets.STAGING_FTP_USERNAME }}" ]; then
-                    echo "::error::Falta el secret STAGING_FTP_USERNAME"
+                  if [ -z "${STAGING_DEPLOY_USERNAME}" ]; then
+                    echo "::error::Faltan las credenciales efectivas de usuario para staging. Configura STAGING_FTP_USERNAME o FTP_USERNAME."
                     exit 1
                   fi
-                  if [ -z "${{ secrets.STAGING_FTP_PASSWORD }}" ]; then
-                    echo "::error::Falta el secret STAGING_FTP_PASSWORD"
+                  if [ -z "${STAGING_DEPLOY_PASSWORD}" ]; then
+                    echo "::error::Faltan las credenciales efectivas de password para staging. Configura STAGING_FTP_PASSWORD o FTP_PASSWORD."
                     exit 1
+                  fi
+                  if [ -z "${{ secrets.STAGING_FTP_SERVER }}" ] || [ -z "${{ secrets.STAGING_FTP_USERNAME }}" ] || [ -z "${{ secrets.STAGING_FTP_PASSWORD }}" ]; then
+                    echo "::notice::STAGING_FTP_* incompleto; el workflow usara fallback FTP_* mientras se crea la cuenta dedicada en cPanel."
                   fi
 
             - name: Preflight red (control socket)
@@ -125,7 +132,7 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  HOST="${{ secrets.STAGING_FTP_SERVER }}"
+                  HOST="${STAGING_DEPLOY_SERVER}"
                   PORT="${FTP_SERVER_PORT}"
                   echo "Testeando conectividad TCP a ${HOST}:${PORT} ..."
                   if timeout 8 bash -c "cat < /dev/null > /dev/tcp/${HOST}/${PORT}" 2>/dev/null; then
@@ -138,11 +145,12 @@ jobs:
 
             - name: Deploy por FTP/FTPS
               id: deploy_staging_ftp
+              if: ${{ env.FTP_PROTOCOL != 'sftp' }}
               uses: SamKirkland/FTP-Deploy-Action@v4.3.6
               with:
-                  server: ${{ secrets.STAGING_FTP_SERVER }}
-                  username: ${{ secrets.STAGING_FTP_USERNAME }}
-                  password: ${{ secrets.STAGING_FTP_PASSWORD }}
+                  server: ${{ env.STAGING_DEPLOY_SERVER }}
+                  username: ${{ env.STAGING_DEPLOY_USERNAME }}
+                  password: ${{ env.STAGING_DEPLOY_PASSWORD }}
                   protocol: ${{ env.FTP_PROTOCOL }}
                   port: ${{ env.FTP_SERVER_PORT }}
                   security: ${{ env.FTP_SECURITY }}
@@ -153,6 +161,27 @@ jobs:
                   timeout: 120000
                   log-level: verbose
                   state-name: .ftp-deploy-sync-state.json
+
+            - name: Deploy por SFTP
+              id: deploy_staging_sftp
+              if: ${{ env.FTP_PROTOCOL == 'sftp' }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${FTP_DRY_RUN}" = "true" ]; then
+                    echo "Dry-run SFTP habilitado: se omite subida real."
+                    find "${DEPLOY_STAGE_DIR}" -maxdepth 2 -type f | head -n 30
+                    exit 0
+                  fi
+                  sudo apt-get update
+                  sudo apt-get install -y lftp
+                  lftp -u "${STAGING_DEPLOY_USERNAME}","${STAGING_DEPLOY_PASSWORD}" "sftp://${STAGING_DEPLOY_SERVER}:${FTP_SERVER_PORT}" -e "
+                    set sftp:auto-confirm yes
+                    set net:max-retries 2
+                    set net:timeout 20
+                    mirror -R --delete --verbose ${DEPLOY_STAGE_DIR}/ ${FTP_SERVER_DIR}
+                    bye
+                  "
 
             - name: Smoke rapido de endpoints publicos
               id: smoke_staging
@@ -178,7 +207,7 @@ jobs:
                   HEALTH_FILE: /tmp/health.json
                   VALIDATE_SECRETS_OUTCOME: ${{ steps.validate_secrets_staging.outcome }}
                   PREFLIGHT_OUTCOME: ${{ steps.preflight_staging.outcome }}
-                  DEPLOY_STAGING_OUTCOME: ${{ steps.deploy_staging_ftp.outcome }}
+                  DEPLOY_STAGING_OUTCOME: ${{ steps.deploy_staging_ftp.outcome || steps.deploy_staging_sftp.outcome }}
                   SMOKE_STAGING_OUTCOME: ${{ steps.smoke_staging.outcome }}
               run: |
                   set -euo pipefail

@@ -91,10 +91,18 @@ function ensureStageBuild(options) {
         ['run', 'build'],
         {
             cwd: REPO_ROOT,
-            capture: false,
+            capture: Boolean(options.json),
             shell: process.platform === 'win32',
         }
     );
+    if (options.json && buildResult) {
+        if (buildResult.stdout) {
+            process.stderr.write(buildResult.stdout);
+        }
+        if (buildResult.stderr) {
+            process.stderr.write(buildResult.stderr);
+        }
+    }
     ensureCommandOk(buildResult, 'npm run build');
 }
 
