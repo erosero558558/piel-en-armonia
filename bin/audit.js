@@ -39,6 +39,12 @@ const AUDIT_STEPS = [
         args: ['bin/conflict.js', '--json'],
     },
     {
+        id: 'evidence-debt',
+        label: 'Evidence Debt Health',
+        command: 'node',
+        args: ['bin/evidence-debt.js'],
+    },
+    {
         id: 'email_php_lint',
         label: 'PHP lint email',
         command: 'php',

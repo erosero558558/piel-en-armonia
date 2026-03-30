@@ -366,3 +366,7 @@ function app_prometheus_alias_output(string $payload): string
 }
 
 app_bootstrap_env_aliases();
+
+// S13-09: Interceptación global de Input Sanitization
+require_once __DIR__ . '/input-validator.php';
+InputValidator::sanitizeGlobals();

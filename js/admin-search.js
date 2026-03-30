@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 transition: 'background var(--transition-fast)'
             });
             
-            item.innerHTML = `
+            const rawHtml = `
                 <div class="avatar avatar-sm">${pt.avatarUrl ? '' : pt.name.substring(0, 2).toUpperCase()}</div>
                 <div style="flex: 1; display:flex; flex-direction:column;">
                     <strong style="font-size: var(--text-sm); color: var(--admin-text-primary);">${pt.name}</strong>
@@ -97,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     Última Visita<br>${pt.lastVisit || 'N/A'}
                 </div>
             `;
+            
+            item.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
             
             item.addEventListener('mouseenter', () => {
                 highlightIndex(index);

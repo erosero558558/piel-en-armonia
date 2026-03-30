@@ -35,6 +35,11 @@
     ],
     "icons": [
         {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        },
+        {
             "src": "/images/icon-192.png",
             "sizes": "192x192",
             "type": "image/png",

@@ -601,7 +601,8 @@ CONTEXTO DEL PACIENTE:
     // Load patient context
     setStatus('cargando contexto...');
     state.patientContext = await loadPatientContext(patientId, caseId);
-    document.getElementById('oc-context-body').innerHTML = renderPatientContext(state.patientContext);
+    const rawContextHtml = renderPatientContext(state.patientContext);
+    document.getElementById('oc-context-body').innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawContextHtml) : rawContextHtml;
 
     // Add context to initial AI message if patient found
     if (state.patientContext) {
@@ -740,17 +741,19 @@ CONTEXTO DEL PACIENTE:
   }
 
   function updateStreamingMessage(el, text) {
-    el.querySelector('.oc-msg-text').innerHTML = formatMarkdown(text) + '<span class="oc-cursor">▌</span>';
+    const rawHtml = formatMarkdown(text) + '<span class="oc-cursor">▌</span>';
+    el.querySelector('.oc-msg-text').innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
     el.closest('#oc-messages').scrollTop = el.closest('#oc-messages').scrollHeight;
   }
 
   function finalizeStreamingMessage(el, text, actions) {
     el.classList.remove('oc-msg-streaming');
     const time = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-    el.querySelector('.oc-msg-content').innerHTML = `
+    const rawContent = `
       <div class="oc-msg-text">${formatMarkdown(text)}</div>
       ${actions.length ? renderInlineActions(actions, el.id) : ''}
       <div class="oc-msg-time">${time}</div>`;
+    el.querySelector('.oc-msg-content').innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawContent) : rawContent;
   }
 
   // ── Photo handling ───────────────────────────────────────────────────────────

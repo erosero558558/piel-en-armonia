@@ -29,7 +29,7 @@ test.describe('Patient portal login page', () => {
                     ok: true,
                     data: {
                         challengeId: 'ppc_demo_001',
-                        maskedPhone: '*******4567',
+                        maskedPhone: '******4567',
                         debugCode: '123456',
                         patient: {
                             patientId: 'pt_lucia_001',
@@ -57,7 +57,7 @@ test.describe('Patient portal login page', () => {
                         patient: {
                             patientId: 'pt_lucia_001',
                             name: 'Lucia Portal',
-                            phoneMasked: '*******4567',
+                            phoneMasked: '******4567',
                         },
                     },
                 }),
@@ -71,7 +71,7 @@ test.describe('Patient portal login page', () => {
         await page.locator('[data-portal-login-request-form] button[type="submit"]').click();
 
         await expect(page.locator('[data-portal-login-verify-stage]')).toBeVisible();
-        await expect(page.locator('[data-portal-login-phone]')).toContainText('*******4567');
+        await expect(page.locator('[data-portal-login-phone]')).toContainText('******4567');
         await expect(page.locator('[data-portal-login-debug-code]')).toContainText('123456');
 
         await page.locator('input[name="otp"]').fill('123456');

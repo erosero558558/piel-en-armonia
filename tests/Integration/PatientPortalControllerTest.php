@@ -103,7 +103,7 @@ final class PatientPortalControllerTest extends TestCase
 
         self::assertSame(200, $start['status']);
         self::assertTrue((bool) ($start['payload']['ok'] ?? false));
-        self::assertSame('*******4567', (string) ($start['payload']['data']['maskedPhone'] ?? ''));
+        self::assertSame('******4567', (string) ($start['payload']['data']['maskedPhone'] ?? ''));
         self::assertSame('pt_lucia_001', (string) ($start['payload']['data']['patient']['patientId'] ?? ''));
 
         $outbox = \whatsapp_openclaw_repository()->listPendingOutbox(10);
