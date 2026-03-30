@@ -407,6 +407,21 @@ class AppointmentController
             json_response(['ok' => false, 'error' => 'Cita no encontrada o cancelada'], 404);
         }
 
+        $changes = (int) ($found['rescheduleCount'] ?? 0);
+        if ($changes >= 2) {
+             json_response(['ok' => false, 'error' => 'Has alcanzado el límite máximo de 2 reprogramaciones'], 403);
+        }
+
+        $now = time();
+        $dateStr = (string) ($found['date'] ?? '');
+        $timeStr = (string) ($found['time'] ?? '');
+        $apptTime = strtotime($dateStr . ' ' . $timeStr);
+        if ($dateStr !== '' && $timeStr !== '' && $apptTime !== false) {
+            if (($apptTime - $now) < 86400) {
+                 json_response(['ok' => false, 'error' => 'No puedes reprogramar con menos de 24 horas de anticipación'], 403);
+            }
+        }
+
         json_response([
             'ok' => true,
             'data' => [

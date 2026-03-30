@@ -481,7 +481,73 @@ qs_assert_true(
     'operator snapshot should expose pending approval alert'
 );
 
-// 9) Public ticket status should expose exact position and wait
+// 9) Wait estimates should use average duration by type and active consultorios
+$estimatedQueueStore = qs_base_store();
+$estimatedQueueStore['queue_tickets'] = [
+    normalize_queue_ticket([
+        'id' => 8201,
+        'ticketCode' => 'A-801',
+        'queueType' => 'appointment',
+        'patientInitials' => 'AP',
+        'priorityClass' => 'appt_current',
+        'status' => 'called',
+        'assignedConsultorio' => 1,
+        'createdAt' => date('c', strtotime('-40 minutes')),
+        'calledAt' => date('c', strtotime('-24 minutes')),
+    ]),
+    normalize_queue_ticket([
+        'id' => 8202,
+        'ticketCode' => 'A-802',
+        'queueType' => 'appointment',
+        'patientInitials' => 'BP',
+        'priorityClass' => 'appt_current',
+        'status' => 'called',
+        'assignedConsultorio' => 2,
+        'createdAt' => date('c', strtotime('-35 minutes')),
+        'calledAt' => date('c', strtotime('-18 minutes')),
+    ]),
+    normalize_queue_ticket([
+        'id' => 8203,
+        'ticketCode' => 'A-803',
+        'queueType' => 'walk_in',
+        'patientInitials' => 'CG',
+        'status' => 'waiting',
+        'createdAt' => date('c', strtotime('-12 minutes')),
+        'visitReason' => 'consulta_general',
+    ]),
+    normalize_queue_ticket([
+        'id' => 8204,
+        'ticketCode' => 'A-804',
+        'queueType' => 'walk_in',
+        'patientInitials' => 'PR',
+        'status' => 'waiting',
+        'createdAt' => date('c', strtotime('-6 minutes')),
+        'visitReason' => 'procedimiento',
+    ]),
+];
+$estimatedQueueState = $service->getQueueState($estimatedQueueStore);
+qs_assert_equals(
+    2,
+    (int) ($estimatedQueueState['data']['activeConsultorios'] ?? 0),
+    'queue state should expose active consultorios'
+);
+qs_assert_equals(
+    6,
+    (int) ($estimatedQueueState['data']['nextTickets'][0]['estimatedWaitMin'] ?? -1),
+    'first waiting ticket should divide average duration across active consultorios'
+);
+qs_assert_equals(
+    15,
+    (int) ($estimatedQueueState['data']['nextTickets'][1]['estimatedWaitMin'] ?? -1),
+    'second waiting ticket should accumulate duration by type'
+);
+qs_assert_equals(
+    15,
+    (int) ($estimatedQueueState['data']['estimatedWaitMin'] ?? -1),
+    'queue state should expose backlog wait using the same heuristic'
+);
+
+// 10) Public ticket status should expose exact position and wait
 $publicStatusStore = qs_base_store();
 $publicStatusFirst = $service->createWalkInTicket($publicStatusStore, ['patientInitials' => 'AA'], 'kiosk');
 qs_assert_true(($publicStatusFirst['ok'] ?? false) === true, 'public status first walk-in should be created');
@@ -492,10 +558,11 @@ $publicStatus = $service->getPublicTicketStatus(($publicStatusSecond['store'] ??
 qs_assert_true(($publicStatus['ok'] ?? false) === true, 'public ticket status should resolve');
 qs_assert_equals(2, (int) ($publicStatus['data']['position'] ?? 0), 'public status should expose exact queue position');
 qs_assert_equals(1, (int) ($publicStatus['data']['aheadCount'] ?? -1), 'public status should expose tickets ahead');
-qs_assert_equals(16, (int) ($publicStatus['data']['estimatedWaitMin'] ?? -1), 'public status should expose estimated wait');
+qs_assert_equals(24, (int) ($publicStatus['data']['estimatedWaitMin'] ?? -1), 'public status should expose estimated wait');
 qs_assert_equals('A-002', (string) ($publicStatus['data']['ticket']['ticketCode'] ?? ''), 'public status should expose requested ticket code');
+qs_assert_equals(1, (int) ($publicStatus['data']['activeConsultorios'] ?? 0), 'public status should expose active consultorios');
 
-// 10) Printer payload should include QR target for public status page
+// 11) Printer payload should include QR target for public status page
 $printerPayload = qs_invoke_private_method(new TicketPrinter(false, '', 9100, 1500), 'buildEscPosPayload', [[
     'ticketCode' => 'A-001',
     'patientInitials' => 'EP',
@@ -511,7 +578,7 @@ qs_assert_contains(
 );
 qs_assert_contains("\x1D\x28\x6B", $printerPayload, 'printer payload should include ESC/POS QR sequence');
 
-// 11) Printer fallback behavior when disabled
+// 12) Printer fallback behavior when disabled
 putenv('PIELARMONIA_TICKET_PRINTER_ENABLED=false');
 $printer = TicketPrinter::fromEnv();
 $printed = $printer->printQueueTicket([

@@ -206,14 +206,18 @@ test.describe('Sala turnos display', () => {
                         ticketCode: 'A-053',
                         patientInitials: 'EP',
                         position: 1,
+                        estimatedWaitMin: 6,
                     },
                     {
                         id: 4,
                         ticketCode: 'A-054',
                         patientInitials: 'LR',
                         position: 2,
+                        estimatedWaitMin: 15,
                     },
                 ],
+                estimatedWaitMin: 15,
+                activeConsultorios: 2,
             },
         });
 
@@ -234,6 +238,8 @@ test.describe('Sala turnos display', () => {
         );
         await expect(page.locator('#displayNextList li')).toHaveCount(2);
         await expect(page.locator('#displayNextList')).toContainText('A-053');
+        await expect(page.locator('#displayNextList')).toContainText('~6 min');
+        await expect(page.locator('#displayMetrics')).toContainText('15 min');
         await expect(page.locator('#displayConnectionState')).toContainText(
             /Sala conectada|Conectado/i
         );

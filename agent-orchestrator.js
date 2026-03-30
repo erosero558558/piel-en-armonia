@@ -17,9 +17,10 @@ const cmd = process.argv[2] || 'status';
 const messages = {
   status: () => {
     const agents = readFileSync(resolve(__dirname, 'AGENTS.md'), 'utf8');
-    const done = (agents.match(/- \[x\]/g) || []).length;
-    const pending = (agents.match(/- \[ \]/g) || []).length;
-    const total = done + pending;
+    // Mismo regex que claim.js: solo cuenta líneas con ID de tarea real (S3-19, S3-OC1, etc.)
+    const done    = (agents.match(/^- \[x\] \*\*S\d+-[A-Z0-9]+\*\*/gm) || []).length;
+    const pending = (agents.match(/^- \[ \] \*\*S\d+-[A-Z0-9]+\*\*/gm) || []).length;
+    const total   = done + pending;
 
     // Detect current sprint (first one with pending tasks)
     let currentSprint = 'Sprint 1';

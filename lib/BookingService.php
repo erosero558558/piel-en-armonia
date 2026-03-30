@@ -335,6 +335,21 @@ class BookingService
                 return ['ok' => false, 'error' => 'Esta cita fue cancelada', 'code' => 400];
             }
 
+            $changes = (int) ($appt['rescheduleCount'] ?? 0);
+            if ($changes >= 2) {
+                return ['ok' => false, 'error' => 'Has alcanzado el límite máximo de 2 reprogramaciones', 'code' => 403];
+            }
+
+            $now = time();
+            $dateStr = (string) ($appt['date'] ?? '');
+            $timeStr = (string) ($appt['time'] ?? '');
+            $apptTime = strtotime($dateStr . ' ' . $timeStr);
+            if ($dateStr !== '' && $timeStr !== '' && $apptTime !== false) {
+                if (($apptTime - $now) < 86400) {
+                     return ['ok' => false, 'error' => 'No puedes reprogramar con menos de 24 horas de anticipación', 'code' => 403];
+                }
+            }
+
             $service = (string) ($appt['service'] ?? 'consulta');
             if ($service === '' || get_service_config($service) === null) {
                 return ['ok' => false, 'error' => 'Servicio invalido para reprogramacion', 'code' => 400];
@@ -424,6 +439,7 @@ class BookingService
                 $appt['doctorAssigned'] = $doctor;
             }
             $appt['reminderSentAt'] = '';
+            $appt['rescheduleCount'] = $changes + 1;
 
             $found = true;
             $updatedAppointment = $appt;

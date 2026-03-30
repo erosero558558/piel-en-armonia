@@ -15,16 +15,26 @@
  *   - Por el workflow /status automáticamente
  */
 
-const { readFileSync, writeFileSync, existsSync } = require('fs');
-const { resolve } = require('path');
+const { readFileSync, writeFileSync, existsSync, readdirSync } = require('fs');
+const { resolve, join } = require('path');
 
-const ROOT = resolve(__dirname, '..');
+const ROOT        = resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 const BACKLOG_FILE = resolve(ROOT, 'BACKLOG.md');
-const CLAIMS_FILE = resolve(ROOT, 'data/claims/tasks.json');
+const CLAIMS_DIR  = resolve(ROOT, 'data/claims/tasks'); // v2
 
 function read(f) { return existsSync(f) ? readFileSync(f, 'utf8') : ''; }
-function loadClaims() { try { return JSON.parse(read(CLAIMS_FILE)); } catch { return {}; } }
+function loadClaims() {
+  const claims = {};
+  try {
+    const files = readdirSync(CLAIMS_DIR).filter(f => f.endsWith('.json'));
+    for (const f of files) {
+      const id = f.replace('.json', '');
+      try { claims[id] = JSON.parse(readFileSync(join(CLAIMS_DIR, f), 'utf8')); } catch {}
+    }
+  } catch {}
+  return claims;
+}
 function isExpired(c) { return c?.expiresAt && new Date(c.expiresAt) < new Date(); }
 
 const CHECK_MODE = process.argv.includes('--check');
@@ -105,8 +115,8 @@ lines.forEach(line => {
   if (!currentSprint) return;
 
 
-  // Parse task lines
-  const taskMatch = line.match(/^- \[([ x])\] \*\*(S\d+-\d+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
+  // Parse task lines — regex extendido: S3-09, S3-OC1, S4-21, etc.
+  const taskMatch = line.match(/^- \[([ x])\] \*\*(S\d+-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
   if (!taskMatch) return;
 
   const [, status, id, size, rest] = taskMatch;

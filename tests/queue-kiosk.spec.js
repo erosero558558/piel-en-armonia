@@ -304,8 +304,11 @@ test.describe('Kiosco turnos', () => {
                                 position: 1,
                                 queueType: 'walk_in',
                                 priorityClass: 'walk_in',
+                                estimatedWaitMin: 12,
                             },
                         ],
+                        estimatedWaitMin: 12,
+                        activeConsultorios: 1,
                     },
                 });
             }
@@ -408,6 +411,11 @@ test.describe('Kiosco turnos', () => {
             visitReason: 'urgencia',
         });
         await expect(page.locator('#queueWaitingCount')).toHaveText('2');
+        await expect(page.locator('#queueEstimatedWait')).toHaveText('12 min');
+        await expect(page.locator('#queueWaitContext')).toContainText(
+            '1 consultorio activo'
+        );
+        await expect(page.locator('#queueNextList')).toContainText('~12 min');
         await expect(page.locator('#queueConnectionState')).toContainText(
             'Cola conectada'
         );
