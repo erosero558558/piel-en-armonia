@@ -215,6 +215,7 @@
     "dispatch:fullstack": "node bin/dispatch.js --role fullstack",
     "report": "node bin/report.js",
     "report:md": "node bin/report.js --write",
+    "status": "node bin/status.js",
     "gate": "node bin/gate.js",
     "backlog": "node bin/sync-backlog.js",
     "backlog:check": "node bin/sync-backlog.js --check",
