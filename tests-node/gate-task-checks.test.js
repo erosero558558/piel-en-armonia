@@ -60,3 +60,15 @@ test('S3-45 gate checks verify shared map wiring and test coverage evidence', ()
   assert.match(wiringResult.detail, /bin\/gate\.js/);
   assert.match(wiringResult.detail, /gate-task-checks\.test\.js/);
 });
+
+test('S13-03 gate checks verify both recovery pages and smoke coverage', () => {
+  const pageResult = taskChecks['S13-03'][0].evaluate();
+  const coverageResult = taskChecks['S13-03'][1].evaluate();
+
+  assert.equal(pageResult.ok, true);
+  assert.match(pageResult.detail, /404\.html/);
+  assert.match(pageResult.detail, /500\.html/);
+  assert.equal(coverageResult.ok, true);
+  assert.match(coverageResult.detail, /tests\/error-pages\.spec\.js/);
+  assert.match(coverageResult.detail, /tests-node\/error-pages-contract\.test\.js/);
+});
