@@ -14,29 +14,49 @@ class AuthSessionTest extends TestCase
     protected function setUp(): void
     {
         // Clear environment variables relevant to auth
-        putenv('PIELARMONIA_ADMIN_PASSWORD');
-        putenv('PIELARMONIA_ADMIN_PASSWORD_HASH');
-        putenv('PIELARMONIA_ADMIN_2FA_SECRET');
-        putenv('PIELARMONIA_ADMIN_EMAIL');
-        putenv('PIELARMONIA_OPERATOR_AUTH_MODE');
-        putenv('PIELARMONIA_OPERATOR_AUTH_ALLOWLIST');
-        putenv('PIELARMONIA_OPERATOR_AUTH_ALLOWED_EMAILS');
-        putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN');
-        putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET');
+        $vars = [
+            'ADMIN_PASSWORD',
+            'ADMIN_PASSWORD_HASH',
+            'ADMIN_2FA_SECRET',
+            'ADMIN_EMAIL',
+            'OPERATOR_AUTH_MODE',
+            'OPERATOR_AUTH_ALLOWLIST',
+            'OPERATOR_AUTH_ALLOWED_EMAILS',
+            'OPERATOR_AUTH_BRIDGE_TOKEN',
+            'OPERATOR_AUTH_BRIDGE_SECRET',
+            'OPERATOR_AUTH_TRANSPORT',
+            'GOOGLE_OAUTH_CLIENT_ID',
+            'GOOGLE_OAUTH_CLIENT_SECRET',
+        ];
+        foreach ($vars as $v) {
+            putenv("AURORADERM_$v");
+            putenv("PIELARMONIA_$v");
+        }
+        putenv('OPENCLAW_AUTH_BROKER_AUTHORIZE_URL');
     }
 
     protected function tearDown(): void
     {
         // Cleanup
-        putenv('PIELARMONIA_ADMIN_PASSWORD');
-        putenv('PIELARMONIA_ADMIN_PASSWORD_HASH');
-        putenv('PIELARMONIA_ADMIN_2FA_SECRET');
-        putenv('PIELARMONIA_ADMIN_EMAIL');
-        putenv('PIELARMONIA_OPERATOR_AUTH_MODE');
-        putenv('PIELARMONIA_OPERATOR_AUTH_ALLOWLIST');
-        putenv('PIELARMONIA_OPERATOR_AUTH_ALLOWED_EMAILS');
-        putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN');
-        putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET');
+        $vars = [
+            'ADMIN_PASSWORD',
+            'ADMIN_PASSWORD_HASH',
+            'ADMIN_2FA_SECRET',
+            'ADMIN_EMAIL',
+            'OPERATOR_AUTH_MODE',
+            'OPERATOR_AUTH_ALLOWLIST',
+            'OPERATOR_AUTH_ALLOWED_EMAILS',
+            'OPERATOR_AUTH_BRIDGE_TOKEN',
+            'OPERATOR_AUTH_BRIDGE_SECRET',
+            'OPERATOR_AUTH_TRANSPORT',
+            'GOOGLE_OAUTH_CLIENT_ID',
+            'GOOGLE_OAUTH_CLIENT_SECRET',
+        ];
+        foreach ($vars as $v) {
+            putenv("AURORADERM_$v");
+            putenv("PIELARMONIA_$v");
+        }
+        putenv('OPENCLAW_AUTH_BROKER_AUTHORIZE_URL');
     }
 
     public function testVerifyAdminPasswordFailsClosedWhenUnconfigured(): void
@@ -48,7 +68,7 @@ class AuthSessionTest extends TestCase
 
     public function testVerifyAdminPasswordEnvPlain(): void
     {
-        putenv('PIELARMONIA_ADMIN_PASSWORD=secret123');
+        putenv('AURORADERM_ADMIN_PASSWORD=secret123');
         $this->assertTrue(admin_password_is_configured());
         $this->assertTrue(verify_admin_password('secret123'));
         $this->assertFalse(verify_admin_password('admin123'));
@@ -57,7 +77,7 @@ class AuthSessionTest extends TestCase
     public function testVerifyAdminPasswordEnvHash(): void
     {
         $hash = password_hash('hashed_secret', PASSWORD_DEFAULT);
-        putenv('PIELARMONIA_ADMIN_PASSWORD_HASH=' . $hash);
+        putenv('AURORADERM_ADMIN_PASSWORD_HASH=' . $hash);
 
         $this->assertTrue(admin_password_is_configured());
         $this->assertTrue(verify_admin_password('hashed_secret'));
@@ -76,7 +96,7 @@ class AuthSessionTest extends TestCase
         // Let's check lib/totp.php content if needed, but for now skip complex time-based tests.
         // Just test that empty secret returns false.
 
-        putenv('PIELARMONIA_ADMIN_2FA_SECRET=');
+        putenv('AURORADERM_ADMIN_2FA_SECRET=');
         $this->assertFalse(verify_2fa_code('123456'));
     }
 
@@ -88,20 +108,20 @@ class AuthSessionTest extends TestCase
 
     public function testOperatorAuthAllowlistFallsBackToAdminEmail(): void
     {
-        putenv('PIELARMONIA_ADMIN_EMAIL=doctor@example.com');
+        putenv('AURORADERM_ADMIN_EMAIL=doctor@example.com');
 
         $this->assertSame(['doctor@example.com'], operator_auth_allowed_emails());
     }
 
     public function testOperatorAuthConfigurationSnapshotReportsMissingSetup(): void
     {
-        putenv('PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt');
+        putenv('AURORADERM_OPERATOR_AUTH_MODE=openclaw_chatgpt');
 
         $snapshot = operator_auth_configuration_snapshot();
 
         $this->assertTrue($snapshot['enabled']);
         $this->assertFalse($snapshot['configured']);
-        $this->assertContains('bridge_token', $snapshot['missing']);
         $this->assertContains('allowlist', $snapshot['missing']);
+        $this->assertContains('transport', $snapshot['missing']);
     }
 }

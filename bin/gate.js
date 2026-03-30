@@ -139,6 +139,24 @@ check('No hardcoded hex colors in changed CSS/HTML', () => {
   return true;
 }, { warn: true });
 
+check('PHP Syntax Check (php -l)', () => {
+  const changed = run('git diff --name-only HEAD').split('\n')
+    .filter(f => f.endsWith('.php'));
+  for (const file of changed) {
+    if (fileExists(file)) {
+      try {
+        const output = run(`php -l "${resolve(ROOT, file)}"`);
+        if (!output.includes('No syntax errors detected')) {
+          return `Parse error in ${file}: ${output}`;
+        }
+      } catch (err) {
+        return `Parse error in ${file}`;
+      }
+    }
+  }
+  return true;
+});
+
 // ── Task-specific checks ───────────────────────────────────────────────────────
 
 const taskChecks = {

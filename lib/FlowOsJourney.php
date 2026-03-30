@@ -786,6 +786,9 @@ function flow_os_build_delegation_plan(string $stageId, array $context = []): ar
 
 function flow_os_build_journey_snapshot(string $stageId, array $context = []): array
 {
+    $cases = isset($context['cases']) && is_array($context['cases'])
+        ? array_values($context['cases'])
+        : [];
     $stage = flow_os_stage($stageId);
     if ($stage === null) {
         $stageId = 'lead_captured';
@@ -823,6 +826,204 @@ function flow_os_build_journey_snapshot(string $stageId, array $context = []): a
         'redacted' => false,
         'generatedAt' => function_exists('local_date') ? local_date('c') : gmdate('c'),
     ];
+}
+
+function flow_os_build_case_stage_counts(array $cases): array
+{
+    $counts = [];
+    foreach ($cases as $case) {
+        if (!is_array($case)) {
+            continue;
+        }
+
+        $stageId = trim((string) ($case['displayStage'] ?? ($case['stage'] ?? '')));
+        if ($stageId === '') {
+            continue;
+        }
+
+        $counts[$stageId] = (int) ($counts[$stageId] ?? 0) + 1;
+    }
+
+    foreach (flow_os_timeline_stage_catalog() as $stage) {
+        $displayId = trim((string) ($stage['displayId'] ?? ($stage['id'] ?? '')));
+        if ($displayId !== '' && !array_key_exists($displayId, $counts)) {
+            $counts[$displayId] = 0;
+        }
+    }
+
+    return $counts;
+}
+
+function flow_os_build_journey_activity_feed(array $cases): array
+{
+    $feed = [];
+
+    foreach ($cases as $case) {
+        if (!is_array($case)) {
+            continue;
+        }
+
+        $history = isset($case['journeyHistory']) && is_array($case['journeyHistory'])
+            ? array_values($case['journeyHistory'])
+            : [];
+        if ($history === []) {
+            continue;
+        }
+
+        $currentEntries = array_values(array_filter($history, static function ($entry): bool {
+            return is_array($entry) && (($entry['isCurrentStage'] ?? false) === true);
+        }));
+
+        $entry = $currentEntries !== []
+            ? $currentEntries[count($currentEntries) - 1]
+            : $history[count($history) - 1];
+        if (!is_array($entry)) {
+            continue;
+        }
+
+        $feed[] = $entry;
+    }
+
+    usort($feed, static function (array $left, array $right): int {
+        return strcmp(
+            trim((string) ($right['timestamp'] ?? '')),
+            trim((string) ($left['timestamp'] ?? ''))
+        );
+    });
+
+    return array_slice($feed, 0, 12);
+}
+
+function flow_os_case_preview_time_in_stage_ms(string $enteredAt): int
+{
+    $timestamp = strtotime($enteredAt);
+    if ($timestamp === false) {
+        return 0;
+    }
+
+    return max(0, (time() - $timestamp) * 1000);
+}
+
+function flow_os_normalize_case_journey_history(array $entry, string $currentStage): array
+{
+    $caseId = trim((string) ($entry['caseId'] ?? ''));
+    $patientLabel = trim((string) ($entry['patientLabel'] ?? ''));
+    $timeline = isset($entry['timeline']) && is_array($entry['timeline'])
+        ? array_values($entry['timeline'])
+        : [];
+    $rankMap = flow_os_stage_rank_map();
+    $history = [];
+
+    foreach ($timeline as $index => $transition) {
+        if (!is_array($transition)) {
+            continue;
+        }
+
+        $stageId = trim((string) ($transition['stage'] ?? ''));
+        $timestamp = trim((string) ($transition['occurredAt'] ?? ($transition['timestamp'] ?? '')));
+        if ($stageId === '' || $timestamp === '') {
+            continue;
+        }
+
+        $history[] = [
+            'id' => trim((string) ($transition['id'] ?? '')) !== ''
+                ? trim((string) ($transition['id'] ?? ''))
+                : $caseId . '-history-' . $index,
+            'caseId' => $caseId,
+            'patientLabel' => $patientLabel,
+            'stage' => $stageId,
+            'displayStage' => flow_os_display_stage_id($stageId),
+            'displayStageLabel' => flow_os_display_stage_label($stageId),
+            'stageIndex' => (int) ($rankMap[$stageId] ?? $index),
+            'timestamp' => $timestamp,
+            'sourceLabel' => trim((string) ($transition['sourceTitle'] ?? ($transition['title'] ?? ''))),
+            'actorLabel' => trim((string) ($transition['actorLabel'] ?? '')),
+            'isCurrentStage' => $stageId === $currentStage,
+        ];
+    }
+
+    return $history;
+}
+
+function flow_os_build_preview_cases(array $store, array $historyCases): array
+{
+    $rawCases = isset($store['patient_cases']) && is_array($store['patient_cases']) ? $store['patient_cases'] : [];
+    $rawCaseMap = [];
+
+    foreach ($rawCases as $rawCase) {
+        if (!is_array($rawCase)) {
+            continue;
+        }
+
+        $caseId = trim((string) ($rawCase['id'] ?? ''));
+        if ($caseId !== '') {
+            $rawCaseMap[$caseId] = $rawCase;
+        }
+    }
+
+    $cases = [];
+    foreach ($historyCases as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+
+        $caseId = trim((string) ($entry['caseId'] ?? ''));
+        if ($caseId === '') {
+            continue;
+        }
+
+        $rawCase = $rawCaseMap[$caseId] ?? [];
+        $summary = isset($rawCase['summary']) && is_array($rawCase['summary']) ? $rawCase['summary'] : [];
+        $stageId = trim((string) ($entry['currentStage'] ?? ''));
+        if ($stageId === '') {
+            $stageId = flow_os_detect_case_stage($rawCase);
+        }
+
+        $journeyHistory = flow_os_normalize_case_journey_history($entry, $stageId);
+        $currentEntry = null;
+        foreach (array_reverse($journeyHistory) as $historyEntry) {
+            if (($historyEntry['isCurrentStage'] ?? false) === true) {
+                $currentEntry = $historyEntry;
+                break;
+            }
+        }
+        if ($currentEntry === null && $journeyHistory !== []) {
+            $currentEntry = $journeyHistory[count($journeyHistory) - 1];
+        }
+
+        $enteredAt = trim((string) ($currentEntry['timestamp'] ?? ''));
+        if ($enteredAt === '') {
+            $enteredAt = trim((string) ($entry['latestActivityAt'] ?? ($entry['openedAt'] ?? '')));
+        }
+
+        $nextActions = flow_os_resolve_next_actions($stageId);
+        $nextAction = $nextActions !== [] && is_array($nextActions[0] ?? null)
+            ? trim((string) ($nextActions[0]['label'] ?? ''))
+            : '';
+        $owner = trim((string) ($entry['owner'] ?? ((flow_os_stage($stageId)['owner'] ?? 'frontdesk'))));
+
+        $cases[] = [
+            'caseId' => $caseId,
+            'patientId' => trim((string) ($entry['patientId'] ?? '')),
+            'patientLabel' => trim((string) ($entry['patientLabel'] ?? '')),
+            'serviceLine' => trim((string) ($summary['serviceLine'] ?? ($summary['service'] ?? ''))),
+            'providerName' => trim((string) ($summary['providerName'] ?? ($summary['doctorLabel'] ?? ($summary['doctor'] ?? '')))),
+            'stage' => $stageId,
+            'displayStage' => flow_os_display_stage_id($stageId),
+            'stageLabel' => flow_os_stage_label($stageId),
+            'displayStageLabel' => flow_os_display_stage_label($stageId),
+            'owner' => $owner,
+            'ownerLabel' => trim((string) ($entry['ownerLabel'] ?? flow_os_owner_label($owner))),
+            'enteredAt' => $enteredAt,
+            'timeInStageMs' => flow_os_case_preview_time_in_stage_ms($enteredAt),
+            'nextActions' => $nextActions,
+            'nextActionLabel' => $nextAction,
+            'alerts' => [],
+            'journeyHistory' => $journeyHistory,
+        ];
+    }
+
+    return $cases;
 }
 
 function flow_os_case_has_appointment(array $case): bool
@@ -1362,6 +1563,13 @@ function flow_os_find_case_journey_history(array $store, string $caseId): ?array
 
 function flow_os_build_store_journey_preview(array $store, array $context = []): array
 {
+    $journeyHistory = flow_os_build_store_journey_history($store);
+    $cases = flow_os_build_preview_cases(
+        $store,
+        isset($journeyHistory['cases']) && is_array($journeyHistory['cases'])
+            ? $journeyHistory['cases']
+            : []
+    );
     $stageId = trim((string) ($context['stage'] ?? ''));
     if ($stageId === '') {
         $stageId = flow_os_detect_stage($store);
@@ -1369,13 +1577,27 @@ function flow_os_build_store_journey_preview(array $store, array $context = []):
 
     return flow_os_build_journey_snapshot(
         $stageId,
-        array_merge(flow_os_context_from_store($store), $context)
+        array_merge(flow_os_context_from_store($store), $context, [
+            'cases' => $cases,
+            'selectedCaseId' => $journeyHistory['selectedCaseId'] ?? null,
+        ])
     );
 }
 
 function flow_os_build_case_journey_preview(array $store, string $caseId, array $context = []): array
 {
-    $caseHistory = flow_os_find_case_journey_history($store, $caseId);
+    $journeyHistory = flow_os_build_store_journey_history($store);
+    $historyCases = isset($journeyHistory['cases']) && is_array($journeyHistory['cases'])
+        ? $journeyHistory['cases']
+        : [];
+    $previewCases = flow_os_build_preview_cases($store, $historyCases);
+    $caseHistory = null;
+    foreach ($historyCases as $entry) {
+        if (is_array($entry) && trim((string) ($entry['caseId'] ?? '')) === trim($caseId)) {
+            $caseHistory = $entry;
+            break;
+        }
+    }
     if ($caseHistory === null) {
         return flow_os_build_store_journey_preview($store, $context);
     }
@@ -1391,7 +1613,10 @@ function flow_os_build_case_journey_preview(array $store, string $caseId, array 
     return array_merge(
         flow_os_build_journey_snapshot(
             $stageId,
-            array_merge(flow_os_context_from_store($store), $context)
+            array_merge(flow_os_context_from_store($store), $context, [
+                'cases' => $previewCases,
+                'selectedCaseId' => $journeyHistory['selectedCaseId'] ?? null,
+            ])
         ),
         [
             'caseId' => (string) ($caseHistory['caseId'] ?? ''),
