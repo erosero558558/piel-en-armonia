@@ -31,17 +31,19 @@ Conclusión importante:
 
 ## Huérfanos confirmados
 
-- [turnero-release-blast-radius.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/src/apps/queue-shared/turnero-release-blast-radius.js)
+Estos seis wrappers quedaron archivados en `S4-22` bajo `_archive/turnero-surfaces/`.
+
+- `src/apps/queue-shared/turnero-release-blast-radius.js` → [_archive/turnero-surfaces/turnero-release-blast-radius.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-blast-radius.js)
   Tamaño: `245 B`
-- [turnero-release-dependency-gates.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/src/apps/queue-shared/turnero-release-dependency-gates.js)
+- `src/apps/queue-shared/turnero-release-dependency-gates.js` → [_archive/turnero-surfaces/turnero-release-dependency-gates.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-dependency-gates.js)
   Tamaño: `257 B`
-- [turnero-release-freeze-window-registry.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/src/apps/queue-shared/turnero-release-freeze-window-registry.js)
+- `src/apps/queue-shared/turnero-release-freeze-window-registry.js` → [_archive/turnero-surfaces/turnero-release-freeze-window-registry.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-freeze-window-registry.js)
   Tamaño: `531 B`
-- [turnero-release-maintenance-window.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/src/apps/queue-shared/turnero-release-maintenance-window.js)
+- `src/apps/queue-shared/turnero-release-maintenance-window.js` → [_archive/turnero-surfaces/turnero-release-maintenance-window.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-maintenance-window.js)
   Tamaño: `263 B`
-- [turnero-release-rollback-rehearsal.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/src/apps/queue-shared/turnero-release-rollback-rehearsal.js)
+- `src/apps/queue-shared/turnero-release-rollback-rehearsal.js` → [_archive/turnero-surfaces/turnero-release-rollback-rehearsal.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-rollback-rehearsal.js)
   Tamaño: `263 B`
-- [turnero-release-wave-planner.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/src/apps/queue-shared/turnero-release-wave-planner.js)
+- `src/apps/queue-shared/turnero-release-wave-planner.js` → [_archive/turnero-surfaces/turnero-release-wave-planner.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-wave-planner.js)
   Tamaño: `245 B`
 
 ## Patrón observado
