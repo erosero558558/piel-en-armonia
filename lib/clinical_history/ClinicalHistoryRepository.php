@@ -583,6 +583,9 @@ final class ClinicalHistoryRepository
         $certificate = isset($documents['certificate']) && is_array($documents['certificate'])
             ? $documents['certificate']
             : [];
+        $carePlan = isset($documents['carePlan']) && is_array($documents['carePlan'])
+            ? $documents['carePlan']
+            : [];
         $interconsultForms = self::normalizeInterconsultFormSnapshots($documents['interconsultForms'] ?? []);
         $interconsultReports = self::normalizeInterconsultReportSnapshots($documents['interconsultReports'] ?? []);
         $labOrders = self::normalizeLabOrderSnapshots($documents['labOrders'] ?? []);
@@ -665,6 +668,14 @@ final class ClinicalHistoryRepository
                     ? (bool) $prescription['confidential']
                     : true,
                 'items' => $prescriptionItems,
+            ],
+            'carePlan' => [
+                'status' => self::trimString($carePlan['status'] ?? 'draft') ?: 'draft',
+                'diagnosis' => self::trimString($carePlan['diagnosis'] ?? ''),
+                'treatments' => self::trimString($carePlan['treatments'] ?? ''),
+                'followUpFrequency' => self::trimString($carePlan['followUpFrequency'] ?? ''),
+                'goals' => self::trimString($carePlan['goals'] ?? ''),
+                'generatedAt' => self::trimString($carePlan['generatedAt'] ?? ''),
             ],
             'certificate' => [
                 'status' => self::trimString($certificate['status'] ?? 'draft') ?: 'draft',

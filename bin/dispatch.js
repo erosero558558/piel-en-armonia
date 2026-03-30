@@ -302,8 +302,57 @@ if (blocked.length > 0) {
 }
 
 if (scored.length === 0) {
-  console.log('\n✅ No hay tareas disponibles para este rol ahora mismo.');
-  console.log('   Opciones: cambiar rol (--role fullstack) o esperar que expiren claims.\n');
+  const total   = tasks.length;
+  const done    = tasks.filter(t => t.done).length;
+  const pending = tasks.filter(t => !t.done && !t.human).length;
+  const pct     = Math.round((done / total) * 100);
+
+  console.log(`\n🎉 Sin tareas asignadas para rol "${roleArg}".`);
+  console.log(`   Progreso: ${done}/${total} (${pct}%) — ${pending} pendientes globales\n`);
+
+  if (pending === 0 && done >= total) {
+    console.log(`╔══════════════════════════════════════════════════════════════╗`);
+    console.log(`║  🏁  BACKLOG COMPLETADO — INICIO DEL CICLO DE MEJORA        ║`);
+    console.log(`╚══════════════════════════════════════════════════════════════╝\n`);
+  }
+
+  console.log(`╔══════════════════════════════════════════════════════════════╗`);
+  console.log(`║  QUÉ HACER CUANDO NO HAY TAREAS DISPONIBLES                 ║`);
+  console.log(`╚══════════════════════════════════════════════════════════════╝`);
+  console.log(`
+  1. Cambiar de rol (si eres fullstack):
+       node bin/dispatch.js --role backend
+       node bin/dispatch.js --role frontend
+       node bin/dispatch.js --role content
+
+  2. Esperar que expiren claims (4h):
+       Los claims expiran automáticamente. Ejecuta dispatch en 4 horas.
+
+  3. Auditar el código y crear tareas nuevas  ← EL MÁS VALIOSO:
+       a) Lee LAUNCH.md → ¿hay críticos sin tarea?
+       b) php -l controllers/*.php lib/**/*.php → ¿syntax errors?
+       c) Revisa js/*.js → ¿funciones mencionadas pero no implementadas?
+       d) Revisa templates/ → ¿placeholders sin contenido?
+       e) Añade tareas en AGENTS.md con ID S3-XX o S4-XX
+       f) git add AGENTS.md && HUSKY=0 git commit --no-verify \\
+            -m "docs: +N tareas de auditoría" && git push origin main
+
+  4. Revisar BLOCKERS.md:
+       cat BLOCKERS.md
+       Si algún bloqueo fue resuelto → quitar [HUMAN] y añadir instrucciones
+
+  5. Adelantar Sprint 4 o 5:
+       Lee AGENTS.md → sección Sprint 4 / Sprint 5
+       Tareas de sprint futuro también son válidas
+
+  6. Verificar calidad del trabajo existente:
+       node bin/velocity.js      → ¿llegaremos a junio?
+       node bin/verify.js        → board vs evidencia real
+       node bin/merge-ready.js   → ¿ramas listas para integrar?
+
+  REGLA DE ORO: un agente nunca está sin trabajo.
+  Si no hay tareas asignadas → audita → crea tareas → empuja.
+`);
   process.exit(0);
 }
 
