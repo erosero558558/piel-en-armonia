@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 1:06:45 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 1:11:18 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **48%** completado (202/420)
+`██████████░░░░░░░░░░` **48%** completado (203/420)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -28,7 +28,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 13 | 2 | 19 | 10% |
 | ⏸ Sprint UI | 15 | 5 | 75% |
 | ⏸ Sprint 14 | 2 | 12 | 14% |
-| ⏸ Sprint 15 | 2 | 11 | 15% |
+| ⏸ Sprint 15 | 3 | 10 | 23% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -230,12 +230,12 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S14-12** `[S14]` → _antigravity_ (expira en 20min)
+- **S14-12** `[S14]` → _antigravity_ (expira en 15min)
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
-_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 10 tareas pendientes._
 
-### 🟢 Disponibles (11)
+### 🟢 Disponibles (10)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -244,7 +244,7 @@ _Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 | **S15-04** | `[S15]` | M |
 | **S15-05** | `[S15]` | M |
 | **S15-06** | `[S15]` | S |
-| ... | | _+6 más_ |
+| ... | | _+5 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
