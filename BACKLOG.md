@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 12:01:30 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 12:03:36 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **38%** completado (80/213)
+`████████░░░░░░░░░░░░` **38%** completado (81/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 42 | 25 | 63% |
+| 🎯 Sprint 3 | 43 | 24 | 64% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -32,7 +32,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (23)
+### 🟢 Disponibles (22)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -42,7 +42,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-46** | `[S]` | ComplianceMSP validator — crear  con método  que devuelve lista de cam... |
 | **S3-47** | `[S]` | Health check completo — el endpoint  debe verificar y reportar: estado... |
 | **S3-50** | `[S]` | Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta ... |
-| **S3-63** | `[S]` | Tabla de comandos oficiales — en  (o  sección Desarrollo), agregar tab... |
 | **S3-33** | `[M]` | Verificación de transferencia — paciente sube foto del comprobante. Ad... |
 | **S3-34** | `[M]` | Estado de cuenta — vista en admin: historial de pagos por paciente, sa... |
 | **S3-38** | `[M]` | Instalación de dompdf — agregar  vía composer: . Sin esto los PDF de c... |

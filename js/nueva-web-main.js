@@ -104,9 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
     );
     document.querySelectorAll('.reveal').forEach((el) => obs.observe(el));
-    const nav = document.querySelector('.nav-bar'),
+    const nav = document.querySelector('.navbar-glass'),
         sticky = document.getElementById('stickyCta'),
-        heroH = document.querySelector('.hero-fullscreen')?.offsetHeight || 700;
+        heroH = document.querySelector('.hero-clinical')?.offsetHeight || 700;
     let ticking = false;
     window.addEventListener(
         'scroll',
@@ -157,12 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!o) i.classList.add('open');
         });
     });
-    const bi = document.querySelector('.ba-slider-input'),
-        ba = document.querySelector('.ba-img.ba-after'),
-        bh = document.querySelector('.ba-handle');
+    const bi = document.querySelector('.pub-ba-slider'),
+        ba = document.querySelector('.pub-ba-after'),
+        bh = document.querySelector('.pub-ba-divider');
     if (bi && ba && bh) {
         const u = (v) => {
-            ba.style.clipPath = `polygon(0 0,${v}% 0,${v}% 100%,0 100%)`;
+            ba.style.clipPath = `inset(0 ${100 - v}% 0 0)`;
             bh.style.left = `${v}%`;
         };
         bi.addEventListener('input', (e) => u(e.target.value));
