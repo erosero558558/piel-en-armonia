@@ -1327,7 +1327,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 7.7 Distribución desktop y downloads
 
 - [ ] **S7-24** `[M]` Auditar canal `app-downloads/` y `desktop-updates/` — hay un `app-downloads/index.php` y una carpeta `desktop-updates/turnero-apps-pilot-local/`. Verificar: ¿qué versiones de la app desktop están siendo servidas? ¿El `index.php` tiene auth o es público? ¿Los checksums de los instaladores son correctos? Documentar en `docs/DESKTOP_DISTRIBUTION.md`: qué sirve cada endpoint, quién lo llama, si existe riesgo de servir un binario sin verificar.
-- [ ] **S7-25** `[S]` Validar `release/` — si existe directorio `release/`, verificar que no contiene binarios sin checksum o con secrets hardcodeados. `grep -rn 'API_KEY\|password\|secret\|sk_live' release/ 2>/dev/null`. Si encuentra algo, es P0 de seguridad. Documentar el proceso de generar un release limpio.
+- [x] **S7-25** `[S]` Validar `release/` — si existe directorio `release/`, verificar que no contiene binarios sin checksum o con secrets hardcodeados. `grep -rn 'API_KEY\|password\|secret\|sk_live' release/ 2>/dev/null`. Si encuentra algo, es P0 de seguridad. Documentar el proceso de generar un release limpio.
 - [x] **S7-26** `[S]` Docs de ownership por zona — no existe un documento que diga "quien es responsable de qué archivo crítico". Crear `docs/OWNERSHIP.md` con tabla: zona del código → dueño humano (directora, doctor titular, etc.) → riesgo si ese dueño falta → handoff mínimo documentado. Cubrir al menos: `lib/auth.php`, `lib/clinical_history/`, `controllers/OpenclawController.php`, `k8s/`, `ops/caddy/`. Esto reduce el bus factor identificado en la auditoría.
 
 ---
@@ -1392,7 +1392,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### UI-5 Portal del paciente — "Mi salud en mi celular"
 
-- [ ] **UI-16** `[L]` `[UI]` Portal base mobile-first — crear `es/portal/index.html` + `styles/aurora-portal.css`: bottom navigation (5 iconos: inicio, citas, historial, recetas, perfil), header con foto/nombre del paciente, card de próxima cita, estado de plan activo, CTA WhatsApp siempre visible. PWA-ready. iOS y Android se ven nativos.
+- [x] **UI-16** `[L]` `[UI]` Portal base mobile-first — crear `es/portal/index.html` + `styles/aurora-portal.css`: bottom navigation (5 iconos: inicio, citas, historial, recetas, perfil), header con foto/nombre del paciente, card de próxima cita, estado de plan activo, CTA WhatsApp siempre visible. PWA-ready. iOS y Android se ven nativos.
 - [ ] **UI-17** `[M]` `[UI]` Vista de historial del paciente — `es/portal/historial/index.html`: lista de consultas con fechas, doctor y motivo. Tap para expandir detalle con diagnóstico, receta, y plan. Timeline vertical. Solo lectura. Datos del endpoint existente `clinical-history`.
 
 #### UI-6 PDF y documentos — "Los documentos que la doctora firma con orgullo"

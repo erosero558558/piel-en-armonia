@@ -159,6 +159,76 @@ Verificacion canonica del bundle antes de publicar:
 npm run turnero:verify:pilot:local
 ```
 
+## Higiene de `release/`
+
+Trata `release/` como staging local y no como carpeta de trabajo manual.
+
+Checklist minimo para declarar un release "limpio":
+
+1. Regenerar el bundle desde script, no copiando archivos a mano:
+
+```bash
+npm run turnero:stage:pilot:local
+```
+
+2. Confirmar que `release/` no expone secretos hardcodeados:
+
+```bash
+grep -rn 'API_KEY\|password\|secret\|sk_live' release/ 2>/dev/null
+```
+
+3. Confirmar que el bundle solo contiene artefactos esperados:
+
+```bash
+find release/turnero-apps-pilot-local -type f
+```
+
+Para el piloto local Windows del operador, el staging limpio esperado queda en:
+
+- `app-downloads/pilot/release-manifest.json`
+- `app-downloads/pilot/SHA256SUMS.txt`
+- `app-downloads/pilot/operator/win/TurneroOperadorSetup.exe`
+- `app-downloads/pilot/operator/win/TurneroOperadorSetup.exe.blockmap`
+- `desktop-updates/pilot/operator/win/latest.yml`
+- `desktop-updates/pilot/operator/win/TurneroOperadorSetup.exe`
+- `desktop-updates/pilot/operator/win/TurneroOperadorSetup.exe.blockmap`
+
+4. Confirmar que `SHA256SUMS.txt` cubre todos los binarios y metadatos publicados:
+
+```bash
+cat release/turnero-apps-pilot-local/app-downloads/pilot/SHA256SUMS.txt
+```
+
+5. Confirmar que el instalador publicado en `app-downloads/` y el payload de
+   `desktop-updates/` tienen el mismo hash:
+
+```bash
+shasum -a 256 \
+  release/turnero-apps-pilot-local/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe \
+  release/turnero-apps-pilot-local/desktop-updates/pilot/operator/win/TurneroOperadorSetup.exe
+```
+
+6. Confirmar que `release-manifest.json` coincide con bytes y `sha256` reales
+   del bundle antes de publicar.
+
+Fallback operativo:
+
+- Si `npm run turnero:verify:pilot:local` falla porque falta
+  `bin/verify-turnero-release-bundle.js`, no publiques a ciegas.
+- Usa el checklist manual de arriba y deja evidencia en
+  `verification/agent-runs/` con:
+  - archivos presentes
+  - resultado del grep de secretos
+  - hashes verificados
+  - comando de publish que se piensa ejecutar
+
+Regla de seguridad:
+
+- no subir a `release/` `.env`, dumps, notas manuales ni artefactos fuera de
+  `app-downloads/` y `desktop-updates/`
+- si aparece cualquier match del grep de secretos, tratarlo como P0 y detener
+  la publicación
+
 Checklist operativo del piloto Windows:
 
 ```bash

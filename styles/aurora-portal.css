@@ -1,0 +1,272 @@
+/* ==========================================================================
+   Aurora Derm - Portal PWA del Paciente (UI-16)
+   "Mobile First - Night Mode Clinical Experience"
+   ========================================================================== */
+
+/* 1. Base PWA Rules */
+body.portal-body {
+    background-color: #000 !important; /* Base negra para que el shell resalte en desktop */
+    color: var(--admin-text-primary) !important;
+    font-family: var(--font-body) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none; /* iOS pull-down refresh block */
+}
+
+/* 2. App Virtual Shell */
+.portal-app-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* Dynamic Vh para Safari iOS */
+    max-width: 500px; /* Constrainer The Phone size */
+    margin: 0 auto;
+    background: var(--color-slate-900);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(82, 113, 255, 0.1); 
+}
+
+/* 3. Header & Perfil */
+.portal-header {
+    flex-shrink: 0;
+    padding: var(--space-6) var(--space-5) var(--space-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: transparent;
+    z-index: 10;
+}
+
+.portal-header__profile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.portal-header__avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--color-slate-800);
+    border: 2px solid var(--color-aurora-500);
+    object-fit: cover;
+}
+
+.portal-header__greetings span { 
+    color: var(--color-gold-400); 
+    font-size: 0.75rem; 
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    display: block; 
+    margin-bottom: 2px;
+}
+
+.portal-header__greetings strong { 
+    font-family: var(--font-display); 
+    font-size: 1.5rem; 
+    color: #fff; 
+    line-height: 1; 
+}
+
+.portal-header__actions .btn-icon {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+}
+
+/* 4. Canvas Central Desplazable */
+.portal-main {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0 var(--space-5) calc(80px + var(--space-6)); /* Espacio para Tab Bar */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar invisible para vibra PWA */
+.portal-main::-webkit-scrollbar { display: none; }
+.portal-main { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* 5. Tarjeta de Cita Hero ("Next Appointment") */
+.portal-card-next {
+    background: linear-gradient(135deg, rgba(82, 113, 255, 0.15) 0%, rgba(82, 113, 255, 0.02) 100%);
+    border: 1px solid var(--color-aurora-500);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);
+    position: relative;
+    overflow: hidden;
+}
+
+.portal-card-next::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 4px;
+    background: var(--color-aurora-400);
+    box-shadow: 0 0 15px var(--color-aurora-500);
+}
+
+.portal-card-next__header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.portal-card-next__kicker {
+    font-size: 0.75rem;
+    color: var(--color-aurora-400);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.portal-card-next__menu {
+    color: var(--admin-text-muted);
+}
+
+.portal-card-next__time strong {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    color: #fff;
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.portal-card-next__time span {
+    font-size: 1rem;
+    color: var(--admin-text-muted);
+}
+
+.portal-card-next__doctor {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.portal-card-next__doctor img {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.portal-card-next__doctor div span {
+    display: block;
+    font-size: 0.85rem;
+    color: #fff;
+    font-weight: 500;
+}
+
+.portal-card-next__doctor div small {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--admin-text-muted);
+}
+
+/* 6. Listado de Tratamientos / Planes Activos */
+.portal-section-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: #fff;
+    margin-bottom: var(--space-4);
+}
+
+.portal-plan-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-3);
+}
+
+.portal-plan-card__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-lg);
+    background: rgba(250, 204, 21, 0.1);
+    color: var(--color-gold-400);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.portal-plan-card__info strong {
+    display: block;
+    color: #fff;
+    font-size: 1rem;
+    margin-bottom: 2px;
+}
+
+.portal-plan-card__info span {
+    display: block;
+    color: var(--admin-text-muted);
+    font-size: 0.8rem;
+}
+
+/* 7. Bottom Navigation (Tab Bar) */
+.portal-bottom-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: rgba(15, 23, 42, 0.85); /* Slate 900 tint */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 50;
+}
+
+.portal-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-text-muted);
+    text-decoration: none;
+    gap: 4px;
+    width: 60px;
+    transition: color 0.2s;
+}
+
+.portal-nav-item.active {
+    color: var(--color-aurora-400);
+}
+
+.portal-nav-item svg { width: 24px; height: 24px; stroke-width: 1.5; }
+.portal-nav-item.active svg { stroke-width: 2.5; }
+.portal-nav-item span { font-size: 0.65rem; font-weight: 500; margin-top: 2px; }
+
+/* 8. WhatsApp Emergencia FAB Flotante */
+.portal-fab-whatsapp {
+    position: absolute;
+    bottom: 100px; /* Above Bottom Nav */
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(37, 211, 102, 0.3);
+    color: white;
+    z-index: 40;
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.portal-fab-whatsapp:active { transform: scale(0.95); }
