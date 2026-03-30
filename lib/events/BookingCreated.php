@@ -11,6 +11,8 @@ class BookingCreated extends Event
 {
     public array $appointment;
     public bool $emailSent = false;
+    public bool $whatsappQueued = false;
+    public string $whatsappOutboxId = '';
 
     public function __construct(array $appointment)
     {

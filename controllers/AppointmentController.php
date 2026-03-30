@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/BookingService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
+require_once __DIR__ . '/../lib/appointment_notifications.php';
 
 class AppointmentController
 {
@@ -231,18 +232,31 @@ class AppointmentController
         }
 
         $emailSent = false;
-        $createdEvent = self::dispatchEventSafely('BookingCreated', $appointment);
-        if (is_object($createdEvent) && isset($createdEvent->emailSent)) {
-            $emailSent = (bool) $createdEvent->emailSent;
-        } else {
-            $emailSent = maybe_send_appointment_email($appointment);
-            maybe_send_admin_notification($appointment);
+        $whatsappQueued = false;
+        $whatsappOutboxId = '';
+        if (!$idempotentReplay) {
+            $createdEvent = self::dispatchEventSafely('BookingCreated', $appointment);
+            if (is_object($createdEvent) && isset($createdEvent->emailSent)) {
+                $emailSent = (bool) $createdEvent->emailSent;
+                $whatsappQueued = (bool) ($createdEvent->whatsappQueued ?? false);
+                $whatsappOutboxId = trim((string) ($createdEvent->whatsappOutboxId ?? ''));
+            } else {
+                $emailSent = maybe_send_appointment_email($appointment);
+                $whatsappResult = maybe_queue_appointment_whatsapp_confirmation($appointment);
+                $whatsappQueued = (bool) ($whatsappResult['queued'] ?? false);
+                $whatsappOutboxId = is_array($whatsappResult['outbox'] ?? null)
+                    ? trim((string) ($whatsappResult['outbox']['id'] ?? ''))
+                    : '';
+                maybe_send_admin_notification($appointment);
+            }
         }
 
         json_response([
             'ok' => true,
             'data' => $appointment,
             'emailSent' => $emailSent,
+            'whatsappQueued' => $whatsappQueued,
+            'whatsappOutboxId' => $whatsappOutboxId,
             'idempotentReplay' => $idempotentReplay,
         ], $idempotentReplay ? 200 : 201);
     }

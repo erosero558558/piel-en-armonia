@@ -293,7 +293,7 @@ function send_mail_to_recipient(string $recipient, string $subject, string $body
  * Builds shared appointment email context values.
  *
  * @param array<string,mixed> $appointment
- * @return array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string,checkinToken:string}
+ * @return array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,locationLabel:string,preparationInstructions:array<int,string>,rescheduleToken:string,rescheduleUrl:string,checkinToken:string}
  */
 function build_appointment_email_context(array $appointment): array
 {
@@ -315,12 +315,81 @@ function build_appointment_email_context(array $appointment): array
         'doctorLabel' => $doctorLabel,
         'dateLabel' => $dateLabel,
         'timeLabel' => (string) ($appointment['time'] ?? ''),
+        'locationLabel' => build_appointment_location_label($appointment),
+        'preparationInstructions' => build_appointment_preparation_instructions($appointment),
         'rescheduleToken' => $rescheduleToken,
         'checkinToken' => $checkinToken,
         'rescheduleUrl' => $rescheduleToken !== ''
             ? AppConfig::BASE_URL . '/?reschedule=' . rawurlencode($rescheduleToken)
             : AppConfig::BASE_URL . '/#citas',
     ];
+}
+
+/**
+ * @param array<string,mixed> $appointment
+ */
+function build_appointment_location_label(array $appointment): string
+{
+    $service = strtolower(trim((string) ($appointment['service'] ?? '')));
+    if (in_array($service, ['telefono', 'video'], true)) {
+        return AppConfig::ADDRESS . ' (referencia clinica; esta cita se atiende de forma remota)';
+    }
+
+    return AppConfig::ADDRESS;
+}
+
+/**
+ * @param array<string,mixed> $appointment
+ * @return array<int,string>
+ */
+function build_appointment_preparation_instructions(array $appointment): array
+{
+    $service = strtolower(trim((string) ($appointment['service'] ?? '')));
+
+    switch ($service) {
+        case 'telefono':
+            return [
+                'Procura estar disponible 10 minutos antes y mantener tu telefono con bateria.',
+                'Ten a la mano tu lista de medicamentos, alergias y dudas principales.',
+                'Si tienes fotos o examenes previos, envialos por WhatsApp antes de la llamada.',
+            ];
+        case 'video':
+            return [
+                'Conectate 10 minutos antes desde un lugar con buena iluminacion y una conexion estable.',
+                'Ten listas fotos de la zona a evaluar y la lista de medicamentos o tratamientos recientes.',
+                'No necesitas acudir al consultorio salvo que el medico te indique una valoracion presencial.',
+            ];
+        case 'laser':
+            return [
+                'Evita exposicion intensa al sol y no uses autobronceadores durante al menos 7 dias antes.',
+                'No depiles con cera o pinza la zona 3 a 4 semanas antes; solo rasurado si te lo indicaron.',
+                'Llega con la piel limpia, sin maquillaje ni cremas irritantes en el area a tratar.',
+            ];
+        case 'rejuvenecimiento':
+            return [
+                'Llega con el rostro limpio y sin maquillaje para valorar mejor la piel.',
+                'Trae la lista de peelings, inyectables o procedimientos recientes del ultimo mes.',
+                'Si usas retinoides, exfoliantes o anticoagulantes, avisanos antes de la sesion.',
+            ];
+        case 'acne':
+            return [
+                'Llega con la piel limpia y sin maquillaje pesado para evaluar bien la inflamacion.',
+                'Ten a la mano los productos, antibioticos o isotretinoina que hayas usado recientemente.',
+                'Si notas brote severo o efectos adversos de medicacion, comentanoslo apenas llegues.',
+            ];
+        case 'cancer':
+            return [
+                'Evita maquillar o cubrir la lesion el dia de la cita para facilitar la evaluacion.',
+                'Trae biopsias, informes previos o fotos si la lesion ha cambiado recientemente.',
+                'Si la mancha sangra, duele o crece rapido, avisa a recepcion apenas llegues.',
+            ];
+        default:
+            return [
+                'Llega 10 minutos antes para registro y validacion de datos.',
+                'Trae tu lista de medicamentos, alergias y tratamientos dermatologicos recientes.',
+                'Si la consulta es por una lesion puntual, evita maquillaje o cremas sobre la zona.',
+            ];
+    }
 }
 
 /**
@@ -353,7 +422,7 @@ function build_email_detail_rows(array $rows, string $labelStyle, string $valueS
 /**
  * Builds the shared appointment detail rows.
  *
- * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string,checkinToken:string} $context
+ * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,locationLabel:string,preparationInstructions:array<int,string>,rescheduleToken:string,rescheduleUrl:string,checkinToken:string} $context
  * @return array<int,array{label:string,value:string}>
  */
 function build_appointment_detail_rows(array $context): array
@@ -363,19 +432,46 @@ function build_appointment_detail_rows(array $context): array
         ['label' => 'Doctor', 'value' => $context['doctorLabel']],
         ['label' => 'Fecha', 'value' => $context['dateLabel']],
         ['label' => 'Hora', 'value' => $context['timeLabel']],
+        ['label' => 'Direccion', 'value' => $context['locationLabel']],
     ];
 }
 
 /**
  * Builds the shared appointment detail table.
  *
- * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string,checkinToken:string} $context
+ * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,locationLabel:string,preparationInstructions:array<int,string>,rescheduleToken:string,rescheduleUrl:string,checkinToken:string} $context
  */
 function build_appointment_detail_table(array $context, string $tableStyle, string $labelStyle, string $valueStyle): string
 {
     return '<table style="' . $tableStyle . '">'
         . build_email_detail_rows(build_appointment_detail_rows($context), $labelStyle, $valueStyle)
         . '</table>';
+}
+
+/**
+ * @param array<int,string> $instructions
+ */
+function build_appointment_preparation_html(array $instructions): string
+{
+    $items = '';
+    foreach ($instructions as $instruction) {
+        $instruction = trim((string) $instruction);
+        if ($instruction === '') {
+            continue;
+        }
+        $items .= '<li style="margin:0 0 10px;line-height:1.6;color:#475569;">'
+            . htmlspecialchars($instruction, ENT_QUOTES, 'UTF-8')
+            . '</li>';
+    }
+
+    if ($items === '') {
+        return '';
+    }
+
+    return '<div style="margin:0 0 24px;padding:18px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;">'
+        . '<p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#0d1a2f;">Preparacion antes de tu cita</p>'
+        . '<ul style="margin:0;padding-left:20px;">' . $items . '</ul>'
+        . '</div>';
 }
 
 /**
@@ -393,7 +489,7 @@ function build_email_cta_button(string $href, string $label): string
 /**
  * Builds the shared plain-text appointment detail block.
  *
- * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,rescheduleToken:string,rescheduleUrl:string} $context
+ * @param array{name:string,serviceLabel:string,doctorLabel:string,dateLabel:string,timeLabel:string,locationLabel:string,preparationInstructions:array<int,string>,rescheduleToken:string,rescheduleUrl:string,checkinToken:string} $context
  */
 function build_appointment_detail_text(array $context, bool $includeRescheduleLink = false): string
 {
@@ -405,6 +501,31 @@ function build_appointment_detail_text(array $context, bool $includeRescheduleLi
     }
 
     return $body;
+}
+
+/**
+ * @param array<int,string> $instructions
+ */
+function build_appointment_preparation_text(array $instructions): string
+{
+    $normalized = [];
+    foreach ($instructions as $instruction) {
+        $instruction = trim((string) $instruction);
+        if ($instruction !== '') {
+            $normalized[] = $instruction;
+        }
+    }
+
+    if ($normalized === []) {
+        return '';
+    }
+
+    $body = "Preparacion sugerida:\n";
+    foreach ($normalized as $instruction) {
+        $body .= '- ' . $instruction . "\n";
+    }
+
+    return $body . "\n";
 }
 
 /**
@@ -614,6 +735,7 @@ function build_appointment_email_html(array $appointment): string
             'padding:8px 0;color:#334155;'
         )
         . $checkinBlock
+        . build_appointment_preparation_html($context['preparationInstructions'])
         . '<p style="margin:0 0 25px;line-height:1.6;color:#555;">Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.</p>'
         . build_email_cta_button($context['rescheduleUrl'], 'Reprogramar Cita')
         . '<p style="margin:0;font-size:13px;color:#94a3b8;text-align:center;">Si necesitas ayuda, responde a este correo.</p>';
@@ -636,6 +758,7 @@ function build_appointment_email_text(array $appointment): string
         $body .= "Codigo de llegada al kiosco: " . $context['checkinToken'] . "\n";
         $body .= "Puedes usar este codigo o tu QR de confirmacion cuando llegues.\n";
     }
+    $body .= build_appointment_preparation_text($context['preparationInstructions']);
     $body .= "Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.\n\n";
     $body .= "Si deseas reprogramar, visita: " . $context['rescheduleUrl'] . "\n\n";
     $body .= "Si tienes dudas, responde este correo o escribe por WhatsApp: " . AppConfig::WHATSAPP_NUMBER . ".\n\n";
