@@ -1,96 +1,222 @@
 #!/usr/bin/env node
 /**
- * bin/dispatch.js — Asignación de tareas por tipo de agente
+ * bin/dispatch.js v2 — Asignación de tareas por tipo de agente
  *
- * Cada agente tiene un ROL. El dispatch encuentra la mejor tarea
- * disponible para su tipo, evitando que un agente de contenido
- * tome tareas de PHP o viceversa.
+ * MEJORAS v2:
+ *   - Regex ampliado: captura S3-OC1, S3-OC2, etc.
+ *   - Usa sistema de claims v2 (archivos individuales)
+ *   - Prioridades actualizadas para junio 2026
+ *   - Criticidad desde LAUNCH.md baked in
+ *   - Sprint actual siempre primero
  *
  * Uso:
- *   node bin/dispatch.js --role content     ← blog, SEO, textos
- *   node bin/dispatch.js --role frontend    ← HTML, CSS, páginas
- *   node bin/dispatch.js --role backend     ← PHP, API, controladores
- *   node bin/dispatch.js --role devops      ← CI, limpieza, auditoría
- *   node bin/dispatch.js --role fullstack   ← cualquier tarea
- *
- * El output es el ID de tarea recomendado para ese rol.
- * Seguir con: node bin/claim.js claim <ID> "<agente>"
+ *   node bin/dispatch.js --role backend    ← PHP, APIs
+ *   node bin/dispatch.js --role frontend   ← HTML, CSS, UI
+ *   node bin/dispatch.js --role content    ← blog, SEO
+ *   node bin/dispatch.js --role devops     ← CI, auditoría
+ *   node bin/dispatch.js --role fullstack  ← cualquier tarea
+ *   node bin/dispatch.js --role backend --all   ← ver todas con score
+ *   node bin/dispatch.js list-roles        ← ver todos los roles
  */
 
-const { readFileSync, existsSync } = require('fs');
-const { resolve } = require('path');
+const { readFileSync, existsSync, readdirSync } = require('fs');
+const { resolve, join } = require('path');
 
-const ROOT = resolve(__dirname, '..');
+const ROOT        = resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
-const CLAIMS_FILE = resolve(ROOT, 'data/claims/tasks.json');
+const CLAIMS_DIR  = resolve(ROOT, 'data/claims/tasks');
+const LEGACY_FILE = resolve(ROOT, 'data/claims/tasks.json');
 
 function read(f) {
   return existsSync(f) ? readFileSync(f, 'utf8') : '';
 }
 
-function loadClaims() {
-  try { return JSON.parse(read(CLAIMS_FILE)); } catch { return {}; }
+// ── Claims — usa v2 (archivos individuales) + fallback legacy ─────────────────
+
+function loadAllClaims() {
+  const claims = {};
+  // v2: individual files
+  try {
+    const files = readdirSync(CLAIMS_DIR).filter(f => f.endsWith('.json'));
+    for (const f of files) {
+      const id = f.replace('.json', '');
+      try { claims[id] = JSON.parse(readFileSync(join(CLAIMS_DIR, f), 'utf8')); } catch {}
+    }
+  } catch {}
+  // legacy fallback
+  try {
+    const legacy = JSON.parse(read(LEGACY_FILE));
+    for (const [id, data] of Object.entries(legacy)) {
+      if (!claims[id]) claims[id] = data;
+    }
+  } catch {}
+  return claims;
 }
 
 function isExpired(claim) {
   return claim?.expiresAt && new Date(claim.expiresAt) < new Date();
 }
 
+// ── Task parser — captura S3-09, S3-OC1, S2-14, etc. ─────────────────────────
+
 function parseTasks(md) {
   const tasks = [];
   const lines = md.split('\n');
   let sprint = '';
-  lines.forEach((line, i) => {
-    if (line.match(/^### .*Sprint \d/)) sprint = line.trim();
-    const m = line.match(/^- \[([ x])\] \*\*(S\d+-\d+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
-    if (m) tasks.push({
-      id: m[2], done: m[1]==='x', size: m[3],
-      human: line.includes('[HUMAN]'),
-      sprint, description: m[4].trim(), line
-    });
-  });
+  let sprintNum = 0;
+
+  for (const line of lines) {
+    if (line.match(/^### .*Sprint (\d+)/)) {
+      sprint = line.trim();
+      const m = line.match(/Sprint (\d+)/);
+      if (m) sprintNum = parseInt(m[1]);
+    }
+
+    // Captura: S3-09, S3-OC1, S2-14, S4-21, S6-09, etc.
+    const m = line.match(/^- \[([ x])\] \*\*(S\d+-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
+    if (m) {
+      tasks.push({
+        id:          m[2],
+        done:        m[1] === 'x',
+        size:        m[3],
+        human:       line.includes('[HUMAN]'),
+        critical:    line.includes('🔴') || line.toLowerCase().includes('crítico') || line.includes('**Es el documento'),
+        sprint,
+        sprintNum,
+        description: m[4].trim(),
+        line:        line.trim(),
+      });
+    }
+  }
   return tasks;
 }
 
-// ── Role → task affinity rules ────────────────────────────────────────────────
-// Each role gets an ordered list of task ID patterns and keywords
-// Higher in the array = higher priority for that role
+// ── ROLE_AFFINITY — actualizado para junio 2026 ───────────────────────────────
+//
+// PRIORIDADES JUNIO 2026 (lo que el médico necesita el día 1):
+//   S3-19  Receta digital PDF                    (backend+frontend)
+//   S3-20  Evolución clínica append-only         (backend+frontend)
+//   S3-15  Anamnesis en admin                    (frontend)
+//   S3-09  Vista operador expandida               (frontend)
+//   S3-11  Ticket con QR                         (backend+frontend)
+//   S3-18  Plan de tratamiento PDF               (frontend)
+//   S3-24  Booking público                       (fullstack, XL)
+//   S3-25  Confirmación WhatsApp+email            (backend)
+//   S3-28  Agenda diaria en admin                (frontend)
 
 const ROLE_AFFINITY = {
-  content: {
-    description: 'Blog posts, SEO copy, textos de servicio',
-    prefer: ['S2-1', 'S2-11', 'S2-12', 'S2-13', 'S2-14', 'S2-15', 'S2-16', 'S2-17', 'S2-18'],
-    keywords: ['blog', 'rss', 'feed', 'disclaimer', 'seo', 'contenido', 'texto', 'artículo', 'copy'],
-    sprints: ['Sprint 2'],
-    avoid: ['controlador', 'controller', 'php', 'api', 'queue', 'turnero', 'backend'],
-  },
-  frontend: {
-    description: 'Páginas HTML, CSS, componentes UI',
-    prefer: ['S2-19', 'S2-21', 'S2-22', 'S2-23', 'S3-05', 'S3-30', 'S3-32', 'S4-08', 'S4-13'],
-    keywords: ['página', 'page', 'html', 'css', 'componente', 'vista', 'modal', 'formulario', 'form', 'booking', 'agendar', 'checkout', 'interfaz', 'badge', 'hero'],
-    sprints: ['Sprint 2', 'Sprint 3', 'Sprint 4'],
-    avoid: ['ClinicalHistoryService', 'QueueService', '.php', 'conductor', 'endpoint'],
-  },
   backend: {
     description: 'PHP, APIs, servicios, lógica de negocio',
-    prefer: ['S3-03', 'S3-04', 'S3-08', 'S3-09', 'S3-10', 'S3-14', 'S3-21', 'S3-25', 'S3-27'],
-    keywords: ['php', 'api', 'controller', 'service', 'endpoint', 'backend', 'turnero', 'queue', 'journey', 'flow os', 'hce', 'clínica'],
+    // Ordenados por impacto en el médico del día 1
+    prefer: [
+      'S3-19', // Receta digital — genera PDF con membrete
+      'S3-20', // Evolución clínica — append-only, HCE
+      'S3-25', // Confirmación WhatsApp+email al agendar
+      'S3-27', // Lista de espera de citas
+      'S3-11', // Ticket QR backend (TicketPrinter)
+      'S3-14', // Métricas de espera — QueueAssistantMetricsStore
+      'S3-09', // Vista operador — PatientCaseService::hydrateStore
+      'S3-10', // Acciones post-consulta (backend de botones)
+      'S3-34', // Estado de cuenta por paciente
+      'S3-33', // Verificación de transferencia
+    ],
+    keywords: [
+      'php', 'controller', 'service', 'endpoint', 'api', 'backend',
+      'queue', 'journey', 'hce', 'pdf', 'whatsapp', 'store', 'json',
+      'medicamento', 'receta', 'diagnóstico', 'certificado', 'evolución',
+    ],
     sprints: ['Sprint 3', 'Sprint 4'],
-    avoid: ['blog', 'html estático', 'css', 'texto', 'contenido'],
+    avoid: ['blog', 'html estático', 'css', 'texto seo', 'contenido'],
+    sizes: ['M', 'L', 'S'],
   },
+
+  frontend: {
+    description: 'HTML, CSS, UI, vistas en admin y público',
+    prefer: [
+      'S3-15', // Anamnesis — formulario en admin
+      'S3-09', // Vista operador expandida
+      'S3-28', // Agenda diaria — vista en admin
+      'S3-18', // Plan de tratamiento — template PDF
+      'S3-13', // Sala inteligente (turnos pantalla TV)
+      'S3-17', // Comparación before/after — slider
+      'S3-26', // Reagendamiento self-service (vista pública)
+      'S3-30', // Sala teleconsulta (UI premium)
+      'S3-32', // Checkout integrado
+      'S4-08', // Portal del paciente
+      'S4-13', // App kiosco offline-first
+    ],
+    keywords: [
+      'html', 'css', 'vista', 'página', 'modal', 'form', 'formulario',
+      'admin', 'interfaz', 'componente', 'booking', 'checkout', 'slider',
+      'sala', 'kiosco', 'operador', 'turnos', 'anamnesis', 'agenda',
+      'teleconsulta', 'portal', 'paciente',
+    ],
+    sprints: ['Sprint 3', 'Sprint 4'],
+    avoid: ['ClinicalHistoryService::php', '\\$router->add', 'mutate_store'],
+    sizes: ['M', 'L', 'S'],
+  },
+
+  content: {
+    description: 'Blog posts, SEO copy, textos de servicio',
+    prefer: [
+      'S2-14', // Blog dermatología
+      'S2-15', // Blog acné
+      'S2-16', // Blog manchas
+      'S2-17', // Blog laser
+      'S2-18', // Blog cuidado piel hombres
+      'S4-14', // Página de precios
+      'S4-18', // Referidos
+    ],
+    keywords: [
+      'blog', 'rss', 'seo', 'contenido', 'texto', 'artículo', 'copy',
+      'descripción', 'meta', 'schemaorg', 'faq', 'testimonios',
+    ],
+    sprints: ['Sprint 2', 'Sprint 4'],
+    avoid: ['php', 'api', 'controller', 'queue', 'turnero', 'backend', 'hce'],
+    sizes: ['S', 'M'],
+  },
+
   devops: {
-    description: 'CI/CD, limpieza de código, auditorías, performance',
-    prefer: ['S4-21', 'S4-22', 'S4-23', 'S4-24', 'S4-25', 'S4-26', 'S1-12'],
-    keywords: ['audit', 'limpieza', 'dead code', 'surface', 'ci', 'pipeline', 'lighthouse', 'performance', 'cache'],
+    description: 'CI/CD, limpieza, auditorías, performance, testing',
+    prefer: [
+      'S4-21', // Auditoria final pre-launch
+      'S4-22', // Lighthouse score
+      'S4-23', // Cache headers
+      'S4-24', // Security headers
+      'S4-25', // Dead code cleanup
+      'S1-12', // Tests de contrato
+    ],
+    keywords: [
+      'audit', 'limpieza', 'dead code', 'ci', 'pipeline', 'lighthouse',
+      'performance', 'cache', 'seguridad', 'headers', 'test', 'spec',
+    ],
     sprints: ['Sprint 4', 'Sprint 1'],
-    avoid: ['blog', 'página', 'texto', 'contenido'],
+    avoid: ['blog', 'html', 'texto', 'contenido', 'formulario'],
+    sizes: ['S', 'M'],
   },
+
   fullstack: {
-    description: 'Cualquier tarea disponible en orden de sprint',
-    prefer: [],
+    description: 'Cualquier tarea disponible — prioridad junio',
+    // Ordenadas por impacto real en la consulta del médico, junio 2026
+    prefer: [
+      'S3-19', // Receta digital
+      'S3-20', // Evolución clínica
+      'S3-15', // Anamnesis
+      'S3-24', // Booking público
+      'S3-09', // Vista operador
+      'S3-11', // Ticket QR
+      'S3-18', // Plan de tratamiento
+      'S3-25', // Confirmación cita
+      'S3-28', // Agenda diaria admin
+      'S3-16', // Fotografía clínica
+      'S3-10', // Acciones post-consulta
+      'S3-12', // Estimación espera
+      'S3-13', // Sala inteligente
+    ],
     keywords: [],
-    sprints: ['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4'],
+    sprints: ['Sprint 3', 'Sprint 4', 'Sprint 2', 'Sprint 5', 'Sprint 6'],
     avoid: [],
+    sizes: ['S', 'M', 'L', 'XL'],
   },
 };
 
@@ -98,61 +224,55 @@ const ROLE_AFFINITY = {
 
 function scoreTask(task, role, claims) {
   const config = ROLE_AFFINITY[role];
-  if (!config) return -1000;
+  if (!config) return -9999;
+
+  // Hard filters
+  const claim = claims[task.id];
+  if (claim && !isExpired(claim)) return -9999;
+  if (task.done)  return -9999;
+  if (task.human) return -500;
 
   let score = 0;
 
-  // Already claimed → skip
-  const claim = claims[task.id];
-  if (claim && !isExpired(claim)) return -1000;
+  // Explicit priority list for this role
+  const prefIdx = config.prefer.indexOf(task.id);
+  if (prefIdx !== -1) score += 200 - prefIdx * 3;
 
-  // Done → skip
-  if (task.done) return -1000;
+  // Critical flag (from LAUNCH.md analysis)
+  if (task.critical) score += 50;
 
-  // Human → skip (handled separately)
-  if (task.human) return -500;
-
-  // Preferred task IDs for this role
-  const prefIndex = config.prefer.indexOf(task.id);
-  if (prefIndex !== -1) score += 100 - prefIndex;
-
-  // Keyword match in description
+  // Keyword affinity in description
   const desc = task.description.toLowerCase();
-  config.keywords.forEach(kw => {
-    if (desc.includes(kw.toLowerCase())) score += 20;
-  });
+  config.keywords.forEach(kw => { if (desc.includes(kw.toLowerCase())) score += 20; });
+  config.avoid.forEach(kw    => { if (desc.includes(kw.toLowerCase())) score -= 40; });
 
-  // Avoid keywords
-  config.avoid.forEach(kw => {
-    if (desc.includes(kw.toLowerCase())) score -= 30;
-  });
+  // Sprint preference (current sprint first)
+  const sprintOrder = config.sprints.map(s => s.replace('Sprint ', ''));
+  const spIdx = sprintOrder.findIndex(s => String(task.sprintNum) === s);
+  if (spIdx !== -1) score += (sprintOrder.length - spIdx) * 15;
+  else score -= 25;
 
-  // Sprint preference
-  const sprintIndex = config.sprints.findIndex(s => task.sprint.includes(s.replace('Sprint ', '')));
-  if (sprintIndex !== -1) score += (config.sprints.length - sprintIndex) * 10;
-  else score -= 20; // wrong sprint
-
-  // Size preference: roles prefer different sizes
-  const sizeBonus = { S: 5, M: 10, L: 8, XL: 2 };
-  score += sizeBonus[task.size] || 0;
+  // Size affinity
+  const sizePref = (config.sizes || ['S','M','L','XL']).indexOf(task.size);
+  if (sizePref !== -1) score += 10 - sizePref * 2;
 
   return score;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-const roleArg = process.argv.find(a => a.startsWith('--role='))?.split('=')[1]
-  || (process.argv.indexOf('--role') !== -1 ? process.argv[process.argv.indexOf('--role') + 1] : null)
+const args    = process.argv.slice(2);
+const roleArg = args.find(a => a.startsWith('--role='))?.split('=')[1]
+  || (args.indexOf('--role') !== -1 ? args[args.indexOf('--role') + 1] : null)
   || 'fullstack';
-
-const listAll = process.argv.includes('--all');
+const listAll = args.includes('--all');
 
 if (roleArg === 'list-roles') {
   console.log('\n🎭 Roles disponibles:\n');
-  Object.entries(ROLE_AFFINITY).forEach(([role, config]) => {
-    console.log(`  ${role.padEnd(12)} — ${config.description}`);
+  Object.entries(ROLE_AFFINITY).forEach(([role, cfg]) => {
+    console.log(`  ${role.padEnd(12)} — ${cfg.description}`);
   });
-  console.log();
+  console.log('\n  Uso: node bin/dispatch.js --role <rol> [--all]\n');
   process.exit(0);
 }
 
@@ -161,44 +281,67 @@ if (!ROLE_AFFINITY[roleArg]) {
   process.exit(1);
 }
 
-const md = read(AGENTS_FILE);
-const tasks = parseTasks(md);
-const claims = loadClaims();
+const md     = read(AGENTS_FILE);
+const tasks  = parseTasks(md);
+const claims = loadAllClaims();
 const config = ROLE_AFFINITY[roleArg];
 
-// Score all tasks for this role
 const scored = tasks
   .map(t => ({ ...t, score: scoreTask(t, roleArg, claims) }))
   .filter(t => t.score > -500)
   .sort((a, b) => b.score - a.score);
 
-console.log(`\n🎭 Dispatch para rol: ${roleArg}`);
-console.log(`   ${config.description}\n`);
+console.log(`\n🎭 Dispatch — rol: ${roleArg}`);
+console.log(`   ${config.description}`);
+
+// Bloqueadas actualmente
+const blocked = tasks.filter(t => !t.done && t.human);
+if (blocked.length > 0) {
+  console.log(`\n⚠️  Tareas bloqueadas [HUMAN] (${blocked.length}) — el director debe resolverlas:`);
+  blocked.forEach(t => console.log(`   ${t.id} [${t.size}] ${t.description.slice(0, 60)}...`));
+}
 
 if (scored.length === 0) {
-  console.log('✅ No hay tareas disponibles para este rol. Todo está en proceso o completo.\n');
+  console.log('\n✅ No hay tareas disponibles para este rol ahora mismo.');
+  console.log('   Opciones: cambiar rol (--role fullstack) o esperar que expiren claims.\n');
   process.exit(0);
 }
 
 const best = scored[0];
-console.log(`📋 Tarea recomendada:`);
-console.log(`   ID:     ${best.id}  [${best.size}]  (score: ${best.score})`);
-console.log(`   Sprint: ${best.sprint.replace(/^### /, '')}`);
-console.log(`   Tarea:  ${best.line.replace(/^- \[[ x]\] /, '').slice(0, 120)}...`);
-console.log(`\n   Para tomar:`);
+console.log(`\n📋 Tarea recomendada:`);
+console.log(`   ID:      ${best.id}  [${best.size}]${best.critical ? '  🔴 CRÍTICA PARA JUNIO' : ''}`);
+console.log(`   Sprint:  ${best.sprint.replace(/^### /, '')}`);
+console.log(`   Tarea:   ${best.line.replace(/^- \[[ x]\] /, '').slice(0, 130)}`);
+
+// Lookup full task description in AGENTS.md for context
+const taskSection = (() => {
+  const lines = md.split('\n');
+  const idx   = lines.findIndex(l => l.includes(`**${best.id}**`));
+  if (idx === -1) return '';
+  // Grab up to 3 lines of context
+  return lines.slice(idx, idx + 1).join('\n');
+})();
+
+console.log(`\n   ── Flujo completo ──`);
 console.log(`   1. git pull origin main`);
 console.log(`   2. node bin/claim.js claim ${best.id} "<tu-nombre>"`);
-console.log(`   3. git add data/claims/ && HUSKY=0 git commit --no-verify -m "claim: ${best.id}" && git push`);
-console.log(`   4. [hacer el trabajo — ver AGENTS.md para contexto completo]`);
-console.log(`   5. node bin/claim.js release ${best.id}`);
-console.log(`   6. git add . && HUSKY=0 git commit --no-verify -m "feat(${best.id}): ..." && git push\n`);
+console.log(`   3. git add data/claims/tasks/${best.id}.json && HUSKY=0 git commit --no-verify -m "claim: ${best.id}" && git push`);
+console.log(`   4. Leer AGENTS.md → buscar **${best.id}** para contexto completo`);
+console.log(`   5. Leer PRODUCT.md si es tu primera tarea (entiende el producto)`);
+console.log(`   6. Hacer el trabajo`);
+console.log(`   7. node bin/gate.js ${best.id}     ← validar ANTES de marcar done`);
+console.log(`   8. node bin/claim.js release ${best.id}`);
+console.log(`   9. Marcar [x] en AGENTS.md`);
+console.log(`  10. git add . && HUSKY=0 git commit --no-verify -m "feat(${best.id}): descripción" && git push`);
+console.log(`\n   Si te bloqueas: node bin/stuck.js ${best.id} "razón exacta"\n`);
 
 if (listAll && scored.length > 1) {
-  console.log(`📊 Todas las tareas disponibles para rol "${roleArg}":`);
-  scored.slice(0, 10).forEach(t => {
-    const claimed = claims[t.id] && !isExpired(claims[t.id]);
-    const status = claimed ? '🔒' : '✅';
-    console.log(`   ${status} ${t.id} [${t.size}] (${t.score}) ${t.line.slice(0, 60).replace(/^- \[[ x]\] /, '')}...`);
+  console.log(`📊 Top 10 para rol "${roleArg}":`);
+  scored.slice(0, 10).forEach((t, i) => {
+    const claimed     = claims[t.id] && !isExpired(claims[t.id]);
+    const status      = claimed ? '🔒' : (t.critical ? '🔴' : '✅');
+    const description = t.line.replace(/^- \[[ x]\] /, '').slice(0, 65);
+    console.log(`   ${i + 1}. ${status} ${t.id} [${t.size}] (${t.score}pts) ${description}...`);
   });
   console.log();
 }

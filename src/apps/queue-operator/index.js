@@ -3705,6 +3705,195 @@ function formatOperatorRuntimeTimestamp(value) {
     });
 }
 
+function getOperatorTicketCurrentStatusLabel(ticket) {
+    const status = String(ticket?.status || 'waiting')
+        .trim()
+        .toLowerCase();
+
+    return (
+        {
+            waiting: 'En espera',
+            called: 'Llamado a consultorio',
+            completed: 'Consulta completada',
+            no_show: 'No asistio',
+            cancelled: 'Cancelado',
+        }[status] || 'En cola'
+    );
+}
+
+function getOperatorTicketPatientCaseSnapshot(ticket) {
+    const snapshot =
+        ticket?.patientCaseSnapshot &&
+        typeof ticket.patientCaseSnapshot === 'object'
+            ? ticket.patientCaseSnapshot
+            : null;
+
+    if (snapshot) {
+        return snapshot;
+    }
+
+    return {
+        patientLabel:
+            String(ticket?.patientInitials || '').trim() ||
+            String(ticket?.ticketCode || '').trim() ||
+            'Paciente sin nombre',
+        reasonLabel:
+            String(ticket?.visitReasonLabel || ticket?.visitReason || '').trim(),
+        journeyStage: '',
+        journeyStageLabel: '',
+        previousVisitsCount: 0,
+        lastCompletedVisitAt: '',
+        alerts: [],
+    };
+}
+
+function renderOperatorCurrentTicketPanel() {
+    const host = getById('operatorCurrentTicketPanel');
+    if (!(host instanceof HTMLElement)) {
+        return;
+    }
+
+    const state = getState();
+    const activeTicket = getActiveCalledTicketForStation();
+    const waitingTicket = getWaitingForConsultorio(
+        Number(state.queue.stationConsultorio || 1)
+    );
+
+    if (!activeTicket) {
+        host.dataset.state = waitingTicket ? 'idle' : 'empty';
+        host.innerHTML = `
+            <article class="queue-operator-current-ticket__shell queue-operator-current-ticket__shell--empty">
+                <div class="queue-operator-current-ticket__header">
+                    <div>
+                        <p class="queue-operator-kicker">Turno llamado</p>
+                        <h4>Sin paciente en consultorio</h4>
+                        <p>Llama el siguiente ticket para ver nombre, motivo, journey y alertas del caso.</p>
+                    </div>
+                    ${
+                        waitingTicket?.ticketCode
+                            ? `<span class="queue-operator-current-ticket__badge">Siguiente ${escapeHtml(
+                                  waitingTicket.ticketCode
+                              )}</span>`
+                            : ''
+                    }
+                </div>
+            </article>
+        `;
+        return;
+    }
+
+    const snapshot = getOperatorTicketPatientCaseSnapshot(activeTicket);
+    const patientLabel =
+        String(snapshot.patientLabel || '').trim() ||
+        String(activeTicket.patientInitials || '').trim() ||
+        String(activeTicket.ticketCode || '').trim() ||
+        'Paciente sin nombre';
+    const reasonLabel =
+        String(snapshot.reasonLabel || '').trim() ||
+        String(activeTicket.visitReasonLabel || activeTicket.visitReason || '')
+            .trim() ||
+        'Motivo no registrado';
+    const journeyStageLabel =
+        String(snapshot.journeyStageLabel || '').trim() || 'Sin etapa visible';
+    const previousVisitsCount = Math.max(
+        0,
+        Number(snapshot.previousVisitsCount || 0) || 0
+    );
+    const previousVisitsLabel =
+        previousVisitsCount === 0
+            ? 'Sin visitas previas'
+            : previousVisitsCount === 1
+              ? '1 visita previa'
+              : `${previousVisitsCount} visitas previas`;
+    const alerts = Array.isArray(snapshot.alerts)
+        ? snapshot.alerts
+              .map((value) => String(value || '').trim())
+              .filter(Boolean)
+        : [];
+    const ticketCode = String(activeTicket.ticketCode || '--').trim() || '--';
+    const assignedConsultorio =
+        Number(activeTicket.assignedConsultorio || state.queue.stationConsultorio || 1) ===
+        2
+            ? 2
+            : 1;
+    const consultorioLabel = getOperatorConsultorioShortLabel(
+        assignedConsultorio
+    );
+    const lastVisitLabel = String(snapshot.lastCompletedVisitAt || '').trim()
+        ? formatOperatorRuntimeTimestamp(snapshot.lastCompletedVisitAt)
+        : 'Sin registro';
+
+    host.dataset.state = alerts.length ? 'warning' : 'ready';
+    host.innerHTML = `
+        <article class="queue-operator-current-ticket__shell">
+            <div class="queue-operator-current-ticket__header">
+                <div>
+                    <p class="queue-operator-kicker">Turno llamado</p>
+                    <h4>${escapeHtml(patientLabel)}</h4>
+                    <p>${escapeHtml(ticketCode)} · ${escapeHtml(
+                        getOperatorTicketCurrentStatusLabel(activeTicket)
+                    )} · ${escapeHtml(consultorioLabel)}</p>
+                </div>
+                <span class="queue-operator-current-ticket__badge">${escapeHtml(
+                    ticketCode
+                )}</span>
+            </div>
+            <div class="queue-operator-current-ticket__chips">
+                <span class="queue-operator-current-ticket__chip">Journey · ${escapeHtml(
+                    journeyStageLabel
+                )}</span>
+                <span class="queue-operator-current-ticket__chip">Motivo · ${escapeHtml(
+                    reasonLabel
+                )}</span>
+                <span class="queue-operator-current-ticket__chip">${escapeHtml(
+                    previousVisitsLabel
+                )}</span>
+            </div>
+            <div class="queue-operator-current-ticket__facts">
+                <article class="queue-operator-current-ticket__fact">
+                    <span>Motivo</span>
+                    <strong>${escapeHtml(reasonLabel)}</strong>
+                </article>
+                <article class="queue-operator-current-ticket__fact">
+                    <span>Etapa del journey</span>
+                    <strong>${escapeHtml(journeyStageLabel)}</strong>
+                </article>
+                <article class="queue-operator-current-ticket__fact">
+                    <span>Visitas previas</span>
+                    <strong>${escapeHtml(String(previousVisitsCount))}</strong>
+                    <small>${escapeHtml(previousVisitsLabel)}</small>
+                </article>
+                <article class="queue-operator-current-ticket__fact">
+                    <span>Ultima visita cerrada</span>
+                    <strong>${escapeHtml(lastVisitLabel)}</strong>
+                </article>
+            </div>
+            <div class="queue-operator-current-ticket__alerts">
+                <div class="queue-operator-current-ticket__alerts-head">
+                    <span>Alertas</span>
+                    <strong>${escapeHtml(
+                        alerts.length > 0
+                            ? `${alerts.length} activas`
+                            : 'Sin alertas activas'
+                    )}</strong>
+                </div>
+                <ul class="queue-operator-current-ticket__alerts-list">
+                    ${
+                        alerts.length > 0
+                            ? alerts
+                                  .map(
+                                      (alert) =>
+                                          `<li>${escapeHtml(alert)}</li>`
+                                  )
+                                  .join('')
+                            : '<li>Sin alertas activas para este turno.</li>'
+                    }
+                </ul>
+            </div>
+        </article>
+    `;
+}
+
 function getOperatorRuntimeModeLabel() {
     if (operatorRuntime.shellRuntime.mode === 'offline') {
         return 'Offline operativo';
@@ -4376,6 +4565,7 @@ function updateOperatorChrome({
     );
     updateOperatorRuntimeCard(syncHealth);
     renderQueueSection();
+    renderOperatorCurrentTicketPanel();
     updateOperatorActionGuide();
     updateOperatorReadiness();
     updateOperatorGuardState();

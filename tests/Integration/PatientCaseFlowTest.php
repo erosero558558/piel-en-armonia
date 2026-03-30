@@ -304,6 +304,102 @@ final class PatientCaseFlowTest extends TestCase
         );
     }
 
+    public function testHydrateStoreAddsOperatorSnapshotToQueueTicket(): void
+    {
+        $caseId = 'pc-operator-001';
+        $store = \read_store();
+        $store['patient_cases'] = [[
+            'id' => $caseId,
+            'tenantId' => 'pielarmonia',
+            'patientId' => 'pt-operator-001',
+            'status' => 'called',
+            'journeyStage' => 'scheduled',
+            'openedAt' => date('c', strtotime('-40 day')),
+            'latestActivityAt' => date('c', strtotime('-1 hour')),
+            'summary' => [
+                'patientLabel' => 'Ana Ruiz',
+                'serviceLine' => 'Control de acne',
+                'milestones' => [],
+            ],
+        ]];
+        $store['queue_tickets'] = [
+            \normalize_queue_ticket([
+                'id' => 7101,
+                'ticketCode' => 'B-7101',
+                'queueType' => 'walk_in',
+                'patientInitials' => 'AR',
+                'status' => 'called',
+                'assignedConsultorio' => 1,
+                'createdAt' => date('c', strtotime('-2 hour')),
+                'calledAt' => date('c', strtotime('-1 hour')),
+                'patientCaseId' => $caseId,
+                'visitReason' => 'urgencia',
+                'needsAssistance' => true,
+            ]),
+        ];
+        $store['patient_case_timeline_events'] = [
+            [
+                'id' => 'pte-visit-01',
+                'tenantId' => 'pielarmonia',
+                'patientCaseId' => $caseId,
+                'type' => 'visit_completed',
+                'title' => 'Visita previa 1',
+                'payload' => [],
+                'createdAt' => date('c', strtotime('-30 day')),
+            ],
+            [
+                'id' => 'pte-visit-02',
+                'tenantId' => 'pielarmonia',
+                'patientCaseId' => $caseId,
+                'type' => 'visit_completed',
+                'title' => 'Visita previa 2',
+                'payload' => [],
+                'createdAt' => date('c', strtotime('-10 day')),
+            ],
+        ];
+        $store['patient_case_approvals'] = [
+            [
+                'id' => 'pca-operator-001',
+                'tenantId' => 'pielarmonia',
+                'patientCaseId' => $caseId,
+                'type' => 'ops_exception',
+                'status' => 'pending',
+                'requestedBy' => 'frontdesk',
+                'createdAt' => date('c', strtotime('-2 day')),
+                'updatedAt' => date('c', strtotime('-2 day')),
+            ],
+        ];
+        \write_store($store, false);
+
+        $hydrated = (new \PatientCaseService())->hydrateStore(\read_store());
+        $ticket = $hydrated['queue_tickets'][0] ?? [];
+        $snapshot = is_array($ticket['patientCaseSnapshot'] ?? null)
+            ? $ticket['patientCaseSnapshot']
+            : [];
+
+        $this->assertSame('Ana Ruiz', (string) ($snapshot['patientLabel'] ?? ''));
+        $this->assertSame('Urgencia', (string) ($snapshot['reasonLabel'] ?? ''));
+        $this->assertSame('scheduled', (string) ($snapshot['journeyStage'] ?? ''));
+        $this->assertSame(
+            'Consulta agendada',
+            (string) ($snapshot['journeyStageLabel'] ?? '')
+        );
+        $this->assertSame(2, (int) ($snapshot['previousVisitsCount'] ?? 0));
+        $this->assertNotSame('', (string) ($snapshot['lastCompletedVisitAt'] ?? ''));
+        $this->assertContains(
+            'Urgencia declarada en check-in.',
+            $snapshot['alerts'] ?? []
+        );
+        $this->assertContains(
+            'Paciente con apoyo activo en recepcion.',
+            $snapshot['alerts'] ?? []
+        );
+        $this->assertContains(
+            'Hay 1 aprobacion pendiente.',
+            $snapshot['alerts'] ?? []
+        );
+    }
+
     public function testExplicitIntakeCaseMovesToScheduledWhenAppointmentExists(): void
     {
         $store = \read_store();

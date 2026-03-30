@@ -325,8 +325,14 @@ async function mockOperatorSurface(page, overrides = {}) {
     const heartbeatPayloads = [];
     const heartbeatRequests = [];
     const queueCallNextRequests = [];
-    let queueTickets = [buildOperatorQueueTicket()];
-    let queueState = buildOperatorQueueState(queueTickets);
+    let queueTickets =
+        Array.isArray(overrides.queueTickets) && overrides.queueTickets.length
+            ? overrides.queueTickets.map((ticket) => ({ ...ticket }))
+            : [buildOperatorQueueTicket()];
+    let queueState =
+        overrides.queueState && typeof overrides.queueState === 'object'
+            ? overrides.queueState
+            : buildOperatorQueueState(queueTickets);
 
     await installLegacyAdminAuthMock(page, {
         csrfToken: 'csrf_operator',
@@ -1155,6 +1161,64 @@ test.describe('Turnero Operador', () => {
         await expect(page.locator('#queueC2Now')).toContainText('A-1201');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('0');
         await expect(page.locator('#queueCalledCountAdmin')).toHaveText('1');
+    });
+
+    test('muestra la ficha expandida del turno llamado con contexto del caso', async ({
+        page,
+    }) => {
+        const queueTickets = [
+            buildOperatorQueueTicket({
+                id: 3301,
+                ticketCode: 'B-3301',
+                queueType: 'walk_in',
+                patientInitials: 'AR',
+                status: 'called',
+                assignedConsultorio: 1,
+                calledAt: '2026-03-28T15:20:00.000Z',
+                visitReason: 'urgencia',
+                visitReasonLabel: 'Urgencia',
+                patientCaseSnapshot: {
+                    patientLabel: 'Ana Ruiz',
+                    reasonLabel: 'Urgencia',
+                    journeyStage: 'scheduled',
+                    journeyStageLabel: 'Consulta agendada',
+                    previousVisitsCount: 2,
+                    lastCompletedVisitAt: '2026-03-18T14:30:00.000Z',
+                    alerts: [
+                        'Urgencia declarada en check-in.',
+                        'Paciente con apoyo activo en recepcion.',
+                    ],
+                },
+            }),
+        ];
+
+        await mockOperatorSurface(page, {
+            queueTickets,
+            queueState: buildOperatorQueueState(queueTickets, {
+                nextTickets: [],
+            }),
+        });
+
+        await page.goto(operatorUrl('station=c1&lock=1'));
+
+        await expect(page.locator('#operatorCurrentTicketPanel')).toContainText(
+            'Ana Ruiz'
+        );
+        await expect(page.locator('#operatorCurrentTicketPanel')).toContainText(
+            'Urgencia'
+        );
+        await expect(page.locator('#operatorCurrentTicketPanel')).toContainText(
+            'Consulta agendada'
+        );
+        await expect(page.locator('#operatorCurrentTicketPanel')).toContainText(
+            '2 visitas previas'
+        );
+        await expect(page.locator('#operatorCurrentTicketPanel')).toContainText(
+            'Urgencia declarada en check-in.'
+        );
+        await expect(page.locator('#operatorCurrentTicketPanel')).toContainText(
+            'Paciente con apoyo activo en recepcion.'
+        );
     });
 
     test('muestra metadata del shell desktop Windows cuando existe el bridge', async ({
