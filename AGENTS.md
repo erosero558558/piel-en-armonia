@@ -1111,14 +1111,14 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 > **Falencia detectada:** `gate.js` da PASS a S3-19 sin verificar que la receta realmente funcione. Dice "no specific check" para la mayoría de tareas. No hay validación real.
 
 - [x] **S3-45** `[M]` Gate checks específicos por tarea — ampliar `bin/gate.js` para verificar artefactos concretos por tarea. Ejemplos: S3-19 → verificar que existe `controllers/PrescriptionController.php` O que `controllers/OpenclawController.php` tiene el método `savePrescription` con PDF. S3-24 → verificar que existe `es/agendar/index.html`. S3-36 → verificar `controllers/DoctorProfileController.php`. Mapa de checks en `bin/lib/gate-checks.js`. Output debe ser PASS/FAIL con evidencia.
-- [x] **S3-46** `[S]` ComplianceMSP validator — crear `lib/clinical_history/ComplianceMSP.php` con método `validate(array $record): array` que devuelve lista de campos faltantes según formulario SNS-MSP/HCU-form.002. Campos mínimos: `patient_name`, `patient_id`, `reason_for_visit`, `physical_exam`, `cie10_code`, `cie10_type (PRE|DEF)`, `treatment_plan`, `evolution_note`, `doctor_msp`. Badge rojo en admin si incompleto al intentar cerrar la consulta.
-- [x] **S3-47** `[S]` Health check completo — el endpoint `GET /api.php?resource=health` debe verificar y reportar: estado de cada tier del AIRouter (Codex disponible, OpenRouter disponible, local disponible), archivos de datos existentes (`data/cie10.json`, `data/protocols/`, `data/drug-interactions.json`), perfil doctor cargado, perfil clínica cargado. Respuesta JSON: `{ ok, tiers, data_files, doctor_profile, clinic_profile }`.
+- [ ] **S3-46** `[S]` ComplianceMSP validator — crear `lib/clinical_history/ComplianceMSP.php` con método `validate(array $record): array` que devuelve lista de campos faltantes según formulario SNS-MSP/HCU-form.002. Campos mínimos: `patient_name`, `patient_id`, `reason_for_visit`, `physical_exam`, `cie10_code`, `cie10_type (PRE|DEF)`, `treatment_plan`, `evolution_note`, `doctor_msp`. Badge rojo en admin si incompleto al intentar cerrar la consulta.
+- [ ] **S3-47** `[S]` Health check completo — el endpoint `GET /api.php?resource=health` debe verificar y reportar: estado de cada tier del AIRouter (Codex disponible, OpenRouter disponible, local disponible), archivos de datos existentes (`data/cie10.json`, `data/protocols/`, `data/drug-interactions.json`), perfil doctor cargado, perfil clínica cargado. Respuesta JSON: `{ ok, tiers, data_files, doctor_profile, clinic_profile }`.
 
 #### 3.10 Herramientas de gobernanza adicionales
 
 - [x] **S3-48** `[S]` BLOCKERS.md auto-generado — modificar `bin/stuck.js` para que además de liberar el claim, escriba la entrada en `BLOCKERS.md` con: tarea, razón, fecha, agente. Ya existe el archivo. Verificar que el flujo completo funciona: `node bin/stuck.js S3-XX "razón"` → libera claim → escribe en BLOCKERS.md → hace commit automático.
 - [x] **S3-49** `[S]` npm run status — comando que en una sola ejecución muestra: progreso del sprint (%), claims activos, ramas pendientes de merge, velocidad actual, próxima fecha de revisión. Combinar output de `report.js` + `velocity.js --json` + `merge-ready.js --json`. Guardarlo como `bin/status.js`. Agregar a `package.json`.
-- [x] **S3-50** `[S]` Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta `bin/stuck.js`, además de liberar el claim, enviar un mensaje WhatsApp al número del director (`AURORADERM_DIRECTOR_PHONE` en env) con: qué tarea se bloqueó, quién la tenía, razón. Usar la misma función de WhatsApp que ya existe en el sistema.
+- [ ] **S3-50** `[S]` Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta `bin/stuck.js`, además de liberar el claim, enviar un mensaje WhatsApp al número del director (`AURORADERM_DIRECTOR_PHONE` en env) con: qué tarea se bloqueó, quién la tenía, razón. Usar la misma función de WhatsApp que ya existe en el sistema.
 
 #### 3.11 OpenClaw — Integraciones externas
 
@@ -1158,26 +1158,26 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 4.2 Multi-clínica SaaS
 
 - [x] **S4-06** `[L]` Tenant isolation audit — verificar que `lib/tenants.php` aísla datos entre clínicas: pacientes, agenda, turnero, pagos. Cada clínica tiene namespace propio.
-- [x] **S4-07** `[XL]` Onboarding de clínica — flujo: registrar clínica → `TurneroClinicProfile` → cargar staff → activar servicios → generar URL.
+- [ ] **S4-07** `[XL]` Onboarding de clínica — flujo: registrar clínica → `TurneroClinicProfile` → cargar staff → activar servicios → generar URL.
 - [x] **S4-08** `[L]` Pricing page — `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor), Pro ($49/mes, 5 doctores), Enterprise (contactar). Design premium con comparativa.
-- [x] **S4-09** `[L]` Demo interactiva mejorada — `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. El visitante experimenta: kiosco → turno → operador lo llama.
+- [ ] **S4-09** `[L]` Demo interactiva mejorada — `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. El visitante experimenta: kiosco → turno → operador lo llama.
 - [ ] **S4-10** `[L]` Dashboard multi-clínica — vista admin: stats de todas las clínicas del tenant. Turnos/día, ingresos, pacientes. Comparativa entre sucursales.
 - [ ] **S4-11** `[L]` Whitelabel — personalizar: logo, colores, nombre, dominio por clínica. Engine Flow OS intacto, branding customizable.
-- [x] **S4-12** `[L]` API docs — `es/software/turnero-clinicas/api-docs/index.html`: documentación OpenAPI de la API para integraciones externas.
+- [ ] **S4-12** `[L]` API docs — `es/software/turnero-clinicas/api-docs/index.html`: documentación OpenAPI de la API para integraciones externas.
 
 #### 4.3 Revenue
 
 - [x] **S4-13** `[L]` Página de paquetes — `es/paquetes/index.html`: combos de tratamiento. "Plan Piel Perfecta" (3 laser + peeling + follow-up). Precio visible. CTA WhatsApp.
 - [x] **S4-14** `[M]` Programa de referidos — `es/referidos/index.html`: beneficio por paciente referido. CTA: "Comparte tu link".
 - [x] **S4-15** `[M]` Promociones — `es/promociones/index.html`: template para ofertas rotativas. Mes de la piel, Día de la Madre.
-- [x] **S4-16** `[L]` Membresía — `es/membresia/index.html`: plan mensual con beneficios (consultas priority, descuentos, contenido exclusivo).
+- [ ] **S4-16** `[L]` Membresía — `es/membresia/index.html`: plan mensual con beneficios (consultas priority, descuentos, contenido exclusivo).
 - [x] **S4-17** `[M]` Gift cards — `es/gift-cards/index.html`: montos predefinidos, generación de código, PDF descargable.
 
 #### 4.4 Analytics
 
-- [x] **S4-18** `[M]` Conversion funnel — trackear embudo: visita → scroll → click WhatsApp → mensaje. Eventos GA4.
+- [ ] **S4-18** `[M]` Conversion funnel — trackear embudo: visita → scroll → click WhatsApp → mensaje. Eventos GA4.
 - [x] **S4-19** `[S]` Microsoft Clarity — agregar script gratis de heatmaps. Analizar scroll depth, clicks, abandono.
-- [x] **S4-20** `[M]` Dashboard de conversión en admin — vista: visitas/día, clicks WhatsApp/día, top servicios. Datos desde server logs o GA4 API.
+- [ ] **S4-20** `[M]` Dashboard de conversión en admin — vista: visitas/día, clicks WhatsApp/día, top servicios. Datos desde server logs o GA4 API.
 
 #### 4.5 Limpieza técnica
 
@@ -1196,7 +1196,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 5.1 PWA y acceso del paciente
 
-- [x] **S5-01** `[M]` Manifest PWA — `manifest.json` ya existe. Verificar que `es/portal/` tiene una versión instalable: icon 512x512, `start_url`, `display: standalone`. Probar "Agregar a pantalla de inicio" en Android.
+- [ ] **S5-01** `[M]` Manifest PWA — `manifest.json` ya existe. Verificar que `es/portal/` tiene una versión instalable: icon 512x512, `start_url`, `display: standalone`. Probar "Agregar a pantalla de inicio" en Android.
 - [ ] **S5-02** `[L]` Login paciente — `es/portal/login/index.html`: identificación por WhatsApp (número + código OTP). Sin contraseñas. Sesión en `localStorage` con JWT firmado. Backend: `controllers/PatientPortalController.php`.
 - [ ] **S5-03** `[L]` Dashboard del paciente — `es/portal/index.html`: próxima cita, última consulta, resumen del plan actual. Diseño mobile-first. CTA: "¿Tiene preguntas? WhatsApp".
 - [ ] **S5-04** `[M]` Historial propio — `es/portal/historial/index.html`: lista de consultas (fecha, doctor, motivo). Tap para ver detalle. Solo lectura. Datos desde `ClinicalHistoryService`.
@@ -1208,11 +1208,11 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 5.2 Comunicación automática
 
-- [x] **S5-10** `[M]` Recordatorio 24h — `LeadOpsService`: enviar mensaje WhatsApp automático 24h antes de cada cita: "Mañana tiene consulta con Dra. Rosero a las 10:00. Confirme o reagende: [link]".
-- [x] **S5-11** `[M]` Follow-up post-consulta — 48h después de la cita: "¿Cómo se ha sentido después de su consulta? Si tiene dudas, escríbanos." Con link al portal.
-- [x] **S5-12** `[M]` Recordatorio de medicación — si la receta tiene duración, enviar recordatorio a mitad del tratamiento: "Recuerde continuar con [medicamento] hasta [fecha]."
-- [x] **S5-13** `[S]` Cumpleaños — mensaje automático el día del cumpleaños del paciente. Tono clínico-cálido. No marketing.
-- [x] **S5-14** `[M]` WhatsApp bot IA — `WhatsappOpenclawController` mejorado: responder preguntas del paciente fuera de horario: "¿Cuáles son sus horarios?", "¿Cómo llego?", "¿Qué debo llevar?". Escalar a humano si es pregunta clínica.
+- [ ] **S5-10** `[M]` Recordatorio 24h — `LeadOpsService`: enviar mensaje WhatsApp automático 24h antes de cada cita: "Mañana tiene consulta con Dra. Rosero a las 10:00. Confirme o reagende: [link]".
+- [ ] **S5-11** `[M]` Follow-up post-consulta — 48h después de la cita: "¿Cómo se ha sentido después de su consulta? Si tiene dudas, escríbanos." Con link al portal.
+- [ ] **S5-12** `[M]` Recordatorio de medicación — si la receta tiene duración, enviar recordatorio a mitad del tratamiento: "Recuerde continuar con [medicamento] hasta [fecha]."
+- [ ] **S5-13** `[S]` Cumpleaños — mensaje automático el día del cumpleaños del paciente. Tono clínico-cálido. No marketing.
+- [ ] **S5-14** `[M]` WhatsApp bot IA — `WhatsappOpenclawController` mejorado: responder preguntas del paciente fuera de horario: "¿Cuáles son sus horarios?", "¿Cómo llego?", "¿Qué debo llevar?". Escalar a humano si es pregunta clínica.
 
 #### 5.3 Telemedicina real
 
@@ -1416,34 +1416,34 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### UI2-B Accesibilidad (WCAG AA)
 
 - [x] **UI2-03** `[S]` `[UI]` `prefers-reduced-motion` en todos los CSS nuevos — actualmente CERO archivos en `styles/` lo implementan (solo el legacy archivado lo tenía). Añadir al final de `styles/base.css`: `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }`. Replicar en `aurora-kiosk.css`, `aurora-tv.css`, `aurora-public.css`. Verificable: `grep -l "prefers-reduced-motion" styles/base.css` → match.
-- [x] **UI2-04** `[S]` `[UI]` Print styles en CSS clínico — sin `@media print` en ningún CSS de la Fase 1. Añadir en `aurora-clinical.css`: ocultar sidebar, nav y botones; mostrar solo datos del paciente con fuente 12pt. Añadir en `aurora-admin.css`: ocultar menú lateral, impresión limpia de fichas. Esto permite que el médico imprima la HCE directamente desde el admin.
-- [x] **UI2-05** `[M]` `[UI]` ARIA en sala de espera TV — `sala-turnos.html` no tiene atributos de accesibilidad. Añadir: `aria-live="polite"` en el contenedor del turno actual, `role="status"` en el número llamado, `aria-label` descriptivo en cada zona. Un usuario con lector de pantalla debe poder saber qué turno fue llamado. Verificable: `grep -c "aria-live" sala-turnos.html` → ≥1.
-- [x] **UI2-06** `[S]` `[UI]` Audio announce en kiosco de turnos — `kiosco-turnos.html` sin síntesis de voz. Usar `window.speechSynthesis.speak()` para anunciar "Turno número X emitido" al emitir el ticket. Fallback: tono de confirmación con `AudioContext`. Toggle ON/OFF accesible en el panel de configuración. Pacientes con discapacidad visual lo necesitan.
+- [ ] **UI2-04** `[S]` `[UI]` Print styles en CSS clínico — sin `@media print` en ningún CSS de la Fase 1. Añadir en `aurora-clinical.css`: ocultar sidebar, nav y botones; mostrar solo datos del paciente con fuente 12pt. Añadir en `aurora-admin.css`: ocultar menú lateral, impresión limpia de fichas. Esto permite que el médico imprima la HCE directamente desde el admin.
+- [ ] **UI2-05** `[M]` `[UI]` ARIA en sala de espera TV — `sala-turnos.html` no tiene atributos de accesibilidad. Añadir: `aria-live="polite"` en el contenedor del turno actual, `role="status"` en el número llamado, `aria-label` descriptivo en cada zona. Un usuario con lector de pantalla debe poder saber qué turno fue llamado. Verificable: `grep -c "aria-live" sala-turnos.html` → ≥1.
+- [ ] **UI2-06** `[S]` `[UI]` Audio announce en kiosco de turnos — `kiosco-turnos.html` sin síntesis de voz. Usar `window.speechSynthesis.speak()` para anunciar "Turno número X, diríjase al consultorio Y" al emitir el ticket. Fallback: tono de confirmación con `AudioContext`. Toggle ON/OFF accesible en el panel de configuración. Pacientes con discapacidad visual lo necesitan.
 
 #### UI2-C Admin UX Real
 
-- [x] **UI2-07** `[M]` `[UI]` Toast notification system — `admin.html` no tiene ningún sistema de notificación visual. Crear `js/aurora-toast.js`: `showToast(message, type, duration)` — tipos success/error/warning/info con colores de tokens. Posición: esquina superior derecha, auto-dismiss 4s, stack máx 3. Conectar en `admin.html`. Aplicar en: guardar evolución clínica, emitir receta, generar certificado, error de API. Sin esto el médico no sabe si la acción funcionó.
-- [x] **UI2-08** `[S]` `[UI]` Keyboard shortcuts para admin — crear `js/aurora-shortcuts.js` con: `Ctrl+N` nueva cita, `Ctrl+O` abrir OpenClaw, `Ctrl+K` búsqueda global, `Ctrl+P` imprimir ficha activa, `?` abrir modal de ayuda con lista de shortcuts. Badge `⌘K` dentro del input de búsqueda. No hacer nada si el foco está en un `<input>` o `<textarea>`. Cargar en `admin.html`.
+- [ ] **UI2-07** `[M]` `[UI]` Toast notification system — `admin.html` no tiene ningún sistema de notificación visual. Crear `js/aurora-toast.js`: `showToast(message, type, duration)` — tipos success/error/warning/info con colores de tokens. Posición: esquina superior derecha, auto-dismiss 4s, stack máx 3. Conectar en `admin.html`. Aplicar en: guardar evolución clínica, emitir receta, generar certificado, error de API. Sin esto el médico no sabe si la acción funcionó.
+- [ ] **UI2-08** `[S]` `[UI]` Keyboard shortcuts para admin — crear `js/aurora-shortcuts.js` con: `Ctrl+N` nueva cita, `Ctrl+O` abrir OpenClaw, `Ctrl+K` búsqueda global, `Ctrl+P` imprimir ficha activa, `?` abrir modal de ayuda con lista de shortcuts. Badge `⌘K` dentro del input de búsqueda. No hacer nada si el foco está en un `<input>` o `<textarea>`. Cargar en `admin.html`.
 - [x] **UI2-09** `[M]` `[UI]` Panel de protocolo clínico — backend existe: `GET /api.php?resource=openclaw-protocol&code=L20.0`. Falta el UI. Cuando el médico selecciona un CIE-10 en la HCE, abrir un slide-in panel desde la derecha: primera línea de tratamiento, lista de medicamentos con botón "Agregar a receta", instrucciones para el paciente en lenguaje simple. Animación `transform: translateX(100%) → 0`. CSS en `aurora-clinical.css`. JS en `js/protocol-panel.js`. Cargar en `admin.html`.
 - [x] **UI2-10** `[S]` `[UI]` Botón "Emitir certificado" directo en admin — backend existe: `POST /api.php?resource=certificate`. Falta el botón en la vista de caso. En el panel del paciente: botón "📋 Certificado" que abre modal con campos (tipo, días de reposo, diagnóstico CIE-10 con autocomplete, observaciones). Al confirmar → POST → mostrar folio en pantalla + link descarga PDF + botón WhatsApp listo. El médico no debe salir del admin.
-- [x] **UI2-11** `[M]` `[UI]` `dev/components.html` exhaustiva — actualmente 188 líneas, incompleta. Expandir a storybook funcional: todos los estados de `.btn-*` (normal/hover/loading/disabled), todos tipos de `.card`, `.badge` (cada color), `.modal` con ejemplo abierto, `.toast` los 4 tipos, `.input` (default/error/success/disabled), `.select`, `.avatar`, `.skeleton` shimmer. Cada componente con nombre visible y notas de uso. Es la referencia visual para el arquitecto de UI.
+- [ ] **UI2-11** `[M]` `[UI]` `dev/components.html` exhaustiva — actualmente 188 líneas, incompleta. Expandir a storybook funcional: todos los estados de `.btn-*` (normal/hover/loading/disabled), todos tipos de `.card`, `.badge` (cada color), `.modal` con ejemplo abierto, `.toast` los 4 tipos, `.input` (default/error/success/disabled), `.select`, `.avatar`, `.skeleton` shimmer. Cada componente con nombre visible y notas de uso. Es la referencia visual para el arquitecto de UI.
 
 #### UI2-D PWA y Portal Funcional
 
-- [x] **UI2-12** `[M]` `[UI]` Portal del paciente — datos reales — `es/portal/index.html` tiene 120 líneas de shell estático. Conectar con endpoints reales: próxima cita desde `GET /api.php?resource=appointment`, última evolución desde `GET /api.php?resource=clinical-history`. Skeleton loaders mientras carga. Estado vacío elegante si no hay datos. La card de "Próxima cita" debe mostrar fecha, hora, doctor y tipo con botón "Reagendar". Sin esto el portal es solo HTML sin valor.
-- [x] **UI2-13** `[S]` `[UI]` manifest.json — PWA completa — añadir array `"shortcuts"`: `[{name:"Agendar cita", url:"/es/agendar/"}, {name:"Ver mis recetas", url:"/es/portal/historial/"}, {name:"WhatsApp", url:"https://wa.me/593982453672"}]`. Verificar `"theme_color"` usa hex de `--color-aurora-600` (#248a65). Verificar `"display": "standalone"` e icono 512×512. Esto hace instalable la PWA desde Android/iOS.
-- [x] **UI2-14** `[S]` `[UI]` Historial del paciente — polish UI — `es/portal/historial/index.html` existe (creado en UI-17) pero necesita polish post-audit: skeleton loader, card expandible al tap (accordion con animación), chip con CIE-10 en color aurora, botón "Descargar receta" si hay receta adjunta. Diseño "Clinical Luxury" consistente con el portal base.
+- [ ] **UI2-12** `[M]` `[UI]` Portal del paciente — datos reales — `es/portal/index.html` tiene 120 líneas de shell estático. Conectar con endpoints reales: próxima cita desde `GET /api.php?resource=appointment`, última evolución desde `GET /api.php?resource=clinical-history`. Skeleton loaders mientras carga. Estado vacío elegante si no hay datos. La card de "Próxima cita" debe mostrar fecha, hora, doctor y tipo con botón "Reagendar". Sin esto el portal es solo HTML sin valor.
+- [ ] **UI2-13** `[S]` `[UI]` manifest.json — PWA completa — añadir array `"shortcuts"`: `[{name:"Agendar cita", url:"/es/agendar/"}, {name:"Ver mis recetas", url:"/es/portal/historial/"}, {name:"WhatsApp", url:"https://wa.me/593982453672"}]`. Verificar `"theme_color"` usa hex de `--color-aurora-600` (#248a65). Verificar `"display": "standalone"` e icono 512×512. Esto hace instalable la PWA desde Android/iOS.
+- [ ] **UI2-14** `[S]` `[UI]` Historial del paciente — polish UI — `es/portal/historial/index.html` existe (creado en UI-17) pero necesita polish post-audit: skeleton loader, card expandible al tap (accordion con animación), chip con CIE-10 en color aurora, botón "Descargar receta" si hay receta adjunta. Diseño "Clinical Luxury" consistente con el portal base.
 
 #### UI2-E Performance y Calidad
 
-- [x] **UI2-15** `[M]` `[UI]` Core Web Vitals audit post-UI — medir LCP, CLS en `index.html` y `es/servicios/laser-dermatologico/index.html` con `npx lighthouse --output json`. Si LCP > 2.5s: añadir `fetchpriority="high"` en imagen hero y `<link rel="preload">` para fonts. Entregable: `docs/WEB_VITALS_AUDIT.md` con valores antes/después. Target: LCP <2.5s, CLS <0.1, FID <100ms.
-- [x] **UI2-16** `[S]` `[UI]` Skeleton loaders en admin dashboard — al abrir el admin, las KPI cards cargan desde API y muestran vacío o flash de contenido. Añadir en `aurora-admin.css`: `.skeleton` con shimmer animation (`background: linear-gradient(90deg, #1a1a2e 25%, #23234a 50%, #1a1a2e 75%); background-size: 200%; animation: shimmer 1.5s infinite`). Aplicar en: las 4 KPI cards de dashboard, lista de pacientes, agenda del día durante la carga.
-- [x] **UI2-17** `[M]` `[UI]` Consistency pass de formularios — auditar todos los `<form>` en: agendar, pre-consulta, portal, admin. Garantizar que usan `.input`, `.select`, `.btn-primary` de `components.css`. Error states: `aria-describedby` apuntando al mensaje. Success state: border con `--color-aurora-600`. Placeholder: `--color-neutral-500`. Sin colores hardcodeados. Verificable visualmente y con grep de `color:#`.
+- [ ] **UI2-15** `[M]` `[UI]` Core Web Vitals audit post-UI — medir LCP, CLS en `index.html` y `es/servicios/laser-dermatologico/index.html` con `npx lighthouse --output json`. Si LCP > 2.5s: añadir `fetchpriority="high"` en imagen hero y `<link rel="preload">` para fonts. Entregable: `docs/WEB_VITALS_AUDIT.md` con valores antes/después. Target: LCP <2.5s, CLS <0.1, FID <100ms.
+- [ ] **UI2-16** `[S]` `[UI]` Skeleton loaders en admin dashboard — al abrir el admin, las KPI cards cargan desde API y muestran vacío o flash de contenido. Añadir en `aurora-admin.css`: `.skeleton` con shimmer animation (`background: linear-gradient(90deg, #1a1a2e 25%, #23234a 50%, #1a1a2e 75%); background-size: 200%; animation: shimmer 1.5s infinite`). Aplicar en: las 4 KPI cards de dashboard, lista de pacientes, agenda del día durante la carga.
+- [ ] **UI2-17** `[M]` `[UI]` Consistency pass de formularios — auditar todos los `<form>` en: agendar, pre-consulta, portal, admin. Garantizar que usan `.input`, `.select`, `.btn-primary` de `components.css`. Error states: `aria-describedby` apuntando al mensaje. Success state: border con `--color-aurora-600`. Placeholder: `--color-neutral-500`. Sin colores hardcodeados. Verificable visualmente y con grep de `color:#`.
 
 #### UI2-F Páginas Detectadas Faltantes por verify.js
 
-- [x] **UI2-18** `[M]` `[UI]` Pricing page del Turnero (S4-08) — `verify.js` detecta que `es/software/turnero-clinicas/precios/index.html` no existe. Crear con design system completo: 3 tiers (Gratis/Pro/Enterprise), tabla comparativa de features, CTA por tier, FAQ de precios. "Clinical Luxury" aplicado: gradiente dark en el tier destacado, colores aurora para features incluidos, gold para premium. Verificable: `node bin/gate.js S4-08`.
-- [x] **UI2-19** `[M]` `[UI]` Página de paquetes clínicos (S4-13) — `verify.js` detecta que `es/paquetes/index.html` no existe. Crear página de paquetes dermatológicos: Básico (limpieza + consulta), Premium (tratamiento completo), VIP (acceso total + seguimiento). Cards con lista de inclusiones, precio, botón "Agendar". Header coherente con design system.
+- [ ] **UI2-18** `[M]` `[UI]` Pricing page del Turnero (S4-08) — `verify.js` detecta que `es/software/turnero-clinicas/precios/index.html` no existe. Crear con design system completo: 3 tiers (Gratis/Pro/Enterprise), tabla comparativa de features, CTA por tier, FAQ de precios. "Clinical Luxury" aplicado: gradiente dark en el tier destacado, colores aurora para features incluidos, gold para premium. Verificable: `node bin/gate.js S4-08`.
+- [ ] **UI2-19** `[M]` `[UI]` Página de paquetes clínicos (S4-13) — `verify.js` detecta que `es/paquetes/index.html` no existe. Crear página de paquetes dermatológicos: Básico (limpieza + consulta), Premium (tratamiento completo), VIP (acceso total + seguimiento). Cards con lista de inclusiones, precio, botón "Agendar". Header coherente con design system.
 
 #### UI2-G Robustez del Sistema UI
 
@@ -1457,20 +1457,20 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 8.1 Desktop y distribución
 
-- [x] **S8-01** `[M]` Desktop catalog truth — `app-downloads/` mezcla `published`, `registry_only` y entradas sin artefacto real. Que cada entrada declare explícitamente su estado. Kiosco y sala_tv no deben aparecer como "listos" si no hay instalador real. Entregable: tabla de verdad en `docs/DESKTOP_CATALOG.md` + campo `status` en cada registro del catálogo.
-- [x] **S8-02** `[M]` Restore turnero bundle verifier — `bin/verify-turnero-release-bundle.js` desapareció o los scripts npm que lo invocan apuntan a ruta inexistente. Reponer el verificador o corregir las 3 entradas en `package.json` que fallan silenciosamente. Verificable: `npm run verify:turnero:bundle` → exit 0.
-- [x] **S8-03** `[L]` Release artifact single source — binarios duplicados entre `app-downloads/`, `desktop-updates/` y `release/`. Decidir cuál es canónico. Mover los otros a aliases o eliminarlos. Añadir cross-checksum: si el mismo hash no aparece en las 3 rutas, el smoke falla. Entregable: `docs/RELEASE_CANONICAL.md` + script de verificación.
-- [x] **S8-04** `[M]` Desktop channel promotion contract — bloquear la promoción de `kiosk` y `sala_tv` a producción mientras no existan manifiesto real, instalador firmado y blockmap. Añadir check en `bin/gate.js` o en el workflow CI que bloquea push a `latest` si falta alguno de los 3.
+- [ ] **S8-01** `[M]` Desktop catalog truth — `app-downloads/` mezcla `published`, `registry_only` y entradas sin artefacto real. Que cada entrada declare explícitamente su estado. Kiosco y sala_tv no deben aparecer como "listos" si no hay instalador real. Entregable: tabla de verdad en `docs/DESKTOP_CATALOG.md` + campo `status` en cada registro del catálogo.
+- [ ] **S8-02** `[M]` Restore turnero bundle verifier — `bin/verify-turnero-release-bundle.js` desapareció o los scripts npm que lo invocan apuntan a ruta inexistente. Reponer el verificador o corregir las 3 entradas en `package.json` que fallan silenciosamente. Verificable: `npm run verify:turnero:bundle` → exit 0.
+- [ ] **S8-03** `[L]` Release artifact single source — binarios duplicados entre `app-downloads/`, `desktop-updates/` y `release/`. Decidir cuál es canónico. Mover los otros a aliases o eliminarlos. Añadir cross-checksum: si el mismo hash no aparece en las 3 rutas, el smoke falla. Entregable: `docs/RELEASE_CANONICAL.md` + script de verificación.
+- [ ] **S8-04** `[M]` Desktop channel promotion contract — bloquear la promoción de `kiosk` y `sala_tv` a producción mientras no existan manifiesto real, instalador firmado y blockmap. Añadir check en `bin/gate.js` o en el workflow CI que bloquea push a `latest` si falta alguno de los 3.
 
 #### 8.2 Auth y acceso remoto
 
-- [x] **S8-05** `[M]` Remote operator-auth recovery — `operator-auth-status` y `admin-auth` devuelven 502 en el dominio remoto. Diagnosticar causa raíz (proxy, servicio caído, timeout, falta env). Dejar smoke HTTP que verifique que ambos endpoints responden < 3s. Entregable: `docs/AUTH_RECOVERY_RUNBOOK.md` + `npm run smoke:auth`.
-- [x] **S8-20** `[M]` Auth surface hardening — extraer y encapsular zonas de riesgo en `lib/auth.php`: legacy password path, 2FA temporal bypass, operator auth bridge. Cada zona debe tener un test de contrato mínimo. No romper auth existente — refactor con tests primero. Entregable: `lib/auth/` con archivos separados por zona de riesgo.
+- [ ] **S8-05** `[M]` Remote operator-auth recovery — `operator-auth-status` y `admin-auth` devuelven 502 en el dominio remoto. Diagnosticar causa raíz (proxy, servicio caído, timeout, falta env). Dejar smoke HTTP que verifique que ambos endpoints responden < 3s. Entregable: `docs/AUTH_RECOVERY_RUNBOOK.md` + `npm run smoke:auth`.
+- [ ] **S8-20** `[M]` Auth surface hardening — extraer y encapsular zonas de riesgo en `lib/auth.php`: legacy password path, 2FA temporal bypass, operator auth bridge. Cada zona debe tener un test de contrato mínimo. No romper auth existente — refactor con tests primero. Entregable: `lib/auth/` con archivos separados por zona de riesgo.
 
 #### 8.3 Integraciones externas
 
-- [x] **S8-06** `[M]` Calendar token runway — el smoke de Google Calendar no verifica explícitamente `client_id`, `client_secret` ni fecha de expiración del `refresh_token`. Crear `npm run smoke:calendar:token` que detecte token próximo a expirar (<7 días) o ya expirado → alerta en Slack/Telegram. Sin esto la clínica queda sorda cuando Google revoca el token.
-- [x] **S8-07** `[S]` Weekly report BOM/parser hardening — `weekly-report-20260302.json` rompe el readiness por BOM o encoding incorrecto. El parser debe normalizar UTF-8 BOM antes de `JSON.parse`. Añadir test con fixture roto. Verificable: `node bin/report.js` nunca muere con `SyntaxError: Unexpected token`.
+- [ ] **S8-06** `[M]` Calendar token runway — el smoke de Google Calendar no verifica explícitamente `client_id`, `client_secret` ni fecha de expiración del `refresh_token`. Crear `npm run smoke:calendar:token` que detecte token próximo a expirar (<7 días) o ya expirado → alerta en Slack/Telegram. Sin esto la clínica queda sorda cuando Google revoca el token.
+- [ ] **S8-07** `[S]` Weekly report BOM/parser hardening — `weekly-report-20260302.json` rompe el readiness por BOM o encoding incorrecto. El parser debe normalizar UTF-8 BOM antes de `JSON.parse`. Añadir test con fixture roto. Verificable: `node bin/report.js` nunca muere con `SyntaxError: Unexpected token`.
 
 #### 8.4 Analytics y observabilidad
 
@@ -1651,26 +1651,26 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 🚨 13.0 Reversión de tareas done incorrectas (URGENTE)
 
-- [x] **S13-00** `[S]` REVERSIÓN: S4-08 marcada done pero no existe — `verify.js` detectó que `es/software/turnero-clinicas/precios/index.html` **no existe** a pesar de estar marcada `[x]`. Crear la página referenciada en la tarea original. Sin el archivo, la tarea no está done. Verificable: `ls es/software/turnero-clinicas/precios/index.html` → existe.
+- [ ] **S13-00** `[S]` REVERSIÓN: S4-08 marcada done pero no existe — `verify.js` detectó que `es/software/turnero-clinicas/precios/index.html` **no existe** a pesar de estar marcada `[x]`. Crear la página referenciada en la tarea original. Sin el archivo, la tarea no está done. Verificable: `ls es/software/turnero-clinicas/precios/index.html` → existe.
 
 #### 13.1 Fundamentos de producción — nadie los auditó
 
-- [x] **S13-01** `[M]` robots.txt hardening — el archivo actual expone `/lib/` y `/templates/` al crawling. Añadir: `Disallow: /lib/`, `Disallow: /templates/`, `Disallow: /backup/`, `Disallow: /bin/`, `Disallow: /store/` (si existe directorio). `/data/` ya está bloqueada (✅). El riesgo: Google puede indexar código PHP o templates HTML internos. Verificable: `curl https://aurora-derm.com/robots.txt | grep "/lib/"` → Disallow.
-- [x] **S13-02** `[M]` sitemap.xml — actualización y cobertura completa — sitemap tiene 73 URLs pero falta: `/es/paquetes/` (recién creada S4-13), todas las URLs nuevas de Sprint 2/3/UI. `lastmod` desactualizado en muchas. Añadir generación automática al `sync-backlog.js` o crear `bin/gen-sitemap.js`. Verificable: `grep "paquetes" sitemap.xml` → existe.
-- [x] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
-- [x] **S13-04** `[M]` Security headers en nginx — `nginx-pielarmonia.conf` no tiene `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Sin estos headers, la clínica es vulnerable a clickjacking y XSS reflejado. Verificable: `curl -I https://aurora-derm.com | grep -i "x-frame"` → match.
-- [x] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
-- [x] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
+- [ ] **S13-01** `[M]` robots.txt hardening — el archivo actual expone `/lib/` y `/templates/` al crawling. Añadir: `Disallow: /lib/`, `Disallow: /templates/`, `Disallow: /backup/`, `Disallow: /bin/`, `Disallow: /store/` (si existe directorio). `/data/` ya está bloqueada (✅). El riesgo: Google puede indexar código PHP o templates HTML internos. Verificable: `curl https://aurora-derm.com/robots.txt | grep "/lib/"` → Disallow.
+- [ ] **S13-02** `[M]` sitemap.xml — actualización y cobertura completa — sitemap tiene 73 URLs pero falta: `/es/paquetes/` (recién creada S4-13), todas las URLs nuevas de Sprint 2/3/UI. `lastmod` desactualizado en muchas. Añadir generación automática al `sync-backlog.js` o crear `bin/gen-sitemap.js`. Verificable: `grep "paquetes" sitemap.xml` → existe.
+- [ ] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
+- [ ] **S13-04** `[M]` Security headers en nginx — `nginx-pielarmonia.conf` no tiene `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Sin estos headers, la clínica es vulnerable a clickjacking y XSS reflejado. Verificable: `curl -I https://aurora-derm.com | grep -i "x-frame"` → match.
+- [ ] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
+- [ ] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
 
 #### 13.2 `tele-head-links.html` — regresión silenciosa detectada
 
-- [x] **S13-07** `[M]` `[UI]` `tele-head-links.html` usa CSS legacy — el partial `templates/partials/tele-head-links.html` carga `styles.css?v=figo-20260227-redesignfix3` y `styles-deferred.css`. Estos son archivos del sistema **anterior a la migración "Clinical Luxury"**. El partial tiene 1 referencia a tokens pero aún arrastra el CSS viejo. Resultado: las páginas de telemedicina tienen regresión visual. Reemplazar imports por: `tokens.css` + `base.css` + `aurora-public.css`. Verificable: `grep "styles.css" templates/partials/tele-head-links.html` → 0.
-- [x] **S13-08** `[S]` Partial órfano — `tele-head-links.html` no es incluido por ninguna plantilla (0 includes detectados). O es un dead file o las plantillas que deberían usarlo lo están ignorando. Investigar: si ninguna plantilla lo usa → `git rm`. Si debería usarse → conectar. Verificable: `grep -r "tele-head-links" templates/ | wc -l` → ≥1 o archivo eliminado.
+- [ ] **S13-07** `[M]` `[UI]` `tele-head-links.html` usa CSS legacy — el partial `templates/partials/tele-head-links.html` carga `styles.css?v=figo-20260227-redesignfix3` y `styles-deferred.css`. Estos son archivos del sistema **anterior a la migración "Clinical Luxury"**. El partial tiene 1 referencia a tokens pero aún arrastra el CSS viejo. Resultado: las páginas de telemedicina tienen regresión visual. Reemplazar imports por: `tokens.css` + `base.css` + `aurora-public.css`. Verificable: `grep "styles.css" templates/partials/tele-head-links.html` → 0.
+- [ ] **S13-08** `[S]` Partial órfano — `tele-head-links.html` no es incluido por ninguna plantilla (0 includes detectados). O es un dead file o las plantillas que deberían usarlo lo están ignorando. Investigar: si ninguna plantilla lo usa → `git rm`. Si debería usarse → conectar. Verificable: `grep -r "tele-head-links" templates/ | wc -l` → ≥1 o archivo eliminado.
 
 #### 13.3 `lib/common.php` — deuda técnica crítica
 
-- [x] **S13-09** `[L]` `lib/common.php` sin sanitización de input — 368 líneas, **0 referencias** a `htmlspecialchars`, `strip_tags`, `filter_input`, `intval` o `PDO::`. Las funciones comunes reciben input del usuario sin sanitizar antes de pasarlo a queries o a HTML. Esto es un vector directo de XSS/SQLi. Auditar toda la lib: añadir sanitización en el punto de entrada, no en cada uso. Entregable: `lib/common.php` con 100% de inputs sanitizados + `lib/input-validator.php` como helper.
-- [x] **S13-10** `[M]` `admin.html` — `innerHTML` con datos de usuario — el audit detecta usos de `innerHTML = variable` sin escape en admin.html. Si un campo de texto del paciente contiene `<script>`, se ejecuta en el panel del médico. Reemplazar `innerHTML` por `textContent` donde el contenido es texto plano, y por `DOMPurify.sanitize()` donde se necesita HTML controlado. Añadir `DOMPurify` en `tele-head-links.html` y en `admin.html`.
+- [ ] **S13-09** `[L]` `lib/common.php` sin sanitización de input — 368 líneas, **0 referencias** a `htmlspecialchars`, `strip_tags`, `filter_input`, `intval` o `PDO::`. Las funciones comunes reciben input del usuario sin sanitizar antes de pasarlo a queries o a HTML. Esto es un vector directo de XSS/SQLi. Auditar toda la lib: añadir sanitización en el punto de entrada, no en cada uso. Entregable: `lib/common.php` con 100% de inputs sanitizados + `lib/input-validator.php` como helper.
+- [ ] **S13-10** `[M]` `admin.html` — `innerHTML` con datos de usuario — el audit detecta usos de `innerHTML = variable` sin escape en admin.html. Si un campo de texto del paciente contiene `<script>`, se ejecuta en el panel del médico. Reemplazar `innerHTML` por `textContent` donde el contenido es texto plano, y por `DOMPurify.sanitize()` donde se necesita HTML controlado. Añadir `DOMPurify` en `tele-head-links.html` y en `admin.html`.
 
 #### 13.4 Consistencia de marca y datos
 
@@ -1726,13 +1726,13 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### UI3-E Navegación global
 
 - [ ] **UI3-15** `[M]` `[UI]` Sticky header con scroll behavior — el header del sitio público (`index.html` y servicios) probablemente ya existe pero sin comportamiento al hacer scroll. Implementar: header transparente en top → fondo `--color-midnight-900` + `backdrop-filter: blur(12px)` al hacer scroll > 80px. Transición `background 0.3s ease`. El logo sube levemente de tamaño al hacer scroll-up (hide-on-scroll-down, show-on-scroll-up). `js/aurora-header.js`. Verificable: `grep "scroll.*header\|aurora-header" js/aurora-header.js` → match.
-- [x] **UI3-16** `[M]` `[UI]` Mobile menu — animación y usabilidad — el menú hamburger en mobile debe tener: animación del ícono (3 líneas → X con `transform`), overlay semitransparente sobre la página, slide-in desde la derecha en `300ms ease`, cierre al hacer tap fuera o pulsar `Escape`, `aria-expanded` en el botón de toggle. Links del menú con animación stagger (`delay: 50ms` por cada item). Verificable: `grep "aria-expanded.*menu\|menu-overlay" index.html` → match.
+- [ ] **UI3-16** `[M]` `[UI]` Mobile menu — animación y usabilidad — el menú hamburger en mobile debe tener: animación del ícono (3 líneas → X con `transform`), overlay semitransparente sobre la página, slide-in desde la derecha en `300ms ease`, cierre al hacer tap fuera o pulsar `Escape`, `aria-expanded` en el botón de toggle. Links del menú con animación stagger (`delay: 50ms` por cada item). Verificable: `grep "aria-expanded.*menu\|menu-overlay" index.html` → match.
 - [x] **UI3-17** `[S]` `[UI]` Skip-to-content link accesible — `index.html` tiene 0 skip links. El primer nodo del `<body>` debe ser `<a href="#main-content" class="skip-link">Ir al contenido principal</a>`. Con CSS: oculto por defecto, visible solo con `:focus`. Apunta a `<main id="main-content">`. Crítico para usuarios con teclado y lectores de pantalla. Verificable: `grep "skip-link\|skip.*content" index.html` → match.
-- [x] **UI3-18** `[S]` `[UI]` Page loading bar — indicador de navegación — cuando el paciente navega entre páginas, no hay indicador visual. Añadir `js/aurora-nprogress.js`: barra delgada (3px) en el top de la página en `--color-aurora-400`, animación en `DOMContentLoaded` y `load`. Alternativa sin librería: `<div id="aurora-loader">` con CSS animation. No depender de NPM. Verificable: `grep "aurora-loader\|page-loader" js/aurora-nprogress.js` → match.
+- [x] **UI3-18** `[S]` `[UI]` Page loading bar — ✅ _Corregido hoy mismo._ Se añadió `js/aurora-nprogress.js` con barra superior de 3px, arranque en `DOMContentLoaded`, cierre en `load` y persistencia corta entre clic y navegación con `sessionStorage`. Los shells públicos compartidos ya lo cargan desde layout. Verificable: `grep "aurora-loader\|page-loader" js/aurora-nprogress.js` → match.
 
 #### UI3-F Media y contenido visual
 
-- [x] **UI3-19** `[M]` `[UI]` Lightbox para fotos clínicas en admin — `admin.html` y el portal tienen 0 referencias a lightbox. Las fotos de before/after al hacer clic abren en nueva tab o no hacen nada. Crear `js/aurora-lightbox.js` (sin jQuery): al clic en `.clinical-photo`, overlay de pantalla completa con la imagen a máxima resolución, navegación con flechas y teclado (`←` / `→` / `Escape`), zoom con doble clic, contador `2 de 5`. `aria-label="Foto clínica ampliada"`. CSS en `aurora-clinical.css`. Verificable: `grep "aurora-lightbox\|clinical-photo.*click" admin.html` → match.
+- [ ] **UI3-19** `[M]` `[UI]` Lightbox para fotos clínicas en admin — `admin.html` y el portal tienen 0 referencias a lightbox. Las fotos de before/after al hacer clic abren en nueva tab o no hacen nada. Crear `js/aurora-lightbox.js` (sin jQuery): al clic en `.clinical-photo`, overlay de pantalla completa con la imagen a máxima resolución, navegación con flechas y teclado (`←` / `→` / `Escape`), zoom con doble clic, contador `2 de 5`. `aria-label="Foto clínica ampliada"`. CSS en `aurora-clinical.css`. Verificable: `grep "aurora-lightbox\|clinical-photo.*click" admin.html` → match.
 - [ ] **UI3-20** `[M]` `[UI]` Blog article template — `es/blog/` tiene artículos pero sin template consistente. Crear `styles/aurora-blog.css`: tipografía para artículos (h1 Instrument Serif 2.5rem, cuerpo Inter 18px, interlineado 1.75), tabla de contenidos sticky a la derecha, progress bar de lectura en el top, imágenes con caption, callout box `.callout--info` y `.callout--warning`, code block con fondo midnight. Schema `Article` + `MedicalWebPage`. Aplicar a `es/blog/como-elegir-dermatologo-quito/` como showcase. Verificable: `grep "aurora-blog" es/blog/como-elegir-dermatologo-quito/index.html` → match.
 
 ---
@@ -1772,7 +1772,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 14.5 Deuda de evidencia y seguridad
 
-- [x] **S14-12** `[M]` Evidence debt surface — `verification/` contiene artefactos con razones `missing_refs`, `missing_expected_file`, `noncanonical_ref` y `reconstructed_evidence`. Hoy no hay forma de ver cuántos son ni qué tan urgentes son. Añadir en `bin/audit.js` sección "Evidence health": contar y clasificar por razón, listar los 5 más críticos. Añadir gate: si `reconstructed_evidence` > 10 → warning; si > 25 → error. Entregable: `governance/evidence-debt-report.md` regenerado en cada `gov:audit`. Verificable: `npm run gov:audit` → muestra tabla de evidence debt con conteos por razón.
+- [ ] **S14-12** `[M]` Evidence debt surface — `verification/` contiene artefactos con razones `missing_refs`, `missing_expected_file`, `noncanonical_ref` y `reconstructed_evidence`. Hoy no hay forma de ver cuántos son ni qué tan urgentes son. Añadir en `bin/audit.js` sección "Evidence health": contar y clasificar por razón, listar los 5 más críticos. Añadir gate: si `reconstructed_evidence` > 10 → warning; si > 25 → error. Entregable: `governance/evidence-debt-report.md` regenerado en cada `gov:audit`. Verificable: `npm run gov:audit` → muestra tabla de evidence debt con conteos por razón.
 - [ ] **S14-13** `[M]` Security audit de `ComponentLoader` — `components/ComponentLoader.js` tiene **2 usos de `innerHTML`** para renderizar contenido de componentes (verificado: lineas encontradas en repo vivo). Si un componente recibe texto del usuario y lo inyecta como HTML, es vector XSS directo. Auditar: reemplazar `innerHTML` con `textContent` donde el contenido es texto plano. Donde se necesita HTML estructurado: añadir `DOMPurify.sanitize()` o allowlist explícita de tags. Añadir test negativo: `ComponentLoader.render({ text: '<script>alert(1)</script>' })` → el script no se ejecuta. Verificable: test negativo de inyección pasa + `grep "innerHTML" components/ComponentLoader.js` → 0.
 
 ---
@@ -1785,7 +1785,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S15-01** `[S]` Mejorar regex en `bin/velocity.js` — ✅ _Corregido hoy mismo por el Gobernador._ Las 3 regex `S\d+` ahora capturan `(?:S\d+|UI\d*)-[A-Z0-9]+`. Verificar que las proyecciones de velocidad cuentan los 37 tasks UI de Fase 1/2/3 y los 99 de S8-S14. Refina: extender además la búsqueda de "sprints críticos para junio" para incluir S8/S9 como high-priority además de Sprint 3. Verificable: `node bin/velocity.js --json | jq .totalTasks` → ≥407.
 - [ ] **S15-02** `[S]` Mejorar regex en `bin/stuck.js` — ✅ _Corregido hoy mismo._ La validación `^S\d+-[A-Z0-9]+$` bloqueaba silenciosamente a cualquier agente tratando de marcar stuck una tarea UI. Ahora acepta `^(S\d+|UI\d*)-[A-Z0-9]+$`. Verificable: `node bin/stuck.js UI2-07 "test"` → no sale "Usage:" de ID inválido.
-- [x] **S15-03** `[S]` `bin/dispatch.js` — actualizar `prefer[]` de roles para S8-S14 — el array `prefer` del rol `backend` solo lista tasks S3-XX. Con 99 tareas nuevas en S8-S14, el dispatch nunca las prioriza. Añadir a `backend prefer[]`: `'S8-05', 'S8-06', 'S8-07', 'S8-12', 'S8-20', 'S9-08', 'S10-06', 'S14-13'`. Añadir a `frontend prefer[]`: `'S9-01', 'S9-09', 'S10-01', 'S10-25', 'S12-17'`. Añadir a `devops prefer[]`: `'S14-00', 'S14-02', 'S14-06', 'S14-07', 'S14-09', 'S13-04'`. Verificable: `npm run dispatch:backend` → retorna alguna tarea de S8/S9/S10.
+- [ ] **S15-03** `[S]` `bin/dispatch.js` — actualizar `prefer[]` de roles para S8-S14 — el array `prefer` del rol `backend` solo lista tasks S3-XX. Con 99 tareas nuevas en S8-S14, el dispatch nunca las prioriza. Añadir a `backend prefer[]`: `'S8-05', 'S8-06', 'S8-07', 'S8-12', 'S8-20', 'S9-08', 'S10-06', 'S14-13'`. Añadir a `frontend prefer[]`: `'S9-01', 'S9-09', 'S10-01', 'S10-25', 'S12-17'`. Añadir a `devops prefer[]`: `'S14-00', 'S14-02', 'S14-06', 'S14-07', 'S14-09', 'S13-04'`. Verificable: `npm run dispatch:backend` → retorna alguna tarea de S8/S9/S10.
 
 #### 15.2 Convergencia e integridad del board
 
@@ -1805,94 +1805,3 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S15-12** `[S]` `README.md` — actualizar velocidad y board real — `README.md` tiene stats hardcodeadas o desactualizadas. Hacer que `README.md` sea generado parcialmente por `bin/gen-readme-stats.js`: inserta `<!-- STATS_START -->...<!-- STATS_END -->` con done/total/pct leídos de AGENTS.md en tiempo de sync. Verificable: `node bin/gen-readme-stats.js && grep "153/407" README.md` → match (con los valores actuales).
 - [ ] **S15-13** `[M]` `BLOCKERS.md` — sincronizar con `stuck.js` — `BLOCKERS.md` existe pero puede estar desalineado con los blockers reales registrados en `stuck.js`. Hacer que `stuck.js list` y `stuck.js clear` actualicen `BLOCKERS.md` como fuente de verdad secundaria. El gobernador puede leer BLOCKERS.md sin correr stuck.js. Verificable: después de `node bin/stuck.js clear S3-35` → `BLOCKERS.md` ya no menciona S3-35.
-
----
-
-### 🔒 Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
-
-> **Criterio de inclusión:** Tareas con 0 cobertura existente en áreas críticas. No duplican sprints anteriores. Todas verificables. Prerequisito para que el sistema sea auditable antes del lanzamiento de junio 2026.
-
-#### 16.1 Análisis estático PHP
-
-- [ ] **S16-01** `[M]` Psalm bootstrap crítico — `psalm.xml` existe pero no está wired a superficies reales. Configurar para que cubra `lib/`, `controllers/` y `api.php`. Añadir `vendor/bin/psalm --no-cache` al CI como job separado (puede ser `allowed_failure: true` inicialmente). Entregable: `psalm.xml` ajustado + baseline `psalm-baseline.xml` con 0 errores nuevos. Verificable: `vendor/bin/psalm --no-cache lib/` → exit 0 o baseline limpia.
-- [ ] **S16-02** `[M]` Psalm gate por archivos cambiados — hoy CI hace skip silencioso si Psalm falta. Convertir en contrato explícito: si el PR toca `lib/` o `controllers/`, el job Psalm **debe** correr (no se puede silenciar). Si no hay Psalm instalado → falla con mensaje accionable "Instala Psalm: composer require --dev vimeo/psalm". Verificable: modificar cualquier .php en lib/ → el job Psalm aparece en CI, no se saltea silenciosamente.
-
-#### 16.2 Seguridad de endpoints críticos
-
-- [ ] **S16-03** `[M]` Contrato end-to-end de verify-backup.php — hoy no existe suite directa del endpoint. Crear `tests/Unit/VerifyBackupEndpointTest.php` con casos: auth_missing (401), auth_invalid (403), path_traversal (400), storage_not_found (500), no_backup_files (404), checksum_ok (200+hash), checksum_mismatch (409). Sin este contrato, un refactoring silencia roturas. Verificable: `php vendor/bin/phpunit tests/Unit/VerifyBackupEndpointTest.php` → 7 tests verdes.
-- [ ] **S16-04** `[S]` Minimización de tokens de backup — `verify-backup.php` acepta tokens de cron, admin y verificación indistintamente. Crear token dedicado `AURORADERM_BACKUP_VERIFY_TOKEN` (solo lectura, sin permisos de escritura). El endpoint de verificación rechaza `CRON_SECRET` y `AURORADERM_DIAGNOSTICS_ACCESS_TOKEN` con 403 explícito. Verificable: `curl -H "Authorization: $CRON_SECRET" /verify-backup.php` → 403.
-- [ ] **S16-05** `[M]` Contrato público de monitoring-config — `monitoring-config` endpoint no tiene allowlist de claves permitidas. Puede filtrar DSNs completos de Sentry u otros secretos backend. Crear allowlist en `MonitoringConfigController.php`: solo campos `sentry_dsn_frontend` (sin auth token), `ga_measurement_id`, `clarity_id`. Test de contrato que verifica que ninguna clave prohibida aparece en el JSON público. Verificable: `curl /api.php?resource=monitoring-config | jq 'has("sentry_auth_token")'` → false.
-
-#### 16.3 Frontend de observabilidad
-
-- [ ] **S16-06** `[M]` Hardening de monitoring-loader.js — actualmente no tiene: versión del SDK fija (carga desde CDN sin hash), timeout/backoff si CDN falla, protección contra doble init (`window.__auroraSentryLoaded`), degradación limpia sin Sentry. Añadir: sri hash en el `<script>`, `window.__auroraSentryLoaded` guard, `setTimeout` de 5s para CDN con fallback a noop. Verificar con tests en `tests/mocks/` para 3 escenarios: no-config, cdn-fail, init-once. Verificable: `grep "__auroraSentryLoaded" js/monitoring-loader.js` → match.
-- [ ] **S16-13** `[S]` Contrato de resource hints de monitoreo — hoy hay tests de hints pero si se crea una página nueva, nadie valida que tenga los `<link rel=preconnect>` de Sentry/GA/Stripe según la superficie. Formalizar allowlist de hints requeridos por superficie (`public`, `admin`, `portal`) en `bin/verify.js`. Verificable: una página de servicio nueva que no tenga `dns-prefetch` de GA → warning en `npm run verify`.
-
-#### 16.4 Logging y Papertrail
-
-- [ ] **S16-07** `[M]` Smoke de entrega Papertrail — `lib/logger.php` intenta enviar logs por UDP a Papertrail pero no hay smoke ni evidencia operativa de que el canal esté vivo. Crear `tests/smoke/PapertrailSmokeTest.php`: inicializar Logger, enviar mensaje de prueba `[smoke] aurora-derm test`, verificar que no lanza excepción y que el payload UDP tiene el formato mínimo correcto (facility, severity, timestamp, message). Fallback a stderr si `PAPERTRAIL_HOST` no está. Verificable: `php tests/smoke/PapertrailSmokeTest.php` → exit 0.
-
-#### 16.5 Documentación de observabilidad
-
-- [ ] **S16-08** `[M]` Single source de monitoring docs — existen `MONITORING.md` y `MONITORING_SETUP.md` con instrucciones que pueden ser contradictorias. Decidir cuál es canónico (probablemente `MONITORING.md`) y convertir el otro en un redirect/índice que apunte al canónico. El canónico debe cubrir: Sentry (frontend+backend), Papertrail (UDP), uptime monitoring, GA4. Verificable: `grep -l "Sentry\|Papertrail" docs/` → un solo archivo canónico + uno de índice.
-- [ ] **S16-09** `[S]` Refresh automático de baseline de performance — `docs/PERFORMANCE_BASELINE.md` tiene foto del 20-feb-2026. Crear `bin/gen-performance-baseline.js` que genera el baseline con Lighthouse headless sobre el servidor local. Loguea: LCP, CLS, TBT, FCP, Score. Guarda en `docs/PERFORMANCE_BASELINE.md` con fecha y comando. Añadir como npm script `perf:baseline`. Verificable: `npm run perf:baseline` → genera `docs/PERFORMANCE_BASELINE.md` con timestamp de hoy.
-- [ ] **S16-10** `[M]` Performance budgets visibles en report/audit — `run-public-performance-gate` ya existe pero su salida no sube al reporte diario. Añadir en `bin/report.js` sección "Performance": leer `governance/performance-gate.json` si existe y mostrar señal (🟢 budget ok / 🔴 LCP over budget). Lo mismo en `bin/audit.js`. Verificable: `npm run report --silent` → muestra sección "Performance" sin error.
-
-#### 16.6 OpenClaw schema y API spec
-
-- [ ] **S16-11** `[M]` Guard de drift para openapi-openclaw.yaml — si un endpoint OpenClaw cambia en backend pero no en el YAML, nadie lo detecta. Crear `bin/check-openapi-drift.js`: leer `openapi-openclaw.yaml`, extraer paths/operations, comparar con endpoints registrados en `routes.php` o `OpenclawController.php`. Si hay diff → exit 1 con lista de discrepancias. Añadir como step en CI. Verificable: añadir ruta a OpenclawController sin actualizar YAML → `node bin/check-openapi-drift.js` → exit 1.
-- [ ] **S16-12** `[S]` Release pack de schema para Custom GPT — versionar `openapi-openclaw.yaml` y `docs/chatgpt-custom-gpt-instructions.md` juntos. Añadir campo `x-schema-version: YYYY-MM-DD-hash` al YAML. Crear `bin/gen-gpt-schema-pack.js` que genera `docs/gpt-schema-pack-latest.md` con: versión, hash del YAML, fecha, instrucciones de importación. El equipo médico puede ver qué schema está vigente sin revisar git. Verificable: `node bin/gen-gpt-schema-pack.js && grep "x-schema-version" docs/gpt-schema-pack-latest.md` → match.
-
-
----
-
-### 💰 Sprint 17 — Producto y Monetización Real
-
-> **Criterio de inclusión:** Solo las tareas con impacto directo en revenue o conversión antes de junio 2026. Se excluyen: review ops (post-launch), executive review (interno), renewal cockpit (B2B SaaS post-piloto). Se incluyen: los motores que hacen que las landing pages existentes **funcionen de verdad**.
-
-#### 17.1 Gift Cards reales (la landing existe, el motor no)
-
-- [ ] **S17-01** `[M]` Gift card ledger backend — `es/gift-cards/index.html` genera códigos en frontend pero sin persistencia. Crear `lib/gift_cards/GiftCardService.php` con métodos: `issue(amount, issuer, recipient): GiftCard`, `validate(code): GiftCard|null`, `redeem(code, amount): bool`. Modelo: `code`, `amount_cents`, `balance_cents`, `issuer_id`, `recipient_email`, `issued_at`, `expires_at`, `status (active|redeemed|expired)`. Storage en SQLite store existente. Verificable: `POST /api.php?resource=gift-card-issue` → JSON con code+QR data.
-- [ ] **S17-02** `[M]` Redención de gift card en booking y cierre de consulta — en `es/agendar/`: campo "¿Tienes gift card?" con validación en tiempo real. En `admin.html`: botón "Aplicar gift card" en cierre de consulta. Backend: `POST /api.php?resource=gift-card-redeem` descuenta saldo, previene doble uso con lock atómico. Verificable: una gift card no puede redimirse dos veces simultáneamente.
-- [ ] **S17-03** `[S]` Vigencia y recordatorios de gift cards — job cron que detecta gift cards con `expires_at` en los próximos 14 días y envía WhatsApp/email al recipient: "Tu gift card de Aurora Derm vence el [fecha]. Úsala antes para tratamientos de: [servicios]". Panel simple en admin bajo "Gestión > Gift Cards". Verificable: `GET /api.php?resource=gift-cards-expiring` → lista con días restantes.
-
-#### 17.2 Programa de referidos (motor, no solo landing)
-
-- [ ] **S17-04** `[M]` Motor de referidos con link único — `es/referidos/index.html` existe sin backend. Crear `lib/referrals/ReferralService.php`: generar código único por paciente (`REF-XXXXX`), registrar clic, atribuir conversión cuando el referido agenda su primera cita. `GET /api.php?resource=referral-link?patient_id=X` → link trackeable. Verificable: un link de referido incrementa el contador de clics en cada visita.
-- [ ] **S17-05** `[M]` Wallet de beneficios por referidos — en `es/portal/`: sección "Mis Referidos" con: código compartible, referidos enviados, convertidos, beneficio ganado (ej: 10% próxima consulta), beneficio disponible para usar. Backend: `GET /api.php?resource=referral-stats?patient_id=X` → stats. Verificable: un paciente con 2 referidos convertidos ve beneficio aplicable en su portal.
-
-#### 17.3 Membresía con enforcement real
-
-- [ ] **S17-06** `[M]` Enforcement de membresía activa — `es/membresia/index.html` existe. Falta: en backend, verificar `membership_status` en `PatientCaseController`: si paciente es miembro → flag `priority_booking: true` en respuesta. En admin → badge "⭐ Miembro" visible en ficha. Descuento automático según plan en cierre de consulta. Verificable: `GET /api.php?resource=patient-cases` → campo `membership_status` present.
-- [ ] **S17-07** `[M]` Estado y renovación de membresía — en `es/portal/index.html`: card "Mi Plan" con estado (Activo / Vence en X días / Vencido), perks activos y CTA "Renovar". Si vence en <30 días → banner de renovación en portal y en admin cuando médico ve al paciente. Backend: `GET /api.php?resource=membership-status?patient_id=X` → `{status, expires_at, days_remaining, perks[]}`. Verificable: un miembro con plan vencido ve estado "Vencido" en portal.
-
-#### 17.4 Paquetes con control de sesiones
-
-- [ ] **S17-08** `[M]` Consumo de sesiones de paquete — `es/paquetes/index.html` existe como landing. Falta backend: `lib/packages/PackageService.php` con `activatePackage(patient_id, package_id)`, `consumeSession(patient_id, package_id)`, `getBalance(patient_id)`. En admin: ved progreso del paquete "3/5 sesiones usadas". En portal: card con sesiones restantes. Verificable: después de cerrar una consulta con servicio incluido en paquete → sesión decrementada.
-
-#### 17.5 Conversión de páginas a ventas
-
-- [ ] **S17-10** `[M]` Motor de promociones con elegibilidad — `es/promociones/index.html` existe como copy estático. Crear `lib/promotions/PromotionEngine.php`: promotional rule (vigencia, elegibilidad: primera_vez|miembro|referido, descuento, exclusiones). Admin puede activar/desactivar promos. En booking: `GET /api.php?resource=active-promotions` → lista de promos aplicables al paciente. Verificable: un paciente nueva visita ve promo "Primera consulta" y otro con membresía no la ve (exclusión).
-- [ ] **S17-15** `[M]` Social proof dinámico por servicio — `es/servicios/*/index.html` tiene testimonios estáticos. Conectar con reviews reales: `GET /api.php?resource=reviews?service=botox` → `{rating, count, latest[3]}`. Mostrar rating con estrellas y los 3 testimonios más recientes en cada página de servicio. Fallback elegante si no hay reviews. Verificable: `grep "dynamic-reviews" es/servicios/botox/index.html` → match.
-
-#### 17.6 Turnero como producto vendible
-
-- [ ] **S17-16** `[M]` Clinic onboarding wizard persistente — el onboarding console actual es JS estático sin persistencia. Convertir en flujo con progreso real: Paso 1 Config básica → Paso 2 Staff → Paso 3 Servicios → Paso 4 Superficies → Paso 5 Test final. Progreso guardado en store. "Next best action" visible. Backend: `GET /api.php?resource=onboarding-status?clinic_id=X` → `{step, percent, blockers[]}`. Verificable: interrumpir onboarding y retomar → estado conservado.
-- [ ] **S17-17** `[M]` Package selector integrado al clinic profile — al completar el onboarding, mostrar packages/planes disponibles del software (Básico/Pro/Enterprise) con features comparativas. Selección persiste en `clinic-profile`. Admin puede ver qué plan tiene cada clínica. Verificable: `GET /api.php?resource=clinic-profile?clinic_id=X` → campo `software_plan` present.
-
-
----
-
-### 🤝 Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
-
-> **Criterio de inclusión:** Solo las 4 tareas de S18 que tienen impacto directo antes del lanzamiento de junio 2026 y no duplican sprints previos. Las demás (churn engine, renewal cockpit, support SLA, executive review) son post-lanzamiento y se pueden recuperar en Sprint 19+.
-
-#### 18.1 Onboarding y adopción inicial
-
-- [ ] **S18-02** `[M]` Onboarding progress persistente — las consolas y tests del onboarding existen. Falta: estado real por clínica guardado en store (pasos completados, bloqueados, ETA estimada, "next best action"). `GET /api.php?resource=onboarding-progress?clinic_id=X` → `{steps: [{id, name, status, blocker?}], percent, next_action}`. Admin puede ver progreso de cada clínica piloto. Verificable: completar paso 2 → el paso 3 aparece como "available" y el 2 como "done".
-- [ ] **S18-03** `[M]` Guided walkthrough in-app — primer uso guiado para admin y operator: al primer login, mostrar walkthrough de 5 pasos contextual (no tooltip estático, no docs externos). Pasos: (1) Emitir ticket de prueba, (2) Llamar turno desde operator, (3) Ver agenda del día, (4) Ver dashboard, (5) ¡Listo! El walkthrough se puede saltar y reactivar desde "Ayuda". Estado guardado en localStorage. Verificable: al limpiar localStorage, el walkthrough aparece de nuevo en el primer clic.
-
-#### 18.2 Soporte en contexto
-
-- [ ] **S18-11** `[M]` Knowledge base contextual en admin/operator — hoy hay páginas de FAQ externas. Falta: panel de ayuda in-app en `admin.html` y `operator.html`. Botón "?" en header que abre sidebar con artículos filtrados según la pantalla activa. Artículos en JSON `data/kb/articles.json`. Motor de búsqueda simple (filtro por keyword). Sin esto el operador sale del sistema para buscar ayuda y se pierde el contexto. Verificable: en pantalla de "Turnos" → artículos sobre turnos aparecen primero.
-- [ ] **S18-12** `[M]` Clinic profile live preview — antes de publicar cambios de branding o configuración de una clínica, poder ver cómo queda en cada superficie (admin, operator, kiosk, display). Botón "Vista previa" en el panel de configuración de clínica que abre un iframe con los parámetros de la clínica sin guardar. Sin esto, un error de branding llega directo a los pacientes. Verificable: cambiar logo en config → preview muestra el nuevo logo antes de guardar.
