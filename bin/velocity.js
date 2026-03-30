@@ -27,16 +27,20 @@ function parseTasks(md) {
   let currentSprint = '';
 
   for (const line of lines) {
-    const sm = line.match(/^### (.*Sprint (\d+).*)/);
+    // Fix: captura Sprint UI (Fase 1/2/3) además de Sprint \d+
+    const sm = line.match(/^### (.*Sprint (\d+|UI).*)/);
     if (sm) currentSprint = sm[1].trim();
 
-    const tm = line.match(/^- \[([ x])\] \*\*(S\d+-[A-Z0-9]+)\*\*/);
+    // Fix: captura S\d+, UI-01 (sin número), UI2-XX, UI3-XX, S14-00
+    const tm = line.match(/^- \[([ x])\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/);
     if (tm) {
       const done   = tm[1] === 'x';
       const id     = tm[2];
       const size   = (line.match(/`\[(S|M|L|XL)\]`/) || [, 'M'])[1];
       const human  = line.includes('[HUMAN]');
-      const sprint = parseInt((currentSprint.match(/Sprint (\d+)/) || [0, 0])[1]);
+      // Sprint UI → 99, otros → número real
+      const sprintStr = (currentSprint.match(/Sprint (\d+|UI)/) || [0, 0])[1];
+      const sprint = sprintStr === 'UI' ? 99 : parseInt(sprintStr);
 
       // Estimate hours by size
       const hours = { S: 2, M: 4, L: 8, XL: 16 }[size] || 4;
@@ -62,8 +66,9 @@ function getGitVelocity() {
     );
 
     const commits = log.trim().split('\n').filter(Boolean);
+    // Fix: detecta UI-XX, UI2-XX, UI3-XX además de S\d+ en commits
     const taskCommits = commits.filter(c =>
-      /feat|fix|S\d+-\d+/i.test(c)
+      /feat|fix|done:|claim:|S\d+-|UI\d*-/i.test(c)
     );
 
     return {
@@ -92,7 +97,8 @@ function getTasksCompletedLastWeek(tasks) {
 
     const taskIds = new Set();
     for (const line of log.split('\n')) {
-      const m = line.match(/S\d+-[A-Z0-9]+/g);
+      // Fix: captura UI-01, UI2-20, UI3-15, S14-00 además de S\d+
+      const m = line.match(/(?:S\d+|UI\d*)-[A-Z0-9]+/g);
       if (m) m.forEach(id => taskIds.add(id));
     }
     return taskIds.size || 1; // mínimo 1 para no dividir por 0

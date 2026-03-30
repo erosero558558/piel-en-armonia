@@ -10,7 +10,7 @@ const SERVICE_CASES = [
         route: '/es/servicios/botox/',
         bookingText: 'Reserva online en mantenimiento',
         ctaLabel: 'Abrir reserva de esta especialidad',
-        ctaHref: '/es/?service=botox#citas',
+        ctaHref: '/es/?service=rejuvenecimiento#citas',
     },
     {
         route: '/es/servicios/cancer-piel/',

@@ -290,11 +290,15 @@ function clearBlocker(taskId) {
 }
 
 function markStuck(taskId, reason) {
-  if (!taskId.match(/^S\d+-[A-Z0-9]+$/)) {
+  // Fix: acepta S3-09, UI-01, UI2-20, UI3-15, S14-00 — todos los formatos del board
+  if (!taskId.match(/^(S\d+|UI\d*)-[A-Z0-9]+$/)) {
     console.error('\nUsage: node bin/stuck.js <TASK-ID> "<razón>"');
     console.error('       node bin/stuck.js list');
     console.error('       node bin/stuck.js clear <TASK-ID>');
-    console.error(`\nExample: node bin/stuck.js S3-24 "No encuentro el endpoint de disponibilidad"`);
+    console.error(`\nEjemplos válidos:`);
+    console.error(`  node bin/stuck.js S3-24 "No encuentro el endpoint"`);
+    console.error(`  node bin/stuck.js UI2-07 "No tengo acceso a admin.html"`);
+    console.error(`  node bin/stuck.js S14-00 "agent-orchestrator no converge"`);
     process.exit(1);
   }
 

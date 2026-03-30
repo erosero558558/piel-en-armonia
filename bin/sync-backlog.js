@@ -279,3 +279,12 @@ writeFileSync(BACKLOG_FILE, result, 'utf8');
 console.log(`✅ BACKLOG.md regenerated — ${totalDone}/${totalAll} done (${pct}%)`);
 console.log(`   Active sprint: ${activeSprintName}`);
 console.log(`   Available tasks: ${sprints[activeSprintName]?.tasks.filter(t => !t.human && !t.claimed && t.blocked.length === 0).length || 0}`);
+
+// S13-16: Auto-regenerar sitemap.xml después de cada sync
+try {
+  const { spawnSync } = require('child_process');
+  const r = spawnSync('node', [resolve(__dirname, 'gen-sitemap.js')], { encoding: 'utf8', cwd: ROOT });
+  if (r.status !== 0) {
+    console.log('⚠️  gen-sitemap falló:', (r.stderr || '').trim().split('\n')[0]);
+  }
+} catch { /* gen-sitemap es opcional, no romper sync si falla */ }

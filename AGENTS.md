@@ -729,7 +729,7 @@ Aurora-Derm/
 │   ├── booking/                  # Motor de reservas
 │   ├── reschedule/               # Motor de reagendamiento
 │   ├── payment/                  # Motor de pagos
-│   ├── patient-flow-os/          # ⚠️ VACÍO — Flow OS patient app NO EXISTE AÚN
+│   ├── patient-flow-os/          # ✅ ACTIVO — apps/, packages/, tests/, infra/ (11 subdirs, 12 tests)
 │   └── chat/                     # Chat UI
 │
 ├── js/                           # JS compilados/públicos
@@ -781,7 +781,7 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 | Issue                        | Detalle                                                                                                     | Impacto                                                 |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | 502 intermitente             | pielarmonia.com responde 502 ocasionalmente                                                                 | Server Windows, fuera de alcance del repo               |
-| `patient-flow-os/` vacío     | `src/apps/patient-flow-os/` tiene 0 archivos JS                                                             | El frontend del journey del paciente no existe          |
+| `patient-flow-os/` activo    | `src/apps/patient-flow-os/` tiene `apps/`, `packages/`, `tests/`, `infra/`, `docker-compose.yml` — **slice viva, 12 tests**. Owner: codex_frontend. | Requiere clean-checkout (S14-02) y smoke multi-surface (S14-04) |
 | 398 surface files            | `src/apps/queue-shared/` tiene 398 archivos, ~80% dead code                                                 | Confunde a agentes, infla el repo                       |
 | EN desactualizado            | `en/index.html` puede no reflejar la versión ES actual                                                      | Experiencia inconsistente para pacientes angloparlantes |
 | `bioestimuladores/` redirect | Footer enlaza `/es/servicios/bioestimuladores/` pero existe como `/es/servicios/bioestimuladores-colageno/` | 404 para algunos visitors                               |
@@ -1756,7 +1756,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 14.2 Scripts y workflows
 
 - [ ] **S14-06** `[M]` Matriz de scripts rotos y remediación — `package.json` tiene 260+ scripts, **20 apuntan a archivos inexistentes** (detectados: `bin/score-public-v5-sony.js`, `bin/audit-public-v5-surface.js`, `bin/audit-public-v6-sony-evidence.js`, `bin/gate-public-v5-8point.js`, `bin/capture-sony-reference.js`, `bin/compare-public-v5-sony-reference.js` y más). Decisión por cada uno: `repair` (crear el script), `remove` (eliminar entrada) o `archive` (mover a `scripts/deprecated/`). Entregable: `docs/SCRIPTS_AUDIT.md` con tabla de decisiones. Verificable: `node -e "require('./package.json')" && node bin/verify-scripts.js` → 0 referencias rotas.
-- [ ] **S14-07** `[M]` Workflow portfolio ownership matrix — hay 33 workflows en `.github/workflows/`, con **31 sin representación explícita en AGENTS.md**. Crear `docs/WORKFLOW_MATRIX.md`: tabla con columnas `workflow_file`, `owner_lane`, `severity` (critical/high/medium/low), `runbook_ref`, `required_secrets`, `status` (active/stale). Workflows críticos (promote, deploy, backup) deben tener runbook y precheck de secrets. Verificable: `grep -c "stale\|active" docs/WORKFLOW_MATRIX.md` → 33 filas, 0 sin `owner_lane`.
+- [x] **S14-07** `[M]` Workflow portfolio ownership matrix — hay 33 workflows en `.github/workflows/`, con **31 sin representación explícita en AGENTS.md**. Crear `docs/WORKFLOW_MATRIX.md`: tabla con columnas `workflow_file`, `owner_lane`, `severity` (critical/high/medium/low), `runbook_ref`, `required_secrets`, `status` (active/stale). Workflows críticos (promote, deploy, backup) deben tener runbook y precheck de secrets. Verificable: `grep -c "stale\|active" docs/WORKFLOW_MATRIX.md` → 33 filas, 0 sin `owner_lane`.
 
 #### 14.3 Observabilidad y contratos de warning
 
