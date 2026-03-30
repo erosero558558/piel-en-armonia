@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:23:39 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:27:27 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **38%** completado (140/373)
+`████████░░░░░░░░░░░░` **38%** completado (142/373)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -15,14 +15,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
 | 🎯 Sprint 3 | 61 | 6 | 91% |
-| ⏸ Sprint 4 | 14 | 12 | 54% |
+| ⏸ Sprint 4 | 15 | 11 | 58% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 6 | 31 | 16% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ⏸ Sprint UI | 3 | 17 | 15% |
 | ⏸ Sprint 8 | 0 | 17 | 0% |
-| ⏸ Sprint 9 | 0 | 27 | 0% |
+| ⏸ Sprint 9 | 1 | 26 | 4% |
 | ⏸ Sprint 10 | 0 | 30 | 0% |
 | ⏸ Sprint 12 | 0 | 26 | 0% |
 | ⏸ Sprint 13 | 0 | 21 | 0% |
@@ -53,7 +53,7 @@ _Sprint completado. 24/24 tareas._
 - **S3-35** `[S3]` L...
 
 ## ⏸ Sprint 4 — Escalar el negocio
-_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 
 ### 🟢 Disponibles (9)
 
@@ -65,10 +65,6 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | **S4-14** | `[S4]` | M |
 | **S4-15** | `[S4]` | M |
 | ... | | _+4 más_ |
-
-### 🔒 En progreso — NO tomar
-
-- **S4-08** `[S4]` → _Codex-erosero558558_ (expira en 477min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -179,9 +175,9 @@ _Esperando que Sprint anterior esté completo. 17 tareas pendientes._
 | ... | | _+12 más_ |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
-_Esperando que Sprint anterior esté completo. 27 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 
-### 🟢 Disponibles (27)
+### 🟢 Disponibles (26)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -190,7 +186,7 @@ _Esperando que Sprint anterior esté completo. 27 tareas pendientes._
 | **S9-03** | `[S9]` | L |
 | **S9-04** | `[S9]` | M |
 | **S9-05** | `[S9]` | M |
-| ... | | _+22 más_ |
+| ... | | _+21 más_ |
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 30 tareas pendientes._
@@ -223,7 +219,7 @@ _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Esperando que Sprint anterior esté completo. 21 tareas pendientes._
 
-### 🟢 Disponibles (21)
+### 🟢 Disponibles (20)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -232,7 +228,11 @@ _Esperando que Sprint anterior esté completo. 21 tareas pendientes._
 | **S13-02** | `[S13]` | M |
 | **S13-03** | `[S13]` | M |
 | **S13-04** | `[S13]` | M |
-| ... | | _+16 más_ |
+| ... | | _+15 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S13-12** `[S13]` → _Codex-erosero558558_ (expira en 240min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

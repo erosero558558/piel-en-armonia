@@ -47,8 +47,8 @@ require_once __DIR__ . '/../storage.php';
 
 final class OpenclawAIRouter
 {
-    private const LOCAL_OFFLINE_BADGE = '🔴 IA sin conexión — modo local';
-    private const LOCAL_OFFLINE_NOTICE = '🔴 IA sin conexión — modo local. OpenClaw está respondiendo con plantillas locales mientras se recupera la IA.';
+    private const LOCAL_OFFLINE_BADGE = '🔴 IA sin conexión — respuestas locales';
+    private const LOCAL_OFFLINE_NOTICE = '🔴 IA sin conexión — respuestas locales. OpenClaw está respondiendo con plantillas locales mientras se recupera la IA.';
 
     // Modelos free/económicos de OpenRouter en orden de preferencia
     // Ver la lista actualizada en: https://openrouter.ai/models?order=pricing-asc
@@ -118,6 +118,7 @@ final class OpenclawAIRouter
         }
 
         // All providers failed → local heuristic
+        error_log("[LOCAL] AIRouter degenerated to Tier 3 fallback due to AI provider failures for payload signature.");
         $fallback = $this->localHeuristicFallback($payload);
         $fallback['provider_used'] = 'local_heuristic';
         $fallback['provider_tier'] = 'tier_3';

@@ -170,7 +170,7 @@ offline_assert_true(
     'diagnostic fallback is marked as degraded'
 );
 offline_assert_same(
-    '🔴 IA sin conexión — modo local',
+    '🔴 IA sin conexión — respuestas locales',
     $diagnostic['payload']['offline_badge'] ?? null,
     'diagnostic fallback exposes the canonical offline badge'
 );
@@ -206,7 +206,7 @@ offline_assert_true(
     'router status reports degraded mode when local_only is active'
 );
 offline_assert_same(
-    '🔴 IA sin conexión — modo local',
+    '🔴 IA sin conexión — respuestas locales',
     $routerStatus['payload']['router']['offline_badge'] ?? null,
     'router status exposes the canonical offline badge'
 );

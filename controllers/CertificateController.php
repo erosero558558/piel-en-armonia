@@ -129,12 +129,17 @@ final class CertificateController
         ];
 
         // Guardar
-        mutate_store(static function (array $store) use ($certId, $certData, $folio): array {
-            $store['certificates']        ??= [];
-            $store['certificates'][$certId] = $certData;
-            $store['_last_cert_folio']      = (int) ($store['_last_cert_folio'] ?? 0) + 1;
-            return ['ok' => true, 'store' => $store, 'storeDirty' => true];
-        });
+        $store['certificates'] = isset($store['certificates']) && is_array($store['certificates'])
+            ? $store['certificates']
+            : [];
+        $store['certificates'][$certId] = $certData;
+        $store['_last_cert_folio'] = (int) ($store['_last_cert_folio'] ?? 0) + 1;
+        if (!write_store($store, false)) {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo guardar el certificado emitido.',
+            ], 500);
+        }
 
         // Generar PDF inline
         $pdfBase64 = self::generatePdfBase64($certData);
@@ -558,6 +563,22 @@ TXT;
             ?? $store['patients'][$caseId]
             ?? null;
 
+        if (
+            $case === null &&
+            isset($store['patient_cases']) &&
+            is_array($store['patient_cases'])
+        ) {
+            foreach ($store['patient_cases'] as $candidate) {
+                if (!is_array($candidate)) {
+                    continue;
+                }
+                if ((string) ($candidate['id'] ?? '') === $caseId) {
+                    $case = $candidate;
+                    break;
+                }
+            }
+        }
+
         if ($case === null) {
             // Search by case ID across all cases
             foreach ($store['cases'] ?? [] as $c) {
@@ -566,10 +587,27 @@ TXT;
         }
         if ($case === null) return null;
 
+        $summary = isset($case['summary']) && is_array($case['summary'])
+            ? $case['summary']
+            : [];
+
         $firstName = $case['firstName'] ?? $case['first_name'] ?? '';
         $lastName  = $case['lastName'] ?? $case['last_name'] ?? '';
-        $ci        = $case['ci'] ?? $case['cedula'] ?? $case['identification'] ?? '';
-        $phone     = $case['phone'] ?? $case['telefono'] ?? '';
+        $patientLabel = $summary['patientLabel'] ?? $summary['patientName'] ?? '';
+        $name = trim("{$firstName} {$lastName}");
+        if ($name === '') {
+            $name = trim((string) $patientLabel);
+        }
+        $ci        = $case['ci']
+            ?? $case['cedula']
+            ?? $case['identification']
+            ?? $summary['patientDocumentNumber']
+            ?? $summary['documentNumber']
+            ?? '';
+        $phone     = $case['phone']
+            ?? $case['telefono']
+            ?? $summary['contactPhone']
+            ?? '';
         $birth     = $case['birthDate'] ?? $case['birth_date'] ?? '';
 
         $age = null;
@@ -579,7 +617,7 @@ TXT;
         }
 
         return [
-            'name'  => trim("{$firstName} {$lastName}"),
+            'name'  => $name,
             'ci'    => $ci,
             'phone' => $phone,
             'age'   => $age,

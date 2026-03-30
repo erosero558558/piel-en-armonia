@@ -37,9 +37,8 @@ test.describe('OpenClaw Chat Offline Badge', () => {
                 provider: 'local_heuristic',
                 tier: 'tier_3',
                 degraded: true,
-                degraded_notice:
-                    '🔴 IA sin conexión — modo local. OpenClaw está respondiendo con plantillas locales mientras se recupera la IA.',
-                offline_badge: '🔴 IA sin conexión — modo local',
+                degraded_notice: '🔴 IA sin conexión — respuestas locales. OpenClaw está respondiendo con plantillas locales mientras se recupera la IA.',
+                offline_badge: '🔴 IA sin conexión — respuestas locales',
                 choices: [
                     {
                         message: {
@@ -80,7 +79,7 @@ test.describe('OpenClaw Chat Offline Badge', () => {
 
         await expect(page.locator('#oc-offline-badge')).toBeVisible();
         await expect(page.locator('#oc-offline-badge')).toHaveText(
-            '🔴 IA sin conexión — modo local'
+            '🔴 IA sin conexión — respuestas locales'
         );
         await expect(page.locator('#oc-offline-badge')).toHaveAttribute(
             'title',
