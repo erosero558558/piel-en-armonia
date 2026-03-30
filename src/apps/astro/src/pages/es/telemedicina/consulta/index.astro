@@ -126,14 +126,31 @@ const page = {
         deck:
             'Esta bandeja sirve para lesiones, seguimiento de brotes o comparativas rapidas antes de entrar a video. Cuando las suba, el enlace de WhatsApp se actualiza con esos archivos.',
         inputLabel: 'Fotos clinicas',
-        inputTitle: 'Elija hasta 3 fotos JPG, PNG o WEBP.',
-        inputHint: 'Maximo 5 MB por foto. Una toma general y una de cerca suelen ser suficientes.',
+        inputTitle: 'Suba hasta 3 fotos en este orden: zona, primer plano y contexto.',
+        inputHint: 'Maximo 5 MB por foto. Mantenga ese orden para que el triaje remoto quede clasificado antes de la llamada.',
         submitLabel: 'Subir fotos seguras',
         idleStatus: 'Todavia no hay fotos cargadas en esta sala.',
         tipsEyebrow: 'Que imagen ayuda mas',
         tipsTitle: 'Fotos utiles para teledermatologia',
+        roleGuides: [
+            {
+                key: 'zona',
+                label: 'Zona',
+                detail: 'Empiece con la zona principal afectada sin acercarse demasiado.',
+            },
+            {
+                key: 'primer_plano',
+                label: 'Primer plano',
+                detail: 'Luego haga una toma mas cercana para que borde, color o relieve se lean mejor.',
+            },
+            {
+                key: 'contexto',
+                label: 'Contexto',
+                detail: 'Cierre con una foto que ubique la zona en el cuerpo o frente al otro lado sano.',
+            },
+        ],
         tips: [
-            'Una foto de contexto para ubicar la zona y otra mas cercana para leer mejor borde, textura o costra.',
+            'Si solo puede subir una o dos fotos, priorice la zona principal y la toma mas cercana que mejor explique el cambio.',
             'Evite capturas de pantalla, collages o zoom digital excesivo.',
             'Si hoy la lesion no se ve igual que ayer, suba tambien la foto comparativa mas reciente.',
         ],

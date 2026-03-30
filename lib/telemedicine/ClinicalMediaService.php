@@ -7,6 +7,7 @@ require_once __DIR__ . '/../audit.php';
 require_once __DIR__ . '/../metrics.php';
 require_once __DIR__ . '/../../payment-lib.php';
 require_once __DIR__ . '/TelemedicineRepository.php';
+require_once __DIR__ . '/TelemedicinePhotoTriage.php';
 
 final class ClinicalMediaService
 {
@@ -63,10 +64,18 @@ final class ClinicalMediaService
         $privateMarkers = [];
         $casePhotoNames = is_array($appointment['casePhotoNames'] ?? null) ? $appointment['casePhotoNames'] : [];
         $casePhotoPaths = is_array($appointment['casePhotoPaths'] ?? null) ? $appointment['casePhotoPaths'] : [];
+        $casePhotoRoles = TelemedicinePhotoTriage::resolveRoles($appointment, count($casePhotoPaths));
         $appointmentId = (int) ($appointment['id'] ?? 0);
 
         foreach ($casePhotoPaths as $index => $legacyPath) {
-            $claim = self::claimCasePhoto($store, (string) $legacyPath, $intakeId, $appointmentId, (string) ($casePhotoNames[$index] ?? ''));
+            $claim = self::claimCasePhoto(
+                $store,
+                (string) $legacyPath,
+                $intakeId,
+                $appointmentId,
+                (string) ($casePhotoNames[$index] ?? ''),
+                (string) ($casePhotoRoles[$index] ?? '')
+            );
             $store = $claim['store'];
             if (isset($claim['upload']['id'])) {
                 $claimedIds[] = (int) $claim['upload']['id'];
@@ -93,6 +102,7 @@ final class ClinicalMediaService
         $appointment['casePhotoUrls'] = [];
         $appointment['casePhotoPaths'] = $privateMarkers;
         $appointment['casePhotoCount'] = count($privateMarkers);
+        $appointment['casePhotoRoles'] = array_slice($casePhotoRoles, 0, $appointment['casePhotoCount']);
 
         return [
             'store' => $store,
@@ -188,7 +198,14 @@ final class ClinicalMediaService
         ];
     }
 
-    private static function claimCasePhoto(array $store, string $legacyPath, int $intakeId, int $appointmentId, string $originalName = ''): array
+    private static function claimCasePhoto(
+        array $store,
+        string $legacyPath,
+        int $intakeId,
+        int $appointmentId,
+        string $originalName = '',
+        string $photoRole = ''
+    ): array
     {
         $record = TelemedicineRepository::findClinicalUploadByLegacyPath($store, $legacyPath);
         if (!is_array($record)) {
@@ -207,6 +224,13 @@ final class ClinicalMediaService
         $record['storageMode'] = self::STORAGE_PRIVATE_CLINICAL;
         $record['originalName'] = trim((string) ($record['originalName'] ?? $originalName));
         $record['claimedAt'] = local_date('c');
+        $normalizedRole = TelemedicinePhotoTriage::normalizeRole($photoRole);
+        if ($normalizedRole !== '') {
+            $record['photoRole'] = $normalizedRole;
+            $record['photoRoleLabel'] = TelemedicinePhotoTriage::labelForRole($normalizedRole);
+            $record['triageSource'] = 'telemedicine_photo_triage';
+            $record['triageAssignedAt'] = local_date('c');
+        }
 
         $privatePath = trim((string) ($record['privatePath'] ?? ''));
         if ($privatePath === '') {
@@ -221,6 +245,7 @@ final class ClinicalMediaService
             'kind' => self::KIND_CASE_PHOTO,
             'intakeId' => $intakeId,
             'appointmentId' => $appointmentId,
+            'photoRole' => $normalizedRole,
         ]);
 
         return $result;

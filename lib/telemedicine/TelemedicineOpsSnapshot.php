@@ -406,6 +406,9 @@ final class TelemedicineOpsSnapshot
         $patient = isset($intake['patient']) && is_array($intake['patient'])
             ? $intake['patient']
             : [];
+        $photoTriage = isset($intake['photoTriage']) && is_array($intake['photoTriage'])
+            ? $intake['photoTriage']
+            : [];
 
         return [
             'intakeId' => (int) ($intake['id'] ?? 0),
@@ -422,6 +425,9 @@ final class TelemedicineOpsSnapshot
             'patientEmail' => (string) ($patient['email'] ?? ''),
             'patientPhone' => (string) ($patient['phone'] ?? ''),
             'clinicalMediaCount' => count(is_array($intake['clinicalMediaIds'] ?? null) ? $intake['clinicalMediaIds'] : []),
+            'photoTriageStatus' => (string) ($photoTriage['status'] ?? 'missing'),
+            'photoTriageRoles' => array_values(is_array($photoTriage['roles'] ?? null) ? $photoTriage['roles'] : []),
+            'photoTriageMissingRoles' => array_values(is_array($photoTriage['missingRoles'] ?? null) ? $photoTriage['missingRoles'] : []),
             'reviewDecision' => (string) ($intake['reviewDecision'] ?? ''),
             'reviewStatus' => (string) ($intake['reviewStatus'] ?? 'pending'),
             'reviewNotes' => (string) ($intake['reviewNotes'] ?? ''),

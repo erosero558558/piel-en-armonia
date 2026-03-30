@@ -116,6 +116,7 @@ final class TelemedicineAdminReadModelTest extends TestCase
         $this->assertSame('admin@example.com', $telemedicineMeta['reviewQueue'][0]['patientEmail']);
         $this->assertSame('manual_review', $telemedicineMeta['reviewQueue'][0]['escalationRecommendation']);
         $this->assertSame('pending', $telemedicineMeta['reviewQueue'][0]['reviewStatus']);
+        $this->assertSame('missing', $telemedicineMeta['reviewQueue'][0]['photoTriageStatus']);
     }
 
     private function removeDirectory(string $dir): void

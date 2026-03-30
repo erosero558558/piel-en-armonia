@@ -113,11 +113,6 @@ final class TelemedicinePhotoTriage
     {
         $photoCount = self::resolvePhotoCount($appointment);
         $roles = self::resolveRoles($appointment, $photoCount);
-        $expectedRoles = array_slice(self::ORDERED_ROLES, 0, max($photoCount, count(self::ORDERED_ROLES)));
-        if ($photoCount === 0) {
-            $expectedRoles = self::ORDERED_ROLES;
-        }
-
         $photos = [];
         $names = is_array($appointment['casePhotoNames'] ?? null) ? array_values($appointment['casePhotoNames']) : [];
         $paths = is_array($appointment['casePhotoPaths'] ?? null) ? array_values($appointment['casePhotoPaths']) : [];

@@ -116,6 +116,8 @@ function normalize_callback(array $callback): array
     return $normalized;
 }
 
+require_once __DIR__ . '/telemedicine/TelemedicinePhotoTriage.php';
+
 function normalize_appointment(array $appointment): array
 {
     $service = sanitize_xss((string) ($appointment['service'] ?? ''));
@@ -141,6 +143,13 @@ function normalize_appointment(array $appointment): array
     if ($casePhotoCount > 3) {
         $casePhotoCount = 3;
     }
+    $casePhotoRoles = TelemedicinePhotoTriage::resolveRoles([
+        'casePhotoCount' => $casePhotoCount,
+        'casePhotoNames' => $casePhotoNames,
+        'casePhotoUrls' => $casePhotoUrls,
+        'casePhotoPaths' => $casePhotoPaths,
+        'casePhotoRoles' => $appointment['casePhotoRoles'] ?? [],
+    ], $casePhotoCount);
 
     $checkinToken = trim((string) ($appointment['checkinToken'] ?? ''));
     if ($checkinToken === '') {
@@ -168,6 +177,7 @@ function normalize_appointment(array $appointment): array
         'casePhotoNames' => $casePhotoNames,
         'casePhotoUrls' => $casePhotoUrls,
         'casePhotoPaths' => $casePhotoPaths,
+        'casePhotoRoles' => $casePhotoRoles,
         'price' => get_service_total_price($service),
         'status' => map_appointment_status((string) ($appointment['status'] ?? 'confirmed')),
         'paymentMethod' => $paymentMethod,

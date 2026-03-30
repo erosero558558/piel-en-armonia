@@ -265,6 +265,7 @@ final class TelemedicineLegacyBridgeTest extends TestCase
             'casePhotoNames' => ['lesion.jpg'],
             'casePhotoUrls' => ['https://pielarmonia.com/uploads/transfer-proofs/' . $legacyFilename],
             'casePhotoPaths' => [$legacyPath],
+            'casePhotoRoles' => ['close-up'],
         ], JSON_UNESCAPED_UNICODE);
 
         try {
@@ -281,7 +282,19 @@ final class TelemedicineLegacyBridgeTest extends TestCase
         $this->assertCount(1, $roundtrip['clinical_uploads']);
         $this->assertSame('case_photo', $roundtrip['clinical_uploads'][0]['kind']);
         $this->assertSame('private_clinical', $roundtrip['clinical_uploads'][0]['storageMode']);
+        $this->assertSame('primer_plano', $roundtrip['clinical_uploads'][0]['photoRole']);
+        $this->assertSame('Primer plano', $roundtrip['clinical_uploads'][0]['photoRoleLabel']);
         $this->assertFileDoesNotExist($legacyDiskPath);
+
+        $this->assertSame('partial', (string) ($roundtrip['telemedicine_intakes'][0]['photoTriage']['status'] ?? ''));
+        $this->assertSame(
+            ['primer_plano'],
+            $roundtrip['telemedicine_intakes'][0]['photoTriage']['roles'] ?? []
+        );
+        $this->assertSame(
+            ['zona', 'contexto'],
+            $roundtrip['telemedicine_intakes'][0]['photoTriage']['missingRoles'] ?? []
+        );
 
         $privatePath = $roundtrip['clinical_uploads'][0]['privatePath'];
         $this->assertNotSame('', $privatePath);

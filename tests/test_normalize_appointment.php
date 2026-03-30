@@ -95,10 +95,17 @@ assert_eq(count($out['casePhotoUrls']), 3, "Should limit to 3 photos");
 assert_eq($out['casePhotoUrls'][0], 'http://example.com/1.jpg', "Photo 1 should match");
 assert_eq($out['casePhotoUrls'][2], 'http://example.com/3.jpg', "Photo 3 should match");
 assert_eq($out['casePhotoCount'], 3, "casePhotoCount should be 3");
+assert_eq($out['casePhotoRoles'], ['zona', 'primer_plano', 'contexto'], "Missing roles should auto-classify in telemedicine order");
 
 // Test explicit count override logic
 $out = normalize_appointment(['casePhotoUrls' => $photos, 'casePhotoCount' => 5]);
 assert_eq($out['casePhotoCount'], 3, "casePhotoCount should be clamped to 3 even if provided as 5");
+
+$out = normalize_appointment([
+    'casePhotoUrls' => array_slice($photos, 0, 2),
+    'casePhotoRoles' => ['context', 'close up', 'ignored'],
+]);
+assert_eq($out['casePhotoRoles'], ['contexto', 'primer_plano'], "Explicit telemedicine photo roles should normalize and clamp");
 
 // --- Test Case 6: Status Mapping ---
 echo "\n--- Test Case 6: Status Mapping ---\n";

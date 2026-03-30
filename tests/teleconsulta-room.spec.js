@@ -71,6 +71,16 @@ test.describe('Teleconsultation room', () => {
             '/es/telemedicina/consulta/?room=Seguimiento%20Rosacea&doctor=Dra.%20Rosero&patient=Luis'
         );
 
+        await expect(
+            page.locator('[data-tele-room-role-card="zona"]')
+        ).toContainText('Zona');
+        await expect(
+            page.locator('[data-tele-room-role-card="primer_plano"]')
+        ).toContainText('Primer plano');
+        await expect(
+            page.locator('[data-tele-room-role-card="contexto"]')
+        ).toContainText('Contexto');
+
         await page.locator('[data-tele-room-photo-input]').setInputFiles([
             {
                 name: 'foto-1.png',
@@ -87,12 +97,24 @@ test.describe('Teleconsultation room', () => {
         await expect(
             page.locator('[data-tele-room-photo-preview] article')
         ).toHaveCount(2);
+        await expect(
+            page.locator('[data-tele-room-photo-preview] article').nth(0)
+        ).toContainText('Zona');
+        await expect(
+            page.locator('[data-tele-room-photo-preview] article').nth(1)
+        ).toContainText('Primer plano');
 
         await page.locator('[data-tele-room-photo-submit]').click();
 
         await expect(
             page.locator('[data-tele-room-upload-results] article')
         ).toHaveCount(2);
+        await expect(
+            page.locator('[data-tele-room-upload-results] article').nth(0)
+        ).toContainText('Zona');
+        await expect(
+            page.locator('[data-tele-room-upload-results] article').nth(1)
+        ).toContainText('Primer plano');
         await expect(page.locator('[data-tele-room-photo-status]')).toContainText(
             '2 foto(s) listas'
         );
@@ -112,6 +134,10 @@ test.describe('Teleconsultation room', () => {
         expect(decodedHref).toContain('Paciente: Luis');
         expect(decodedHref).toContain('Doctor/a: Dra. Rosero');
         expect(decodedHref).toContain('La lesion se ve mas roja hoy.');
+        expect(decodedHref).toContain('1. Zona: https://pielarmonia.com/uploads/transfer-proofs/lesion-1.png');
+        expect(decodedHref).toContain(
+            '2. Primer plano: https://pielarmonia.com/uploads/transfer-proofs/lesion-2.png'
+        );
         expect(decodedHref).toContain(
             'https://pielarmonia.com/uploads/transfer-proofs/lesion-1.png'
         );

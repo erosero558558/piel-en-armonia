@@ -406,6 +406,13 @@
     margin: 0;
 }
 
+.v6-tele-room-flow__role-copy {
+    margin: 4px 0 0;
+    color: rgba(205, 217, 228, 0.72);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 .v6-tele-room-flow__uploads a {
     font-size: 14px;
     color: #8fd6d3;

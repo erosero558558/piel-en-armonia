@@ -10,6 +10,7 @@ require_once __DIR__ . '/TelemedicineConsentSnapshot.php';
 require_once __DIR__ . '/TelemedicineSuitabilityEvaluator.php';
 require_once __DIR__ . '/TelemedicineEncounterPlanner.php';
 require_once __DIR__ . '/ClinicalMediaService.php';
+require_once __DIR__ . '/TelemedicinePhotoTriage.php';
 
 final class TelemedicineIntakeService
 {
@@ -98,6 +99,10 @@ final class TelemedicineIntakeService
 
         $suitability = TelemedicineSuitabilityEvaluator::evaluate($appointment, $channel);
         $intake['clinicalMediaIds'] = $appointment['clinicalMediaIds'] ?? [];
+        $intake['photoTriage'] = TelemedicinePhotoTriage::buildSummary(
+            $appointment,
+            is_array($intake['clinicalMediaIds'] ?? null) ? $intake['clinicalMediaIds'] : []
+        );
         $intake['consentSnapshot'] = TelemedicineConsentSnapshot::build($appointment, $channel, [
             'sourceRoute' => '/api.php?resource=appointments',
         ]);
@@ -342,6 +347,9 @@ final class TelemedicineIntakeService
             'evolutionTime' => (string) ($appointment['evolutionTime'] ?? ''),
             'consentSnapshot' => $base['consentSnapshot'] ?? [],
             'clinicalMediaIds' => $base['clinicalMediaIds'] ?? [],
+            'photoTriage' => isset($base['photoTriage']) && is_array($base['photoTriage'])
+                ? $base['photoTriage']
+                : TelemedicinePhotoTriage::buildSummary($appointment),
             'suitability' => (string) ($base['suitability'] ?? 'review_required'),
             'suitabilityReasons' => $base['suitabilityReasons'] ?? [],
             'reviewRequired' => (bool) ($base['reviewRequired'] ?? false),

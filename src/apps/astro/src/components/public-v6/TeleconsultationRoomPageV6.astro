@@ -87,6 +87,32 @@ const roomFields = Array.isArray(roomSummary.fields)
 const chatNotes = normalizeList(chat.notes);
 const photoTips = normalizeList(photos.tips);
 const roomChecklist = normalizeList(roomStage.checklist);
+const photoRoles = Array.isArray(photos.roleGuides)
+    ? photos.roleGuides
+          .map((item) => {
+              const key = normalizeText(item?.key);
+              const label = normalizeText(item?.label);
+              const detail = normalizeText(item?.detail);
+              return key && label && detail ? { key, label, detail } : null;
+          })
+          .filter(Boolean)
+    : [
+          {
+              key: 'zona',
+              label: 'Zona',
+              detail: 'Ubique el area principal sin acercarse demasiado para que el medico lea distribucion y limites.',
+          },
+          {
+              key: 'primer_plano',
+              label: 'Primer plano',
+              detail: 'Acercese lo suficiente para que borde, color, costra o textura se vean sin zoom digital agresivo.',
+          },
+          {
+              key: 'contexto',
+              label: 'Contexto',
+              detail: 'Cierre con una toma que muestre orientacion corporal o comparativa para no perder referencia.',
+          },
+      ];
 
 const pageMenuItems = [
     makeMenuItem(normalizeText(menuUi.room), '#v6-tele-room-stage'),
@@ -327,6 +353,19 @@ const supportStatus = {
                 <article class="v6-tele-room-flow__panel">
                     <p class="v6-tele-room-flow__eyebrow">{normalizeText(photos.tipsEyebrow)}</p>
                     <h3>{normalizeText(photos.tipsTitle)}</h3>
+                    <div class="v6-tele-room-flow__uploads v6-tele-room-flow__uploads--roles" data-tele-room-role-guide>
+                        {
+                            photoRoles.map((item, index) => (
+                                <article data-tele-room-role-card={item.key}>
+                                    <span>{String(index + 1).padStart(2, '0')}</span>
+                                    <div>
+                                        <strong>{item.label}</strong>
+                                        <p class="v6-tele-room-flow__role-copy">{item.detail}</p>
+                                    </div>
+                                </article>
+                            ))
+                        }
+                    </div>
                     <ul class="v6-tele-room-flow__list">
                         {photoTips.map((item) => <li>{item}</li>)}
                     </ul>
@@ -458,6 +497,11 @@ const supportStatus = {
         const chatLinks = Array.from(document.querySelectorAll('[data-tele-room-chat-cta]'));
         const fieldTargets = document.querySelectorAll('[data-tele-room-field]');
         const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+        const photoRoles = [
+            { id: 'zona', label: 'Zona' },
+            { id: 'primer_plano', label: 'Primer plano' },
+            { id: 'contexto', label: 'Contexto' },
+        ];
         const uploadedFiles = [];
         let previewUrls = [];
 
@@ -491,7 +535,7 @@ const supportStatus = {
             if (uploadedFiles.length) {
                 lines.push('Fotos cargadas:');
                 uploadedFiles.forEach((file, index) => {
-                    lines.push(`${index + 1}. ${file.url}`);
+                    lines.push(`${index + 1}. ${file.roleLabel || 'Foto'}: ${file.url}`);
                 });
             }
 
@@ -524,7 +568,7 @@ const supportStatus = {
             uploadResults.innerHTML = uploadedFiles
                 .map(
                     (file, index) =>
-                        `<article><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${file.name}</strong><a href="${file.url}" target="_blank" rel="noopener noreferrer">Abrir enlace seguro</a></div></article>`
+                        `<article><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${file.roleLabel || 'Foto'} · ${file.name}</strong><a href="${file.url}" target="_blank" rel="noopener noreferrer">Abrir enlace seguro</a></div></article>`
                 )
                 .join('');
         };
@@ -544,10 +588,11 @@ const supportStatus = {
                 return;
             }
             photoPreview.innerHTML = files
-                .map((file) => {
+                .map((file, index) => {
                     const url = URL.createObjectURL(file);
                     previewUrls.push(url);
-                    return `<article><img src="${url}" alt="${file.name}" /><div><strong>${file.name}</strong><span>${Math.max(1, Math.round(file.size / 1024))} KB</span></div></article>`;
+                    const role = photoRoles[index] || { label: 'Foto' };
+                    return `<article data-tele-room-photo-card="${role.id || `photo-${index + 1}`}"><img src="${url}" alt="${file.name}" /><div><strong>${role.label}</strong><span>${file.name}</span><span>${Math.max(1, Math.round(file.size / 1024))} KB</span></div></article>`;
                 })
                 .join('');
         };
@@ -605,6 +650,8 @@ const supportStatus = {
                         payload?.data?.transferProofUrl ||
                         payload?.data?.transferProofPath ||
                         '',
+                    role: photoRoles[responses.length]?.id || '',
+                    roleLabel: photoRoles[responses.length]?.label || 'Foto',
                 });
             }
 
@@ -655,7 +702,7 @@ const supportStatus = {
                     renderPreview(files);
                     if (photoStatus instanceof HTMLElement) {
                         photoStatus.textContent =
-                            'Fotos listas. Cuando quiera, subalas para compartirlas durante la consulta.';
+                            'Fotos listas. Se enviaran como zona, primer plano y contexto en ese orden.';
                     }
                 } catch (error) {
                     renderPreview([]);

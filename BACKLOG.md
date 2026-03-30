@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 1:02:00 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 1:04:47 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████░░░░░░░░░░░` **43%** completado (92/213)
+`█████████░░░░░░░░░░░` **44%** completado (93/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 51 | 16 | 76% |
+| 🎯 Sprint 3 | 52 | 15 | 78% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -49,10 +49,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-42** | `[M]` | Panel de protocolo clínico — cuando el médico selecciona un código CIE... |
 | **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
-
-### 🔒 En progreso — NO tomar
-
-- **S3-61** `[L]` → _Antigravity_ (expira en 474min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -144,7 +140,7 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
 _Esperando que Sprint anterior esté completo. 34 tareas pendientes._
 
-### 🟢 Disponibles (34)
+### 🟢 Disponibles (33)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -153,7 +149,11 @@ _Esperando que Sprint anterior esté completo. 34 tareas pendientes._
 | **S7-05** | `[S]` | Auditar permisos por rol en endpoints OpenClaw —  tiene  pero no verif... |
 | **S7-08** | `[S]` | Backup y restore automatizado — no hay ninguna tarea que valide backup... |
 | **S7-09** | `[S]` | k8s readiness/liveness probes —  no tiene  ni . Kubernetes no puede de... |
-| ... | | _+29 más_ |
+| ... | | _+28 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S7-25** `[S]` → _Codex-erosero558558_ (expira en 118min)
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 0/0 tareas._
