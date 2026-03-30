@@ -53,6 +53,7 @@ Overrides:
 - Plan de estabilidad: `docs/STABILITY_14_DAYS_PLAN.md`
 - Seguridad viva: `docs/SECURITY.md`
 - Auditoria de seguridad: `docs/SECURITY_AUDIT.md`
+- Ownership por zona critica: `docs/OWNERSHIP.md`
 - Runbooks operativos: `docs/RUNBOOKS.md`
 - Frontera de superficies permitidas en raiz: `docs/ROOT_SURFACES.md`
 - Gobernanza de agentes: `AGENTS.md`
