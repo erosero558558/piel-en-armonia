@@ -1382,7 +1382,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### UI-3 OpenClaw — "El copiloto clínico"
 
-- [ ] **UI-12** `[M]` `[UI]` OpenClaw chat interface — rediseño total del chat en `js/openclaw-chat.js`: burbujas de mensaje con distinción visual IA/médico, código de diagnóstico CIE-10 como chip clickeable, receta generada con preview de tarjeta, estado de IA (tier activo, modo offline badge), input médico con autocompletado de medicamentos. Dark clinical theme. Typing indicator animado. El JS backend no cambia.
+- [x] **UI-12** `[M]` `[UI]` OpenClaw chat interface — rediseño total del chat en `js/openclaw-chat.js`: burbujas de mensaje con distinción visual IA/médico, código de diagnóstico CIE-10 como chip clickeable, receta generada con preview de tarjeta, estado de IA (tier activo, modo offline badge), input médico con autocompletado de medicamentos. Dark clinical theme. Typing indicator animado. El JS backend no cambia.
 
 #### UI-4 Turnero — "La sala de espera del siglo XXI"
 
