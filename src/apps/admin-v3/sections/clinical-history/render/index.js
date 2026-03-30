@@ -15,6 +15,7 @@ import {
 import { renderDashboard } from '../../dashboard.js';
 import { renderAdminChrome } from '../../../ui/frame.js';
 import { renderClinicalMediaFlow } from './media-flow.js';
+import { renderClinicalCompareFlow } from './compare.js';
 
 const CLINICAL_HISTORY_SESSION_QUERY_PARAM = 'clinicalSessionId';
 const CLINICAL_HISTORY_WORKSPACE_QUERY_PARAM = 'clinicalWorkspace';
@@ -164,6 +165,23 @@ const CLINICAL_RED_FLAG_LABELS = Object.freeze({
     anafilaxia: 'Anafilaxia',
     embarazo: 'Embarazo',
 });
+const CLINICAL_HISTORY_CERTIFICATE_TYPE_CHOICES = Object.freeze([
+    { value: 'reposo_laboral', label: 'Certificado de reposo' },
+    { value: 'aptitud_medica', label: 'Certificado de aptitud' },
+    {
+        value: 'constancia_tratamiento',
+        label: 'Constancia de tratamiento',
+    },
+    { value: 'control_salud', label: 'Constancia de control' },
+    {
+        value: 'incapacidad_temporal',
+        label: 'Certificado de incapacidad temporal',
+    },
+]);
+const CLINICAL_HISTORY_CERTIFICATE_REST_DAY_TYPES = Object.freeze([
+    'reposo_laboral',
+    'incapacidad_temporal',
+]);
 
 let scheduledAutoSelection = '';
 
@@ -4591,6 +4609,86 @@ function setClinicalQueueFilter(filter, options = {}) {
     if (options.render !== false) {
         renderClinicalHistorySection();
     }
+}
+
+function emptyCertificateComposerState() {
+    return {
+        open: false,
+        submitting: false,
+        error: '',
+        result: null,
+    };
+}
+
+function normalizeCertificateComposerResult(value) {
+    const source = value && typeof value === 'object' ? value : {};
+    const pdfUrl = normalizeString(source.pdfUrl || source.pdf_url);
+    const whatsappUrl = normalizeString(
+        source.whatsappUrl || source.whatsapp_url
+    );
+
+    return {
+        certificateId: normalizeString(
+            source.certificateId || source.certificate_id
+        ),
+        folio: normalizeString(source.folio),
+        pdfUrl,
+        whatsappUrl,
+        whatsappText: normalizeString(
+            source.whatsappText || source.whatsapp_text
+        ),
+        summary: normalizeString(source.summary),
+        type: normalizeString(source.type),
+    };
+}
+
+function currentCertificateComposerState(state = getState()) {
+    const source = getClinicalHistorySlice(state).certificateComposer;
+    const normalizedSource =
+        source && typeof source === 'object' ? source : {};
+    const result = normalizedSource.result
+        ? normalizeCertificateComposerResult(normalizedSource.result)
+        : null;
+
+    return {
+        ...emptyCertificateComposerState(),
+        ...normalizedSource,
+        open: normalizedSource.open === true,
+        submitting: normalizedSource.submitting === true,
+        error: normalizeString(normalizedSource.error),
+        result,
+    };
+}
+
+function setCertificateComposerState(patch) {
+    setClinicalHistoryState({
+        certificateComposer: {
+            ...currentCertificateComposerState(),
+            ...patch,
+        },
+    });
+}
+
+function clearCertificateComposer(options = {}) {
+    setCertificateComposerState({
+        open: false,
+        submitting: false,
+        error: '',
+        result: options.preserveResult ? currentCertificateComposerState().result : null,
+    });
+}
+
+function certificateSupportsRestDays(type) {
+    return CLINICAL_HISTORY_CERTIFICATE_REST_DAY_TYPES.includes(
+        normalizeString(type)
+    );
+}
+
+function certificateTypeLabel(type) {
+    const match = CLINICAL_HISTORY_CERTIFICATE_TYPE_CHOICES.find(
+        (choice) => normalizeString(choice.value) === normalizeString(type)
+    );
+    return match ? match.label : 'Certificado médico';
 }
 
 function formatReviewStatus(status) {
@@ -11007,7 +11105,301 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
     );
 }
 
-function buildClinicalHistoryDocumentsSection(draft, disabled) {
+function defaultCertificateDiagnosisText(draft) {
+    return normalizeString(
+        draft.documents.certificate.summary ||
+            draft.clinicianDraft.hcu005.diagnosticImpression ||
+            draft.clinicianDraft.resumen ||
+            draft.intake.resumenClinico
+    );
+}
+
+function defaultCertificateCie10Code(draft) {
+    return normalizeString(
+        normalizeStringList(draft.clinicianDraft.cie10Sugeridos)[0]
+    ).toUpperCase();
+}
+
+function defaultCertificateRestrictions(draft) {
+    return normalizeString(
+        draft.clinicianDraft.hcu005.careIndications ||
+            draft.documents.prescription.directions
+    );
+}
+
+function defaultCertificateObservations(draft) {
+    return normalizeString(
+        draft.documents.certificate.summary || draft.clinicianDraft.resumen
+    );
+}
+
+function buildCertificateSummary({
+    type,
+    diagnosisText,
+    cie10Code,
+    restDays,
+    observations,
+}) {
+    const fragments = [certificateTypeLabel(type)];
+    const normalizedDiagnosis = normalizeString(diagnosisText);
+    const normalizedCode = normalizeString(cie10Code).toUpperCase();
+    const normalizedObservations = normalizeString(observations);
+    const normalizedRestDays = Math.max(0, Number(restDays || 0));
+
+    if (normalizedDiagnosis) {
+        fragments.push(`Dx: ${normalizedDiagnosis}`);
+    }
+    if (normalizedCode) {
+        fragments.push(`CIE-10 ${normalizedCode}`);
+    }
+    if (certificateSupportsRestDays(type) && normalizedRestDays > 0) {
+        fragments.push(`Reposo ${normalizedRestDays} dia(s)`);
+    }
+    if (normalizedObservations) {
+        fragments.push(normalizedObservations);
+    }
+
+    return fragments.filter(Boolean).join(' • ');
+}
+
+function buildCertificateCie10Options(draft) {
+    const suggestions = normalizeStringList(draft.clinicianDraft.cie10Sugeridos)
+        .map((item) => normalizeString(item).toUpperCase())
+        .filter(Boolean);
+
+    if (suggestions.length === 0) {
+        return '';
+    }
+
+    return suggestions
+        .map(
+            (item) =>
+                `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`
+        )
+        .join('');
+}
+
+function buildCertificateComposerDialog(review, draft, disabled) {
+    const composer = currentCertificateComposerState();
+    const result = composer.result;
+    const type = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateType') ||
+            'reposo_laboral'
+    );
+    const supportsRestDays = certificateSupportsRestDays(type);
+    const patientLabel = currentSelectionLabel(review);
+    const cie10Value = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateCie10') ||
+            defaultCertificateCie10Code(draft)
+    ).toUpperCase();
+    const diagnosisValue = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateDiagnosis') ||
+            defaultCertificateDiagnosisText(draft)
+    );
+    const restDaysValue = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateRestDays') ||
+            draft.documents.certificate.restDays ||
+            ''
+    );
+    const restrictionsValue = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateRestrictions') ||
+            defaultCertificateRestrictions(draft)
+    );
+    const observationsValue = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateObservations') ||
+            defaultCertificateObservations(draft)
+    );
+    const cie10Options = buildCertificateCie10Options(draft);
+
+    return `
+        <dialog
+            id="clinicalHistoryCertificateDialog"
+            aria-labelledby="clinicalHistoryCertificateDialogTitle"
+            style="width:min(760px, calc(100vw - 32px)); border:none; border-radius:18px; padding:0; box-shadow:0 28px 80px rgba(15, 23, 42, 0.28); background:var(--panelSurface, #fff); color:var(--textStrong);"
+        >
+            <div style="padding:24px; display:grid; gap:18px;">
+                <header style="display:grid; gap:6px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                        <div>
+                            <h4 id="clinicalHistoryCertificateDialogTitle" style="margin:0; font-size:1.05rem;">Emitir certificado medico</h4>
+                            <p style="margin:4px 0 0; color:var(--textBase);">
+                                ${escapeHtml(patientLabel)} · Caso ${escapeHtml(
+                                    review.session.caseId || review.activeEpisode?.caseId || 'sin folio'
+                                )}
+                            </p>
+                        </div>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            certificateTypeLabel(type)
+                        )}</span>
+                    </div>
+                    <p style="margin:0; color:var(--textBase);">
+                        Genera el PDF medico, deja el folio visible para el doctor y prepara el envio por WhatsApp.
+                    </p>
+                </header>
+
+                ${buildClinicalHistoryInlineGrid([
+                    selectField(
+                        'clinicalHistoryCertificateType',
+                        'Tipo de certificado',
+                        type || 'reposo_laboral',
+                        CLINICAL_HISTORY_CERTIFICATE_TYPE_CHOICES,
+                        {
+                            disabled: disabled || composer.submitting,
+                            hint: 'Usa reposo o incapacidad cuando debas certificar dias de descanso.',
+                        }
+                    ),
+                    inputField(
+                        'clinicalHistoryCertificateRestDays',
+                        'Dias de reposo',
+                        restDaysValue,
+                        {
+                            type: 'number',
+                            min: '0',
+                            step: '1',
+                            disabled:
+                                disabled ||
+                                composer.submitting ||
+                                !supportsRestDays,
+                            hint: supportsRestDays
+                                ? 'Solo aplica a reposo laboral o incapacidad temporal.'
+                                : 'Este tipo de certificado no requiere dias de reposo.',
+                        }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    buildClinicalHistoryFieldShell(
+                        'clinicalHistoryCertificateCie10',
+                        'Codigo CIE-10',
+                        `
+                            <input
+                                id="clinicalHistoryCertificateCie10"
+                                type="text"
+                                value="${escapeHtml(cie10Value)}"
+                                placeholder="Ej. L71.9"
+                                list="clinicalHistoryCertificateCie10Options"
+                                ${(disabled || composer.submitting) ? 'disabled' : ''}
+                            />
+                            <datalist id="clinicalHistoryCertificateCie10Options">
+                                ${cie10Options}
+                            </datalist>
+                        `,
+                        cie10Options
+                            ? 'Sugerencias autocompletadas desde el borrador clinico actual.'
+                            : 'Ingresa el codigo CIE-10 si aplica.'
+                    ),
+                    textareaField(
+                        'clinicalHistoryCertificateDiagnosis',
+                        'Diagnostico clinico',
+                        diagnosisValue,
+                        {
+                            rows: 3,
+                            disabled: disabled || composer.submitting,
+                            hint: 'Se usa como base del texto medico visible en el certificado.',
+                        }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    textareaField(
+                        'clinicalHistoryCertificateRestrictions',
+                        'Restricciones',
+                        restrictionsValue,
+                        {
+                            rows: 3,
+                            disabled: disabled || composer.submitting,
+                            hint: 'Opcional. Ej.: evitar exposicion solar, actividad fisica o manipulacion local.',
+                        }
+                    ),
+                    textareaField(
+                        'clinicalHistoryCertificateObservations',
+                        'Observaciones',
+                        observationsValue,
+                        {
+                            rows: 3,
+                            disabled: disabled || composer.submitting,
+                            hint: 'Se mostraran en el PDF y ayudan a contextualizar el certificado.',
+                        }
+                    ),
+                ])}
+                ${
+                    composer.error
+                        ? `<p style="margin:0; padding:12px 14px; border-radius:12px; background:rgba(245, 158, 11, 0.12); color:var(--textStrong);">${escapeHtml(
+                              composer.error
+                          )}</p>`
+                        : ''
+                }
+                ${
+                    result
+                        ? `
+                            <section style="display:grid; gap:10px; padding:16px; border-radius:14px; background:var(--bgLayer); border:1px solid var(--borderBase);">
+                                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+                                    <strong id="clinicalHistoryCertificateFolio">Folio ${escapeHtml(
+                                        result.folio || 'sin folio'
+                                    )}</strong>
+                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                        result.summary || certificateTypeLabel(result.type)
+                                    )}</span>
+                                </div>
+                                <div class="toolbar-row clinical-history-actions-row" style="justify-content:flex-start;">
+                                    <a
+                                        id="clinicalHistoryCertificatePdfLink"
+                                        href="${escapeHtml(result.pdfUrl)}"
+                                        target="_blank"
+                                        rel="noreferrer noopener"
+                                        class="clinical-history-action-btn"
+                                    >
+                                        Descargar PDF
+                                    </a>
+                                    ${
+                                        result.whatsappUrl
+                                            ? `
+                                                <a
+                                                    id="clinicalHistoryCertificateWhatsAppLink"
+                                                    href="${escapeHtml(result.whatsappUrl)}"
+                                                    target="_blank"
+                                                    rel="noreferrer noopener"
+                                                    class="clinical-history-action-btn"
+                                                >
+                                                    Enviar por WhatsApp
+                                                </a>
+                                            `
+                                            : `
+                                                <span style="color:var(--textBase);">
+                                                    No hay telefono del paciente para WhatsApp.
+                                                </span>
+                                            `
+                                    }
+                                </div>
+                            </section>
+                        `
+                        : ''
+                }
+                <div class="toolbar-row clinical-history-actions-row" style="justify-content:flex-end;">
+                    <button
+                        type="button"
+                        data-clinical-review-action="close-certificate-composer"
+                        ${composer.submitting ? 'disabled' : ''}
+                    >
+                        Cerrar
+                    </button>
+                    <button
+                        type="button"
+                        id="clinicalHistoryCertificateConfirmBtn"
+                        data-clinical-review-action="issue-certificate"
+                        ${(disabled || composer.submitting) ? 'disabled' : ''}
+                    >
+                        ${composer.submitting ? 'Emitiendo...' : 'Confirmar y generar PDF'}
+                    </button>
+                </div>
+            </div>
+        </dialog>
+    `;
+}
+
+function buildClinicalHistoryDocumentsSection(review, draft, disabled) {
+    const composer = currentCertificateComposerState();
+    const certificateIssued =
+        normalizeString(draft.documents.certificate.status) === 'issued';
+
     return buildClinicalHistorySection(
         'Certificado y salida',
         'La nota final y la receta se regeneran desde HCU-005; aquí solo mantienes el certificado.',
@@ -11020,6 +11412,11 @@ function buildClinicalHistoryDocumentsSection(draft, disabled) {
                                 evaluateHcu005(draft.clinicianDraft.hcu005)
                                     .status
                             ).label
+                        )}</span>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            certificateIssued
+                                ? 'Certificado emitido'
+                                : 'Pendiente de emitir'
                         )}</span>
                     </div>
                     <p>${escapeHtml(
@@ -11051,6 +11448,14 @@ function buildClinicalHistoryDocumentsSection(draft, disabled) {
                     ),
                 ])}
                 <div class="toolbar-row clinical-history-actions-row">
+                    <button
+                        type="button"
+                        id="clinicalHistoryIssueCertificateBtn"
+                        data-clinical-review-action="open-certificate-composer"
+                        ${disabled || composer.submitting ? 'disabled' : ''}
+                    >
+                        📋 Certificado
+                    </button>
                     <button
                         type="button"
                         id="clinicalHistoryExportFullRecordBtn"
@@ -11193,7 +11598,7 @@ function buildDraftForm(review, draft, saving) {
             ${buildClinicalHistoryImagingOrderSection(review, draft, disabled)}
             ${buildClinicalHistoryConsentSection(review, draft, disabled)}
             ${buildClinicalHistoryCarePlanSection(draft, disabled)}
-            ${buildClinicalHistoryDocumentsSection(draft, disabled)}
+            ${buildClinicalHistoryDocumentsSection(review, draft, disabled)}
         </div>
     `;
 }
@@ -12673,6 +13078,296 @@ function readClinicalControlValue(id) {
     return '';
 }
 
+function currentCaseId(review = currentReviewSource(), draft = currentDraftSource()) {
+    return normalizeString(
+        review.session.caseId || draft.caseId || review.activeEpisode?.caseId
+    );
+}
+
+function buildIssuedCertificateDraft(baseDraft, summary, restDays) {
+    return synchronizeDraftClinicalState({
+        ...cloneValue(baseDraft),
+        documents: {
+            ...cloneValue(baseDraft.documents),
+            certificate: {
+                ...cloneValue(baseDraft.documents.certificate),
+                status: 'issued',
+                summary,
+                restDays: restDays > 0 ? restDays : null,
+                signedAt: new Date().toISOString(),
+                confidential: true,
+            },
+        },
+    });
+}
+
+function buildIssuedCertificateReview(baseReview, nextDraft) {
+    return normalizeReviewPayload({
+        ...cloneValue(baseReview),
+        draft: cloneValue(nextDraft),
+        documents: {
+            ...cloneValue(baseReview.documents),
+            certificate: cloneValue(nextDraft.documents.certificate),
+        },
+    });
+}
+
+function buildCertificateSyncPayload(review, draft, summary, restDays) {
+    const synchronizedDraft = buildIssuedCertificateDraft(
+        draft,
+        summary,
+        restDays
+    );
+    const sessionId = normalizeString(review.session.sessionId || draft.sessionId);
+
+    return {
+        synchronizedDraft,
+        payload: {
+            sessionId,
+            action: 'issue_certificate',
+            draft: {
+                intake: cloneValue(synchronizedDraft.intake),
+                clinicianDraft: cloneValue(synchronizedDraft.clinicianDraft),
+                admission001: cloneValue(synchronizedDraft.admission001),
+            },
+            documents: cloneValue(synchronizedDraft.documents),
+            interconsultations: cloneValue(synchronizedDraft.interconsultations),
+            activeInterconsultationId:
+                synchronizedDraft.activeInterconsultationId,
+            labOrders: cloneValue(synchronizedDraft.labOrders),
+            activeLabOrderId: synchronizedDraft.activeLabOrderId,
+            imagingOrders: cloneValue(synchronizedDraft.imagingOrders),
+            activeImagingOrderId: synchronizedDraft.activeImagingOrderId,
+            consentPackets: cloneValue(synchronizedDraft.consentPackets),
+            activeConsentPacketId: synchronizedDraft.activeConsentPacketId,
+            consent: cloneValue(synchronizedDraft.consent),
+            requiresHumanReview:
+                synchronizedDraft.requiresHumanReview === true,
+        },
+    };
+}
+
+function syncCertificateRestDaysField() {
+    const typeField = document.getElementById('clinicalHistoryCertificateType');
+    const restDaysField = document.getElementById(
+        'clinicalHistoryCertificateRestDays'
+    );
+    if (
+        !(typeField instanceof HTMLSelectElement) ||
+        !(restDaysField instanceof HTMLInputElement)
+    ) {
+        return;
+    }
+
+    restDaysField.disabled =
+        currentCertificateComposerState().submitting ||
+        !certificateSupportsRestDays(typeField.value);
+}
+
+function syncCertificateComposerDialog() {
+    const dialog = document.getElementById('clinicalHistoryCertificateDialog');
+    if (!(dialog instanceof HTMLDialogElement)) {
+        return;
+    }
+
+    if (dialog.dataset.bound !== 'true') {
+        dialog.addEventListener('cancel', (event) => {
+            event.preventDefault();
+            clearCertificateComposer();
+            renderClinicalHistorySection();
+        });
+        dialog.dataset.bound = 'true';
+    }
+
+    syncCertificateRestDaysField();
+
+    const composer = currentCertificateComposerState();
+    try {
+        if (composer.open && !dialog.open) {
+            dialog.showModal();
+        } else if (!composer.open && dialog.open) {
+            dialog.close();
+        }
+    } catch (_error) {
+        if (composer.open) {
+            dialog.setAttribute('open', 'open');
+        } else {
+            dialog.removeAttribute('open');
+        }
+    }
+}
+
+async function submitCertificateComposer() {
+    const review = currentReviewSource();
+    const baseDraft = currentSerializedDraft();
+    const sessionId = normalizeString(review.session.sessionId || baseDraft.sessionId);
+    const caseId = currentCaseId(review, baseDraft);
+
+    if (!sessionId || !caseId) {
+        createToast(
+            'Necesitas un caso clinico activo con caseId para emitir el certificado.',
+            'warning'
+        );
+        return null;
+    }
+
+    const type =
+        normalizeString(readClinicalControlValue('clinicalHistoryCertificateType')) ||
+        'reposo_laboral';
+    const diagnosisText = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateDiagnosis') ||
+            defaultCertificateDiagnosisText(baseDraft)
+    );
+
+    if (!diagnosisText) {
+        setCertificateComposerState({
+            open: true,
+            submitting: false,
+            error: 'Documenta el diagnostico clinico antes de emitir el certificado.',
+            result: currentCertificateComposerState().result,
+        });
+        renderClinicalHistorySection();
+        createToast(
+            'Documenta el diagnostico clinico antes de emitir el certificado.',
+            'warning'
+        );
+        return null;
+    }
+
+    const cie10Code = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateCie10') ||
+            defaultCertificateCie10Code(baseDraft)
+    ).toUpperCase();
+    const restrictions = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateRestrictions') ||
+            defaultCertificateRestrictions(baseDraft)
+    );
+    const observations = normalizeString(
+        readClinicalControlValue('clinicalHistoryCertificateObservations') ||
+            defaultCertificateObservations(baseDraft)
+    );
+    const restDays = certificateSupportsRestDays(type)
+        ? Math.max(
+              0,
+              normalizeNumber(
+                  readClinicalControlValue('clinicalHistoryCertificateRestDays')
+              )
+          )
+        : 0;
+    const summary = buildCertificateSummary({
+        type,
+        diagnosisText,
+        cie10Code,
+        restDays,
+        observations,
+    });
+
+    setCertificateComposerState({
+        open: true,
+        submitting: true,
+        error: '',
+        result: null,
+    });
+    renderClinicalHistorySection();
+
+    try {
+        const response = await apiRequest('certificate', {
+            method: 'POST',
+            body: {
+                case_id: caseId,
+                type,
+                rest_days: restDays,
+                diagnosis_text: diagnosisText,
+                cie10_code: cie10Code,
+                restrictions,
+                observations,
+            },
+        });
+        const result = normalizeCertificateComposerResult({
+            ...response,
+            summary,
+            type,
+        });
+        const { payload, synchronizedDraft } = buildCertificateSyncPayload(
+            review,
+            baseDraft,
+            summary,
+            restDays
+        );
+
+        try {
+            const syncResponse = await apiRequest('clinical-episode-action', {
+                method: 'POST',
+                body: payload,
+            });
+            const nextReview = normalizeReviewPayload(syncResponse.data);
+            setClinicalHistoryState({
+                current: nextReview,
+                draftForm: cloneValue(nextReview.draft),
+                dirty: false,
+                selectedSessionId: nextReview.session.sessionId || sessionId,
+                lastLoadedAt: Date.now(),
+                certificateComposer: {
+                    open: true,
+                    submitting: false,
+                    error: '',
+                    result,
+                },
+            });
+
+            try {
+                await refreshAdminData();
+            } catch (_error) {
+                // Keep the workspace usable even if the dashboard snapshot refresh fails.
+            }
+
+            renderAdminChrome(getState());
+            renderDashboard(getState());
+            renderClinicalHistorySection();
+            createToast(
+                `Certificado ${result.folio || 'emitido'} listo para ${currentSelectionLabel(
+                    nextReview
+                )}.`,
+                'success'
+            );
+            return nextReview;
+        } catch (syncError) {
+            setClinicalHistoryState({
+                draftForm: cloneValue(synchronizedDraft),
+                dirty: true,
+                certificateComposer: {
+                    open: true,
+                    submitting: false,
+                    error:
+                        'El certificado ya se emitio y el PDF esta listo, pero no se pudo sincronizar la constancia en la HCE. Guarda el borrador para retener el resumen local.',
+                    result,
+                },
+            });
+            renderClinicalHistorySection();
+            createToast(
+                'Certificado emitido con advertencia: revisa el folio y guarda el borrador de la HCE.',
+                'warning'
+            );
+            return buildIssuedCertificateReview(review, synchronizedDraft);
+        }
+    } catch (error) {
+        setCertificateComposerState({
+            open: true,
+            submitting: false,
+            error:
+                error?.message ||
+                'No se pudo emitir el certificado medico.',
+            result: currentCertificateComposerState().result,
+        });
+        renderClinicalHistorySection();
+        createToast(
+            error?.message || 'No se pudo emitir el certificado medico.',
+            'error'
+        );
+        return null;
+    }
+}
+
 function buildGovernanceActionPayload(action) {
     const review = currentReviewSource();
     const sessionId = normalizeString(review.session.sessionId);
@@ -12984,6 +13679,7 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
             dirty: false,
             current: null,
             draftForm: null,
+            certificateComposer: emptyCertificateComposerState(),
         });
         renderClinicalHistorySection();
         return null;
@@ -13021,6 +13717,7 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
             lastLoadedAt: Date.now(),
             current: review,
             draftForm: cloneValue(review.draft),
+            certificateComposer: emptyCertificateComposerState(),
         });
         renderClinicalHistorySection();
         return review;
@@ -13030,9 +13727,10 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
             loading: false,
             error:
                 error?.message ||
-                'No se pudo cargar la revision clinica de este caso.',
+                    'No se pudo cargar la revision clinica de este caso.',
             current: null,
             draftForm: null,
+            certificateComposer: emptyCertificateComposerState(),
         });
         renderClinicalHistorySection();
         if (options.silent !== true) {
@@ -13492,6 +14190,35 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'open-certificate-composer') {
+            if (!currentCaseId()) {
+                createToast(
+                    'Selecciona un caso clinico antes de emitir el certificado.',
+                    'warning'
+                );
+                return;
+            }
+            setCertificateComposerState({
+                open: true,
+                submitting: false,
+                error: '',
+                result: null,
+            });
+            renderClinicalHistorySection();
+            return;
+        }
+
+        if (action === 'close-certificate-composer') {
+            clearCertificateComposer();
+            renderClinicalHistorySection();
+            return;
+        }
+
+        if (action === 'issue-certificate') {
+            await submitCertificateComposer();
+            return;
+        }
+
         if (action === 'send-follow-up') {
             const question = normalizeString(
                 getClinicalHistorySlice().followUpQuestion
@@ -13672,6 +14399,10 @@ function bindClinicalHistoryEvents() {
             target instanceof HTMLTextAreaElement ||
             target instanceof HTMLSelectElement
         ) {
+            if (target.id === 'clinicalHistoryCertificateType') {
+                syncCertificateRestDaysField();
+                return;
+            }
             if (target.form?.id === 'clinicalHistoryDraftForm') {
                 captureDraftFromDom();
             }
@@ -13836,11 +14567,16 @@ export function renderClinicalHistorySection() {
         buildDraftForm(review, draft, slice.saving)
     );
     setHtml('#clinicalHistoryEvents', buildEvents(review));
+    setHtml(
+        '#clinicalHistoryOverlayHost',
+        buildCertificateComposerDialog(review, draft, slice.saving)
+    );
 
     syncFollowUpInput();
     syncDraftStatusMeta();
     syncWorkspaceVisibility(activeWorkspace);
     bindClinicalHistoryEvents();
+    syncCertificateComposerDialog();
     renderClinicalMediaFlow();
     renderClinicalCompareFlow();
     ensureSessionSelection();

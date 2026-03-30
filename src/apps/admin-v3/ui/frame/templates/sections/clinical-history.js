@@ -282,6 +282,8 @@ export function renderClinicalHistorySection() {
                     </div>
                 </article>
             </div>
+
+            <div id="clinicalHistoryOverlayHost"></div>
         </section>
     `;
 }

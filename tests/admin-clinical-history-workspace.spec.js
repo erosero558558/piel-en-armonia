@@ -4707,3 +4707,254 @@ test('exporta la HCE completa desde admin en una vista imprimible con readiness 
     );
     await expect(popup.locator('body')).toContainText('Imprimir / Guardar PDF');
 });
+
+test('emite certificado medico desde admin con folio, PDF y WhatsApp', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-cert-001',
+        caseId: 'case-cert-001',
+        patientName: 'Lucia Viteri',
+        clinicianSummary:
+            'Rosacea papulopustulosa en seguimiento con brote inflamatorio leve.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica ya permite emitir constancias y documentos del episodio.',
+            checklist: [
+                {
+                    code: 'hcu005_evolution_note',
+                    status: 'pass',
+                    label: 'HCU-005 evolucion clinica',
+                    message:
+                        'La evolucion clinica y la impresion diagnostica estan documentadas.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        documents: {
+            certificate: {
+                status: 'draft',
+                summary: '',
+                restDays: null,
+            },
+        },
+    });
+
+    const issuedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-cert-001',
+        caseId: 'case-cert-001',
+        patientName: 'Lucia Viteri',
+        clinicianSummary:
+            'Rosacea papulopustulosa en seguimiento con brote inflamatorio leve.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica ya permite emitir constancias y documentos del episodio.',
+            checklist: [
+                {
+                    code: 'hcu005_evolution_note',
+                    status: 'pass',
+                    label: 'HCU-005 evolucion clinica',
+                    message:
+                        'La evolucion clinica y la impresion diagnostica estan documentadas.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        documents: {
+            certificate: {
+                status: 'issued',
+                summary:
+                    'Certificado de reposo • Dx: Rosacea papulopustulosa en brote inflamatorio leve • CIE-10 L71.9 • Reposo 3 dia(s) • Evitar exposicion solar directa por 72 horas.',
+                restDays: 3,
+                signedAt: '2026-03-18T10:32:00-05:00',
+            },
+        },
+    });
+
+    const certificatePayloads = [];
+    const syncPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    recordsGovernance: {
+                        pendingCopyRequests: 0,
+                        overdueCopyRequests: 0,
+                        disclosures: 0,
+                        archiveEligible: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-cert-001',
+                        caseId: 'case-cert-001',
+                        patientName: 'Lucia Viteri',
+                        summary:
+                            'Rosacea papulopustulosa en seguimiento con brote inflamatorio leve.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: ['Dermatologia'],
+                        pendingAiStatus: '',
+                        attachmentCount: 1,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'La historia clinica puede emitir constancias del episodio.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'certificate' && method === 'POST') {
+                certificatePayloads.push(payload);
+                await fulfillJson(route, {
+                    ok: true,
+                    certificate_id: 'cert-s3-43-001',
+                    folio: 'CERT-0001',
+                    pdf_url:
+                        '/api.php?resource=certificate&id=cert-s3-43-001&format=pdf',
+                    whatsapp_url:
+                        'https://wa.me/593999000111?text=Certificado%20emitido',
+                    whatsapp_text: 'Certificado emitido',
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                syncPayloads.push(payload);
+                await fulfillJson(route, {
+                    ok: true,
+                    data:
+                        payload.action === 'issue_certificate'
+                            ? issuedRecord
+                            : baseRecord,
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await expect(
+        page.locator('a.nav-item[href="#clinical-history"]')
+    ).toBeVisible();
+    await page.locator('a.nav-item[href="#clinical-history"]').click();
+    await page
+        .locator('[data-clinical-session-id="chs-cert-001"]')
+        .click();
+
+    await expect(
+        page.locator('#clinicalHistoryIssueCertificateBtn')
+    ).toBeVisible();
+    await expect(
+        page.locator('#clinicalHistoryIssueCertificateBtn')
+    ).toBeEnabled();
+
+    await page.locator('#clinicalHistoryIssueCertificateBtn').click();
+
+    const dialog = page.locator('#clinicalHistoryCertificateDialog');
+    await expect(dialog).toBeVisible();
+    await expect(
+        page.locator('#clinicalHistoryCertificateCie10Options option[value="L71.9"]')
+    ).toHaveCount(1);
+    await expect(
+        page.locator('#clinicalHistoryCertificateCie10')
+    ).toHaveValue('L71.9');
+
+    await page
+        .locator('#clinicalHistoryCertificateDiagnosis')
+        .fill('Rosacea papulopustulosa en brote inflamatorio leve');
+    await page.locator('#clinicalHistoryCertificateRestDays').fill('3');
+    await page
+        .locator('#clinicalHistoryCertificateObservations')
+        .fill('Evitar exposicion solar directa por 72 horas.');
+
+    await page.locator('#clinicalHistoryCertificateConfirmBtn').click();
+
+    expect(certificatePayloads).toHaveLength(1);
+    expect(certificatePayloads[0]).toMatchObject({
+        case_id: 'case-cert-001',
+        type: 'reposo_laboral',
+        rest_days: 3,
+        diagnosis_text: 'Rosacea papulopustulosa en brote inflamatorio leve',
+        cie10_code: 'L71.9',
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryCertificateFolio')
+    ).toContainText('CERT-0001');
+    await expect(
+        page.locator('#clinicalHistoryCertificatePdfLink')
+    ).toHaveAttribute(
+        'href',
+        '/api.php?resource=certificate&id=cert-s3-43-001&format=pdf'
+    );
+    await expect(
+        page.locator('#clinicalHistoryCertificateWhatsAppLink')
+    ).toHaveAttribute('href', /wa\.me\/593999000111/);
+    await expect(page.locator('#document_certificate_rest_days')).toHaveValue(
+        '3'
+    );
+    await expect(page.locator('#document_certificate_summary')).toHaveValue(
+        /Rosacea papulopustulosa/
+    );
+
+    expect(syncPayloads).toHaveLength(1);
+    expect(syncPayloads[0]).toMatchObject({
+        action: 'issue_certificate',
+        sessionId: 'chs-cert-001',
+    });
+    expect(syncPayloads[0].documents.certificate).toMatchObject({
+        status: 'issued',
+        restDays: 3,
+    });
+    expect(syncPayloads[0].documents.certificate.summary).toContain(
+        'CIE-10 L71.9'
+    );
+});
