@@ -1,0 +1,142 @@
+/*
+ * Aurora Derm — Base CSS & Reset
+ * Generado por Antigravity (UI-02)
+ */
+
+/* ==========================================================================
+   Modern Reset
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  line-height: var(--leading-normal);
+  background-color: var(--pub-bg-base); /* Por defecto usa el tema público */
+  color: var(--pub-text-body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--pub-text-primary);
+  line-height: var(--leading-tight);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ==========================================================================
+   Base Theme: Public
+   ========================================================================== */
+body[data-theme="public"] {
+  background-color: var(--pub-bg-base);
+  color: var(--pub-text-body);
+}
+
+body[data-theme="public"] h1,
+body[data-theme="public"] h2,
+body[data-theme="public"] h3,
+body[data-theme="public"] h4,
+body[data-theme="public"] h5,
+body[data-theme="public"] h6 {
+  color: var(--pub-text-primary);
+}
+
+/* ==========================================================================
+   Base Theme: Admin (Dark Mode First)
+   ========================================================================== */
+body[data-theme="admin"] {
+  background-color: var(--admin-bg-base);
+  color: var(--admin-text-secondary);
+}
+
+body[data-theme="admin"] h1,
+body[data-theme="admin"] h2,
+body[data-theme="admin"] h3,
+body[data-theme="admin"] h4,
+body[data-theme="admin"] h5,
+body[data-theme="admin"] h6 {
+  color: var(--admin-text-primary);
+}
+
+/* ==========================================================================
+   Minimal Utility Classes
+   ========================================================================== */
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Container limits */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+/* Section spacing */
+.section {
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-16);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-left: var(--space-8);
+    padding-right: var(--space-8);
+  }
+  .section {
+    padding-top: var(--space-20);
+    padding-bottom: var(--space-20);
+  }
+}

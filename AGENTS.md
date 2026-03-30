@@ -1364,7 +1364,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### UI-0 Fundamentos del sistema
 
 - [x] **UI-01** `[S]` `[UI]` Design tokens globales — crear `styles/tokens.css` con todos los tokens del `DESIGN_SYSTEM.md`: colores HSL aurora, gold, neutros cálidos, tipografía (Instrument Serif + Inter), espaciado 8px, radios, sombras cálidas, glow effects, transiciones. Este archivo se importa primero en toda página. Sin este archivo, nada más del Sprint UI arranca.
-- [ ] **UI-02** `[S]` `[UI]` Reset + base CSS — crear `styles/base.css`: reset moderno (box-sizing border-box, margin 0, font-size rem, smooth scroll), variables de tema público (`data-theme="public"`) y admin (`data-theme="admin"`), classes de utilidad mínimas (`.sr-only`, `.container`, `.section`). No usar frameworks externos — CSS puro con variables del sistema.
+- [x] **UI-02** `[S]` `[UI]` Reset + base CSS — crear `styles/base.css`: reset moderno (box-sizing border-box, margin 0, font-size rem, smooth scroll), variables de tema público (`data-theme="public"`) y admin (`data-theme="admin"`), classes de utilidad mínimas (`.sr-only`, `.container`, `.section`). No usar frameworks externos — CSS puro con variables del sistema.
 - [ ] **UI-03** `[M]` `[UI]` Sistema de componentes base — crear `styles/components.css`: `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.card`, `.badge`, `.input`, `.select`, `.modal`, `.toast`, `.avatar`, `.divider`. Cada componente usa exclusivamente tokens de `tokens.css`. Con animaciones hover y focus accesibles. Entregable: Storybook-like demo en `dev/components.html`.
 
 #### UI-1 Web pública — "La clínica que quieres visitar"

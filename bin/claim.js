@@ -142,7 +142,7 @@ function parseTasks(md) {
     const sectionMatch = line.match(/^#### (.+)/);
     if (sectionMatch) currentSection = sectionMatch[1].trim();
 
-    const taskMatch = line.match(/^- \[([ x])\] \*\*(S\d+-[A-Z0-9]+)\*\*/);
+    const taskMatch = line.match(/^- \[([ x])\] \*\*((?:S\d+|UI)-[A-Z0-9]+)\*\*/);
     if (taskMatch) {
       const done      = taskMatch[1] === 'x';
       const id        = taskMatch[2];
