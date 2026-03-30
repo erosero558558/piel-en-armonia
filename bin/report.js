@@ -15,8 +15,11 @@
 const { execSync } = require('child_process');
 const { readFileSync, writeFileSync, existsSync, readdirSync } = require('fs');
 const { resolve, join } = require('path');
+const { buildRegressionReport } = require('./regression-watch');
 
-const ROOT = resolve(__dirname, '..');
+const ROOT = process.env.AURORA_DERM_ROOT
+  ? resolve(process.env.AURORA_DERM_ROOT)
+  : resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 const CLAIMS_DIR  = resolve(ROOT, 'data/claims/tasks'); // v2: archivos individuales
 
@@ -30,6 +33,27 @@ function run(cmd) {
 }
 
 function read(f) { return existsSync(f) ? readFileSync(f, 'utf8') : ''; }
+
+function loadRegressionSummary() {
+  try {
+    const report = buildRegressionReport({
+      depth: Math.max(5, Math.min(Math.max(commits.length, 1), 20)),
+    });
+    return {
+      ok: report.ok,
+      findings: Array.isArray(report.findings) ? report.findings : [],
+      touchedReferences: report?.totals?.touchedReferences || 0,
+      unavailable: false,
+    };
+  } catch {
+    return {
+      ok: true,
+      findings: [],
+      touchedReferences: 0,
+      unavailable: true,
+    };
+  }
+}
 
 function loadClaims() {
   const claims = {};
@@ -93,6 +117,7 @@ function loadStuck() {
 }
 const stuckData = loadStuck();
 const stuckTasks = Object.entries(stuckData).filter(([, s]) => !s.resolved);
+const regressionSummary = loadRegressionSummary();
 
 
 
@@ -197,6 +222,22 @@ if (asMarkdown) {
     lines.push(``);
   }
 
+  lines.push(`## Regresiones sospechosas`);
+  lines.push(``);
+  if (regressionSummary.unavailable) {
+    lines.push(`- ⚠️ No se pudo evaluar \`regression-watch\`, pero el reporte siguió generándose.`);
+  } else if (regressionSummary.findings.length > 0) {
+    regressionSummary.findings.slice(0, 5).forEach(finding => {
+      lines.push(`- ⚠️ ${finding.summary}`);
+    });
+    if (regressionSummary.findings.length > 5) {
+      lines.push(`- … y ${regressionSummary.findings.length - 5} más`);
+    }
+  } else {
+    lines.push(`- ✅ Sin regresiones sospechosas en la ventana reciente (${regressionSummary.touchedReferences} cruces revisados).`);
+  }
+  lines.push(``);
+
   lines.push(`## Próximos pasos recomendados`);
   lines.push(``);
   lines.push(`\`\`\`bash`);
@@ -254,6 +295,20 @@ if (asMarkdown) {
       const mins = Math.round((new Date(c.expiresAt) - new Date()) / 60000);
       console.log(`   ${id} → ${c.agent} (${mins}m restantes)`);
     });
+  }
+
+  console.log(`\n🛡️ Regresiones sospechosas:`);
+  if (regressionSummary.unavailable) {
+    console.log(`   No se pudo evaluar regression-watch, pero el reporte siguió generándose.`);
+  } else if (regressionSummary.findings.length > 0) {
+    regressionSummary.findings.slice(0, 5).forEach(finding => {
+      console.log(`   ⚠️ ${finding.summary}`);
+    });
+    if (regressionSummary.findings.length > 5) {
+      console.log(`   … y ${regressionSummary.findings.length - 5} más`);
+    }
+  } else {
+    console.log(`   ✅ Sin regresiones sospechosas (${regressionSummary.touchedReferences} cruces revisados)`);
   }
 
   if (stuckTasks.length > 0) {
