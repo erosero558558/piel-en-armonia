@@ -3707,6 +3707,42 @@ function getQueueStateNumber(source, keys, fallback = 0) {
     return Number(fallback || 0);
 }
 
+function countActiveConsultorios(callingNow) {
+    if (!Array.isArray(callingNow) || callingNow.length === 0) {
+        return 1;
+    }
+
+    const activeConsultorios = new Set();
+    for (const ticket of callingNow) {
+        const consultorio = Number(
+            ticket?.assignedConsultorio ?? ticket?.assigned_consultorio ?? 0
+        );
+        if (consultorio === 1 || consultorio === 2) {
+            activeConsultorios.add(consultorio);
+        }
+    }
+
+    return Math.max(1, activeConsultorios.size || 0);
+}
+
+function deriveEstimatedWaitMin(rawEstimatedWaitMin, nextTickets = []) {
+    const explicit = Number(rawEstimatedWaitMin);
+    if (Number.isFinite(explicit) && explicit >= 0) {
+        return explicit;
+    }
+
+    const waits = Array.isArray(nextTickets)
+        ? nextTickets
+              .map((ticket) => Number(ticket?.estimatedWaitMin || 0))
+              .filter((value) => Number.isFinite(value) && value >= 0)
+        : [];
+    if (waits.length === 0) {
+        return 0;
+    }
+
+    return Math.max(...waits);
+}
+
 function normalizeQueueStatePayload(rawState) {
     const state = rawState && typeof rawState === 'object' ? rawState : {};
     const counts = getQueueStateObject(state, ['counts']) || {};
@@ -3762,20 +3798,97 @@ function normalizeQueueStatePayload(rawState) {
               ['called', 'called_count'],
               callingNow.length
           );
-    const estimatedWaitMin = Math.max(
-        0,
-        getQueueStateNumber(
-            state,
-            ['estimatedWaitMin', 'estimated_wait_min'],
-            waitingCount * 8
-        )
-    );
     const assistancePendingCount = Math.max(
         0,
         getQueueStateNumber(
             state,
             ['assistancePendingCount', 'assistance_pending_count'],
             activeHelpRequests.length
+        )
+    );
+    const normalizedCallingNow = Array.isArray(callingNow)
+        ? callingNow.map((ticket) => ({
+              ...ticket,
+              id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
+              ticketCode: String(
+                  ticket?.ticketCode || ticket?.ticket_code || '--'
+              ),
+              patientInitials: String(
+                  ticket?.patientInitials || ticket?.patient_initials || '--'
+              ),
+              assignedConsultorio:
+                  Number(
+                      ticket?.assignedConsultorio ??
+                          ticket?.assigned_consultorio ??
+                          0
+                  ) || null,
+              calledAt: String(ticket?.calledAt || ticket?.called_at || ''),
+          }))
+        : [];
+    const normalizedNextTickets = Array.isArray(nextTickets)
+        ? nextTickets.map((ticket, index) => ({
+              ...ticket,
+              id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
+              ticketCode: String(
+                  ticket?.ticketCode || ticket?.ticket_code || '--'
+              ),
+              patientInitials: String(
+                  ticket?.patientInitials || ticket?.patient_initials || '--'
+              ),
+              queueType: String(
+                  ticket?.queueType || ticket?.queue_type || 'walk_in'
+              ),
+              priorityClass: String(
+                  ticket?.priorityClass || ticket?.priority_class || 'walk_in'
+              ),
+              needsAssistance: Boolean(
+                  ticket?.needsAssistance ?? ticket?.needs_assistance
+              ),
+              assistanceRequestStatus: String(
+                  ticket?.assistanceRequestStatus ||
+                      ticket?.assistance_request_status ||
+                      ''
+              ),
+              activeHelpRequestId:
+                  Number(
+                      ticket?.activeHelpRequestId ??
+                          ticket?.active_help_request_id ??
+                          0
+                  ) || null,
+              specialPriority: Boolean(
+                  ticket?.specialPriority ?? ticket?.special_priority
+              ),
+              lateArrival: Boolean(ticket?.lateArrival ?? ticket?.late_arrival),
+              reprintRequestedAt: String(
+                  ticket?.reprintRequestedAt ||
+                      ticket?.reprint_requested_at ||
+                      ''
+              ),
+              estimatedWaitMin: Math.max(
+                  0,
+                  Number(
+                      ticket?.estimatedWaitMin ?? ticket?.estimated_wait_min ?? 0
+                  ) || 0
+              ),
+              position:
+                  Number(ticket?.position || 0) > 0
+                      ? Number(ticket.position)
+                      : index + 1,
+          }))
+        : [];
+    const activeConsultorios = Math.max(
+        1,
+        getQueueStateNumber(
+            state,
+            ['activeConsultorios', 'active_consultorios'],
+            countActiveConsultorios(normalizedCallingNow)
+        )
+    );
+    const estimatedWaitMin = Math.max(
+        0,
+        deriveEstimatedWaitMin(
+            state.estimatedWaitMin ?? state.estimated_wait_min,
+            normalizedNextTickets
         )
     );
 
@@ -3785,91 +3898,14 @@ function normalizeQueueStatePayload(rawState) {
             new Date().toISOString(),
         waitingCount: Math.max(0, Number(waitingCount || 0)),
         calledCount: Math.max(0, Number(calledCount || 0)),
+        activeConsultorios,
         estimatedWaitMin,
         delayReason: String(
             state.delayReason || state.delay_reason || ''
         ).trim(),
         assistancePendingCount,
-        callingNow: Array.isArray(callingNow)
-            ? callingNow.map((ticket) => ({
-                  ...ticket,
-                  id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
-                  ticketCode: String(
-                      ticket?.ticketCode || ticket?.ticket_code || '--'
-                  ),
-                  patientInitials: String(
-                      ticket?.patientInitials ||
-                          ticket?.patient_initials ||
-                          '--'
-                  ),
-                  assignedConsultorio:
-                      Number(
-                          ticket?.assignedConsultorio ??
-                              ticket?.assigned_consultorio ??
-                              0
-                      ) || null,
-                  calledAt: String(ticket?.calledAt || ticket?.called_at || ''),
-              }))
-            : [],
-        nextTickets: Array.isArray(nextTickets)
-            ? nextTickets.map((ticket, index) => ({
-                  ...ticket,
-                  id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
-                  ticketCode: String(
-                      ticket?.ticketCode || ticket?.ticket_code || '--'
-                  ),
-                  patientInitials: String(
-                      ticket?.patientInitials ||
-                          ticket?.patient_initials ||
-                          '--'
-                  ),
-                  queueType: String(
-                      ticket?.queueType || ticket?.queue_type || 'walk_in'
-                  ),
-                  priorityClass: String(
-                      ticket?.priorityClass ||
-                          ticket?.priority_class ||
-                          'walk_in'
-                  ),
-                  needsAssistance: Boolean(
-                      ticket?.needsAssistance ?? ticket?.needs_assistance
-                  ),
-                  assistanceRequestStatus: String(
-                      ticket?.assistanceRequestStatus ||
-                          ticket?.assistance_request_status ||
-                          ''
-                  ),
-                  activeHelpRequestId:
-                      Number(
-                          ticket?.activeHelpRequestId ??
-                              ticket?.active_help_request_id ??
-                              0
-                      ) || null,
-                  specialPriority: Boolean(
-                      ticket?.specialPriority ?? ticket?.special_priority
-                  ),
-                  lateArrival: Boolean(
-                      ticket?.lateArrival ?? ticket?.late_arrival
-                  ),
-                  reprintRequestedAt: String(
-                      ticket?.reprintRequestedAt ||
-                          ticket?.reprint_requested_at ||
-                          ''
-                  ),
-                  estimatedWaitMin: Math.max(
-                      0,
-                      Number(
-                          ticket?.estimatedWaitMin ??
-                              ticket?.estimated_wait_min ??
-                              (index + 1) * 8
-                      ) || 0
-                  ),
-                  position:
-                      Number(ticket?.position || 0) > 0
-                          ? Number(ticket.position)
-                          : index + 1,
-              }))
-            : [],
+        callingNow: normalizedCallingNow,
+        nextTickets: normalizedNextTickets,
         activeHelpRequests: Array.isArray(activeHelpRequests)
             ? activeHelpRequests.map((item) => ({
                   ...item,
@@ -4863,10 +4899,45 @@ function formatIsoDateTime(iso) {
     });
 }
 
+function formatQueueEstimatedWait(minutes, waitingCount) {
+    const normalizedMinutes = Math.max(0, Number(minutes || 0));
+    if (Number(waitingCount || 0) <= 0) {
+        return 'Ahora';
+    }
+    return `${normalizedMinutes} min`;
+}
+
+function formatTicketEstimatedWait(minutes) {
+    const normalizedMinutes = Math.max(0, Number(minutes || 0));
+    return normalizedMinutes > 0 ? `~${normalizedMinutes} min` : 'Ahora';
+}
+
+function buildQueueWaitContext(normalizedState) {
+    const waitingCount = Math.max(0, Number(normalizedState?.waitingCount || 0));
+    if (waitingCount <= 0) {
+        return 'Sin cola activa ahora.';
+    }
+
+    const activeConsultorios = Math.max(
+        1,
+        Number(normalizedState?.activeConsultorios || 1)
+    );
+    const consultorioLabel =
+        activeConsultorios === 1
+            ? '1 consultorio activo'
+            : `${activeConsultorios} consultorios activos`;
+    const delayReason = String(normalizedState?.delayReason || '').trim();
+    return delayReason
+        ? `${consultorioLabel} · ${delayReason}`
+        : consultorioLabel;
+}
+
 function renderQueuePanel(queueState) {
     const normalizedState = normalizeQueueStatePayload(queueState);
     const waitingCountEl = getById('queueWaitingCount');
     const calledCountEl = getById('queueCalledCount');
+    const estimatedWaitEl = getById('queueEstimatedWait');
+    const waitContextEl = getById('queueWaitContext');
     const callingNowEl = getById('queueCallingNow');
     const nextListEl = getById('queueNextList');
 
@@ -4875,6 +4946,15 @@ function renderQueuePanel(queueState) {
     }
     if (calledCountEl) {
         calledCountEl.textContent = String(normalizedState.calledCount || 0);
+    }
+    if (estimatedWaitEl) {
+        estimatedWaitEl.textContent = formatQueueEstimatedWait(
+            normalizedState.estimatedWaitMin,
+            normalizedState.waitingCount
+        );
+    }
+    if (waitContextEl) {
+        waitContextEl.textContent = buildQueueWaitContext(normalizedState);
     }
 
     if (callingNowEl) {
@@ -4916,7 +4996,10 @@ function renderQueuePanel(queueState) {
                     (ticket) => `
                         <li>
                             <span class="ticket-code">${escapeHtml(ticket.ticketCode || '--')}</span>
-                            <span class="ticket-meta">${escapeHtml(ticket.patientInitials || '--')}</span>
+                            <span class="ticket-meta-stack">
+                                <span class="ticket-meta">${escapeHtml(ticket.patientInitials || '--')}</span>
+                                <span class="ticket-wait">${escapeHtml(formatTicketEstimatedWait(ticket.estimatedWaitMin))}</span>
+                            </span>
                             <span class="ticket-position">#${escapeHtml(ticket.position || '-')}</span>
                         </li>
                     `
@@ -5695,12 +5778,28 @@ function buildAssistantWaitMessage() {
     const waitingCount = Math.max(0, Number(queueState.waitingCount || 0));
     const estimatedWaitMin = Math.max(
         0,
-        Number(queueState.estimatedWaitMin || waitingCount * 8 || 0)
+        Number(
+            deriveEstimatedWaitMin(
+                queueState.estimatedWaitMin,
+                queueState.nextTickets || []
+            ) || 0
+        )
     );
     const delayReason = String(queueState.delayReason || '').trim();
+    const activeConsultorios = Math.max(
+        1,
+        Number(
+            queueState.activeConsultorios ||
+                countActiveConsultorios(queueState.callingNow || [])
+        )
+    );
+    const consultorioLabel =
+        activeConsultorios === 1
+            ? '1 consultorio activo'
+            : `${activeConsultorios} consultorios activos`;
     return delayReason
-        ? `Ahora hay ${waitingCount} persona(s) en espera. El tiempo estimado es ${estimatedWaitMin} min. Motivo de demora: ${delayReason}.`
-        : `Ahora hay ${waitingCount} persona(s) en espera. El tiempo estimado es ${estimatedWaitMin} min.`;
+        ? `Ahora hay ${waitingCount} persona(s) en espera. El tiempo estimado es ${estimatedWaitMin} min con ${consultorioLabel}. Motivo de demora: ${delayReason}.`
+        : `Ahora hay ${waitingCount} persona(s) en espera. El tiempo estimado es ${estimatedWaitMin} min con ${consultorioLabel}.`;
 }
 
 function buildAssistantNextStepMessage() {

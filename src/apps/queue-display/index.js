@@ -2981,6 +2981,55 @@ function getQueueStateNumber(source, keys, fallback = 0) {
     return Number(fallback || 0);
 }
 
+function countActiveConsultorios(callingNow) {
+    if (!Array.isArray(callingNow) || callingNow.length === 0) {
+        return 1;
+    }
+
+    const activeConsultorios = new Set();
+    for (const ticket of callingNow) {
+        const consultorio = Number(
+            ticket?.assignedConsultorio ?? ticket?.assigned_consultorio ?? 0
+        );
+        if (consultorio === 1 || consultorio === 2) {
+            activeConsultorios.add(consultorio);
+        }
+    }
+
+    return Math.max(1, activeConsultorios.size || 0);
+}
+
+function deriveEstimatedWaitMin(rawEstimatedWaitMin, nextTickets = []) {
+    const explicit = Number(rawEstimatedWaitMin);
+    if (Number.isFinite(explicit) && explicit >= 0) {
+        return explicit;
+    }
+
+    const waits = Array.isArray(nextTickets)
+        ? nextTickets
+              .map((ticket) => Number(ticket?.estimatedWaitMin || 0))
+              .filter((value) => Number.isFinite(value) && value >= 0)
+        : [];
+    if (waits.length === 0) {
+        return 0;
+    }
+
+    return Math.max(...waits);
+}
+
+function formatQueueEstimatedWait(minutes, waitingCount) {
+    const normalizedMinutes = Math.max(0, Number(minutes || 0));
+    if (Number(waitingCount || 0) <= 0) {
+        return 'Ahora';
+    }
+    return `${normalizedMinutes} min`;
+}
+
+function formatTicketEstimatedWait(minutes) {
+    const normalizedMinutes = Math.max(0, Number(minutes || 0));
+    return normalizedMinutes > 0 ? `~${normalizedMinutes} min` : 'Ahora';
+}
+
 function normalizeQueueStatePayload(rawState) {
     const state = rawState && typeof rawState === 'object' ? rawState : {};
     const counts = getQueueStateObject(state, ['counts']) || {};
@@ -3031,6 +3080,62 @@ function normalizeQueueStatePayload(rawState) {
               ['called', 'called_count'],
               callingNow.length
           );
+    const normalizedCallingNow = Array.isArray(callingNow)
+        ? callingNow.map((ticket) => ({
+              ...ticket,
+              id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
+              ticketCode: normalizeTicketCodeForDisplay(
+                  ticket?.ticketCode || ticket?.ticket_code || '--'
+              ),
+              patientInitials: normalizePatientInitialsForDisplay(
+                  ticket?.patientInitials || ticket?.patient_initials || '--'
+              ),
+              assignedConsultorio:
+                  Number(
+                      ticket?.assignedConsultorio ??
+                          ticket?.assigned_consultorio ??
+                          0
+                  ) || null,
+              calledAt: String(ticket?.calledAt || ticket?.called_at || ''),
+          }))
+        : [];
+    const normalizedNextTickets = Array.isArray(nextTickets)
+        ? nextTickets.map((ticket, index) => ({
+              ...ticket,
+              id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
+              ticketCode: normalizeTicketCodeForDisplay(
+                  ticket?.ticketCode || ticket?.ticket_code || '--'
+              ),
+              patientInitials: normalizePatientInitialsForDisplay(
+                  ticket?.patientInitials || ticket?.patient_initials || '--'
+              ),
+              estimatedWaitMin: Math.max(
+                  0,
+                  Number(
+                      ticket?.estimatedWaitMin ?? ticket?.estimated_wait_min ?? 0
+                  ) || 0
+              ),
+              position:
+                  Number(ticket?.position || 0) > 0
+                      ? Number(ticket.position)
+                      : index + 1,
+          }))
+        : [];
+    const activeConsultorios = Math.max(
+        1,
+        getQueueStateNumber(
+            state,
+            ['activeConsultorios', 'active_consultorios'],
+            countActiveConsultorios(normalizedCallingNow)
+        )
+    );
+    const estimatedWaitMin = Math.max(
+        0,
+        deriveEstimatedWaitMin(
+            state.estimatedWaitMin ?? state.estimated_wait_min,
+            normalizedNextTickets
+        )
+    );
 
     return {
         updatedAt:
@@ -3038,45 +3143,11 @@ function normalizeQueueStatePayload(rawState) {
             new Date().toISOString(),
         waitingCount: Math.max(0, Number(waitingCount || 0)),
         calledCount: Math.max(0, Number(calledCount || 0)),
-        callingNow: Array.isArray(callingNow)
-            ? callingNow.map((ticket) => ({
-                  ...ticket,
-                  id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
-                  ticketCode: normalizeTicketCodeForDisplay(
-                      ticket?.ticketCode || ticket?.ticket_code || '--'
-                  ),
-                  patientInitials: normalizePatientInitialsForDisplay(
-                      ticket?.patientInitials ||
-                          ticket?.patient_initials ||
-                          '--'
-                  ),
-                  assignedConsultorio:
-                      Number(
-                          ticket?.assignedConsultorio ??
-                              ticket?.assigned_consultorio ??
-                              0
-                      ) || null,
-                  calledAt: String(ticket?.calledAt || ticket?.called_at || ''),
-              }))
-            : [],
-        nextTickets: Array.isArray(nextTickets)
-            ? nextTickets.map((ticket, index) => ({
-                  ...ticket,
-                  id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
-                  ticketCode: normalizeTicketCodeForDisplay(
-                      ticket?.ticketCode || ticket?.ticket_code || '--'
-                  ),
-                  patientInitials: normalizePatientInitialsForDisplay(
-                      ticket?.patientInitials ||
-                          ticket?.patient_initials ||
-                          '--'
-                  ),
-                  position:
-                      Number(ticket?.position || 0) > 0
-                          ? Number(ticket.position)
-                          : index + 1,
-              }))
-            : [],
+        activeConsultorios,
+        estimatedWaitMin,
+        delayReason: String(state.delayReason || state.delay_reason || '').trim(),
+        callingNow: normalizedCallingNow,
+        nextTickets: normalizedNextTickets,
     };
 }
 
@@ -3629,6 +3700,10 @@ function ensureDisplayMetricsEl() {
             Siguientes
             <strong data-metric="next">0</strong>
         </span>
+        <span class="display-metric-chip" data-kind="eta">
+            Espera est.
+            <strong data-metric="eta">Ahora</strong>
+        </span>
     `;
     announcement.insertAdjacentElement('afterend', el);
     return el;
@@ -3638,7 +3713,13 @@ function setMetricValue(container, metricName, value) {
     if (!(container instanceof HTMLElement)) return;
     const valueEl = container.querySelector(`[data-metric="${metricName}"]`);
     if (!(valueEl instanceof HTMLElement)) return;
-    const nextValue = String(Math.max(0, Number(value || 0)));
+    const numericValue = Number(value);
+    const nextValue =
+        typeof value === 'string'
+            ? value
+            : Number.isFinite(numericValue)
+              ? String(Math.max(0, numericValue))
+              : '--';
     if (valueEl.textContent !== nextValue) {
         valueEl.textContent = nextValue;
     }
@@ -3660,6 +3741,14 @@ function renderDisplayMetrics(queueState) {
     setMetricValue(metricsEl, 'waiting', waitingCount);
     setMetricValue(metricsEl, 'active', callingCount);
     setMetricValue(metricsEl, 'next', nextCount);
+    setMetricValue(
+        metricsEl,
+        'eta',
+        formatQueueEstimatedWait(
+            normalizedState.estimatedWaitMin,
+            normalizedState.waitingCount
+        )
+    );
 }
 
 function ensureDisplayManualRefreshButton() {
@@ -4070,7 +4159,10 @@ function renderNextTickets(nextTickets) {
             (ticket) => `
                 <li>
                     <span class="next-code">${escapeHtml(ticket.ticketCode || '--')}</span>
-                    <span class="next-initials">${escapeHtml(ticket.patientInitials || '--')}</span>
+                    <span class="next-meta-stack">
+                        <span class="next-initials">${escapeHtml(ticket.patientInitials || '--')}</span>
+                        <span class="next-wait">${escapeHtml(formatTicketEstimatedWait(ticket.estimatedWaitMin))}</span>
+                    </span>
                     <span class="next-position">#${escapeHtml(ticket.position || '-')}</span>
                 </li>
             `

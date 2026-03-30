@@ -441,9 +441,21 @@ body {
     font-family: 'FrauncesSoft', serif;
 }
 
+.next-meta-stack {
+    display: grid;
+    justify-items: end;
+    gap: 0.12rem;
+}
+
 .next-initials {
     font-size: 0.98rem;
     color: var(--muted);
+}
+
+.next-wait {
+    color: #d9efff;
+    font-size: 0.84rem;
+    font-weight: 700;
 }
 
 .next-position {

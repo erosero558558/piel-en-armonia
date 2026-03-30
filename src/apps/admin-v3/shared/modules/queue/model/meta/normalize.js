@@ -44,6 +44,9 @@ export function normalizeQueueMeta(rawMeta, tickets = []) {
     const recentResolvedHelpRequests = rawRecentResolvedHelpRequests.map(
         (request, index) => normalizeHelpRequest(request, index)
     );
+    const nextTicketWaits = nextTickets
+        .map((ticket) => toFiniteNumber(ticket?.estimatedWaitMin, -1))
+        .filter((value) => value >= 0);
 
     return {
         updatedAt: String(
@@ -54,7 +57,7 @@ export function normalizeQueueMeta(rawMeta, tickets = []) {
         estimatedWaitMin: toFiniteNumber(
             meta.estimatedWaitMin ??
                 meta.estimated_wait_min ??
-                Math.max(0, nextTickets.length * 8),
+                Math.max(0, nextTicketWaits.length ? nextTicketWaits[nextTicketWaits.length - 1] : 0),
             0
         ),
         delayReason: String(meta.delayReason || meta.delay_reason || ''),
