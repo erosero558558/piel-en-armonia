@@ -1,37 +1,48 @@
-import { jsonClient } from '../../shared/core/api.js';
-import { getState, setState } from '../../shared/core/store.js';
+import { apiRequest } from '../../shared/core/api-client.js';
 import { renderDailyAgendaContent } from './render.js';
-import { showToast } from '../../shared/ui/toast.js';
-import { syncQueueState } from '../../shared/modules/queue.js';
+import { createToast } from '../../shared/ui/render.js';
+import { applyQueueStateResponse } from '../../shared/modules/queue/sync.js';
 
 export async function checkInPatient(appointment) {
     if (!appointment || !appointment.id) return;
 
     // Use kiosk check-in logic
-    const payload = {
-        phone: appointment.phone || appointment.telefono,
-        date: appointment.date,
-        time: appointment.time,
-    };
+    const checkinToken = String(
+        appointment.checkinToken || appointment.checkin_token || ''
+    ).trim();
+    const payload =
+        checkinToken !== ''
+            ? {
+                  checkinToken,
+                  patientInitials: String(appointment.name || '')
+                      .trim()
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part) => part.charAt(0))
+                      .join('')
+                      .toUpperCase(),
+              }
+            : {
+                  telefono: appointment.phone || appointment.telefono,
+                  fecha: appointment.date,
+                  hora: appointment.time,
+              };
 
     try {
-        const response = await jsonClient('/api.php?resource=queue-checkin', {
+        const response = await apiRequest('queue-checkin', {
             method: 'POST',
-            body: JSON.stringify(payload),
+            body: payload,
         });
 
-        if (response.ok) {
-            showToast('Paciente marcado como llegó', 'success');
-            // Refresh queue state internally to fetch new ticket
-            await syncQueueState();
-            
-            // Re-render
-            renderDailyAgendaContent();
-        } else {
-            showToast('Error al marcar llegada: ' + (response.error || 'Desconocido'), 'error');
-        }
+        applyQueueStateResponse(response, {
+            syncMode: 'live',
+            bumpRuntimeRevision: true,
+        });
+        createToast('Paciente marcado como llegó', 'success');
+        renderDailyAgendaContent();
     } catch (e) {
-        showToast('Error de red al marcar llegada', 'error');
+        createToast('Error de red al marcar llegada', 'error');
         console.error('Check-in error', e);
     }
 }

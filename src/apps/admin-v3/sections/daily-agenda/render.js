@@ -1,5 +1,5 @@
 import { getState } from '../../shared/core/store.js';
-import { escapeHtml, formatDate, on, setHtml } from '../../shared/ui/render.js';
+import { escapeHtml, formatDate, setHtml } from '../../shared/ui/render.js';
 import { checkInPatient } from './actions.js';
 
 function isToday(dateString) {
