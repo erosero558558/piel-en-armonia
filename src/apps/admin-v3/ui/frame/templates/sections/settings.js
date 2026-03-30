@@ -82,6 +82,86 @@ export function renderSettingsSection() {
                     </form>
                 </article>
 
+                <article class="sony-panel settings-form-panel" style="margin-top: 20px;">
+                    <header class="section-header">
+                        <div>
+                            <h3>Perfil de la clínica</h3>
+                            <p>Esta configuración es la fuente de verdad para membretes institucionales.</p>
+                        </div>
+                    </header>
+
+                    <form id="clinicProfileForm" class="settings-form" novalidate>
+                        <div class="settings-fields">
+                            <label class="settings-field">
+                                <span>Nombre clínico</span>
+                                <input
+                                    id="clinicProfileName"
+                                    name="clinicName"
+                                    type="text"
+                                    autocomplete="organization"
+                                    placeholder="Aurora Derm"
+                                >
+                            </label>
+                            <label class="settings-field">
+                                <span>Dirección Matriz</span>
+                                <input
+                                    id="clinicProfileAddress"
+                                    name="address"
+                                    type="text"
+                                    autocomplete="street-address"
+                                    placeholder="Quito, Ecuador"
+                                >
+                            </label>
+                            <label class="settings-field">
+                                <span>Teléfono Contacto</span>
+                                <input
+                                    id="clinicProfilePhone"
+                                    name="phone"
+                                    type="text"
+                                    autocomplete="tel"
+                                    placeholder="+593 98 000 0000"
+                                >
+                            </label>
+                            <label class="settings-field">
+                                <span>Logo Institucional</span>
+                                <input
+                                    id="clinicProfileLogoFile"
+                                    name="logoFile"
+                                    type="file"
+                                    accept="image/png,image/jpeg"
+                                >
+                                <small>PNG o JPG menores a 512KB. Recomendado diseño horizontal.</small>
+                            </label>
+                        </div>
+
+                        <div class="settings-signature-block">
+                            <div id="clinicProfileLogoPreview" class="settings-signature-preview"></div>
+                            <div class="settings-signature-meta">
+                                <strong id="clinicProfileLogoState">Sin logo cargado</strong>
+                                <p>Este logo aparecerá en el margen superior izquierdo de los PDFs.</p>
+                                <button
+                                    type="button"
+                                    id="clinicProfileLogoClearBtn"
+                                    class="admin-theme-btn settings-secondary-btn"
+                                >
+                                    Eliminar logo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="settings-form-actions">
+                            <p id="clinicProfileSaveMeta">Sin cambios guardados todavia.</p>
+                            <button
+                                type="submit"
+                                id="clinicProfileSaveBtn"
+                                class="admin-v3-command-btn settings-primary-btn"
+                            >
+                                Guardar perfil
+                            </button>
+                        </div>
+                    </form>
+                </article>
+
                 <aside class="settings-rail">
                     <article class="sony-panel soft settings-preview-panel">
                         <header class="section-header">
@@ -109,11 +189,15 @@ export function renderSettingsSection() {
                         <dl class="settings-status-list">
                             <div>
                                 <dt>Storage</dt>
-                                <dd>data/config/doctor-profile.json</dd>
+                                <dd>data/config/[doctor|clinic]-profile.json</dd>
                             </div>
                             <div>
-                                <dt>Ultima actualizacion</dt>
+                                <dt>Ultima actualizacion (Dr.)</dt>
                                 <dd id="doctorProfileUpdatedAt">Sin guardar</dd>
+                            </div>
+                            <div>
+                                <dt>Ultima actualizacion (Clínica)</dt>
+                                <dd id="clinicProfileUpdatedAt">Sin guardar</dd>
                             </div>
                             <div>
                                 <dt>Superficies</dt>

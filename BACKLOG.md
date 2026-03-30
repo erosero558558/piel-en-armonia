@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 10:53:55 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:00:39 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **40%** completado (66/167)
+`████████░░░░░░░░░░░░` **38%** completado (66/176)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 28 | 30 | 48% |
+| 🎯 Sprint 3 | 28 | 39 | 42% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -30,7 +30,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (25)
+### 🟢 Disponibles (33)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -42,8 +42,10 @@ _Sprint completado. 24/24 tareas._
 | **S3-48** | `[S]` | BLOCKERS.md auto-generado — modificar  para que además de liberar el c... |
 | **S3-49** | `[S]` | npm run status — comando que en una sola ejecución muestra: progreso d... |
 | **S3-50** | `[S]` | Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta ... |
+| **S3-55** | `[S]` | 🔴 CRÍTICO Fix parse error  —  falla con "Unclosed '{' on line 755 … o... |
+| **S3-57** | `[S]` | gate.js — check  automático — antes de mostrar GATE PASSED, ejecutar  ... |
+| **S3-63** | `[S]` | Tabla de comandos oficiales — en  (o  sección Desarrollo), agregar tab... |
 | **S3-13** | `[M]` | Sala inteligente — en , entre llamadas mostrar: tips de cuidado de pie... |
-| **S3-23** | `[M]` | Compliance MSP Ecuador — el formulario oficial es SNS-MSP/HCU-form.002... |
 | **S3-28** | `[M]` | Vista de agenda diaria — en admin: agenda del día con pacientes confir... |
 | **S3-33** | `[M]` | Verificación de transferencia — paciente sube foto del comprobante. Ad... |
 | **S3-34** | `[M]` | Estado de cuenta — vista en admin: historial de pagos por paciente, sa... |
@@ -54,16 +56,23 @@ _Sprint completado. 24/24 tareas._
 | **S3-45** | `[M]` | Gate checks específicos por tarea — ampliar  para verificar artefactos... |
 | **S3-51** | `[M]` | openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero ... |
 | **S3-52** | `[M]` | Custom GPT instructions — crear  con las instrucciones exactas para co... |
+| **S3-56** | `[M]` | PHPUnit smoke baseline — después de S3-55, definir y dejar en verde un... |
+| **S3-58** | `[M]` | conflict.js — precisión quirúrgica — cambiar de heurística solo textua... |
+| **S3-62** | `[M]` | Consolidar npm scripts —  tiene 273 scripts: demasiada superficie cogn... |
 | **S3-17** | `[L]` | Comparación before/after — en admin: dos fotos side-by-side de misma z... |
 | **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
 | **S3-54** | `[L]` | Resumen de consulta para paciente — al cerrar la consulta (), generar ... |
+| **S3-59** | `[L]` | Split  (4.766 líneas) — archivo monolítico con 3 responsabilidades mez... |
+| **S3-60** | `[L]` | Split  (4.198 líneas) — separar en repositorios por agregado:  (sesion... |
+| **S3-61** | `[L]` | Split  (24.990 líneas) — módulo de admin más grande del repo. Separar ... |
 | **S3-29** | `[XL]` | Flujo completo de teleconsulta — paciente solicita →  evalúa →  decide... |
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 96min)
-- **S3-37** `[S]` → _antigravity_ (expira en 120min)
+- **S3-23** `[M]` → _unknown-agent_ (expira en 234min)
+- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 89min)
+- **S3-37** `[S]` → _antigravity_ (expira en 113min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

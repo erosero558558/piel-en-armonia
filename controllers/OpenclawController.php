@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/openclaw/AIRouter.php';
 require_once __DIR__ . '/../lib/DoctorProfileStore.php';
+require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 
 /**
  * OpenclawController — Copiloto clínico de Aurora Derm
@@ -507,6 +508,14 @@ final class OpenclawController
             ? "Registro MSP: {$doctorMsp}"
             : 'Firma autorizada';
 
+        $clinicProfile = read_clinic_profile();
+        $clinicName = htmlspecialchars($clinicProfile['clinicName'], ENT_QUOTES, 'UTF-8');
+        $clinicAddress = htmlspecialchars($clinicProfile['address'] ?: 'Quito, Ecuador', ENT_QUOTES, 'UTF-8');
+        $clinicPhone = htmlspecialchars($clinicProfile['phone'] ?: '', ENT_QUOTES, 'UTF-8');
+        $clinicLogoHtml = $clinicProfile['logoImage'] !== '' 
+            ? '<img src="' . htmlspecialchars($clinicProfile['logoImage'], ENT_QUOTES, 'UTF-8') . '" style="max-height: 50px; display:inline-block; margin-right:10px; vertical-align:middle;">' 
+            : '';
+
         $html = "
         <!DOCTYPE html>
         <html>
@@ -528,9 +537,12 @@ final class OpenclawController
         </head>
         <body>
             <div class=\"header\">
-                <h1>Aurora Derm</h1>
-                <p>Clínica Dermatológica Especializada</p>
-                <p>Tel: +593 98 245 3672 | Quito, Ecuador</p>
+                <div style=\"display: inline-flex; align-items: center; justify-content: center;\">
+                    {$clinicLogoHtml}
+                    <h1 style=\"display: inline-block; vertical-align: middle;\">{$clinicName}</h1>
+                </div>
+                <p>Clínica Especializada</p>
+                <p>{$clinicAddress} | Telf: {$clinicPhone}</p>
             </div>
             
             <div class=\"patient-info\">
@@ -662,7 +674,8 @@ final class OpenclawController
         $store   = self::readStore();
         $patient = $store['patients'][$caseId] ?? [];
         $phone   = $patient['phone'] ?? '';
-        $waMsg   = urlencode("Su certificado médico de Aurora Derm está listo. Folio: {$folio}. " . (($type === 'reposo_laboral') ? "Días de reposo: {$certData['rest_days']}." : ''));
+        $clinicName = read_clinic_profile()['clinicName'];
+        $waMsg   = urlencode("Su certificado médico de {$clinicName} está listo. Folio: {$folio}. " . (($type === 'reposo_laboral') ? "Días de reposo: {$certData['rest_days']}." : ''));
         $waUrl   = $phone !== '' ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) . '?text=' . $waMsg : '';
 
         json_response([
@@ -948,9 +961,10 @@ final class OpenclawController
         $signatureHtml = $doctorSignatureImage !== ''
             ? '<img src="' . htmlspecialchars($doctorSignatureImage, ENT_QUOTES, 'UTF-8') . '" alt="Firma digital del medico" style="max-width: 220px; max-height: 80px; display: block; margin-bottom: 10px; object-fit: contain;">'
             : '';
+        $clinicName = read_clinic_profile()['clinicName'];
         $doctorSubtitle = $doctorSpecialty !== ''
             ? htmlspecialchars($doctorSpecialty, ENT_QUOTES, 'UTF-8')
-            : 'Flow OS - Copiloto Clinico Aurora Derm';
+            : 'Flow OS - Copiloto Clinico ' . htmlspecialchars($clinicName, ENT_QUOTES, 'UTF-8');
         $doctorMspHtml = $doctorMsp !== ''
             ? '<p>Registro MSP: ' . htmlspecialchars($doctorMsp, ENT_QUOTES, 'UTF-8') . '</p>'
             : '';
