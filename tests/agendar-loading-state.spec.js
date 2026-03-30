@@ -49,14 +49,14 @@ async function selectService(page, value) {
     await page
         .locator(`#service-grid label:has(input[name="service"][value="${value}"])`)
         .click();
-    await page.getByRole('button', { name: 'Continuar a Medico' }).click();
+    await page.locator('#btn-next-service').click();
 }
 
 async function selectDoctor(page, value) {
     await page
         .locator(`#doctor-grid label:has(input[name="doctor"][value="${value}"])`)
         .click();
-    await page.getByRole('button', { name: 'Elegir Fecha' }).click();
+    await page.locator('#btn-next-doctor').click();
 }
 
 async function chooseDateAndTime(page, date, timeLabel = '09:00') {
