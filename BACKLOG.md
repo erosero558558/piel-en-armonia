@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 1:13:41 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 1:31:28 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████░░░░░░░░░░░` **46%** completado (98/213)
+`█████████░░░░░░░░░░░` **46%** completado (99/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 54 | 13 | 81% |
+| 🎯 Sprint 3 | 55 | 12 | 82% |
 | ⏸ Sprint 4 | 2 | 24 | 8% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -32,14 +32,13 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (12)
+### 🟢 Disponibles (11)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S3-41** | `[S]` | CIE-10 autocomplete widget — el backend  ya existe. Falta el frontend:... |
 | **S3-43** | `[S]` | Botón "Emitir certificado" en admin — en la vista del caso del pacient... |
 | **S3-44** | `[S]` | Historial de certificados en admin — en el perfil del paciente, pestañ... |
-| **S3-46** | `[S]` | ComplianceMSP validator — crear  con método  que devuelve lista de cam... |
 | **S3-47** | `[S]` | Health check completo — el endpoint  debe verificar y reportar: estado... |
 | **S3-50** | `[S]` | Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta ... |
 | **S3-33** | `[M]` | Verificación de transferencia — paciente sube foto del comprobante. Ad... |
@@ -69,7 +68,7 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S4-02** `[L]` → _Antigravity_ (expira en 478min)
+- **S4-02** `[L]` → _Antigravity_ (expira en 461min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

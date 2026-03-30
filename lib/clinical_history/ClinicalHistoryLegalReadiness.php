@@ -629,12 +629,18 @@ final class ClinicalHistoryLegalReadiness
             );
         }
 
+        $doctorProfile = function_exists('doctor_profile_document_fields')
+            ? doctor_profile_document_fields()
+            : ['msp' => ''];
         $complianceMspMissing = ComplianceMSP::validate([
             'patient' => $session['patient'] ?? [],
             'intake' => $draft['intake'] ?? [],
             'hcu005' => $hcu005,
+            'clinicianDraft' => $draft['clinicianDraft'] ?? [],
             'doctor' => $session['doctor'] ?? '',
+            'doctorMsp' => $doctorProfile['msp'] ?? '',
         ]);
+        $complianceMspLabels = ComplianceMSP::describeMissing($complianceMspMissing);
 
         self::appendChecklist(
             $checklist,
@@ -643,15 +649,21 @@ final class ClinicalHistoryLegalReadiness
             'Compliance MSP',
             $complianceMspMissing === []
                 ? 'Todos los campos clínicos mínimos obligatorios están cubiertos.'
-                : 'Faltan campos clínicos mínimos MVP.',
-            ['missingFields' => $complianceMspMissing]
+                : 'Faltan campos clínicos mínimos del MSP.',
+            [
+                'missingFields' => $complianceMspMissing,
+                'missingLabels' => $complianceMspLabels,
+            ]
         );
         if ($complianceMspMissing !== []) {
             $blockingReasons[] = self::blockingReason(
                 'compliance_msp_incomplete',
                 'Faltan campos mínimos de Compliance MSP',
-                'Revisa y completa los siguientes campos: ' . implode(', ', $complianceMspMissing),
-                ['missingFields' => $complianceMspMissing]
+                'Revisa y completa los siguientes campos: ' . implode(', ', $complianceMspLabels),
+                [
+                    'missingFields' => $complianceMspMissing,
+                    'missingLabels' => $complianceMspLabels,
+                ]
             );
         }
 
@@ -814,10 +826,11 @@ final class ClinicalHistoryLegalReadiness
             'complianceMspStatus' => [
                 'status' => $complianceMspMissing === [] ? 'complete' : 'incomplete',
                 'missingFields' => $complianceMspMissing,
-                'label' => $complianceMspMissing === [] ? 'Compliance MSP OK' : 'Faltan campos MVP',
+                'missingLabels' => $complianceMspLabels,
+                'label' => $complianceMspMissing === [] ? 'Compliance MSP OK' : 'Faltan campos MSP',
                 'summary' => $complianceMspMissing === []
                     ? 'Cumple con los campos mínimos requeridos.'
-                    : 'Faltan campos obligatorios descritos en ComplianceMSP para cerrar el registro.',
+                    : 'Faltan campos obligatorios del MSP para cerrar el registro.',
             ],
             'normativeSources' => [
                 'MSP-AM-5216A',

@@ -9,3 +9,4 @@ require_once __DIR__ . '/ClinicalHistoryLegalReadiness.php';
 require_once __DIR__ . '/ComplianceMSP.php';
 require_once __DIR__ . '/ClinicalHistoryOpsSnapshot.php';
 require_once __DIR__ . '/ClinicalHistoryService.php';
+require_once __DIR__ . '/../DoctorProfileStore.php';

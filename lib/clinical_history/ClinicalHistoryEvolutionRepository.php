@@ -16,7 +16,9 @@ final class ClinicalHistoryEvolutionRepository
             return array_merge(
                 self::normalizeHcu005Section($sectionSeed, [
                     'evolutionNote' => self::trimString($draft['resumen'] ?? $draft['resumenClinico'] ?? ''),
+                    'physicalExam' => self::trimString($draft['physicalExam'] ?? ''),
                     'diagnosticImpression' => implode(', ', self::normalizeStringList($draft['cie10Sugeridos'] ?? [])),
+                    'diagnosisType' => self::normalizeDiagnosisType($draft['diagnosisType'] ?? ''),
                     'therapeuticPlan' => self::trimString($draft['tratamientoBorrador'] ?? ''),
                     'careIndications' => self::trimString(
                         is_array($draft['posologiaBorrador'] ?? null)
@@ -38,7 +40,9 @@ final class ClinicalHistoryEvolutionRepository
     
             return [
                 'evolutionNote' => self::trimString($source['evolutionNote'] ?? ''),
+                'physicalExam' => self::trimString($source['physicalExam'] ?? ''),
                 'diagnosticImpression' => self::trimString($source['diagnosticImpression'] ?? ''),
+                'diagnosisType' => self::normalizeDiagnosisType($source['diagnosisType'] ?? $source['diagnosticType'] ?? ''),
                 'therapeuticPlan' => self::trimString($source['therapeuticPlan'] ?? ''),
                 'careIndications' => self::trimString($source['careIndications'] ?? ''),
             ];
@@ -100,8 +104,14 @@ final class ClinicalHistoryEvolutionRepository
                 self::trimString($normalized['evolutionNote']) !== ''
                     ? 'Evolucion clinica: ' . $normalized['evolutionNote']
                     : '',
+                self::trimString($normalized['physicalExam']) !== ''
+                    ? 'Examen fisico: ' . $normalized['physicalExam']
+                    : '',
                 self::trimString($normalized['diagnosticImpression']) !== ''
                     ? 'Impresion diagnostica: ' . $normalized['diagnosticImpression']
+                    : '',
+                self::trimString($normalized['diagnosisType']) !== ''
+                    ? 'Tipo de diagnostico: ' . $normalized['diagnosisType']
                     : '',
                 self::trimString($normalized['therapeuticPlan']) !== ''
                     ? 'Plan terapeutico: ' . $normalized['therapeuticPlan']
@@ -112,5 +122,16 @@ final class ClinicalHistoryEvolutionRepository
             ];
     
             return trim(implode("\n", array_filter($lines, static fn ($line): bool => is_string($line) && trim($line) !== '')));
+        }
+
+    private static function normalizeDiagnosisType($value): string
+        {
+            $normalized = strtoupper(self::trimString($value));
+
+            return match ($normalized) {
+                'PRE', 'PRESUNTIVO' => 'PRE',
+                'DEF', 'DEFINITIVO' => 'DEF',
+                default => '',
+            };
         }
 }

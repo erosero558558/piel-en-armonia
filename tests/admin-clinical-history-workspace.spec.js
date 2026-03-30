@@ -890,11 +890,19 @@ function buildClinicalRecordPayload({
             documents.finalNote?.sections?.hcu005?.evolutionNote ||
             clinicianSummary ||
             '',
+        physicalExam:
+            documents.finalNote?.sections?.hcu005?.physicalExam ||
+            (legalReadiness.status === 'ready'
+                ? 'Eritema centrofacial, piel integra y sin lesiones exudativas.'
+                : ''),
         diagnosticImpression:
             documents.finalNote?.sections?.hcu005?.diagnosticImpression ||
             (legalReadiness.status === 'ready'
                 ? 'Rosacea inflamatoria en control clinico.'
                 : ''),
+        diagnosisType:
+            documents.finalNote?.sections?.hcu005?.diagnosisType ||
+            (legalReadiness.status === 'ready' ? 'DEF' : ''),
         therapeuticPlan:
             documents.finalNote?.sections?.hcu005?.therapeuticPlan ||
             (legalReadiness.status === 'ready'
@@ -1094,6 +1102,19 @@ function buildClinicalRecordPayload({
         buildHcu012AReportStatusFixture(
             normalizedActiveImagingOrder?.resultStatus || 'not_received'
         );
+    const normalizedComplianceMspStatus = legalReadiness.complianceMspStatus || {
+        status: legalReadiness.status === 'ready' ? 'complete' : 'incomplete',
+        missingFields: [],
+        missingLabels: [],
+        label:
+            legalReadiness.status === 'ready'
+                ? 'Compliance MSP OK'
+                : 'Faltan campos MSP',
+        summary:
+            legalReadiness.status === 'ready'
+                ? 'Cumple con los campos mínimos requeridos.'
+                : 'Faltan campos obligatorios del MSP para cerrar el registro.',
+    };
     const prescriptionMedication = normalizedHcu005.prescriptionItems
         .map((item) => item.medication)
         .filter(Boolean)
@@ -1718,6 +1739,7 @@ function buildClinicalRecordPayload({
             hcu012AStatus: normalizedHcu012AStatus,
             hcu012AReportStatus: normalizedHcu012AReportStatus,
             hcu024Status: normalizedHcu024Status,
+            complianceMspStatus: normalizedComplianceMspStatus,
         },
         closureChecklist: {
             ...legalReadiness,
@@ -1740,6 +1762,7 @@ function buildClinicalRecordPayload({
             hcu012AStatus: normalizedHcu012AStatus,
             hcu012AReportStatus: normalizedHcu012AReportStatus,
             hcu024Status: normalizedHcu024Status,
+            complianceMspStatus: normalizedComplianceMspStatus,
         },
         recordsGovernance: normalizedRecordsGovernance,
         accessAudit: normalizedAccessAudit,
@@ -1777,6 +1800,22 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
             label: 'Bloqueada',
             summary:
                 'La aprobacion esta bloqueada hasta resolver los faltantes medico-legales visibles.',
+            complianceMspStatus: {
+                status: 'incomplete',
+                missingFields: [
+                    'physical_exam',
+                    'cie10_type',
+                    'doctor_msp',
+                ],
+                missingLabels: [
+                    'Examen físico',
+                    'Tipo de diagnóstico (PRE / DEF)',
+                    'Registro MSP del profesional',
+                ],
+                label: 'Faltan campos MSP',
+                summary:
+                    'Faltan campos obligatorios del MSP para cerrar el registro.',
+            },
             hcu005Status: {
                 status: 'partial',
                 label: 'HCU-005 parcial',
@@ -1790,13 +1829,20 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
                     message:
                         'Aun faltan datos clinicos minimos para sostener el cierre.',
                 },
+                {
+                    code: 'compliance_msp',
+                    status: 'fail',
+                    label: 'Compliance MSP',
+                    message:
+                        'Faltan campos clinicos minimos del MSP.',
+                },
             ],
             blockingReasons: [
                 {
-                    code: 'missing_minimum_clinical_data',
-                    label: 'Faltan datos clinicos minimos',
+                    code: 'compliance_msp_incomplete',
+                    label: 'Faltan campos mínimos de Compliance MSP',
                     message:
-                        'Completa intake y preguntas faltantes antes de aprobar.',
+                        'Revisa y completa los siguientes campos: Examen físico, Tipo de diagnóstico (PRE / DEF), Registro MSP del profesional',
                 },
             ],
         },
@@ -1988,7 +2034,7 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
                         'Existe un consentimiento por procedimiento aún en borrador.',
                     approvalBlockedReasons: [
                         {
-                            code: 'missing_minimum_clinical_data',
+                            code: 'compliance_msp_incomplete',
                         },
                     ],
                 },
@@ -2131,13 +2177,34 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('Datos minimos clinicos');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Faltan campos MSP');
     await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
         'Admisión HCU-form.001/2008'
     );
     await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
         'Interconsulta HCU-form.007/2008'
     );
-    await expect(page.locator('#clinicalHistoryApproveBtn')).toBeDisabled();
+    await expect(page.locator('#hcu005_physical_exam')).toBeVisible();
+    await expect(page.locator('#hcu005_diagnosis_type')).toBeVisible();
+    await expect(page.locator('#clinicalHistoryApproveBtn')).toBeEnabled();
+    await page.locator('#clinicalHistoryApproveBtn').click();
+    await expect(
+        page.locator('#clinicalHistoryApprovalGuardrail')
+    ).toContainText('Cierre bloqueado por Compliance MSP');
+    await expect(
+        page.locator('#clinicalHistoryApprovalGuardrail')
+    ).toContainText('Badge rojo activo');
+    await expect(
+        page.locator('#clinicalHistoryApprovalGuardrail')
+    ).toContainText('Examen físico');
+    await expect(
+        page.locator('#clinicalHistoryApprovalGuardrail')
+    ).toContainText('Tipo de diagnóstico (PRE / DEF)');
+    await expect(
+        page.locator('#clinicalHistoryApprovalGuardrail')
+    ).toContainText('Registro MSP del profesional');
 
     await page.locator('[data-clinical-session-id="chs-002"]').click();
     await expect(
@@ -2156,6 +2223,9 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('HCU-024 aceptado');
     await expect(page.locator('#clinicalHistoryApproveBtn')).toBeEnabled();
+    await expect(
+        page.locator('#clinicalHistoryApprovalGuardrail')
+    ).not.toContainText('Cierre bloqueado por Compliance MSP');
     await expect(page.locator('#clinicalHistoryHeaderMeta')).toContainText(
         'Primera admision'
     );
@@ -2174,6 +2244,10 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     await expect(page.locator('#hcu005_diagnostic_impression')).toHaveValue(
         'Rosacea inflamatoria en control clinico.'
     );
+    await expect(page.locator('#hcu005_physical_exam')).toHaveValue(
+        'Eritema centrofacial, piel integra y sin lesiones exudativas.'
+    );
+    await expect(page.locator('#hcu005_diagnosis_type')).toHaveValue('DEF');
 
     await page.locator('#clinicalHistoryApproveBtn').click();
     await expect(

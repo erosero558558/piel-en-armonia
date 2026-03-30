@@ -280,6 +280,10 @@ export function renderClinicalHistorySection() {
                             Aprobar nota final
                         </button>
                     </div>
+                    <div
+                        id="clinicalHistoryApprovalGuardrail"
+                        class="clinical-history-approval-guardrail-slot"
+                    ></div>
                 </article>
             </div>
         </section>

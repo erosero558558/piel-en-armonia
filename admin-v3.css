@@ -3257,6 +3257,25 @@ body.admin-v3-mode .clinical-history-actions-row {
     justify-content: flex-start;
 }
 
+body.admin-v3-mode .clinical-history-approval-guardrail-slot {
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .clinical-history-approval-guardrail {
+    border-color: rgba(183, 34, 65, 0.32);
+    background: rgba(183, 34, 65, 0.08);
+}
+
+body.admin-v3-mode .clinical-history-approval-guardrail ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+body.admin-v3-mode .clinical-history-approval-guardrail li {
+    margin: 0;
+}
+
 body.admin-v3-mode .clinical-history-followup-input {
     min-height: 132px;
 }

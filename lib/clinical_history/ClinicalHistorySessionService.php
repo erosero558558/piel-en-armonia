@@ -1886,7 +1886,9 @@ public function  buildFinalNoteContent(array $session, array $draft): string
             'Telefono: ' . ClinicalHistoryRepository::trimString($admission001['residence']['phone'] ?? ''),
             'Enfermedad actual: ' . ClinicalHistoryRepository::trimString($intake['enfermedadActual'] ?? ''),
             'Evolucion clinica: ' . ClinicalHistoryRepository::trimString($hcu005['evolutionNote'] ?? ''),
+            'Examen fisico: ' . ClinicalHistoryRepository::trimString($hcu005['physicalExam'] ?? ''),
             'Impresion diagnostica: ' . ClinicalHistoryRepository::trimString($hcu005['diagnosticImpression'] ?? ''),
+            'Tipo de diagnostico: ' . ClinicalHistoryRepository::trimString($hcu005['diagnosisType'] ?? ''),
             'Plan terapeutico: ' . ClinicalHistoryRepository::trimString($hcu005['therapeuticPlan'] ?? ''),
             'Indicaciones / cuidados: ' . ClinicalHistoryRepository::trimString($hcu005['careIndications'] ?? ''),
             'Interconsulta HCU-007: ' . trim(implode(' • ', array_filter([

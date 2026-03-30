@@ -78,11 +78,27 @@ const CLINICAL_HISTORY_PREGNANCY_CHOICES = Object.freeze([
     { value: 'no', label: 'No' },
     { value: 'yes', label: 'Si' },
 ]);
+const CLINICAL_HISTORY_DIAGNOSIS_TYPE_CHOICES = Object.freeze([
+    { value: '', label: 'Sin dato' },
+    { value: 'PRE', label: 'Presuntivo (PRE)' },
+    { value: 'DEF', label: 'Definitivo (DEF)' },
+]);
 const CLINICAL_HISTORY_LAB_ORDER_PRIORITY_CHOICES = Object.freeze([
     { value: 'routine', label: 'Rutina' },
     { value: 'urgent', label: 'Urgente' },
     { value: 'control', label: 'Control' },
 ]);
+const CLINICAL_HISTORY_COMPLIANCE_MSP_FIELD_LABELS = Object.freeze({
+    patient_name: 'Nombre del paciente',
+    patient_id: 'Documento de identidad',
+    reason_for_visit: 'Motivo de consulta',
+    physical_exam: 'Examen físico',
+    cie10_code: 'Diagnóstico CIE-10',
+    cie10_type: 'Tipo de diagnóstico (PRE / DEF)',
+    treatment_plan: 'Plan de tratamiento',
+    evolution_note: 'Nota de evolución clínica',
+    doctor_msp: 'Registro MSP del profesional',
+});
 const CLINICAL_HISTORY_IMAGING_STUDY_GROUPS = Object.freeze([
     {
         key: 'conventionalRadiography',
@@ -197,6 +213,29 @@ function formatTextareaList(value) {
     return normalizeStringList(value).join('\n');
 }
 
+function normalizeDiagnosisType(value) {
+    const normalized = normalizeString(value).toUpperCase();
+    if (normalized === 'PRESUNTIVO') {
+        return 'PRE';
+    }
+    if (normalized === 'DEFINITIVO') {
+        return 'DEF';
+    }
+    return ['PRE', 'DEF'].includes(normalized) ? normalized : '';
+}
+
+function formatComplianceMspMissingLabels(status) {
+    const source = status && typeof status === 'object' ? status : {};
+    const explicitLabels = normalizeStringList(source.missingLabels);
+    if (explicitLabels.length > 0) {
+        return explicitLabels;
+    }
+
+    return normalizeStringList(source.missingFields).map(
+        (field) => CLINICAL_HISTORY_COMPLIANCE_MSP_FIELD_LABELS[field] || field
+    );
+}
+
 export function normalizeClinicalHistoryWorkspace(value) {
     const normalized = normalizeString(value).toLowerCase();
     return normalized === 'media-flow' ? 'media-flow' : 'review';
@@ -292,7 +331,9 @@ function emptyPrescriptionItem() {
 function emptyHcu005() {
     return {
         evolutionNote: '',
+        physicalExam: '',
         diagnosticImpression: '',
+        diagnosisType: '',
         therapeuticPlan: '',
         careIndications: '',
         prescriptionItems: [],
@@ -930,6 +971,9 @@ function emptyReview() {
             hcu012AStatus: hcu012AStatusMeta('not_applicable'),
             hcu012AReportStatus: hcu012AReportStatusMeta('not_received'),
             hcu024Status: hcu024StatusMeta('not_applicable'),
+            complianceMspStatus: complianceMspStatusMeta({
+                status: 'incomplete',
+            }),
         },
         recordsGovernance: {},
         accessAudit: [],
@@ -1046,8 +1090,16 @@ function normalizeHcu005(source, fallback = {}) {
         evolutionNote: normalizeString(
             safeSource.evolutionNote ?? safeFallback.evolutionNote
         ),
+        physicalExam: normalizeString(
+            safeSource.physicalExam ?? safeFallback.physicalExam
+        ),
         diagnosticImpression: normalizeString(
             safeSource.diagnosticImpression ?? safeFallback.diagnosticImpression
+        ),
+        diagnosisType: normalizeDiagnosisType(
+            safeSource.diagnosisType ??
+                safeSource.diagnosticType ??
+                safeFallback.diagnosisType
         ),
         therapeuticPlan: normalizeString(
             safeSource.therapeuticPlan ?? safeFallback.therapeuticPlan
@@ -1397,8 +1449,14 @@ function renderHcu005Content(hcu005) {
         normalized.evolutionNote
             ? `Evolución clínica: ${normalized.evolutionNote}`
             : '',
+        normalized.physicalExam
+            ? `Examen físico: ${normalized.physicalExam}`
+            : '',
         normalized.diagnosticImpression
             ? `Impresión diagnóstica: ${normalized.diagnosticImpression}`
+            : '',
+        normalized.diagnosisType
+            ? `Tipo de diagnóstico: ${normalized.diagnosisType}`
             : '',
         normalized.therapeuticPlan
             ? `Plan terapéutico: ${normalized.therapeuticPlan}`
@@ -3172,24 +3230,37 @@ function evaluateConsentPacket(packet) {
 }
 
 function complianceMspStatusMeta(status) {
-    switch (normalizeString(status)) {
+    const source = status && typeof status === 'object' ? status : {};
+    const normalizedStatus = normalizeString(
+        typeof status === 'string' ? status : source.status
+    );
+    const missingFields = normalizeStringList(source.missingFields);
+    const missingLabels = formatComplianceMspMissingLabels(source);
+
+    switch (normalizedStatus) {
         case 'complete':
             return {
                 status: 'complete',
                 label: 'Compliance MSP OK',
                 summary: 'Cumple con los campos mínimos requeridos.',
+                missingFields: [],
+                missingLabels: [],
             };
         case 'incomplete':
             return {
                 status: 'incomplete',
                 label: 'Faltan campos MSP',
                 summary: 'Faltan campos obligatorios para cerrar el registro.',
+                missingFields,
+                missingLabels,
             };
         default:
             return {
                 status: 'incomplete',
                 label: 'Faltan campos MSP',
                 summary: 'Validación MSP pendiente.',
+                missingFields,
+                missingLabels,
             };
     }
 }
@@ -3915,7 +3986,7 @@ function normalizeLegalReadiness(readiness) {
             source?.hcu012AReportStatus?.status
         ),
         hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
-        complianceMspStatus: complianceMspStatusMeta(source?.complianceMspStatus?.status),
+        complianceMspStatus: complianceMspStatusMeta(source?.complianceMspStatus),
     };
 }
 
@@ -4095,9 +4166,13 @@ function normalizeDraftSnapshot(draft) {
                 normalizeHcu005({
                     evolutionNote:
                         clinicianSource.resumen || intakeSource.resumenClinico,
+                    physicalExam: clinicianSource?.hcu005?.physicalExam,
                     diagnosticImpression: normalizeStringList(
                         clinicianSource.cie10Sugeridos
                     ).join(', '),
+                    diagnosisType:
+                        clinicianSource?.hcu005?.diagnosisType ||
+                        clinicianSource?.hcu005?.diagnosticType,
                     therapeuticPlan: clinicianSource.tratamientoBorrador,
                     careIndications:
                         clinicianSource?.posologiaBorrador?.texto ||
@@ -4129,9 +4204,13 @@ function synchronizeDraftClinicalState(draft) {
                 evolutionNote:
                     snapshot?.clinicianDraft?.resumen ||
                     snapshot?.intake?.resumenClinico,
+                physicalExam: snapshot?.clinicianDraft?.hcu005?.physicalExam,
                 diagnosticImpression: normalizeStringList(
                     snapshot?.clinicianDraft?.cie10Sugeridos
                 ).join(', '),
+                diagnosisType:
+                    snapshot?.clinicianDraft?.hcu005?.diagnosisType ||
+                    snapshot?.clinicianDraft?.hcu005?.diagnosticType,
                 therapeuticPlan: snapshot?.clinicianDraft?.tratamientoBorrador,
                 careIndications:
                     snapshot?.clinicianDraft?.posologiaBorrador?.texto ||
@@ -6830,6 +6909,84 @@ function buildApprovalConstancy(review) {
     `;
 }
 
+function buildApprovalGuardrailHtml(review, slice) {
+    if ((slice?.approvalAttempted ?? false) !== true) {
+        return '';
+    }
+
+    const readiness = normalizeLegalReadiness(review.legalReadiness);
+    if (readiness.ready === true) {
+        return '';
+    }
+
+    const complianceStatus = complianceMspStatusMeta(
+        readiness.complianceMspStatus
+    );
+    const blockingReasons = normalizeList(
+        review.approvalBlockedReasons || readiness.blockingReasons
+    );
+    const firstBlockingReason =
+        blockingReasons.find((reason) => normalizeString(reason?.message)) ||
+        blockingReasons[0] ||
+        {};
+    const complianceLabels = complianceStatus.missingLabels || [];
+    const title =
+        complianceStatus.status === 'incomplete'
+            ? 'Cierre bloqueado por Compliance MSP'
+            : 'Cierre bloqueado';
+    const detail =
+        complianceStatus.status === 'incomplete' && complianceLabels.length > 0
+            ? 'Completa estos campos antes de cerrar la consulta.'
+            : normalizeString(
+                  firstBlockingReason?.message ||
+                      firstBlockingReason?.detail ||
+                      readiness.summary ||
+                      'La nota final aún no cumple todos los bloqueos médico-legales.'
+              );
+
+    return `
+        <article
+            class="clinical-history-readiness-card clinical-history-approval-guardrail"
+            data-tone="danger"
+            data-clinical-approval-guardrail="visible"
+        >
+            <header class="section-header">
+                <div>
+                    <h4>${escapeHtml(title)}</h4>
+                    <p>${escapeHtml(detail)}</p>
+                </div>
+                <div class="clinical-history-mini-chip-row">
+                    <span class="clinical-history-mini-chip" data-tone="danger">
+                        Badge rojo activo
+                    </span>
+                    <span class="clinical-history-mini-chip">
+                        ${escapeHtml(
+                            complianceStatus.status === 'incomplete'
+                                ? complianceStatus.label
+                                : (readiness.label || 'Bloqueada')
+                        )}
+                    </span>
+                </div>
+            </header>
+            ${
+                complianceStatus.status === 'incomplete' &&
+                complianceLabels.length > 0
+                    ? `
+                        <ul>
+                            ${complianceLabels
+                                .map(
+                                    (label) =>
+                                        `<li>${escapeHtml(label)}</li>`
+                                )
+                                .join('')}
+                        </ul>
+                    `
+                    : ''
+            }
+        </article>
+    `;
+}
+
 function formatDisclosureTarget(targetType) {
     switch (normalizeString(targetType)) {
         case 'companion':
@@ -8591,6 +8748,17 @@ function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
                 )}
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
+                        'hcu005_physical_exam',
+                        'Examen físico',
+                        hcu005.physicalExam,
+                        {
+                            rows: 4,
+                            placeholder:
+                                'Describe hallazgos semiológicos y examen físico dirigido.',
+                            disabled,
+                        }
+                    ),
+                    textareaField(
                         'hcu005_diagnostic_impression',
                         'Impresión diagnóstica',
                         hcu005.diagnosticImpression,
@@ -8599,6 +8767,18 @@ function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
                             placeholder:
                                 'Impresión diagnóstica clínicamente defendible.',
                             disabled,
+                        }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    selectField(
+                        'hcu005_diagnosis_type',
+                        'Tipo de diagnóstico MSP',
+                        hcu005.diagnosisType,
+                        CLINICAL_HISTORY_DIAGNOSIS_TYPE_CHOICES,
+                        {
+                            disabled,
+                            hint: 'Usa PRE para presuntivo y DEF para definitivo.',
                         }
                     ),
                     textareaField(
@@ -11215,6 +11395,10 @@ function syncDraftStatusMeta() {
         buildDraftSummaryText(review, draft)
     );
     setText('#clinicalHistoryFollowUpMeta', buildFollowUpMetaText(review));
+    setHtml(
+        '#clinicalHistoryApprovalGuardrail',
+        buildApprovalGuardrailHtml(review, slice)
+    );
 
     const hasSelection = normalizeString(review.session.sessionId) !== '';
     const sharedDisabled = !hasSelection || slice.loading || slice.saving;
@@ -11228,7 +11412,7 @@ function syncDraftStatusMeta() {
     ].forEach((buttonId) => setButtonDisabled(buttonId, sharedDisabled));
     setButtonDisabled(
         'clinicalHistoryApproveBtn',
-        sharedDisabled || readiness.ready !== true
+        sharedDisabled
     );
     setButtonDisabled(
         'clinicalHistorySetPassiveArchiveBtn',
@@ -11399,7 +11583,9 @@ function serializeDraftForm(form, baseDraft) {
     });
     snapshot.clinicianDraft.hcu005 = normalizeHcu005({
         evolutionNote: readValue('hcu005_evolution_note'),
+        physicalExam: readValue('hcu005_physical_exam'),
         diagnosticImpression: readValue('hcu005_diagnostic_impression'),
+        diagnosisType: readValue('hcu005_diagnosis_type'),
         therapeuticPlan: readValue('hcu005_therapeutic_plan'),
         careIndications: readValue('hcu005_care_indications'),
         prescriptionItems: Array.from(
@@ -12981,6 +13167,7 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
         setClinicalHistoryState({
             selectedSessionId: '',
             loading: false,
+            approvalAttempted: false,
             error: '',
             dirty: false,
             current: null,
@@ -13003,6 +13190,7 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
     setClinicalHistoryState({
         selectedSessionId: desiredSessionId,
         loading: true,
+        approvalAttempted: false,
         error: '',
     });
     renderClinicalHistorySection();
@@ -13017,6 +13205,7 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
         setClinicalHistoryState({
             selectedSessionId: review.session.sessionId || desiredSessionId,
             loading: false,
+            approvalAttempted: false,
             error: '',
             dirty: false,
             lastLoadedAt: Date.now(),
@@ -13029,6 +13218,7 @@ async function loadClinicalHistorySession(sessionId, options = {}) {
         setClinicalHistoryState({
             selectedSessionId: desiredSessionId,
             loading: false,
+            approvalAttempted: false,
             error:
                 error?.message ||
                 'No se pudo cargar la revision clinica de este caso.',
@@ -13514,6 +13704,28 @@ function bindClinicalHistoryEvents() {
         }
 
         if (action === 'approve-current') {
+            const readiness = normalizeLegalReadiness(
+                currentReviewSource().legalReadiness
+            );
+            if (readiness.ready !== true) {
+                setClinicalHistoryState({
+                    approvalAttempted: true,
+                });
+                renderClinicalHistorySection();
+                createToast(
+                    readiness.complianceMspStatus?.status === 'incomplete'
+                        ? 'Completa Compliance MSP antes de cerrar la consulta.'
+                        : 'La nota final sigue bloqueada por faltantes medico-legales.',
+                    'warning'
+                );
+                document
+                    .querySelector('[data-clinical-approval-guardrail="visible"]')
+                    ?.scrollIntoView({
+                        block: 'nearest',
+                        behavior: 'smooth',
+                    });
+                return;
+            }
             await saveClinicalHistoryReview('approve', '');
             return;
         }

@@ -124,6 +124,7 @@ const initialState = {
         queueFilter: 'all',
         loading: false,
         saving: false,
+        approvalAttempted: false,
         error: '',
         dirty: false,
         lastLoadedAt: 0,
