@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 3:01:41 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 3:06:59 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████░░░░░░░░░░░` **47%** completado (212/449)
+`█████████░░░░░░░░░░░` **47%** completado (213/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -25,7 +25,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 9 | 1 | 26 | 4% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 2 | 24 | 8% |
-| ⏸ Sprint 13 | 3 | 18 | 14% |
+| ⏸ Sprint 13 | 4 | 17 | 19% |
 | ⏸ Sprint UI | 16 | 4 | 80% |
 | ⏸ Sprint 14 | 2 | 12 | 14% |
 | ⏸ Sprint 15 | 1 | 12 | 8% |
@@ -191,9 +191,9 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 | ... | | _+19 más_ |
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Esperando que Sprint anterior esté completo. 18 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
 
-### 🟢 Disponibles (18)
+### 🟢 Disponibles (17)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -202,7 +202,7 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 | **S13-02** | `[S13]` | M |
 | **S13-04** | `[S13]` | M |
 | **S13-05** | `[S13]` | S |
-| ... | | _+13 más_ |
+| ... | | _+12 más_ |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
@@ -217,7 +217,7 @@ _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **UI3-18** `[UI3]` → _codex_ (expira en 118min)
+- **UI3-18** `[UI3]` → _codex_ (expira en 112min)
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._

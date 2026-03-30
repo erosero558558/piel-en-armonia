@@ -3194,10 +3194,14 @@ final class ClinicalHistorySessionRepository
                 'motivoConsulta' => '',
                 'enfermedadActual' => '',
                 'antecedentes' => '',
+                'antecedentesPersonales' => '',
+                'antecedentesFamiliares' => '',
                 'alergias' => '',
                 'medicacionActual' => '',
                 'fototipoFitzpatrick' => '',
                 'habitos' => '',
+                'habitosSol' => '',
+                'habitosTabaco' => '',
                 'rosRedFlags' => [],
                 'adjuntos' => [],
                 'resumenClinico' => '',
@@ -3226,6 +3230,29 @@ final class ClinicalHistorySessionRepository
             foreach (['motivoConsulta', 'enfermedadActual', 'antecedentes', 'alergias', 'medicacionActual', 'fototipoFitzpatrick', 'habitos', 'resumenClinico', 'tratamientoBorrador'] as $field) {
                 $normalized[$field] = self::trimString($intake[$field] ?? $defaults[$field]);
             }
+            $legacyAntecedentes = $normalized['antecedentes'];
+            $legacyHabitos = $normalized['habitos'];
+            $normalized['antecedentesPersonales'] = self::trimString($intake['antecedentesPersonales'] ?? '');
+            if ($normalized['antecedentesPersonales'] === '' && $legacyAntecedentes !== '') {
+                $normalized['antecedentesPersonales'] = $legacyAntecedentes;
+            }
+            $normalized['antecedentesFamiliares'] = self::trimString($intake['antecedentesFamiliares'] ?? '');
+            $normalized['fototipoFitzpatrick'] = self::normalizeFitzpatrickValue($intake['fototipoFitzpatrick'] ?? '');
+            $normalized['habitosSol'] = self::trimString($intake['habitosSol'] ?? '');
+            if ($normalized['habitosSol'] === '' && $legacyHabitos !== '') {
+                $normalized['habitosSol'] = $legacyHabitos;
+            }
+            $normalized['habitosTabaco'] = self::trimString($intake['habitosTabaco'] ?? '');
+            $normalized['antecedentes'] = self::buildLegacyAntecedentesSummary(
+                $legacyAntecedentes,
+                $normalized['antecedentesPersonales'],
+                $normalized['antecedentesFamiliares']
+            );
+            $normalized['habitos'] = self::buildLegacyHabitosSummary(
+                $legacyHabitos,
+                $normalized['habitosSol'],
+                $normalized['habitosTabaco']
+            );
     
             $normalized['rosRedFlags'] = self::normalizeStringList($intake['rosRedFlags'] ?? []);
             $normalized['cie10Sugeridos'] = self::normalizeStringList($intake['cie10Sugeridos'] ?? []);
@@ -3246,6 +3273,50 @@ final class ClinicalHistorySessionRepository
             ];
     
             return $normalized;
+        }
+
+    private static function normalizeFitzpatrickValue($value): string
+        {
+            $normalized = strtoupper(self::trimString($value));
+            return in_array($normalized, ['I', 'II', 'III', 'IV', 'V', 'VI'], true)
+                ? $normalized
+                : '';
+        }
+
+    private static function buildLegacyAntecedentesSummary(string $legacy, string $personales, string $familiares): string
+        {
+            if ($personales === '' && $familiares === '') {
+                return $legacy;
+            }
+            if ($personales === '') {
+                return $familiares;
+            }
+            if ($familiares === '') {
+                return $personales;
+            }
+
+            return implode("\n", [
+                'Personales: ' . $personales,
+                'Familiares: ' . $familiares,
+            ]);
+        }
+
+    private static function buildLegacyHabitosSummary(string $legacy, string $habitosSol, string $habitosTabaco): string
+        {
+            if ($habitosSol === '' && $habitosTabaco === '') {
+                return $legacy;
+            }
+            if ($habitosSol === '') {
+                return $habitosTabaco;
+            }
+            if ($habitosTabaco === '') {
+                return $habitosSol;
+            }
+
+            return implode("\n", [
+                'Sol: ' . $habitosSol,
+                'Tabaco: ' . $habitosTabaco,
+            ]);
         }
 
     public static function deriveAgeYearsFromBirthDate(string $birthDate): ?int

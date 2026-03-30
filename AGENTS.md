@@ -1664,7 +1664,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 13.2 `tele-head-links.html` — regresión silenciosa detectada
 
-- [ ] **S13-07** `[M]` `[UI]` `tele-head-links.html` usa CSS legacy — el partial `templates/partials/tele-head-links.html` carga `styles.css?v=figo-20260227-redesignfix3` y `styles-deferred.css`. Estos son archivos del sistema **anterior a la migración "Clinical Luxury"**. El partial tiene 1 referencia a tokens pero aún arrastra el CSS viejo. Resultado: las páginas de telemedicina tienen regresión visual. Reemplazar imports por: `tokens.css` + `base.css` + `aurora-public.css`. Verificable: `grep "styles.css" templates/partials/tele-head-links.html` → 0.
+- [x] **S13-07** `[M]` `[UI]` `tele-head-links.html` usa CSS legacy — el partial `templates/partials/tele-head-links.html` carga `styles.css?v=figo-20260227-redesignfix3` y `styles-deferred.css`. Estos son archivos del sistema **anterior a la migración "Clinical Luxury"**. El partial tiene 1 referencia a tokens pero aún arrastra el CSS viejo. Resultado: las páginas de telemedicina tienen regresión visual. Reemplazar imports por: `tokens.css` + `base.css` + `aurora-public.css`. Verificable: `grep "styles.css" templates/partials/tele-head-links.html` → 0.
 - [ ] **S13-08** `[S]` Partial órfano — `tele-head-links.html` no es incluido por ninguna plantilla (0 includes detectados). O es un dead file o las plantillas que deberían usarlo lo están ignorando. Investigar: si ninguna plantilla lo usa → `git rm`. Si debería usarse → conectar. Verificable: `grep -r "tele-head-links" templates/ | wc -l` → ≥1 o archivo eliminado.
 
 #### 13.3 `lib/common.php` — deuda técnica crítica
