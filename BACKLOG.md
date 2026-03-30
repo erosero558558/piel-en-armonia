@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:42:43 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:45:06 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **37%** completado (151/407)
+`███████░░░░░░░░░░░░░` **37%** completado (152/407)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -26,7 +26,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 10 | 0 | 30 | 0% |
 | ⏸ Sprint 12 | 1 | 25 | 4% |
 | ⏸ Sprint 13 | 1 | 20 | 5% |
-| ⏸ Sprint UI | 5 | 15 | 25% |
+| ⏸ Sprint UI | 6 | 14 | 30% |
 | ⏸ Sprint 14 | 0 | 14 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -204,7 +204,7 @@ _Esperando que Sprint anterior esté completo. 30 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S10-11** `[S10]` → _antigravity_ (expira en 467min)
+- **S10-11** `[S10]` → _antigravity_ (expira en 464min)
 
 ## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
 _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
@@ -222,7 +222,7 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S12-17** `[S12]` → _Codex-erosero558558_ (expira en 235min)
+- **S12-17** `[S12]` → _Codex-erosero558558_ (expira en 232min)
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
@@ -239,18 +239,18 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 | ... | | _+15 más_ |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
-_Esperando que Sprint anterior esté completo. 15 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 14 tareas pendientes._
 
-### 🟢 Disponibles (15)
+### 🟢 Disponibles (14)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **UI3-06** | `[UI3]` | L |
 | **UI3-07** | `[UI3]` | M |
 | **UI3-08** | `[UI3]` | M |
 | **UI3-09** | `[UI3]` | S |
 | **UI3-10** | `[UI3]` | M |
-| ... | | _+10 más_ |
+| **UI3-11** | `[UI3]` | L |
+| ... | | _+9 más_ |
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 14 tareas pendientes._
