@@ -132,6 +132,80 @@ const surfacePageKey = ['demo', 'status', 'dashboard'].includes(
     : showcaseKind;
 const stageIndex = String(suiteStory.currentIndex || 1).padStart(2, '0');
 const stageTotal = String(suiteStory.total || 0).padStart(2, '0');
+const isStatusSurface = surfacePageKey === 'status';
+const ticketStatusCopy =
+    locale === 'en'
+        ? {
+              eyebrow: 'Live status',
+              title: 'Live ticket status from your phone',
+              deck: 'Scan the QR on the printed ticket to follow your place in line without returning to the kiosk.',
+              ticket: 'Ticket',
+              updated: 'Updated',
+              refresh: 'Refresh now',
+              position: 'Position',
+              ahead: 'Ahead of you',
+              wait: 'Estimated wait',
+              consultorio: 'Room',
+              callingNow: 'Calling now',
+              noCallingNow: 'No rooms are calling right now.',
+              nextTickets: 'Next in line',
+              noNextTickets: 'No additional visible tickets waiting right now.',
+              note: 'This panel refreshes every 15 seconds.',
+              waiting: 'Waiting',
+              called: 'You are being called',
+              completed: 'Visit completed',
+              noShow: 'Marked as no-show',
+              cancelled: 'Ticket cancelled',
+              unknown: 'Ticket status',
+              loading: 'Looking up your ticket...',
+              invalid: 'The ticket code is invalid.',
+              notFound: 'We could not find that ticket. Double-check the printed code or ask reception for help.',
+              loadError: 'We could not load your ticket right now.',
+              waitingDetail: '{aheadCount} ticket(s) are ahead of you.',
+              noPositionDetail: 'We are recalculating your place in line.',
+              calledDetail: 'Please head to room {room}.',
+              completedDetail: 'Your visit is already marked as completed.',
+              noShowDetail: 'If you are still onsite, reception can help re-activate your arrival.',
+              cancelledDetail: 'This ticket is no longer active.',
+              waitNow: 'Now',
+              localeTag: 'en-US',
+          }
+        : {
+              eyebrow: 'Seguimiento en vivo',
+              title: 'Estado en vivo desde tu telefono',
+              deck: 'Escanea el QR del ticket impreso para seguir tu posicion sin volver al kiosco.',
+              ticket: 'Ticket',
+              updated: 'Actualizado',
+              refresh: 'Actualizar ahora',
+              position: 'Posicion',
+              ahead: 'Delante tuyo',
+              wait: 'Espera estimada',
+              consultorio: 'Consultorio',
+              callingNow: 'Llamando ahora',
+              noCallingNow: 'No hay consultorios llamando en este momento.',
+              nextTickets: 'Siguientes en cola',
+              noNextTickets: 'No hay otros tickets visibles en espera.',
+              note: 'Este panel se actualiza cada 15 segundos.',
+              waiting: 'En espera',
+              called: 'Lo estamos llamando',
+              completed: 'Atencion finalizada',
+              noShow: 'Marcado como no presentado',
+              cancelled: 'Turno cancelado',
+              unknown: 'Estado del turno',
+              loading: 'Buscando tu turno...',
+              invalid: 'El codigo del ticket no es valido.',
+              notFound: 'No encontramos ese ticket. Revise el codigo impreso o pida apoyo en recepcion.',
+              loadError: 'No pudimos cargar tu turno en este momento.',
+              waitingDetail: 'Hay {aheadCount} turno(s) antes que el tuyo.',
+              noPositionDetail: 'Estamos recalculando tu posicion.',
+              calledDetail: 'Dirigete al consultorio {room}.',
+              completedDetail: 'Tu visita ya figura como completada.',
+              noShowDetail: 'Si sigues en la clinica, recepcion puede reactivar tu llegada.',
+              cancelledDetail: 'Este ticket ya no esta activo.',
+              waitNow: 'Ahora',
+              localeTag: 'es-EC',
+          };
+const ticketStatusCopyJson = JSON.stringify(ticketStatusCopy);
 
 const actionClass = (variant = 'secondary') => [
     'v6-suite-action',
@@ -370,6 +444,85 @@ const actionClass = (variant = 'secondary') => [
                             </a>
                         ) : null
                     }
+                </div>
+            </div>
+        </section>
+    ) : null
+}
+
+{
+    isStatusSurface ? (
+        <section
+            class="v6-suite-ticket-status-band"
+            data-v6-ticket-status-root
+            data-api-url="/api.php?resource=queue-public-ticket"
+            hidden
+        >
+            <div class="v6-suite-shell">
+                <div class="v6-suite-ticket-status" data-v6-ticket-status-panel>
+                    <div class="v6-suite-ticket-status__head">
+                        <div class="v6-suite-ticket-status__head-copy">
+                            <p class="v6-suite-eyebrow">{ticketStatusCopy.eyebrow}</p>
+                            <h2>{ticketStatusCopy.title}</h2>
+                            <span>{ticketStatusCopy.deck}</span>
+                        </div>
+                        <div class="v6-suite-ticket-status__ticket">
+                            <span>{ticketStatusCopy.ticket}</span>
+                            <strong data-v6-ticket-status-code>--</strong>
+                            <small data-v6-ticket-status-updated>{ticketStatusCopy.updated}</small>
+                        </div>
+                    </div>
+
+                    <div class="v6-suite-ticket-status__hero">
+                        <article class="v6-suite-ticket-status__summary-card">
+                            <p data-v6-ticket-status-state-label>{ticketStatusCopy.loading}</p>
+                            <strong data-v6-ticket-status-detail>{ticketStatusCopy.deck}</strong>
+                            <span data-v6-ticket-status-room></span>
+                        </article>
+
+                        <div class="v6-suite-ticket-status__metrics">
+                            <article class="v6-suite-ticket-status__metric">
+                                <span>{ticketStatusCopy.position}</span>
+                                <strong data-v6-ticket-status-value="position">--</strong>
+                            </article>
+                            <article class="v6-suite-ticket-status__metric">
+                                <span>{ticketStatusCopy.ahead}</span>
+                                <strong data-v6-ticket-status-value="ahead">--</strong>
+                            </article>
+                            <article class="v6-suite-ticket-status__metric">
+                                <span>{ticketStatusCopy.wait}</span>
+                                <strong data-v6-ticket-status-value="wait">--</strong>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="v6-suite-ticket-status__lanes">
+                        <article class="v6-suite-ticket-status__lane">
+                            <p>{ticketStatusCopy.callingNow}</p>
+                            <ul data-v6-ticket-status-calling-list>
+                                <li>{ticketStatusCopy.noCallingNow}</li>
+                            </ul>
+                        </article>
+                        <article class="v6-suite-ticket-status__lane">
+                            <p>{ticketStatusCopy.nextTickets}</p>
+                            <ol data-v6-ticket-status-next-list>
+                                <li>{ticketStatusCopy.noNextTickets}</li>
+                            </ol>
+                        </article>
+                    </div>
+
+                    <div class="v6-suite-ticket-status__footer">
+                        <p data-v6-ticket-status-note>{ticketStatusCopy.note}</p>
+                        <button
+                            type="button"
+                            class="v6-suite-action is-secondary"
+                            data-v6-ticket-status-refresh
+                        >
+                            {ticketStatusCopy.refresh}
+                        </button>
+                    </div>
+
+                    <p class="v6-suite-ticket-status__message" data-v6-ticket-status-message hidden></p>
                 </div>
             </div>
         </section>
@@ -621,3 +774,473 @@ const actionClass = (variant = 'secondary') => [
     data-v6-turnero-demo-state={surfacePageKey}
     set:html={demoStateJson}
 ></script>
+{
+    isStatusSurface ? (
+        <script
+            type="application/json"
+            data-v6-ticket-status-copy
+            set:html={ticketStatusCopyJson}
+        ></script>
+    ) : null
+}
+{
+    isStatusSurface ? (
+        <script is:inline>
+            (() => {
+                const root = document.querySelector('[data-v6-ticket-status-root]');
+                if (!(root instanceof HTMLElement)) {
+                    return;
+                }
+                const panel = root.querySelector('[data-v6-ticket-status-panel]');
+
+                const copyNode = document.querySelector('[data-v6-ticket-status-copy]');
+                let copy = {};
+                try {
+                    copy = JSON.parse(copyNode?.textContent || '{}');
+                } catch (error) {
+                    copy = {};
+                }
+
+                const params = new URLSearchParams(window.location.search);
+                const hasTicketParam = params.has('ticket');
+                if (!hasTicketParam) {
+                    return;
+                }
+
+                const normalizeTicket = (value) =>
+                    String(value || '')
+                        .trim()
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9-]/g, '');
+                const rawTicket = String(params.get('ticket') || '').trim();
+                const ticket = normalizeTicket(rawTicket);
+                const isValidTicket = /^[A-Z]-\d{3,4}$/.test(ticket);
+                const apiUrl =
+                    root.dataset.apiUrl || '/api.php?resource=queue-public-ticket';
+                const codeNode = root.querySelector('[data-v6-ticket-status-code]');
+                const updatedNode = root.querySelector(
+                    '[data-v6-ticket-status-updated]'
+                );
+                const stateLabelNode = root.querySelector(
+                    '[data-v6-ticket-status-state-label]'
+                );
+                const detailNode = root.querySelector(
+                    '[data-v6-ticket-status-detail]'
+                );
+                const roomNode = root.querySelector('[data-v6-ticket-status-room]');
+                const messageNode = root.querySelector(
+                    '[data-v6-ticket-status-message]'
+                );
+                const refreshButton = root.querySelector(
+                    '[data-v6-ticket-status-refresh]'
+                );
+                const callingList = root.querySelector(
+                    '[data-v6-ticket-status-calling-list]'
+                );
+                const nextList = root.querySelector(
+                    '[data-v6-ticket-status-next-list]'
+                );
+                const localeSwitch = document.querySelector(
+                    '[data-v6-page-head] .v6-corp-head__lang-option[href]'
+                );
+                const metricNodes = {
+                    position: root.querySelector(
+                        '[data-v6-ticket-status-value="position"]'
+                    ),
+                    ahead: root.querySelector(
+                        '[data-v6-ticket-status-value="ahead"]'
+                    ),
+                    wait: root.querySelector(
+                        '[data-v6-ticket-status-value="wait"]'
+                    ),
+                };
+
+                const formatCopy = (template, values = {}) =>
+                    String(template || '').replace(/\{(\w+)\}/g, (_, key) =>
+                        String(values[key] ?? '')
+                    );
+
+                const setMetric = (metric, value) => {
+                    const node = metricNodes[metric];
+                    if (node instanceof HTMLElement) {
+                        node.textContent = value;
+                    }
+                };
+
+                const setMessage = (message, state = 'info') => {
+                    if (!(messageNode instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    const safeMessage =
+                        typeof message === 'string' ? message.trim() : '';
+                    if (!safeMessage) {
+                        messageNode.hidden = true;
+                        messageNode.textContent = '';
+                        messageNode.removeAttribute('data-state');
+                        return;
+                    }
+
+                    messageNode.hidden = false;
+                    messageNode.dataset.state = state;
+                    messageNode.textContent = safeMessage;
+                };
+
+                const formatDateTime = (isoDate) => {
+                    if (!isoDate) {
+                        return '';
+                    }
+
+                    const parsed = new Date(isoDate);
+                    if (Number.isNaN(parsed.getTime())) {
+                        return '';
+                    }
+
+                    try {
+                        return new Intl.DateTimeFormat(copy.localeTag || undefined, {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }).format(parsed);
+                    } catch (error) {
+                        return isoDate;
+                    }
+                };
+
+                const setUpdatedAt = (isoDate) => {
+                    if (!(updatedNode instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    const formatted = formatDateTime(isoDate);
+                    updatedNode.textContent = formatted
+                        ? `${copy.updated || 'Updated'}: ${formatted}`
+                        : copy.updated || 'Updated';
+                };
+
+                const preserveLocaleSwitch = () => {
+                    if (!(localeSwitch instanceof HTMLAnchorElement)) {
+                        return;
+                    }
+
+                    try {
+                        const nextUrl = new URL(localeSwitch.href, window.location.origin);
+                        nextUrl.searchParams.set('ticket', ticket || rawTicket);
+                        localeSwitch.href =
+                            nextUrl.pathname +
+                            nextUrl.search +
+                            nextUrl.hash;
+                    } catch (error) {
+                        // Ignore locale switch parsing errors in the static shell.
+                    }
+                };
+
+                const clearList = (listNode) => {
+                    if (!(listNode instanceof HTMLElement)) {
+                        return;
+                    }
+                    while (listNode.firstChild) {
+                        listNode.removeChild(listNode.firstChild);
+                    }
+                };
+
+                const renderCallingNow = (items) => {
+                    if (!(callingList instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    clearList(callingList);
+                    if (!Array.isArray(items) || !items.length) {
+                        const emptyItem = document.createElement('li');
+                        emptyItem.textContent =
+                            copy.noCallingNow || 'No live calls right now.';
+                        callingList.appendChild(emptyItem);
+                        return;
+                    }
+
+                    items.forEach((item) => {
+                        const row = document.createElement('li');
+                        const code = document.createElement('strong');
+                        code.textContent = String(item?.ticketCode || '--');
+                        const detail = document.createElement('span');
+                        const room = Number.parseInt(
+                            String(item?.assignedConsultorio || ''),
+                            10
+                        );
+                        detail.textContent = Number.isFinite(room)
+                            ? `${copy.consultorio || 'Room'} ${room}`
+                            : copy.called || 'Called';
+                        row.appendChild(code);
+                        row.appendChild(detail);
+                        callingList.appendChild(row);
+                    });
+                };
+
+                const renderNextTickets = (items) => {
+                    if (!(nextList instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    clearList(nextList);
+                    if (!Array.isArray(items) || !items.length) {
+                        const emptyItem = document.createElement('li');
+                        emptyItem.textContent =
+                            copy.noNextTickets || 'No visible waiting tickets.';
+                        nextList.appendChild(emptyItem);
+                        return;
+                    }
+
+                    items.forEach((item) => {
+                        const row = document.createElement('li');
+                        const code = document.createElement('strong');
+                        code.textContent = String(item?.ticketCode || '--');
+                        const detail = document.createElement('span');
+                        const position = Number.parseInt(
+                            String(item?.position || ''),
+                            10
+                        );
+                        const wait = Number.parseInt(
+                            String(item?.estimatedWaitMin || ''),
+                            10
+                        );
+                        const chunks = [];
+                        if (Number.isFinite(position)) {
+                            chunks.push(`#${position}`);
+                        }
+                        if (Number.isFinite(wait)) {
+                            chunks.push(`${wait} min`);
+                        }
+                        detail.textContent = chunks.join(' · ');
+                        row.appendChild(code);
+                        row.appendChild(detail);
+                        nextList.appendChild(row);
+                    });
+                };
+
+                const resetMetrics = () => {
+                    setMetric('position', '--');
+                    setMetric('ahead', '--');
+                    setMetric('wait', '--');
+                };
+
+                const renderError = (message, code = '') => {
+                    root.hidden = false;
+                    if (panel instanceof HTMLElement) {
+                        panel.dataset.state = 'error';
+                    }
+                    if (codeNode instanceof HTMLElement) {
+                        codeNode.textContent = ticket || rawTicket || '--';
+                    }
+                    if (stateLabelNode instanceof HTMLElement) {
+                        stateLabelNode.textContent = copy.unknown || 'Ticket status';
+                    }
+                    if (detailNode instanceof HTMLElement) {
+                        detailNode.textContent = message || copy.loadError || '';
+                    }
+                    if (roomNode instanceof HTMLElement) {
+                        roomNode.textContent = '';
+                    }
+                    setUpdatedAt('');
+                    resetMetrics();
+                    renderCallingNow([]);
+                    renderNextTickets([]);
+                    setMessage(message, code === 'queue_bad_request' ? 'error' : 'warning');
+                };
+
+                const renderState = (payload) => {
+                    const ticketData =
+                        payload && typeof payload === 'object' && payload.ticket
+                            ? payload.ticket
+                            : {};
+                    const status = String(ticketData?.status || 'waiting');
+                    const room = Number.parseInt(
+                        String(ticketData?.assignedConsultorio || ''),
+                        10
+                    );
+                    let label = copy.unknown || 'Ticket status';
+                    let detail = copy.noPositionDetail || '';
+
+                    if (status === 'waiting') {
+                        label = copy.waiting || 'Waiting';
+                        detail =
+                            typeof payload?.aheadCount === 'number'
+                                ? formatCopy(copy.waitingDetail, {
+                                      aheadCount: String(payload.aheadCount),
+                                  })
+                                : copy.noPositionDetail || '';
+                    } else if (status === 'called') {
+                        label = copy.called || 'Called';
+                        detail = Number.isFinite(room)
+                            ? formatCopy(copy.calledDetail, { room: String(room) })
+                            : copy.called || 'Called';
+                    } else if (status === 'completed') {
+                        label = copy.completed || 'Completed';
+                        detail = copy.completedDetail || '';
+                    } else if (status === 'no_show') {
+                        label = copy.noShow || 'No-show';
+                        detail = copy.noShowDetail || '';
+                    } else if (status === 'cancelled') {
+                        label = copy.cancelled || 'Cancelled';
+                        detail = copy.cancelledDetail || '';
+                    }
+
+                    root.hidden = false;
+                    if (panel instanceof HTMLElement) {
+                        panel.dataset.state = status;
+                    }
+                    if (codeNode instanceof HTMLElement) {
+                        codeNode.textContent = String(ticketData?.ticketCode || ticket || '--');
+                    }
+                    if (stateLabelNode instanceof HTMLElement) {
+                        stateLabelNode.textContent = label;
+                    }
+                    if (detailNode instanceof HTMLElement) {
+                        detailNode.textContent = detail;
+                    }
+                    if (roomNode instanceof HTMLElement) {
+                        roomNode.textContent =
+                            Number.isFinite(room) && status === 'called'
+                                ? `${copy.consultorio || 'Room'} ${room}`
+                                : '';
+                    }
+
+                    setMetric(
+                        'position',
+                        typeof payload?.position === 'number'
+                            ? String(payload.position)
+                            : '--'
+                    );
+                    setMetric(
+                        'ahead',
+                        typeof payload?.aheadCount === 'number'
+                            ? String(payload.aheadCount)
+                            : '--'
+                    );
+                    setMetric(
+                        'wait',
+                        typeof payload?.estimatedWaitMin === 'number'
+                            ? `${payload.estimatedWaitMin} min`
+                            : status === 'called'
+                                ? copy.waitNow || 'Now'
+                                : '--'
+                    );
+                    setUpdatedAt(
+                        String(
+                            payload?.updatedAt ||
+                                ticketData?.calledAt ||
+                                ticketData?.createdAt ||
+                                ''
+                        )
+                    );
+                    renderCallingNow(payload?.callingNow);
+                    renderNextTickets(payload?.nextTickets);
+                    setMessage('');
+                };
+
+                const resolveErrorMessage = (payload, responseStatus) => {
+                    const code =
+                        payload && typeof payload.code === 'string'
+                            ? payload.code
+                            : '';
+                    const message =
+                        payload && typeof payload.error === 'string'
+                            ? payload.error
+                            : '';
+
+                    if (code === 'queue_bad_request') {
+                        return {
+                            code,
+                            message: copy.invalid || message || 'Invalid ticket code.',
+                        };
+                    }
+                    if (code === 'queue_ticket_not_found' || responseStatus === 404) {
+                        return {
+                            code: 'queue_ticket_not_found',
+                            message:
+                                copy.notFound ||
+                                message ||
+                                'Ticket not found.',
+                        };
+                    }
+                    return {
+                        code,
+                        message: message || copy.loadError || 'Ticket lookup failed.',
+                    };
+                };
+
+                let requestInFlight = false;
+                const fetchStatus = async ({ manual = false } = {}) => {
+                    if (requestInFlight) {
+                        return;
+                    }
+                    requestInFlight = true;
+
+                    if (manual) {
+                        setMessage(copy.loading || 'Loading...', 'pending');
+                    }
+                    if (refreshButton instanceof HTMLButtonElement) {
+                        refreshButton.disabled = true;
+                    }
+
+                    try {
+                        const separator = apiUrl.includes('?') ? '&' : '?';
+                        const response = await fetch(
+                            `${apiUrl}${separator}ticket=${encodeURIComponent(ticket)}`,
+                            {
+                                method: 'GET',
+                                headers: {
+                                    Accept: 'application/json',
+                                },
+                                credentials: 'same-origin',
+                            }
+                        );
+                        const payload = await response.json().catch(() => null);
+                        if (!response.ok || !payload || payload.ok !== true) {
+                            const errorState = resolveErrorMessage(
+                                payload || {},
+                                response.status
+                            );
+                            renderError(errorState.message, errorState.code);
+                            return;
+                        }
+
+                        renderState(payload.data || {});
+                    } catch (error) {
+                        const message =
+                            error instanceof Error && error.message
+                                ? error.message
+                                : copy.loadError || 'Ticket lookup failed.';
+                        renderError(message);
+                    } finally {
+                        requestInFlight = false;
+                        if (refreshButton instanceof HTMLButtonElement) {
+                            refreshButton.disabled = false;
+                        }
+                    }
+                };
+
+                preserveLocaleSwitch();
+                root.hidden = false;
+                if (codeNode instanceof HTMLElement) {
+                    codeNode.textContent = ticket || rawTicket || '--';
+                }
+                if (!isValidTicket) {
+                    renderError(copy.invalid || 'Invalid ticket code.', 'queue_bad_request');
+                    return;
+                }
+
+                if (refreshButton instanceof HTMLButtonElement) {
+                    refreshButton.addEventListener('click', () => {
+                        fetchStatus({ manual: true });
+                    });
+                }
+
+                fetchStatus();
+                window.setInterval(() => {
+                    fetchStatus();
+                }, 15000);
+            })();
+        </script>
+    ) : null
+}

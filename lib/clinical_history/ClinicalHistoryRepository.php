@@ -3327,6 +3327,8 @@ final class ClinicalHistoryRepository
             'antecedentes' => '',
             'alergias' => '',
             'medicacionActual' => '',
+            'fototipoFitzpatrick' => '',
+            'habitos' => '',
             'rosRedFlags' => [],
             'adjuntos' => [],
             'resumenClinico' => '',
@@ -3352,7 +3354,7 @@ final class ClinicalHistoryRepository
         ];
 
         $normalized = $defaults;
-        foreach (['motivoConsulta', 'enfermedadActual', 'antecedentes', 'alergias', 'medicacionActual', 'resumenClinico', 'tratamientoBorrador'] as $field) {
+        foreach (['motivoConsulta', 'enfermedadActual', 'antecedentes', 'alergias', 'medicacionActual', 'fototipoFitzpatrick', 'habitos', 'resumenClinico', 'tratamientoBorrador'] as $field) {
             $normalized[$field] = self::trimString($intake[$field] ?? $defaults[$field]);
         }
 

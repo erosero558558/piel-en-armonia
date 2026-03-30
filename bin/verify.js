@@ -229,8 +229,18 @@ const checks = {
         );
     },
     'S3-11': () => {
-        const idx = read(resolve(ROOT, 'index.html'));
-        return idx.includes('estado-turno') || idx.includes('ticket=');
+        const statusPage = read(
+            resolve(ROOT, 'es/software/turnero-clinicas/estado-turno/index.html')
+        );
+        const routes = read(resolve(ROOT, 'lib/routes.php'));
+        const controller = read(resolve(ROOT, 'controllers/QueueController.php'));
+        const printer = read(resolve(ROOT, 'lib/TicketPrinter.php'));
+        return (
+            statusPage.includes('data-v6-ticket-status-root') &&
+            routes.includes("'GET', 'queue-public-ticket'") &&
+            controller.includes('publicTicket') &&
+            printer.includes('estado-turno/?ticket=')
+        );
     },
     'S3-24': () => fileExists('es/agendar/index.html'),
     'S3-30': () => fileExists('es/telemedicina/consulta/index.html'),

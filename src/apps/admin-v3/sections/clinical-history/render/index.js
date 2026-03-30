@@ -714,6 +714,8 @@ function emptyDraft() {
             antecedentes: '',
             alergias: '',
             medicacionActual: '',
+            fototipoFitzpatrick: '',
+            habitos: '',
             rosRedFlags: [],
             adjuntos: [],
             resumenClinico: '',
@@ -3969,6 +3971,8 @@ function normalizeDraftSnapshot(draft) {
             antecedentes: normalizeString(intakeSource.antecedentes),
             alergias: normalizeString(intakeSource.alergias),
             medicacionActual: normalizeString(intakeSource.medicacionActual),
+            fototipoFitzpatrick: normalizeString(intakeSource.fototipoFitzpatrick),
+            habitos: normalizeString(intakeSource.habitos),
             rosRedFlags: normalizeStringList(intakeSource.rosRedFlags),
             adjuntos: normalizeList(intakeSource.adjuntos).map(
                 normalizeAttachment
@@ -5058,6 +5062,8 @@ function buildClinicalRecordExportHtml(review) {
         ['Antecedentes', draft.intake.antecedentes],
         ['Alergias', draft.intake.alergias],
         ['Medicacion actual', draft.intake.medicacionActual],
+        ['Fototipo Fitzpatrick', draft.intake.fototipoFitzpatrick],
+        ['Habitos', draft.intake.habitos],
         ['Resumen clinico', draft.intake.resumenClinico],
     ]);
     const hcu005Section = buildClinicalRecordExportFieldGrid([
@@ -8276,6 +8282,27 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
                         }
                     ),
                     textareaField(
+                        'intake_habitos',
+                        'Habitos',
+                        draft.intake.habitos,
+                        {
+                            rows: 4,
+                            placeholder: 'Sol, tabaco, alcohol...',
+                            disabled,
+                        }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'intake_fototipo_fitzpatrick',
+                        'Fototipo Fitzpatrick',
+                        draft.intake.fototipoFitzpatrick,
+                        {
+                            placeholder: 'Ej. III, IV',
+                            disabled,
+                        }
+                    ),
+                    textareaField(
                         'intake_ros_red_flags',
                         'ROS / red flags',
                         listToTextarea(draft.intake.rosRedFlags),
@@ -11128,6 +11155,10 @@ function serializeDraftForm(form, baseDraft) {
     snapshot.intake.medicacionActual = normalizeString(
         readValue('intake_medicacion_actual')
     );
+    snapshot.intake.fototipoFitzpatrick = normalizeString(
+        readValue('intake_fototipo_fitzpatrick')
+    );
+    snapshot.intake.habitos = normalizeString(readValue('intake_habitos'));
     snapshot.intake.rosRedFlags = serializeTextareaLines(
         readValue('intake_ros_red_flags')
     );
@@ -12815,6 +12846,8 @@ function buildReviewPatch(mode, question) {
                 antecedentes: draft.intake.antecedentes,
                 alergias: draft.intake.alergias,
                 medicacionActual: draft.intake.medicacionActual,
+                fototipoFitzpatrick: draft.intake.fototipoFitzpatrick,
+                habitos: draft.intake.habitos,
                 rosRedFlags: cloneValue(draft.intake.rosRedFlags),
                 resumenClinico: draft.intake.resumenClinico,
                 preguntasFaltantes: cloneValue(draft.intake.preguntasFaltantes),

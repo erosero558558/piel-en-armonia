@@ -686,7 +686,7 @@ CONTEXTO DEL PACIENTE:
     await streamResponse(content);
   }
 
-  async function streamResponse(userContent) {
+  async function streamResponse(_userContent) {
     state.isStreaming = true;
     setStatus('pensando...');
     document.getElementById('oc-send-btn').disabled = true;
@@ -715,8 +715,8 @@ CONTEXTO DEL PACIENTE:
       state.messages[state.messages.length - 1].content = fullText;
       state.messages[state.messages.length - 1].actions = actions;
 
-    } catch (e) {
-      updateStreamingMessage(msgEl, `Error de conexión: ${e.message}`);
+    } catch (error) {
+      updateStreamingMessage(msgEl, `Error de conexión: ${error.message}`);
     }
 
     state.isStreaming = false;
@@ -774,7 +774,7 @@ CONTEXTO DEL PACIENTE:
       // Analysis comes back as structured response
       const text = analysis.text || 'Análisis completado.';
       addMessage('assistant', text);
-    } catch (e) {
+    } catch (_error) {
       // Fall back to regular chat with photo context
       await streamResponse(`Analiza esta foto clínica del paciente`);
     }
@@ -838,7 +838,7 @@ CONTEXTO DEL PACIENTE:
         showToast(`✅ Diagnóstico ${value.code} aplicado a la historia clínica`);
         break;
 
-      case 'add_medication':
+      case 'add_medication': {
         try {
           const interactionPayload = await checkMedicationInteractions(value);
           renderInteractionBanner(interactionPayload);
@@ -856,6 +856,7 @@ CONTEXTO DEL PACIENTE:
         }
         showToast(`✅ ${value.name} ${value.dose} agregado a la receta`);
         break;
+      }
 
       case 'generate_certificate':
         // Open certificate modal
@@ -864,13 +865,14 @@ CONTEXTO DEL PACIENTE:
         }));
         break;
 
-      case 'send_whatsapp':
+      case 'send_whatsapp': {
         const phone = state.patientContext?.phone;
         if (phone) {
           const msg = encodeURIComponent(`Resumen de su consulta en Aurora Derm:\n\n${value.summary}`);
           window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
         }
         break;
+      }
     }
   }
 

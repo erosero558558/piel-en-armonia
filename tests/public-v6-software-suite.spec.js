@@ -151,6 +151,89 @@ test.describe('Public V6 software suite', () => {
         );
     });
 
+    test('queue status surface hydrates live ticket panel and preserves locale switch query', async ({
+        page,
+    }) => {
+        let requestCount = 0;
+        await page.route('**/api.php?resource=queue-public-ticket**', async (route) => {
+            requestCount += 1;
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    ok: true,
+                    data: {
+                        ticket: {
+                            ticketCode: 'A-117',
+                            status: 'waiting',
+                            assignedConsultorio: null,
+                        },
+                        position: 3,
+                        aheadCount: 2,
+                        estimatedWaitMin: 24,
+                        updatedAt: '2026-03-29T15:45:00-05:00',
+                        callingNow: [
+                            {
+                                ticketCode: 'A-111',
+                                assignedConsultorio: 1,
+                            },
+                        ],
+                        nextTickets: [
+                            {
+                                ticketCode: 'A-115',
+                                position: 1,
+                                estimatedWaitMin: 8,
+                            },
+                            {
+                                ticketCode: 'A-116',
+                                position: 2,
+                                estimatedWaitMin: 16,
+                            },
+                            {
+                                ticketCode: 'A-117',
+                                position: 3,
+                                estimatedWaitMin: 24,
+                            },
+                        ],
+                    },
+                }),
+            });
+        });
+
+        await gotoPublicRoute(
+            page,
+            '/es/software/turnero-clinicas/estado-turno/?ticket=A-117'
+        );
+
+        const livePanel = page.locator('[data-v6-ticket-status-root]');
+        await expect(livePanel).toBeVisible();
+        await expect(page.locator('[data-v6-ticket-status-code]')).toContainText('A-117');
+        await expect(page.locator('[data-v6-ticket-status-state-label]')).toContainText(
+            'En espera'
+        );
+        await expect(
+            page.locator('[data-v6-ticket-status-value="position"]')
+        ).toContainText('3');
+        await expect(
+            page.locator('[data-v6-ticket-status-value="ahead"]')
+        ).toContainText('2');
+        await expect(
+            page.locator('[data-v6-ticket-status-value="wait"]')
+        ).toContainText('24 min');
+        await expect(
+            page.locator('[data-v6-ticket-status-calling-list] li').first()
+        ).toContainText('A-111');
+        await expect(
+            page.locator('[data-v6-ticket-status-next-list] li').nth(2)
+        ).toContainText('A-117');
+
+        const localeSwitch = await findLocaleSwitch(page);
+        await expect
+            .poll(async () => localeSwitch.getAttribute('href'))
+            .toBe('/en/software/clinic-flow-suite/queue-status/?ticket=A-117');
+        expect(requestCount).toBeGreaterThan(0);
+    });
+
     test('software surfaces expose distinct visual tokens by stage', async ({
         page,
     }) => {
