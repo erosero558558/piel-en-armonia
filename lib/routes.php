@@ -30,6 +30,8 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'payment-config', [PaymentController::class, 'config']);
     $router->add('GET', 'checkout-config', [PaymentController::class, 'checkoutConfig']);
+    $router->add('POST', 'checkout-transfer-proof', [PaymentController::class, 'checkoutTransferProof']);
+    $router->add('PATCH', 'checkout-orders', [PaymentController::class, 'checkoutOrderReview']);
 
     $router->add('GET', 'data', [AdminDataController::class, 'index']);
     $router->add('GET', 'doctor-profile', [DoctorProfileController::class, 'show']);

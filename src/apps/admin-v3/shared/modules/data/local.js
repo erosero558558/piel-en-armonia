@@ -28,6 +28,10 @@ export function persistLocalAdminData(data) {
         data.telemedicineMeta || null
     );
     setStorageJson(
+        LOCAL_DATA_KEYS.checkoutReviewMeta,
+        data.checkoutReviewMeta || null
+    );
+    setStorageJson(
         LOCAL_DATA_KEYS.queueSurfaceStatus,
         data.queueSurfaceStatus || null
     );
@@ -78,6 +82,10 @@ export function loadLocalAdminFallback() {
         mediaFlowMeta: getStorageJson(LOCAL_DATA_KEYS.mediaFlowMeta, null),
         telemedicineMeta: getStorageJson(
             LOCAL_DATA_KEYS.telemedicineMeta,
+            null
+        ),
+        checkoutReviewMeta: getStorageJson(
+            LOCAL_DATA_KEYS.checkoutReviewMeta,
             null
         ),
         queueSurfaceStatus: getStorageJson(

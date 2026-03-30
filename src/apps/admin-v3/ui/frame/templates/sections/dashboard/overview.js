@@ -15,6 +15,32 @@ export function renderDashboardOperationsGrid() {
                 <div id="operationActionList" class="operations-action-list"></div>
             </article>
 
+            <article class="sony-panel dashboard-card-payments">
+                <header>
+                    <div>
+                        <h3>Transferencias checkout</h3>
+                        <small id="dashboardCheckoutReviewMeta">Comprobantes recibidos desde /es/pago/.</small>
+                    </div>
+                    <span
+                        class="dashboard-signal-chip"
+                        id="dashboardCheckoutReviewChip"
+                        data-state="neutral"
+                    >
+                        Sin actividad
+                    </span>
+                </header>
+                <div class="sony-panel-stats">
+                    <div><span>Pendientes</span><strong id="checkoutReviewPendingCount">0</strong></div>
+                    <div><span>Verificados</span><strong id="checkoutReviewVerifiedCount">0</strong></div>
+                    <div><span>Aplicados</span><strong id="checkoutReviewAppliedCount">0</strong></div>
+                    <div><span>Sin foto</span><strong id="checkoutReviewMissingProofCount">0</strong></div>
+                </div>
+                <p id="dashboardCheckoutReviewSummary">
+                    Cuando un paciente suba su comprobante aqui apareceran los cobros para verificar y aplicar.
+                </p>
+                <ul id="dashboardCheckoutReviewQueue" class="sony-list dashboard-attention-list"></ul>
+            </article>
+
             <article class="sony-panel dashboard-card-journey">
                 <header>
                     <div>

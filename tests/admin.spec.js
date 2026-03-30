@@ -8,6 +8,23 @@ const {
 } = require('./helpers/admin-auth-mocks');
 const { installBasicAdminApiMocks } = require('./helpers/admin-api-mocks');
 
+function recalculateCheckoutReviewSummary(meta = {}) {
+    const queue = Array.isArray(meta.queue) ? meta.queue : [];
+    return {
+        pendingCount: queue.filter(
+            (item) => String(item.paymentStatus || '') === 'pending_transfer'
+        ).length,
+        verifiedCount: queue.filter(
+            (item) => String(item.paymentStatus || '') === 'verified_transfer'
+        ).length,
+        appliedCount: queue.filter(
+            (item) => String(item.paymentStatus || '') === 'applied'
+        ).length,
+        missingProofCount: Number(meta?.summary?.missingProofCount || 0),
+        queueCount: queue.length,
+    };
+}
+
 async function setupAuthenticatedAdminMocks(page, overrides = {}) {
     const funnelMetrics =
         overrides.funnelMetrics && typeof overrides.funnelMetrics === 'object'
@@ -79,6 +96,42 @@ async function setupAuthenticatedAdminMocks(page, overrides = {}) {
                     Object.assign(appointment, payload);
                 }
                 await fulfillJson(route, { ok: true, data: appointment || {} });
+                return true;
+            }
+
+            if (
+                resource === 'checkout-orders' &&
+                (method === 'PATCH' || intendedMethod === 'PATCH')
+            ) {
+                const orderId = String(payload.id || payload.orderId || '').trim();
+                const action = String(payload.action || '').trim();
+                const meta =
+                    mergedData.checkoutReviewMeta &&
+                    typeof mergedData.checkoutReviewMeta === 'object'
+                        ? mergedData.checkoutReviewMeta
+                        : { summary: {}, queue: [] };
+                const queue = Array.isArray(meta.queue) ? meta.queue : [];
+                const order = queue.find(
+                    (item) => String(item.id || '').trim() === orderId
+                );
+
+                if (order) {
+                    if (action === 'verify') {
+                        order.paymentStatus = 'verified_transfer';
+                        order.paymentStatusLabel = 'Verificado';
+                        order.canVerify = false;
+                        order.canApply = true;
+                    } else if (action === 'apply') {
+                        order.paymentStatus = 'applied';
+                        order.paymentStatusLabel = 'Aplicado';
+                        order.canVerify = false;
+                        order.canApply = false;
+                    }
+                    meta.summary = recalculateCheckoutReviewSummary(meta);
+                }
+
+                mergedData.checkoutReviewMeta = meta;
+                await fulfillJson(route, { ok: true, data: order || {} });
                 return true;
             }
 
@@ -1087,6 +1140,100 @@ test.describe('Panel de administracion', () => {
         await deliverCarePlanButton.click();
         await expect(page.locator('#toastContainer')).toContainText(
             'Luis Perez: plan listo para enviar al paciente.'
+        );
+    });
+
+    test('dashboard permite verificar y aplicar transferencias del checkout publico', async ({
+        page,
+    }) => {
+        await setupAuthenticatedAdminMocks(page, {
+            checkoutReviewMeta: {
+                summary: {
+                    pendingCount: 1,
+                    verifiedCount: 1,
+                    appliedCount: 0,
+                    missingProofCount: 0,
+                    queueCount: 2,
+                },
+                queue: [
+                    {
+                        id: 'co_transfer_001',
+                        receiptNumber: 'PAY-20260330-TRF01',
+                        concept: 'Saldo peeling',
+                        amountLabel: '$95.00',
+                        paymentStatus: 'pending_transfer',
+                        paymentStatusLabel: 'Pendiente de verificacion',
+                        payerName: 'Paciente Transferencia',
+                        payerWhatsapp: '+593999777666',
+                        transferReference: 'TRX-VERIFY-01',
+                        transferProofUrl:
+                            'https://pielarmonia.com/uploads/transfer-proofs/proof-001.png',
+                        transferProofUploadedAt: new Date().toISOString(),
+                        canVerify: true,
+                        canApply: false,
+                    },
+                    {
+                        id: 'co_transfer_002',
+                        receiptNumber: 'PAY-20260330-TRF02',
+                        concept: 'Control laser',
+                        amountLabel: '$75.00',
+                        paymentStatus: 'verified_transfer',
+                        paymentStatusLabel: 'Verificado',
+                        payerName: 'Paciente Aplicar',
+                        payerEmail: 'aplicar@example.com',
+                        transferReference: 'TRX-APPLY-02',
+                        transferProofUrl:
+                            'https://pielarmonia.com/uploads/transfer-proofs/proof-002.png',
+                        transferProofUploadedAt: new Date().toISOString(),
+                        transferVerifiedAt: new Date().toISOString(),
+                        canVerify: false,
+                        canApply: true,
+                    },
+                ],
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+        await openDashboardSection(page);
+
+        await expect(page.locator('#checkoutReviewPendingCount')).toHaveText(
+            '1'
+        );
+        await expect(page.locator('#checkoutReviewVerifiedCount')).toHaveText(
+            '1'
+        );
+        await expect(page.locator('#dashboardCheckoutReviewQueue')).toContainText(
+            'PAY-20260330-TRF01'
+        );
+
+        await page
+            .locator(
+                '[data-checkout-review-action="verify"][data-order-id="co_transfer_001"]'
+            )
+            .click();
+
+        await expect(page.locator('#checkoutReviewPendingCount')).toHaveText(
+            '0'
+        );
+        await expect(page.locator('#checkoutReviewVerifiedCount')).toHaveText(
+            '2'
+        );
+        await expect(page.locator('#toastContainer')).toContainText(
+            'Transferencia verificada'
+        );
+
+        await page
+            .locator(
+                '[data-checkout-review-action="apply"][data-order-id="co_transfer_002"]'
+            )
+            .click();
+
+        await expect(page.locator('#checkoutReviewAppliedCount')).toHaveText(
+            '1'
+        );
+        await expect(page.locator('#dashboardCheckoutReviewQueue')).toContainText(
+            'Aplicado'
         );
     });
 

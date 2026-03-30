@@ -57,7 +57,7 @@ function isExpired(claim) {
   return claim?.expiresAt && new Date(claim.expiresAt) < new Date();
 }
 
-// ── Task parser — captura S3-09, S3-OC1, S2-14, etc. ─────────────────────────
+// ── Task parser — captura S3-09, S3-OC1, S2-14, UI-01, UI-19, etc. ─────────────
 
 function parseTasks(md) {
   const tasks = [];
@@ -66,24 +66,31 @@ function parseTasks(md) {
   let sprintNum = 0;
 
   for (const line of lines) {
+    // Sprint normal: ### Sprint 3
     if (line.match(/^### .*Sprint (\d+)/)) {
       sprint = line.trim();
       const m = line.match(/Sprint (\d+)/);
       if (m) sprintNum = parseInt(m[1]);
     }
+    // Sprint UI: ### 🎨 Sprint UI
+    if (line.match(/^### .*Sprint UI/)) {
+      sprint = line.trim();
+      sprintNum = 99; // UI sprint always sorts last, Antigravity picks it first via role filter
+    }
 
-    // Captura: S3-09, S3-OC1, S2-14, S4-21, S6-09, etc.
-    const m = line.match(/^- \[([ x])\] \*\*(S\d+-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
+    // Captura: S3-09, S3-OC1, S2-14, S4-21, S6-09, UI-01, UI-19, etc.
+    const m = line.match(/^- \[([ x])\] \*\*((S\d+|UI)-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
     if (m) {
       tasks.push({
         id:          m[2],
         done:        m[1] === 'x',
-        size:        m[3],
+        size:        m[4],
         human:       line.includes('[HUMAN]'),
-        critical:    line.includes('🔴') || line.toLowerCase().includes('crítico') || line.includes('**Es el documento'),
+        critical:    line.includes('\uD83D\uDD34') || line.toLowerCase().includes('cr\u00edtico') || line.includes('**Es el documento'),
+        uiTag:       line.includes('[UI]'),
         sprint,
         sprintNum,
-        description: m[4].trim(),
+        description: m[5].trim(),
         line:        line.trim(),
       });
     }
@@ -208,38 +215,24 @@ const ROLE_AFFINITY = {
     sizes: ['S', 'M', 'L', 'XL'],
   },
 
-  // ── UI LANE: ANTIGRAVITY EXCLUSIVO ───────────────────────────────────────────
-  // NO TOCAR: este lane pertenece a Antigravity (Gemini).
-  // ChatGPT y otros agentes NO deben reclamar tareas [UI].
-  // Para tomar trabajo: npm run dispatch:ui
-  // Para reclamar:      node bin/claim.js claim <ID> "Antigravity"
   ui: {
     description: '🎨 ANTIGRAVITY EXCLUSIVO — Rediseño total UI/UX Aurora Derm',
     prefer: [
-      'UI-01', // Design tokens — la base de todo
-      'UI-02', // Tipografía + variables CSS
-      'UI-03', // Sistema de componentes base
-      'UI-04', // Landing page pública — hero + secciones
-      'UI-05', // Páginas de servicios — template premium
-      'UI-06', // Admin dashboard — shell y navegación
-      'UI-07', // OpenClaw chat UI
-      'UI-08', // Kiosco de turnos
-      'UI-09', // Sala de espera TV
-      'UI-10', // Operador de turnos
-      'UI-11', // Portal del paciente — mobile-first
-      'UI-12', // Formulario de booking público
-      'UI-13', // Historia clínica — render admin
-      'UI-14', // Recetas y certificados PDF — HTML template
+      'UI-01', 'UI-02', 'UI-03', 'UI-04', 'UI-05',
+      'UI-06', 'UI-07', 'UI-08', 'UI-09', 'UI-10',
+      'UI-11', 'UI-12', 'UI-13', 'UI-14', 'UI-15',
+      'UI-16', 'UI-17', 'UI-18', 'UI-19',
     ],
     keywords: [
       '[UI]', 'diseño', 'ui', 'ux', 'interfaz', 'visual', 'componente',
       'design system', 'token', 'css variable', 'layout', 'grid',
       'animación', 'hover', 'glassmorphism', 'dark mode', 'responsive',
     ],
+    // UI tasks have sprintNum=99, this filter ensures ONLY Sprint UI comes back
     sprints: ['Sprint UI'],
     avoid: ['php', 'controller', 'service', 'repository', 'api.php', 'routes.php'],
     sizes: ['S', 'M', 'L', 'XL'],
-    exclusive: true, // Solo Antigravity puede reclamar estas tareas
+    exclusive: true,
     agent: 'Antigravity',
   },
 };
@@ -256,7 +249,15 @@ function scoreTask(task, role, claims) {
   if (task.done)  return -9999;
   if (task.human) return -500;
 
+  // ── Hard filter: rol ui SOLO acepta tareas con [UI] tag ───────────────────
+  if (role === 'ui' && !task.uiTag) return -9999;
+  // Hard filter inverso: rutas excludes chat no aplican cuando ya se tiene
+  // el uiTag — ui tasks never avoid php/controller in keywords scan below
+
   let score = 0;
+
+  // UI tag bonus — garantiza que UI tasks flotan primero en el rol ui
+  if (task.uiTag) score += 150;
 
   // Explicit priority list for this role
   const prefIdx = config.prefer.indexOf(task.id);
@@ -267,12 +268,16 @@ function scoreTask(task, role, claims) {
 
   // Keyword affinity in description
   const desc = task.description.toLowerCase();
-  config.keywords.forEach(kw => { if (desc.includes(kw.toLowerCase())) score += 20; });
-  config.avoid.forEach(kw    => { if (desc.includes(kw.toLowerCase())) score -= 40; });
+  if (!task.uiTag) { // skip avoid check for UI tasks
+    config.keywords.forEach(kw => { if (desc.includes(kw.toLowerCase())) score += 20; });
+    config.avoid.forEach(kw    => { if (desc.includes(kw.toLowerCase())) score -= 40; });
+  } else {
+    config.keywords.forEach(kw => { if (desc.includes(kw.toLowerCase())) score += 15; });
+  }
 
   // Sprint preference (current sprint first)
   const sprintOrder = config.sprints.map(s => s.replace('Sprint ', ''));
-  const spIdx = sprintOrder.findIndex(s => String(task.sprintNum) === s);
+  const spIdx = sprintOrder.findIndex(s => task.sprint.includes(s) || String(task.sprintNum) === s);
   if (spIdx !== -1) score += (sprintOrder.length - spIdx) * 15;
   else score -= 25;
 
@@ -281,6 +286,7 @@ function scoreTask(task, role, claims) {
   if (sizePref !== -1) score += 10 - sizePref * 2;
 
   return score;
+
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────

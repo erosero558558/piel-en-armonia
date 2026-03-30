@@ -1382,6 +1382,42 @@ body.admin-v3-mode .operations-action-item {
     background: var(--admin3-surface-alt);
 }
 
+body.admin-v3-mode .dashboard-checkout-review__item {
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .dashboard-checkout-review__copy {
+    display: grid;
+    gap: 4px;
+}
+
+body.admin-v3-mode .dashboard-checkout-review__copy small {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .dashboard-checkout-review__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+body.admin-v3-mode .dashboard-checkout-review__actions a,
+body.admin-v3-mode .dashboard-checkout-review__actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface);
+    color: var(--admin3-ink);
+    text-decoration: none;
+    font: inherit;
+    cursor: pointer;
+}
+
 body.admin-v3-mode .operations-action-item {
     width: 100%;
     justify-content: space-between;

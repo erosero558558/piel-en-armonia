@@ -43,6 +43,7 @@ class ApiConfig
             'checkout-intent:POST' => [8, 60],
             'checkout-confirm:POST' => [10, 60],
             'checkout-submit:POST' => [8, 60],
+            'checkout-transfer-proof:POST' => [6, 60],
             'transfer-proof:POST' => [5, 60],
             'appointments:POST' => [5, 60],
             'reviews:POST' => [5, 60],
@@ -96,6 +97,7 @@ class ApiConfig
             'media-flow-proposal-generate:POST' => [30, 60],
             'media-flow-proposal-review:POST' => [30, 60],
             'media-flow-publication-state:POST' => [30, 60],
+            'checkout-orders:PATCH' => [30, 60],
 
             // Predictions
             'predictions:GET' => [20, 60],
@@ -121,6 +123,7 @@ class ApiConfig
             ['method' => 'POST', 'resource' => 'checkout-intent'],
             ['method' => 'POST', 'resource' => 'checkout-confirm'],
             ['method' => 'POST', 'resource' => 'checkout-submit'],
+            ['method' => 'POST', 'resource' => 'checkout-transfer-proof'],
             ['method' => 'POST', 'resource' => 'transfer-proof'],
             ['method' => 'POST', 'resource' => 'stripe-webhook'],
             ['method' => 'POST', 'resource' => 'appointments'],

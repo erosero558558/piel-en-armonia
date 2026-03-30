@@ -137,6 +137,125 @@ test.describe('Public payment checkout page', () => {
         ).toContainText('Pendiente de pago en consultorio');
     });
 
+    test('uploads transfer proof on top of the generated checkout receipt', async ({
+        page,
+    }) => {
+        await page.route('**/api.php?resource=checkout-config', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    ok: true,
+                    data: {
+                        currency: 'USD',
+                        stripeEnabled: false,
+                        publishableKey: '',
+                        bank: {
+                            bankName: 'Banco Pichincha',
+                            account: 'Cuenta de Ahorros: 2200160272',
+                            owner: 'Titular: Rosero Caiza Javier Alejandro',
+                        },
+                    },
+                }),
+            });
+        });
+
+        await page.route('**/api.php?resource=checkout-submit', async (route) => {
+            await route.fulfill({
+                status: 201,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    ok: true,
+                    data: {
+                        order: {
+                            id: 'co_transfer_001',
+                        },
+                        receipt: {
+                            receiptNumber: 'PAY-20260330-TRF01',
+                            concept: 'Saldo peeling',
+                            amountLabel: '$95.00',
+                            paymentMethod: 'transfer',
+                            paymentMethodLabel: 'Transferencia',
+                            paymentStatusLabel: 'Pendiente de transferencia',
+                            issuedAt: '2026-03-30T10:45:00-05:00',
+                            payer: {
+                                name: 'Paciente Transferencia',
+                                whatsapp: '+593999777666',
+                            },
+                        },
+                    },
+                }),
+            });
+        });
+
+        await page.route(
+            '**/api.php?resource=checkout-transfer-proof',
+            async (route) => {
+                await route.fulfill({
+                    status: 201,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        ok: true,
+                        data: {
+                            order: {
+                                id: 'co_transfer_001',
+                            },
+                            receipt: {
+                                receiptNumber: 'PAY-20260330-TRF01',
+                                concept: 'Saldo peeling',
+                                amountLabel: '$95.00',
+                                paymentMethod: 'transfer',
+                                paymentMethodLabel: 'Transferencia',
+                                paymentStatusLabel: 'Pendiente de verificacion',
+                                issuedAt: '2026-03-30T10:45:00-05:00',
+                                payer: {
+                                    name: 'Paciente Transferencia',
+                                    whatsapp: '+593999777666',
+                                },
+                                transferProofUrl:
+                                    'https://pielarmonia.com/uploads/transfer-proofs/proof-001.png',
+                            },
+                        },
+                    }),
+                });
+            }
+        );
+
+        await gotoPublicRoute(page, '/es/pago/');
+        await waitForShellV6Runtime(page);
+
+        await page.locator('[data-checkout-method="transfer"]').click();
+        await page.locator('#checkout-concept').fill('Saldo peeling');
+        await page.locator('#checkout-amount').fill('95.00');
+        await page.locator('#checkout-name').fill('Paciente Transferencia');
+        await page.locator('#checkout-whatsapp').fill('+593999777666');
+        await page.locator('#checkout-transfer-reference').fill('TRX-VERIFY-01');
+        await page.locator('[data-checkout-submit]').click();
+
+        await expect(page.locator('[data-checkout-proof-card]')).toBeVisible();
+
+        await page.locator('[data-checkout-proof-input]').setInputFiles({
+            name: 'proof.png',
+            mimeType: 'image/png',
+            buffer: Buffer.from(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qv6cAAAAASUVORK5CYII=',
+                'base64'
+            ),
+        });
+        await page.locator('[data-checkout-proof-submit]').click();
+
+        await expect(page.locator('[data-checkout-proof-status]')).toContainText(
+            'Comprobante recibido'
+        );
+        await expect(
+            page.locator('[data-checkout-receipt-status]')
+        ).toContainText('Pendiente de verificacion');
+        await expect(page.locator('[data-checkout-proof-link]')).toHaveAttribute(
+            'href',
+            'https://pielarmonia.com/uploads/transfer-proofs/proof-001.png'
+        );
+    });
+
     test('processes card checkout and upgrades the receipt to paid', async ({
         page,
     }) => {

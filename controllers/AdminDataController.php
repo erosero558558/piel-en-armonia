@@ -15,6 +15,7 @@ require_once __DIR__ . '/../lib/telemedicine/TelemedicineOpsSnapshot.php';
 require_once __DIR__ . '/../lib/FlowOsJourney.php';
 require_once __DIR__ . '/../lib/DoctorProfileStore.php';
 require_once __DIR__ . '/../lib/ClinicProfileStore.php';
+require_once __DIR__ . '/../lib/CheckoutOrderService.php';
 
 class AdminDataController
 {
@@ -124,6 +125,7 @@ class AdminDataController
         $store['telemedicineMeta'] = TelemedicineOpsSnapshot::forAdmin(
             TelemedicineOpsSnapshot::build($store)
         );
+        $store['checkoutReviewMeta'] = CheckoutOrderService::buildAdminReviewMeta($store);
         $store['internalConsoleMeta'] = function_exists('internal_console_readiness_snapshot')
             ? internal_console_readiness_snapshot()
             : null;

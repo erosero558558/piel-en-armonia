@@ -375,7 +375,9 @@ function save_transfer_proof_upload(array $file): array
     }
 
     $tmpName = isset($file['tmp_name']) ? (string) $file['tmp_name'] : '';
-    if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+    $testingUpload = defined('TESTING_ENV') && TESTING_ENV === true && $tmpName !== '' && is_file($tmpName);
+    $isRealUpload = $tmpName !== '' && is_uploaded_file($tmpName);
+    if (!$isRealUpload && !$testingUpload) {
         throw new RuntimeException('El archivo recibido no es valido.');
     }
 
@@ -412,7 +414,17 @@ function save_transfer_proof_upload(array $file): array
     $extension = $allowed[$mime];
     $filename = 'proof-' . local_date('Ymd-His') . '-' . $suffix . '.' . $extension;
     $diskPath = transfer_proof_upload_dir() . DIRECTORY_SEPARATOR . $filename;
-    if (!@move_uploaded_file($tmpName, $diskPath)) {
+    $stored = false;
+    if ($isRealUpload) {
+        $stored = @move_uploaded_file($tmpName, $diskPath);
+    } elseif ($testingUpload) {
+        $stored = @rename($tmpName, $diskPath);
+        if (!$stored) {
+            $stored = @copy($tmpName, $diskPath);
+        }
+    }
+
+    if (!$stored) {
         throw new RuntimeException('No se pudo guardar el comprobante.');
     }
 

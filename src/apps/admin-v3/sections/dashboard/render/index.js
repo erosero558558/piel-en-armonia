@@ -1,7 +1,14 @@
+import { apiRequest } from '../../../shared/core/api-client.js';
 import { getState } from '../../../shared/core/store.js';
 import { refreshAdminData } from '../../../shared/modules/data.js';
 import { runWhatsappOpenclawOpsAction } from '../../../shared/modules/data/remote.js';
-import { createToast, setHtml } from '../../../shared/ui/render.js';
+import {
+    createToast,
+    escapeHtml,
+    formatDateTime,
+    setHtml,
+    setText,
+} from '../../../shared/ui/render.js';
 import { buildAttentionItems, buildOperations } from '../markup.js';
 import {
     buildClinicalHistoryActions,
@@ -19,6 +26,7 @@ import { setOverviewMetrics } from './overview.js';
 import { renderDashboardCharts } from './charts.js';
 
 let whatsappOpsActionBusy = false;
+let checkoutReviewActionBusy = false;
 
 function normalizeNumber(value) {
     const num = Number(value || 0);
@@ -255,6 +263,205 @@ function normalizeClinicalHistoryMeta(rawSnapshot) {
     };
 }
 
+function normalizeCheckoutReviewItem(item) {
+    const source = item && typeof item === 'object' ? item : {};
+
+    return {
+        id: normalizeString(source.id),
+        receiptNumber: normalizeString(source.receiptNumber),
+        concept: normalizeString(source.concept),
+        amountLabel: normalizeString(source.amountLabel),
+        paymentStatus: normalizeString(source.paymentStatus),
+        paymentStatusLabel: normalizeString(source.paymentStatusLabel),
+        payerName: normalizeString(source.payerName),
+        payerWhatsapp: normalizeString(source.payerWhatsapp),
+        payerEmail: normalizeString(source.payerEmail),
+        transferReference: normalizeString(source.transferReference),
+        transferProofUrl: normalizeString(source.transferProofUrl),
+        transferProofName: normalizeString(source.transferProofName),
+        transferProofUploadedAt: normalizeString(source.transferProofUploadedAt),
+        transferVerifiedAt: normalizeString(source.transferVerifiedAt),
+        transferAppliedAt: normalizeString(source.transferAppliedAt),
+        createdAt: normalizeString(source.createdAt),
+        updatedAt: normalizeString(source.updatedAt),
+        canVerify: source.canVerify === true,
+        canApply: source.canApply === true,
+    };
+}
+
+function normalizeCheckoutReviewMeta(rawSnapshot) {
+    const snapshot =
+        rawSnapshot && typeof rawSnapshot === 'object' ? rawSnapshot : {};
+    const summary =
+        snapshot.summary && typeof snapshot.summary === 'object'
+            ? snapshot.summary
+            : {};
+
+    return {
+        summary: {
+            pendingCount: normalizeNumber(summary.pendingCount),
+            verifiedCount: normalizeNumber(summary.verifiedCount),
+            appliedCount: normalizeNumber(summary.appliedCount),
+            missingProofCount: normalizeNumber(summary.missingProofCount),
+            queueCount: normalizeNumber(summary.queueCount),
+        },
+        queue: normalizeList(snapshot.queue).map(normalizeCheckoutReviewItem),
+    };
+}
+
+function resolveCheckoutReviewTone(meta) {
+    const summary = meta?.summary || {};
+    if (Number(summary.pendingCount || 0) > 0) {
+        return 'warning';
+    }
+    if (Number(summary.verifiedCount || 0) > 0) {
+        return 'neutral';
+    }
+    if (Number(summary.appliedCount || 0) > 0) {
+        return 'success';
+    }
+    return 'neutral';
+}
+
+function resolveCheckoutReviewChipLabel(meta) {
+    const summary = meta?.summary || {};
+    if (Number(summary.pendingCount || 0) > 0) {
+        return `${Number(summary.pendingCount || 0)} pendiente(s)`;
+    }
+    if (Number(summary.verifiedCount || 0) > 0) {
+        return `${Number(summary.verifiedCount || 0)} verificado(s)`;
+    }
+    if (Number(summary.appliedCount || 0) > 0) {
+        return `${Number(summary.appliedCount || 0)} aplicado(s)`;
+    }
+    return 'Sin actividad';
+}
+
+function resolveCheckoutReviewSummary(meta) {
+    const summary = meta?.summary || {};
+    if (Number(summary.pendingCount || 0) > 0) {
+        return `Hay ${Number(summary.pendingCount || 0)} transferencia(s) lista(s) para verificar desde el checkout publico.`;
+    }
+    if (Number(summary.verifiedCount || 0) > 0) {
+        return `Hay ${Number(summary.verifiedCount || 0)} transferencia(s) ya verificadas esperando aplicacion administrativa.`;
+    }
+    if (Number(summary.appliedCount || 0) > 0) {
+        return `Las ultimas ${Number(summary.appliedCount || 0)} transferencia(s) ya quedaron aplicadas en el checkout digital.`;
+    }
+    if (Number(summary.missingProofCount || 0) > 0) {
+        return `${Number(summary.missingProofCount || 0)} checkout(s) por transferencia aun no suben foto del comprobante.`;
+    }
+    return 'Cuando un paciente suba su comprobante aqui apareceran los cobros para verificar y aplicar.';
+}
+
+function resolveCheckoutReviewMetaLine(meta) {
+    const summary = meta?.summary || {};
+    return [
+        Number(summary.queueCount || 0) > 0
+            ? `${Number(summary.queueCount || 0)} comprobante(s) en seguimiento`
+            : '',
+        Number(summary.missingProofCount || 0) > 0
+            ? `${Number(summary.missingProofCount || 0)} sin foto`
+            : '',
+    ]
+        .filter(Boolean)
+        .join(' • ') || 'Comprobantes recibidos desde /es/pago/.';
+}
+
+function buildCheckoutReviewItems(meta) {
+    const queue = Array.isArray(meta?.queue) ? meta.queue : [];
+    if (!queue.length) {
+        return `
+            <li class="dashboard-attention-item" data-tone="neutral">
+                <div class="dashboard-checkout-review__copy">
+                    <strong>Sin comprobantes por revisar</strong>
+                    <small>Los pagos por transferencia del checkout publico apareceran aqui cuando el paciente suba la foto.</small>
+                </div>
+            </li>
+        `;
+    }
+
+    return queue
+        .map((item) => {
+            const metaLine = [
+                item.amountLabel,
+                item.transferReference
+                    ? `Ref. ${item.transferReference}`
+                    : 'Sin referencia',
+                item.transferProofUploadedAt
+                    ? `Subido ${formatDateTime(item.transferProofUploadedAt)}`
+                    : item.transferVerifiedAt
+                      ? `Verificado ${formatDateTime(item.transferVerifiedAt)}`
+                      : item.transferAppliedAt
+                        ? `Aplicado ${formatDateTime(item.transferAppliedAt)}`
+                        : '',
+            ]
+                .filter(Boolean)
+                .join(' • ');
+            const contactLine = [
+                item.payerName || 'Paciente',
+                item.payerWhatsapp || item.payerEmail || '',
+            ]
+                .filter(Boolean)
+                .join(' • ');
+
+            return `
+                <li class="dashboard-attention-item dashboard-checkout-review__item" data-tone="${escapeHtml(
+                    item.canVerify ? 'warning' : item.canApply ? 'neutral' : 'success'
+                )}">
+                    <div class="dashboard-checkout-review__copy">
+                        <strong>${escapeHtml(item.receiptNumber || 'PAY')}</strong>
+                        <small>${escapeHtml(item.concept || 'Sin concepto')} • ${escapeHtml(item.paymentStatusLabel || 'Pendiente')}</small>
+                        <small>${escapeHtml(metaLine || '-')}</small>
+                        <small>${escapeHtml(contactLine || '-')}</small>
+                    </div>
+                    <div class="dashboard-checkout-review__actions">
+                        ${
+                            item.transferProofUrl
+                                ? `<a href="${escapeHtml(item.transferProofUrl)}" target="_blank" rel="noopener">Ver comprobante</a>`
+                                : ''
+                        }
+                        ${
+                            item.canVerify
+                                ? `<button type="button" data-checkout-review-action="verify" data-order-id="${escapeHtml(item.id)}">Verificar</button>`
+                                : ''
+                        }
+                        ${
+                            item.canApply
+                                ? `<button type="button" data-checkout-review-action="apply" data-order-id="${escapeHtml(item.id)}">Aplicar</button>`
+                                : ''
+                        }
+                    </div>
+                </li>
+            `;
+        })
+        .join('');
+}
+
+function setCheckoutReviewState(meta) {
+    const summary = meta?.summary || {};
+    const chip = document.getElementById('dashboardCheckoutReviewChip');
+
+    setText('#dashboardCheckoutReviewMeta', resolveCheckoutReviewMetaLine(meta));
+    setText('#checkoutReviewPendingCount', Number(summary.pendingCount || 0));
+    setText('#checkoutReviewVerifiedCount', Number(summary.verifiedCount || 0));
+    setText('#checkoutReviewAppliedCount', Number(summary.appliedCount || 0));
+    setText(
+        '#checkoutReviewMissingProofCount',
+        Number(summary.missingProofCount || 0)
+    );
+    setText(
+        '#dashboardCheckoutReviewSummary',
+        resolveCheckoutReviewSummary(meta)
+    );
+    setHtml('#dashboardCheckoutReviewQueue', buildCheckoutReviewItems(meta));
+    setText(
+        '#dashboardCheckoutReviewChip',
+        resolveCheckoutReviewChipLabel(meta)
+    );
+    chip?.setAttribute('data-state', resolveCheckoutReviewTone(meta));
+}
+
 function buildWhatsappOpsActionPayload(button) {
     const payload = {};
     const mappings = [
@@ -292,6 +499,12 @@ function buildWhatsappOpsToast(action, result) {
     }
 }
 
+function buildCheckoutReviewToast(action) {
+    return action === 'verify'
+        ? 'Transferencia verificada en el dashboard.'
+        : 'Transferencia aplicada al checkout digital.';
+}
+
 async function executeWhatsappOpsAction(button) {
     const action = String(button.dataset.whatsappOpsAction || '').trim();
     if (!action || whatsappOpsActionBusy) {
@@ -324,6 +537,42 @@ async function executeWhatsappOpsAction(button) {
     }
 }
 
+async function executeCheckoutReviewAction(button) {
+    const action = String(button.dataset.checkoutReviewAction || '').trim();
+    const orderId = String(button.dataset.orderId || '').trim();
+    if (!action || !orderId || checkoutReviewActionBusy) {
+        return;
+    }
+
+    checkoutReviewActionBusy = true;
+    if (button instanceof HTMLButtonElement) {
+        button.disabled = true;
+    }
+
+    try {
+        await apiRequest('checkout-orders', {
+            method: 'PATCH',
+            body: {
+                id: orderId,
+                action,
+            },
+        });
+        await refreshAdminData();
+        renderDashboard(getState());
+        createToast(buildCheckoutReviewToast(action), 'success');
+    } catch (error) {
+        createToast(
+            error?.message || 'No se pudo actualizar la transferencia.',
+            'error'
+        );
+    } finally {
+        checkoutReviewActionBusy = false;
+        if (button.isConnected && button instanceof HTMLButtonElement) {
+            button.disabled = false;
+        }
+    }
+}
+
 function bindWhatsappOpsActions() {
     const root = document.getElementById('dashboard');
     if (
@@ -349,11 +598,39 @@ function bindWhatsappOpsActions() {
     root.dataset.whatsappOpsBound = 'true';
 }
 
+function bindCheckoutReviewActions() {
+    const root = document.getElementById('dashboard');
+    if (
+        !(root instanceof HTMLElement) ||
+        root.dataset.checkoutReviewBound === 'true'
+    ) {
+        return;
+    }
+
+    root.addEventListener('click', (event) => {
+        const target =
+            event.target instanceof Element
+                ? event.target.closest('[data-checkout-review-action]')
+                : null;
+        if (!(target instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        event.preventDefault();
+        executeCheckoutReviewAction(target);
+    });
+
+    root.dataset.checkoutReviewBound = 'true';
+}
+
 export function renderDashboard(state) {
     const dashboardState = {
         ...getDashboardDerivedState(state),
         clinicalHistoryMeta: normalizeClinicalHistoryMeta(
             state?.data?.clinicalHistoryMeta
+        ),
+        checkoutReviewMeta: normalizeCheckoutReviewMeta(
+            state?.data?.checkoutReviewMeta
         ),
         whatsappOpenclawOps: normalizeWhatsappOpenclawOps(
             state?.data?.whatsappOpenclawOps
@@ -385,8 +662,10 @@ export function renderDashboard(state) {
         '#dashboardClinicalEventFeed',
         buildClinicalHistoryEventItems(dashboardState.clinicalHistoryMeta)
     );
+    setCheckoutReviewState(dashboardState.checkoutReviewMeta);
     setHtml('#dashboardAttentionList', buildAttentionItems(dashboardState));
     const queueAssistant = setFunnelMetrics(dashboardState.funnel);
     renderDashboardCharts(queueAssistant);
     bindWhatsappOpsActions();
+    bindCheckoutReviewActions();
 }

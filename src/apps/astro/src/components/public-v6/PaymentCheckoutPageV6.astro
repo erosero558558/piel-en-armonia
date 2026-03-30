@@ -75,6 +75,7 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
     data-api-intent="/api.php?resource=checkout-intent"
     data-api-confirm="/api.php?resource=checkout-confirm"
     data-api-submit="/api.php?resource=checkout-submit"
+    data-api-proof="/api.php?resource=checkout-transfer-proof"
     data-support-href={supportHref}
 >
     <section id="v6-pay-form" class="v6-pay-form-card" data-v6-pay-form-card>
@@ -229,7 +230,7 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
                         placeholder="Ejemplo: TRX-9842"
                     />
                     <p class="v6-pay-inline-note">
-                        En el siguiente hito sumaremos subida y verificacion del comprobante sin cambiar este checkout.
+                        Al generar el checkout podrá subir la foto del comprobante desde el mismo recibo digital.
                     </p>
                 </div>
             </div>
@@ -286,7 +287,7 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
             <ul>
                 <li>Un checkout persistido en backend aunque el metodo sea manual.</li>
                 <li>Un numero de recibo digital para seguimiento por WhatsApp.</li>
-                <li>La misma base para sumar validacion administrativa de transferencias.</li>
+                <li>Subida del comprobante y cola administrativa para verificar transferencias.</li>
             </ul>
         </article>
 
@@ -332,6 +333,33 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
                 </a>
             </div>
         </article>
+
+        <article class="v6-pay-proof-card" data-checkout-proof-card hidden>
+            <div class="v6-pay-receipt-card__head">
+                <p>Comprobante</p>
+                <h2>Suba la foto para validar la transferencia.</h2>
+            </div>
+            <p class="v6-pay-proof-card__body">
+                Puede tomar una foto del voucher o subir el PDF exportado por su banco. Frontdesk lo verá en el
+                dashboard con el mismo número de recibo.
+            </p>
+            <div class="v6-pay-field is-full">
+                <label for="checkout-transfer-proof">Foto o PDF del comprobante</label>
+                <input
+                    id="checkout-transfer-proof"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    data-checkout-proof-input
+                />
+            </div>
+            <div class="v6-pay-receipt-card__actions">
+                <button type="button" data-checkout-proof-submit>Subir comprobante</button>
+                <a href="#" target="_blank" rel="noopener noreferrer" data-checkout-proof-link hidden>
+                    Abrir archivo subido
+                </a>
+            </div>
+            <div class="v6-pay-status" data-checkout-proof-status role="status" aria-live="polite" hidden></div>
+        </article>
     </aside>
 </div>
 
@@ -347,11 +375,11 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
     </article>
     <article class="v6-pay-lane__card">
         <p>Siguiente paso del sprint</p>
-        <h2>La misma orden servira para verificar transferencias sin rehacer esta pagina.</h2>
+        <h2>La misma orden ahora sostiene comprobante, verificacion y aplicacion administrativa.</h2>
         <ul>
-            <li>La orden ya persiste concepto, monto, metodo y referencia.</li>
-            <li>El recibo digital ya da un numero comun para paciente y frontdesk.</li>
-            <li>Solo falta sumar comprobante y aprobacion administrativa sobre la misma base.</li>
+            <li>La orden persiste concepto, monto, metodo, referencia y foto del comprobante.</li>
+            <li>El recibo digital sigue dando un numero comun para paciente y frontdesk.</li>
+            <li>Admin puede mover la transferencia de pendiente a verificada y luego a aplicada.</li>
         </ul>
     </article>
 </section>
@@ -389,6 +417,11 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
         const receiptReferenceNode = root.querySelector('[data-checkout-receipt-reference]');
         const receiptReferenceRow = root.querySelector('[data-checkout-receipt-reference-row]');
         const receiptWhatsappLink = root.querySelector('[data-checkout-receipt-whatsapp]');
+        const proofCard = root.querySelector('[data-checkout-proof-card]');
+        const proofInput = root.querySelector('[data-checkout-proof-input]');
+        const proofSubmitButton = root.querySelector('[data-checkout-proof-submit]');
+        const proofStatusNode = root.querySelector('[data-checkout-proof-status]');
+        const proofLink = root.querySelector('[data-checkout-proof-link]');
         const bankNameNode = root.querySelector('[data-checkout-bank-name]');
         const bankAccountNode = root.querySelector('[data-checkout-bank-account]');
         const bankOwnerNode = root.querySelector('[data-checkout-bank-owner]');
@@ -398,6 +431,7 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
         const intentUrl = root.dataset.apiIntent || '/api.php?resource=checkout-intent';
         const confirmUrl = root.dataset.apiConfirm || '/api.php?resource=checkout-confirm';
         const submitUrl = root.dataset.apiSubmit || '/api.php?resource=checkout-submit';
+        const proofUrl = root.dataset.apiProof || '/api.php?resource=checkout-transfer-proof';
         const supportHref = root.dataset.supportHref || 'https://wa.me/593982453672';
 
         if (!(form instanceof HTMLFormElement) || !(methodInput instanceof HTMLInputElement)) {
@@ -410,6 +444,7 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
             cardElement: null,
             activeMethod: methodInput.value || 'card',
             busy: false,
+            latestOrderId: '',
         };
 
         const methodLabels = {
@@ -461,6 +496,28 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
                 submitButton.disabled = state.busy;
                 submitButton.textContent = state.busy ? 'Procesando...' : 'Generar checkout';
             }
+            if (proofSubmitButton instanceof HTMLButtonElement) {
+                proofSubmitButton.disabled = state.busy;
+                proofSubmitButton.textContent = state.busy
+                    ? 'Subiendo...'
+                    : 'Subir comprobante';
+            }
+        };
+
+        const showProofStatus = (message, tone = 'info') => {
+            if (!(proofStatusNode instanceof HTMLElement)) {
+                return;
+            }
+            const text = getText(message);
+            if (!text) {
+                proofStatusNode.hidden = true;
+                proofStatusNode.textContent = '';
+                proofStatusNode.dataset.tone = '';
+                return;
+            }
+            proofStatusNode.hidden = false;
+            proofStatusNode.dataset.tone = tone;
+            proofStatusNode.textContent = text;
         };
 
         const readQueryPrefill = () => {
@@ -656,8 +713,49 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
                 receiptWhatsappLink.href = `${supportHref}${supportHref.includes('?') ? '&' : '?'}text=${message}`;
             }
 
+            if (proofLink instanceof HTMLAnchorElement) {
+                const uploadedProofUrl = getText(receipt?.transferProofUrl);
+                proofLink.href = uploadedProofUrl || '#';
+                proofLink.hidden = !uploadedProofUrl;
+            }
+
             receiptNode.hidden = false;
+            const shouldShowProofCard =
+                getText(receipt?.paymentMethod) === 'transfer' ||
+                getText(receipt?.paymentMethodLabel).toLowerCase().includes('transfer');
+            if (proofCard instanceof HTMLElement) {
+                proofCard.hidden = !shouldShowProofCard;
+            }
             receiptNode.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
+        const uploadTransferProof = async () => {
+            if (!(proofInput instanceof HTMLInputElement) || !proofInput.files || !proofInput.files[0]) {
+                throw new Error('Seleccione la foto o PDF del comprobante antes de subirlo.');
+            }
+            if (!state.latestOrderId) {
+                throw new Error('Primero genere el checkout por transferencia para obtener el recibo.');
+            }
+
+            const transferReferenceField = root.querySelector('#checkout-transfer-reference');
+            const formData = new FormData();
+            formData.append('orderId', state.latestOrderId);
+            formData.append('proof', proofInput.files[0]);
+            if (transferReferenceField instanceof HTMLInputElement && transferReferenceField.value.trim()) {
+                formData.append('transferReference', transferReferenceField.value.trim());
+            }
+
+            const response = await fetch(proofUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData,
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || payload.ok === false) {
+                throw new Error(payload.error || `HTTP ${response.status}`);
+            }
+
+            return payload.data || payload;
         };
 
         const processCardCheckout = async (payload) => {
@@ -783,7 +881,9 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
                         ? await processCardCheckout(payload)
                         : await processOfflineCheckout(payload);
 
+                state.latestOrderId = getText(result?.order?.id, state.latestOrderId);
                 renderReceipt(result.receipt || {});
+                showProofStatus('');
                 showStatus('Checkout generado correctamente.', 'success');
             } catch (error) {
                 showStatus(error?.message || 'No se pudo generar el checkout.', 'error');
@@ -795,6 +895,30 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
         if (printButton instanceof HTMLButtonElement) {
             printButton.addEventListener('click', () => {
                 window.print();
+            });
+        }
+
+        if (proofSubmitButton instanceof HTMLButtonElement) {
+            proofSubmitButton.addEventListener('click', async () => {
+                if (state.busy) {
+                    return;
+                }
+
+                try {
+                    setBusy(true);
+                    showProofStatus('Subiendo comprobante al checkout digital...', 'info');
+                    const result = await uploadTransferProof();
+                    state.latestOrderId = getText(result?.order?.id, state.latestOrderId);
+                    renderReceipt(result.receipt || {});
+                    showProofStatus('Comprobante recibido. Frontdesk ya puede verificarlo.', 'success');
+                } catch (error) {
+                    showProofStatus(
+                        error?.message || 'No se pudo subir el comprobante.',
+                        'error'
+                    );
+                } finally {
+                    setBusy(false);
+                }
             });
         }
 

@@ -254,6 +254,185 @@ class PaymentController
         ], 201);
     }
 
+    public static function checkoutTransferProof(array $context): void
+    {
+        $orderId = trim((string) ($_POST['orderId'] ?? ''));
+        if ($orderId === '') {
+            json_response([
+                'ok' => false,
+                'error' => 'orderId es obligatorio'
+            ], 400);
+        }
+
+        if (!isset($_FILES['proof']) || !is_array($_FILES['proof'])) {
+            json_response([
+                'ok' => false,
+                'error' => 'Debes adjuntar la foto del comprobante.'
+            ], 400);
+        }
+
+        try {
+            $upload = save_transfer_proof_upload($_FILES['proof']);
+        } catch (RuntimeException $error) {
+            json_response([
+                'ok' => false,
+                'error' => $error->getMessage(),
+            ], 400);
+        }
+
+        $persisted = with_store_lock(static function () use ($orderId, $upload): array {
+            $store = read_store();
+            $order = CheckoutOrderService::findOrder($store, $orderId);
+            if (!$order) {
+                return [
+                    'ok' => false,
+                    'error' => 'No encontramos ese checkout digital.',
+                    'code' => 404,
+                ];
+            }
+
+            try {
+                $order = CheckoutOrderService::attachTransferProof($order, $upload, [
+                    'transferReference' => trim((string) ($_POST['transferReference'] ?? '')),
+                ]);
+            } catch (InvalidArgumentException $error) {
+                return [
+                    'ok' => false,
+                    'error' => $error->getMessage(),
+                    'code' => 400,
+                ];
+            }
+
+            $store = CheckoutOrderService::upsertOrder($store, $order);
+            if (!write_store($store, false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo guardar el comprobante',
+                    'code' => 503,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'order' => $order,
+            ];
+        });
+
+        if (($persisted['ok'] ?? false) !== true || !is_array($persisted['result'] ?? null)) {
+            $diskPath = trim((string) ($upload['diskPath'] ?? ''));
+            if ($diskPath !== '' && is_file($diskPath)) {
+                @unlink($diskPath);
+            }
+            json_response([
+                'ok' => false,
+                'error' => (string) ($persisted['error'] ?? 'No se pudo guardar el comprobante'),
+            ], (int) ($persisted['code'] ?? 503));
+        }
+
+        $result = $persisted['result'];
+        if (($result['ok'] ?? false) !== true) {
+            $diskPath = trim((string) ($upload['diskPath'] ?? ''));
+            if ($diskPath !== '' && is_file($diskPath)) {
+                @unlink($diskPath);
+            }
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo guardar el comprobante'),
+            ], (int) ($result['code'] ?? 400));
+        }
+
+        $order = $result['order'];
+        json_response([
+            'ok' => true,
+            'data' => [
+                'order' => $order,
+                'receipt' => CheckoutOrderService::buildReceipt($order),
+            ],
+        ], 201);
+    }
+
+    public static function checkoutOrderReview(array $context): void
+    {
+        $payload = require_json_body();
+        $orderId = trim((string) ($payload['id'] ?? $payload['orderId'] ?? ''));
+        $action = strtolower(trim((string) ($payload['action'] ?? '')));
+
+        if ($orderId === '') {
+            json_response([
+                'ok' => false,
+                'error' => 'id es obligatorio'
+            ], 400);
+        }
+        if (!in_array($action, ['verify', 'apply'], true)) {
+            json_response([
+                'ok' => false,
+                'error' => 'Accion no soportada para la revision de transferencias.'
+            ], 400);
+        }
+
+        $persisted = with_store_lock(static function () use ($orderId, $action): array {
+            $store = read_store();
+            $order = CheckoutOrderService::findOrder($store, $orderId);
+            if (!$order) {
+                return [
+                    'ok' => false,
+                    'error' => 'No encontramos ese checkout digital.',
+                    'code' => 404,
+                ];
+            }
+
+            try {
+                $order = $action === 'verify'
+                    ? CheckoutOrderService::verifyTransfer($order)
+                    : CheckoutOrderService::applyTransfer($order);
+            } catch (InvalidArgumentException $error) {
+                return [
+                    'ok' => false,
+                    'error' => $error->getMessage(),
+                    'code' => 400,
+                ];
+            }
+
+            $store = CheckoutOrderService::upsertOrder($store, $order);
+            if (!write_store($store, false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo actualizar la transferencia',
+                    'code' => 503,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'order' => $order,
+            ];
+        });
+
+        if (($persisted['ok'] ?? false) !== true || !is_array($persisted['result'] ?? null)) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($persisted['error'] ?? 'No se pudo actualizar la transferencia'),
+            ], (int) ($persisted['code'] ?? 503));
+        }
+
+        $result = $persisted['result'];
+        if (($result['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo actualizar la transferencia'),
+            ], (int) ($result['code'] ?? 400));
+        }
+
+        $order = $result['order'];
+        json_response([
+            'ok' => true,
+            'data' => [
+                'order' => $order,
+                'receipt' => CheckoutOrderService::buildReceipt($order),
+            ],
+        ]);
+    }
+
     public static function createIntent(array $context): void
     {
         $store = $context['store'];

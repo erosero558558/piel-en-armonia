@@ -74,6 +74,7 @@ const initialState = {
         clinicalHistoryMeta: null,
         mediaFlowMeta: null,
         telemedicineMeta: null,
+        checkoutReviewMeta: null,
         internalConsoleMeta: null,
         funnelMetrics: null,
         health: null,
