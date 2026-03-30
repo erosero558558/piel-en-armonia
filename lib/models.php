@@ -321,6 +321,17 @@ function normalize_queue_ticket(array $ticket): array
         ?? ($ticket['assistance_reason'] ?? '')
     ))), 80);
 
+    $visitReason = strtolower(trim((string) (
+        $ticket['visitReason']
+        ?? ($ticket['visit_reason'] ?? ($queueType === 'walk_in' ? 'consulta_general' : ''))
+    )));
+    if ($queueType !== 'walk_in') {
+        $visitReason = '';
+    }
+    if ($visitReason !== '' && !in_array($visitReason, ['consulta_general', 'control', 'procedimiento', 'urgencia'], true)) {
+        $visitReason = 'consulta_general';
+    }
+
     return [
         'id' => isset($ticket['id']) ? (int) $ticket['id'] : (int) round(microtime(true) * 1000),
         'tenantId' => isset($ticket['tenantId']) && is_string($ticket['tenantId']) && trim($ticket['tenantId']) !== ''
@@ -348,6 +359,10 @@ function normalize_queue_ticket(array $ticket): array
         'assistanceReasonLabel' => $assistanceReason !== ''
             ? queue_help_request_reason_label($assistanceReason)
             : '',
+        'visitReason' => $visitReason,
+        'visitReasonLabel' => $visitReason !== ''
+            ? queue_ticket_visit_reason_label($visitReason)
+            : '',
         'specialPriority' => $specialPriority,
         'lateArrival' => $lateArrival,
         'reprintRequestedAt' => truncate_field(trim((string) (
@@ -356,6 +371,18 @@ function normalize_queue_ticket(array $ticket): array
         )), 40),
         'estimatedWaitMin' => $estimatedWaitMin,
     ];
+}
+
+function queue_ticket_visit_reason_label(string $reason): string
+{
+    $normalized = strtolower(trim($reason));
+
+    return [
+        'consulta_general' => 'Consulta general',
+        'control' => 'Control',
+        'procedimiento' => 'Procedimiento',
+        'urgencia' => 'Urgencia',
+    ][$normalized] ?? 'Consulta general';
 }
 
 function queue_help_request_reason_label(string $reason): string

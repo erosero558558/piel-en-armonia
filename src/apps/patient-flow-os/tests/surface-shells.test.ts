@@ -23,6 +23,10 @@ test("patient flow link shell hydrates from the canonical surface endpoint", () 
   const html = renderPatientFlowLink(tenant, buildPatientFlowLinkProjection(snapshot));
 
   assert.match(html, /\/v1\/surfaces\/patient-flow\?tenantId=tnt_green&caseId=case_green_001/);
+  assert.match(html, /<title>Green Valley Clinic Portal del Paciente<\/title>/);
+  assert.match(html, /<meta name="application-name" content="Green Valley Clinic"/);
+  assert.match(html, /<meta name="apple-mobile-web-app-title" content="Green Valley Clinic"/);
+  assert.match(html, /<link rel="manifest" href="\/patient\/green-valley\/case_green_001\/manifest\.webmanifest"/);
   assert.match(html, /window\.setInterval/);
   assert.match(html, /Projection refreshed automatically/);
   assert.match(html, /id="pfl-refresh-status"/);

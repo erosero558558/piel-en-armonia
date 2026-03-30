@@ -48,6 +48,8 @@ require_once __DIR__ . '/controllers/WhatsappOpenclawController.php';
 require_once __DIR__ . '/controllers/AdminAgentController.php';
 require_once __DIR__ . '/controllers/FlowOsController.php';
 require_once __DIR__ . '/controllers/IntakeController.php';
+require_once __DIR__ . '/controllers/OpenclawController.php';
+
 
 // Instantiate and Handle
 $kernel = new ApiKernel();

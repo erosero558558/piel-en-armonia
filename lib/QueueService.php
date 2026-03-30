@@ -63,6 +63,14 @@ class QueueService
             ];
         }
 
+        $visitReason = $this->priorityPolicy->resolveWalkInReason((string) (
+            $payload['visitReason']
+            ?? ($payload['visit_reason'] ?? '')
+        ));
+        $payload['visitReason'] = $visitReason;
+        $payload['specialPriority'] = $this->priorityPolicy->walkInRequiresSpecialPriority($visitReason)
+            || parse_bool($payload['specialPriority'] ?? ($payload['special_priority'] ?? false));
+
         $nowIso = local_date('c');
         $ticket = $this->ticketFactory->createWalkInTicket($store['queue_tickets'] ?? [], $payload, $createdSource, $nowIso);
         $store['queue_tickets'][] = $ticket;

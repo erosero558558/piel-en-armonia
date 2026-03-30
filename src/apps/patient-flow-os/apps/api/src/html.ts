@@ -25,15 +25,32 @@ function renderList(items: string[], fallback: string): string {
   return items.length > 0 ? items.join("") : `<li class="muted">${escapeHtml(fallback)}</li>`;
 }
 
-function layout(title: string, tenant: TenantConfig | null, body: string): string {
+interface LayoutOptions {
+  title: string;
+  tenant: TenantConfig | null;
+  body: string;
+  appName?: string | null;
+  manifestHref?: string | null;
+  themeColor?: string | null;
+}
+
+function layout({ title, tenant, body, appName, manifestHref, themeColor }: LayoutOptions): string {
   const brandColor = tenant?.brandColor ?? "#0f172a";
   const brandName = tenant?.name ?? "Patient Flow OS";
+  const installableAppName = appName ?? brandName;
+  const effectiveThemeColor = themeColor ?? brandColor;
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${title}</title>
+    <meta name="application-name" content="${escapeHtml(installableAppName)}" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="${escapeHtml(installableAppName)}" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="${escapeHtml(effectiveThemeColor)}" />
+    ${manifestHref ? `<link rel="manifest" href="${escapeHtml(manifestHref)}" />` : ""}
     <style>
       :root {
         --brand: ${brandColor};
@@ -97,11 +114,19 @@ function layout(title: string, tenant: TenantConfig | null, body: string): strin
 
 export function renderHomePage(tenants: TenantConfig[]): string {
   const links = tenants.map((tenant) => `<li><a href="/ops/${tenant.slug}">${tenant.name}</a> · <code>${tenant.id}</code></li>`).join("");
-  return layout("Patient Flow OS", null, `<section class="hero"><span class="pill">patientCase-first</span><h1>Patient Flow OS</h1><p>El runtime nuevo opera alrededor de un caso operativo vivo, no alrededor de tablas sueltas.</p></section><section class="grid"><article class="card"><h2>Surfaces</h2><ul><li>Ops Console</li><li>Patient Flow Link</li><li>Wait Room Display</li><li>Clinic Dashboard</li></ul></article><article class="card"><h2>Tenants seed</h2><ul>${links}</ul></article><article class="card"><h2>API</h2><ul><li><code>/v1/patient-cases</code></li><li><code>/v1/reports/kpi</code></li><li><code>/v1/surfaces/patient-flow</code></li><li><code>/v1/surfaces/wait-room</code></li><li><code>/v1/surfaces/dashboard</code></li></ul></article></section>`);
+  return layout({
+    title: "Patient Flow OS",
+    tenant: null,
+    body: `<section class="hero"><span class="pill">patientCase-first</span><h1>Patient Flow OS</h1><p>El runtime nuevo opera alrededor de un caso operativo vivo, no alrededor de tablas sueltas.</p></section><section class="grid"><article class="card"><h2>Surfaces</h2><ul><li>Ops Console</li><li>Patient Flow Link</li><li>Wait Room Display</li><li>Clinic Dashboard</li></ul></article><article class="card"><h2>Tenants seed</h2><ul>${links}</ul></article><article class="card"><h2>API</h2><ul><li><code>/v1/patient-cases</code></li><li><code>/v1/reports/kpi</code></li><li><code>/v1/surfaces/patient-flow</code></li><li><code>/v1/surfaces/wait-room</code></li><li><code>/v1/surfaces/dashboard</code></li></ul></article></section>`
+  });
 }
 
 export function renderOpsConsole(tenant: TenantConfig): string {
-  return layout("Ops Console", tenant, `${renderOpsConsoleShell(tenant)}<section class="card"><h2>Canonical API</h2><p class="muted">Este shell se hidrata leyendo las superficies oficiales del runtime.</p>${renderOpsConsoleApiHint(tenant)}</section>`);
+  return layout({
+    title: "Ops Console",
+    tenant,
+    body: `${renderOpsConsoleShell(tenant)}<section class="card"><h2>Canonical API</h2><p class="muted">Este shell se hidrata leyendo las superficies oficiales del runtime.</p>${renderOpsConsoleApiHint(tenant)}</section>`
+  });
 }
 
 function renderPatientFlowApprovals(projection: PatientFlowLinkProjection): string {
@@ -160,7 +185,14 @@ function renderDashboardAttentionCases(projection: ClinicDashboardProjection): s
 
 export function renderPatientFlowLink(tenant: TenantConfig, projection: PatientFlowLinkProjection): string {
   const endpoint = `/v1/surfaces/patient-flow?tenantId=${encodeURIComponent(projection.tenantId)}&caseId=${encodeURIComponent(projection.caseId)}`;
-  return layout("Patient Flow Link", tenant, `<section class="hero"><span class="pill">Patient Flow Link</span><div class="row"><div><h1 id="pfl-patient-name">${escapeHtml(projection.patientName)}</h1><p id="pfl-next-step">${escapeHtml(projection.nextStep)}</p></div><p class="small muted surface-status" id="pfl-refresh-status">Live case projection ready.</p></div></section><section class="grid"><article class="card"><h2>Case</h2><div class="stack"><div class="row"><strong>ID</strong><span class="mono" id="pfl-case-id">${escapeHtml(projection.caseId)}</span></div><div class="row"><strong>Status</strong><span id="pfl-case-status">${escapeHtml(projection.caseStatus)}</span></div><div class="row"><strong>Service</strong><span id="pfl-service-line">${escapeHtml(projection.serviceLine ?? "Pending")}</span></div><div class="row"><strong>Provider</strong><span id="pfl-provider-name">${escapeHtml(projection.providerName ?? "Pending")}</span></div><div class="row"><strong>Updated</strong><span class="small muted" id="pfl-updated-at">${escapeHtml(projection.lastUpdatedAt)}</span></div></div></article><article class="card"><h2>Queue</h2><p><strong>Ticket:</strong> <span id="pfl-queue-ticket">${escapeHtml(projection.liveQueue?.ticketNumber ?? "Not assigned yet")}</span></p><p><strong>Status:</strong> <span id="pfl-queue-status">${escapeHtml(projection.liveQueue?.status ?? "Pending check-in")}</span></p></article><article class="card"><h2>Approvals</h2><ul id="pfl-approvals">${renderPatientFlowApprovals(projection)}</ul></article></section><section class="grid"><article class="card"><h2>Open actions</h2><ul id="pfl-actions">${renderPatientFlowActions(projection)}</ul></article><article class="card"><h2>Recent timeline</h2><ul id="pfl-timeline">${renderPatientFlowTimeline(projection)}</ul></article></section><script type="module">
+  const manifestHref = `/patient/${encodeURIComponent(tenant.slug)}/${encodeURIComponent(projection.caseId)}/manifest.webmanifest`;
+  const installableAppName = tenant.name;
+  return layout({
+    title: `${installableAppName} Portal del Paciente`,
+    tenant,
+    appName: installableAppName,
+    manifestHref,
+    body: `<section class="hero"><span class="pill">Portal del Paciente</span><div class="row"><div><h1 id="pfl-patient-name">${escapeHtml(projection.patientName)}</h1><p id="pfl-next-step">${escapeHtml(projection.nextStep)}</p></div><p class="small muted surface-status" id="pfl-refresh-status">Live case projection ready.</p></div></section><section class="grid"><article class="card"><h2>Case</h2><div class="stack"><div class="row"><strong>ID</strong><span class="mono" id="pfl-case-id">${escapeHtml(projection.caseId)}</span></div><div class="row"><strong>Status</strong><span id="pfl-case-status">${escapeHtml(projection.caseStatus)}</span></div><div class="row"><strong>Service</strong><span id="pfl-service-line">${escapeHtml(projection.serviceLine ?? "Pending")}</span></div><div class="row"><strong>Provider</strong><span id="pfl-provider-name">${escapeHtml(projection.providerName ?? "Pending")}</span></div><div class="row"><strong>Updated</strong><span class="small muted" id="pfl-updated-at">${escapeHtml(projection.lastUpdatedAt)}</span></div></div></article><article class="card"><h2>Queue</h2><p><strong>Ticket:</strong> <span id="pfl-queue-ticket">${escapeHtml(projection.liveQueue?.ticketNumber ?? "Not assigned yet")}</span></p><p><strong>Status:</strong> <span id="pfl-queue-status">${escapeHtml(projection.liveQueue?.status ?? "Pending check-in")}</span></p></article><article class="card"><h2>Approvals</h2><ul id="pfl-approvals">${renderPatientFlowApprovals(projection)}</ul></article></section><section class="grid"><article class="card"><h2>Open actions</h2><ul id="pfl-actions">${renderPatientFlowActions(projection)}</ul></article><article class="card"><h2>Recent timeline</h2><ul id="pfl-timeline">${renderPatientFlowTimeline(projection)}</ul></article></section><script type="module">
   const endpoint = ${scriptJson(endpoint)};
   const initialProjection = ${scriptJson(projection)};
   const elements = {
@@ -234,12 +266,16 @@ export function renderPatientFlowLink(tenant: TenantConfig, projection: PatientF
   renderProjection(initialProjection);
   void refreshProjection(true);
   window.setInterval(() => { void refreshProjection(true); }, 15000);
-</script>`);
+</script>`
+  });
 }
 
 export function renderWaitRoomDisplay(tenant: TenantConfig, projection: WaitRoomDisplayProjection): string {
   const endpoint = `/v1/surfaces/wait-room?tenantId=${encodeURIComponent(projection.tenantId)}&locationId=${encodeURIComponent(projection.locationId)}`;
-  return layout("Wait Room Display", tenant, `<section class="hero"><span class="pill">Wait Room Display</span><div class="row"><div><h1 id="wrd-room-name">${escapeHtml(projection.waitingRoomName)}</h1><p id="wrd-room-subtitle">Queue depth <strong>${projection.queueDepth}</strong> for ${escapeHtml(projection.locationName)}.</p></div><p class="small muted surface-status" id="wrd-refresh-status">Wait room board ready.</p></div></section><section class="grid"><article class="card"><h2>Llamando ahora</h2><div class="stat" id="wrd-now-ticket">${escapeHtml(projection.nowCalling?.ticketNumber ?? "--")}</div><p id="wrd-now-patient">${escapeHtml(projection.nowCalling?.patientName ?? "Sin llamado activo")}</p></article><article class="card"><h2>Queue depth</h2><div class="stat" id="wrd-depth">${projection.queueDepth}</div><p class="small muted" id="wrd-updated-at">${escapeHtml(projection.lastUpdatedAt)}</p></article><article class="card"><h2>Esperando</h2><ul id="wrd-waiting-list">${renderWaitRoomWaitingList(projection)}</ul></article></section><script type="module">
+  return layout({
+    title: "Wait Room Display",
+    tenant,
+    body: `<section class="hero"><span class="pill">Wait Room Display</span><div class="row"><div><h1 id="wrd-room-name">${escapeHtml(projection.waitingRoomName)}</h1><p id="wrd-room-subtitle">Queue depth <strong>${projection.queueDepth}</strong> for ${escapeHtml(projection.locationName)}.</p></div><p class="small muted surface-status" id="wrd-refresh-status">Wait room board ready.</p></div></section><section class="grid"><article class="card"><h2>Llamando ahora</h2><div class="stat" id="wrd-now-ticket">${escapeHtml(projection.nowCalling?.ticketNumber ?? "--")}</div><p id="wrd-now-patient">${escapeHtml(projection.nowCalling?.patientName ?? "Sin llamado activo")}</p></article><article class="card"><h2>Queue depth</h2><div class="stat" id="wrd-depth">${projection.queueDepth}</div><p class="small muted" id="wrd-updated-at">${escapeHtml(projection.lastUpdatedAt)}</p></article><article class="card"><h2>Esperando</h2><ul id="wrd-waiting-list">${renderWaitRoomWaitingList(projection)}</ul></article></section><script type="module">
   const endpoint = ${scriptJson(endpoint)};
   const initialProjection = ${scriptJson(projection)};
   const elements = {
@@ -303,12 +339,16 @@ export function renderWaitRoomDisplay(tenant: TenantConfig, projection: WaitRoom
   renderProjection(initialProjection);
   void refreshProjection(true);
   window.setInterval(() => { void refreshProjection(true); }, 10000);
-</script>`);
+</script>`
+  });
 }
 
 export function renderClinicDashboard(tenant: TenantConfig, projection: ClinicDashboardProjection): string {
   const endpoint = `/v1/surfaces/dashboard?tenantId=${encodeURIComponent(projection.tenantId)}`;
-  return layout("Clinic Dashboard", tenant, `<section class="hero"><span class="pill">Clinic Dashboard</span><div class="row"><div><h1>KPIs operativos</h1><p>La lectura diaria del tenant sale del estado consolidado del caso.</p></div><p class="small muted surface-status" id="cd-refresh-status">Dashboard ready.</p></div></section><section class="grid"><article class="card"><div class="stat" id="cd-active">${projection.kpi.activeCases}</div><p>Casos activos</p></article><article class="card"><div class="stat" id="cd-waiting">${projection.kpi.waiting}</div><p>Esperando</p></article><article class="card"><div class="stat" id="cd-no-show">${projection.kpi.noShow}</div><p>No-show</p></article><article class="card"><div class="stat" id="cd-follow-up">${projection.kpi.followUpPending}</div><p>Follow-up pendiente</p></article></section><section class="grid"><article class="card"><h2>Recent cases</h2><ul id="cd-recent-cases">${renderDashboardRecentCases(projection)}</ul></article><article class="card"><h2>Cases needing attention</h2><ul id="cd-attention-cases">${renderDashboardAttentionCases(projection)}</ul></article></section><script type="module">
+  return layout({
+    title: "Clinic Dashboard",
+    tenant,
+    body: `<section class="hero"><span class="pill">Clinic Dashboard</span><div class="row"><div><h1>KPIs operativos</h1><p>La lectura diaria del tenant sale del estado consolidado del caso.</p></div><p class="small muted surface-status" id="cd-refresh-status">Dashboard ready.</p></div></section><section class="grid"><article class="card"><div class="stat" id="cd-active">${projection.kpi.activeCases}</div><p>Casos activos</p></article><article class="card"><div class="stat" id="cd-waiting">${projection.kpi.waiting}</div><p>Esperando</p></article><article class="card"><div class="stat" id="cd-no-show">${projection.kpi.noShow}</div><p>No-show</p></article><article class="card"><div class="stat" id="cd-follow-up">${projection.kpi.followUpPending}</div><p>Follow-up pendiente</p></article></section><section class="grid"><article class="card"><h2>Recent cases</h2><ul id="cd-recent-cases">${renderDashboardRecentCases(projection)}</ul></article><article class="card"><h2>Cases needing attention</h2><ul id="cd-attention-cases">${renderDashboardAttentionCases(projection)}</ul></article></section><script type="module">
   const endpoint = ${scriptJson(endpoint)};
   const initialProjection = ${scriptJson(projection)};
   const elements = {
@@ -370,5 +410,6 @@ export function renderClinicDashboard(tenant: TenantConfig, projection: ClinicDa
   renderProjection(initialProjection);
   void refreshProjection(true);
   window.setInterval(() => { void refreshProjection(true); }, 15000);
-</script>`);
+</script>`
+  });
 }

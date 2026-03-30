@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/models.php';
 
 class TicketPrinter
 {
@@ -101,6 +102,10 @@ class TicketPrinter
         $queueType = (string) ($ticket['queueType'] ?? 'walk_in');
         $createdAt = (string) ($ticket['createdAt'] ?? local_date('c'));
         $priority = (string) ($ticket['priorityClass'] ?? 'walk_in');
+        $visitReasonLabel = (string) (
+            $ticket['visitReasonLabel']
+            ?? queue_ticket_visit_reason_label((string) ($ticket['visitReason'] ?? ''))
+        );
         $consultorio = $ticket['assignedConsultorio'] ?? null;
 
         $lines = [
@@ -110,6 +115,7 @@ class TicketPrinter
             'Turno: ' . ($ticketCode !== '' ? $ticketCode : 'A-000'),
             'Iniciales: ' . ($initials !== '' ? $initials : 'PA'),
             'Tipo: ' . ($queueType === 'appointment' ? 'Cita' : 'Walk-in'),
+            'Motivo: ' . ($queueType === 'walk_in' && $visitReasonLabel !== '' ? $visitReasonLabel : '-'),
             'Prioridad: ' . $this->priorityLabel($priority),
             'Hora: ' . $this->printableDateTime($createdAt),
             'Consultorio: ' . ($consultorio === null ? '-' : (string) $consultorio),
@@ -169,4 +175,3 @@ class TicketPrinter
         return 'Walk-in';
     }
 }
-

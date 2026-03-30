@@ -72,6 +72,59 @@ test("GET /ops/:tenantSlug serves the api-driven ops console shell", async () =>
   }
 });
 
+test("GET /patient/:tenantSlug/:caseId serves installable clinic branding for the portal", async () => {
+  const { app } = await createTestApp();
+
+  try {
+    const response = await app.inject({
+      method: "GET",
+      url: "/patient/green-valley/case_green_001"
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.match(response.body, /<title>Green Valley Clinic Portal del Paciente<\/title>/);
+    assert.match(response.body, /<meta name="application-name" content="Green Valley Clinic"/);
+    assert.match(response.body, /<meta name="apple-mobile-web-app-title" content="Green Valley Clinic"/);
+    assert.match(response.body, /<link rel="manifest" href="\/patient\/green-valley\/case_green_001\/manifest\.webmanifest"/);
+    assert.doesNotMatch(response.body, /Patient Flow OS/);
+  } finally {
+    await app.close();
+  }
+});
+
+test("GET /patient/:tenantSlug/:caseId/manifest.webmanifest brands the installable portal with the clinic name", async () => {
+  const { app } = await createTestApp();
+
+  try {
+    const response = await app.inject({
+      method: "GET",
+      url: "/patient/green-valley/case_green_001/manifest.webmanifest"
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.match(response.headers["content-type"] ?? "", /application\/manifest\+json/);
+    const payload = readJson(response) as {
+      id: string;
+      name: string;
+      short_name: string;
+      start_url: string;
+      scope: string;
+      theme_color: string;
+      icons: Array<{ src: string }>;
+    };
+    assert.equal(payload.id, "/patient/green-valley/case_green_001");
+    assert.equal(payload.name, "Green Valley Clinic");
+    assert.equal(payload.short_name, "Green Valley Clinic");
+    assert.equal(payload.start_url, "/patient/green-valley/case_green_001");
+    assert.equal(payload.scope, "/patient/green-valley/case_green_001");
+    assert.equal(payload.theme_color, "#0f766e");
+    assert.ok(payload.icons.some((icon) => icon.src === "/images/icon-192.png"));
+    assert.ok(payload.icons.some((icon) => icon.src === "/images/icon-512.png"));
+  } finally {
+    await app.close();
+  }
+});
+
 test("GET /v1/provider-runtime exposes canonical provider bindings for a tenant", async () => {
   const { app } = await createTestApp();
 

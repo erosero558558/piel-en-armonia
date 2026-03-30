@@ -185,6 +185,11 @@ const PatientFlowSurfaceQuerySchema = TenantReferenceSchema.extend({
   caseId: z.string().min(1)
 });
 
+const PatientPortalManifestParamsSchema = z.object({
+  tenantSlug: z.string().min(1),
+  caseId: z.string().min(1)
+});
+
 const ProviderRuntimeQuerySchema = TenantReferenceSchema.extend({
   system: z.string().min(1).optional()
 });
@@ -324,6 +329,36 @@ function requireSnapshot(repository: PlatformRepository, tenantId: string, caseI
     throw new Error("patient case not found");
   }
   return snapshot;
+}
+
+function buildPatientPortalManifest(tenant: TenantConfig, caseId: string) {
+  const startUrl = `/patient/${encodeURIComponent(tenant.slug)}/${encodeURIComponent(caseId)}`;
+  return {
+    id: startUrl,
+    name: tenant.name,
+    short_name: tenant.name,
+    description: `Portal del paciente de ${tenant.name}.`,
+    lang: "es",
+    start_url: startUrl,
+    scope: startUrl,
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: tenant.brandColor,
+    icons: [
+      {
+        src: "/images/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any"
+      },
+      {
+        src: "/images/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any"
+      }
+    ]
+  };
 }
 
 function selectLatestAppointment(snapshot: PatientCaseSnapshot) {
@@ -536,8 +571,17 @@ export async function registerRoutes(
     return reply.type("text/html").send(renderPatientFlowLink(tenant, buildPatientFlowLinkProjection(snapshot)));
   });
 
+  const patientPortalManifestHandler = withErrors((request, reply) => {
+    const params = PatientPortalManifestParamsSchema.parse(request.params);
+    const tenant = resolveTenant(repository, { tenantSlug: params.tenantSlug });
+    requireSnapshot(repository, tenant.id, params.caseId);
+    return reply.type("application/manifest+json").send(buildPatientPortalManifest(tenant, params.caseId));
+  });
+
   app.get("/patient-flow/:tenantSlug/:caseId", patientFlowHandler);
   app.get("/patient/:tenantSlug/:caseId", patientFlowHandler);
+  app.get("/patient-flow/:tenantSlug/:caseId/manifest.webmanifest", patientPortalManifestHandler);
+  app.get("/patient/:tenantSlug/:caseId/manifest.webmanifest", patientPortalManifestHandler);
 
   app.get(
     "/wait-room/:tenantSlug/:locationSlug",

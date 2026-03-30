@@ -22,6 +22,8 @@ final class TicketFactory
             'patientInitials' => $this->resolveInitials($payload),
             'phoneLast4' => $this->extractPhoneLast4((string) ($payload['phone'] ?? ($payload['telefono'] ?? ''))),
             'priorityClass' => 'walk_in',
+            'visitReason' => (string) ($payload['visitReason'] ?? ($payload['visit_reason'] ?? 'consulta_general')),
+            'specialPriority' => isset($payload['specialPriority']) ? (bool) $payload['specialPriority'] : false,
             'status' => 'waiting',
             'assignedConsultorio' => null,
             'createdAt' => $timestamp,

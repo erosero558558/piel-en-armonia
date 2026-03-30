@@ -6,6 +6,34 @@ require_once __DIR__ . '/../models.php';
 
 final class TicketPriorityPolicy
 {
+    public function resolveWalkInReason(string $reason): string
+    {
+        $normalized = strtolower(trim($reason));
+        if ($normalized === '') {
+            return 'consulta_general';
+        }
+
+        if (in_array($normalized, ['consulta_general', 'consulta general', 'general'], true)) {
+            return 'consulta_general';
+        }
+        if (in_array($normalized, ['control', 'seguimiento', 'follow_up'], true)) {
+            return 'control';
+        }
+        if (in_array($normalized, ['procedimiento', 'procedure'], true)) {
+            return 'procedimiento';
+        }
+        if (in_array($normalized, ['urgencia', 'urgent', 'urgency'], true)) {
+            return 'urgencia';
+        }
+
+        return 'consulta_general';
+    }
+
+    public function walkInRequiresSpecialPriority(string $reason): bool
+    {
+        return $this->resolveWalkInReason($reason) === 'urgencia';
+    }
+
     public function refreshWaitingAppointmentPriorities(array $store): array
     {
         $updated = false;
@@ -83,6 +111,12 @@ final class TicketPriorityPolicy
             return $priorityDiff;
         }
 
+        $walkInReasonDiff = $this->walkInReasonWeight($a)
+            <=> $this->walkInReasonWeight($b);
+        if ($walkInReasonDiff !== 0) {
+            return $walkInReasonDiff;
+        }
+
         $timeDiff = $this->ticketTimestamp($a, 'createdAt') <=> $this->ticketTimestamp($b, 'createdAt');
         if ($timeDiff !== 0) {
             return $timeDiff;
@@ -129,6 +163,29 @@ final class TicketPriorityPolicy
                 return 1;
             default:
                 return 2;
+        }
+    }
+
+    private function walkInReasonWeight(array $ticket): int
+    {
+        $queueType = strtolower(trim((string) ($ticket['queueType'] ?? 'walk_in')));
+        if ($queueType !== 'walk_in') {
+            return 99;
+        }
+
+        if (!empty($ticket['specialPriority'])) {
+            return 0;
+        }
+
+        switch ($this->resolveWalkInReason((string) ($ticket['visitReason'] ?? ''))) {
+            case 'urgencia':
+                return 0;
+            case 'procedimiento':
+                return 1;
+            case 'control':
+                return 2;
+            default:
+                return 3;
         }
     }
 
