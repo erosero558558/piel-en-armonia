@@ -464,3 +464,126 @@ paths:
                           type: string
                           enum: [low, medium, high]
                         description: { type: string }
+
+  /chat:
+    post:
+      operationId: chat
+      summary: Conversar con el Copiloto Clínico
+      description: |
+        Envía un mensaje o historial al AI Router (Tier 1/2/3).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    required: [role, content]
+                    properties:
+                      role: { type: string, enum: [user, assistant, system] }
+                      content: { type: string }
+                case_id:
+                  type: string
+                  description: "ID del caso activo para contexto opcional"
+                stream:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Respuesta generada por el router de IA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  choices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: object
+                          properties:
+                            role: { type: string }
+                            content: { type: string }
+                  provider: { type: string }
+                  tier: { type: string }
+
+  /router/status:
+    get:
+      operationId: routerStatus
+      summary: Ver estado del AI Router
+      description: |
+        Verifica qué tiers del AI Router están disponibles (Codex, OpenRouter, Local).
+      responses:
+        '200':
+          description: Health check del sistema de IA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  router:
+                    type: object
+                    additionalProperties: true
+
+  /prescription/{id}:
+    get:
+      operationId: getPrescriptionPdf
+      summary: Descargar PDF de receta
+      description: Retorna el archivo binario PDF de la receta.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            default: pdf
+      responses:
+        '200':
+          description: Archivo PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Receta no encontrada
+
+  /certificate/{id}:
+    get:
+      operationId: getCertificatePdf
+      summary: Descargar PDF de certificado
+      description: Retorna el archivo binario PDF del certificado médico.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            default: pdf
+      responses:
+        '200':
+          description: Archivo PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Certificado no encontrado

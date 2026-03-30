@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 12:17:58 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 12:21:16 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,18 +7,18 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **39%** completado (83/213)
+`████████░░░░░░░░░░░░` **40%** completado (85/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 44 | 23 | 66% |
+| 🎯 Sprint 3 | 45 | 22 | 67% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
-| ⏸ Sprint 7 | 1 | 36 | 3% |
+| ⏸ Sprint 7 | 2 | 35 | 5% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -32,7 +32,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (21)
+### 🟢 Disponibles (20)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -47,7 +47,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-38** | `[M]` | Instalación de dompdf — agregar  vía composer: . Sin esto los PDF de c... |
 | **S3-40** | `[M]` | Integrar OpenClaw en admin — en , dentro del panel del caso del pacien... |
 | **S3-42** | `[M]` | Panel de protocolo clínico — cuando el médico selecciona un código CIE... |
-| **S3-51** | `[M]` | openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero ... |
 | **S3-52** | `[M]` | Custom GPT instructions — crear  con las instrucciones exactas para co... |
 | **S3-58** | `[M]` | conflict.js — precisión quirúrgica — cambiar de heurística solo textua... |
 | **S3-62** | `[M]` | Consolidar npm scripts —  tiene 273 scripts: demasiada superficie cogn... |
@@ -146,7 +145,7 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 - **S6-24** `[M]` — necesita: S6-23 primero
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 36 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 35 tareas pendientes._
 
 ### 🟢 Disponibles (35)
 
@@ -158,10 +157,6 @@ _Esperando que Sprint anterior esté completo. 36 tareas pendientes._
 | **S7-08** | `[S]` | Backup y restore automatizado — no hay ninguna tarea que valide backup... |
 | **S7-09** | `[S]` | k8s readiness/liveness probes —  no tiene  ni . Kubernetes no puede de... |
 | ... | | _+30 más_ |
-
-### 🔒 En progreso — NO tomar
-
-- **S7-22** `[S]` → _Codex-erosero558558_ (expira en 112min)
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 0/0 tareas._

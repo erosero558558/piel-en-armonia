@@ -1,0 +1,28 @@
+[2m[WebServer] [22m[Mon Mar 30 00:20:48 2026] PHP 8.2.27 Development Server (http://127.0.0.1:8011) started
+[2m[WebServer] [22m[Mon Mar 30 00:20:48 2026] 127.0.0.1:64915 Accepted
+[2m[WebServer] [22m[Mon Mar 30 00:20:48 2026] 127.0.0.1:64915 Closed without sending a request; it was probably just an unused speculative preconnection
+[2m[WebServer] [22m[Mon Mar 30 00:20:48 2026] 127.0.0.1:64915 Closing
+
+Running 1 test using 1 worker
+
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64917 Accepted
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64917 [200]: GET /es/pre-consulta/
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64917 Closing
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64918 Accepted
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64919 Accepted
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64920 Accepted
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64921 Accepted
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64922 Accepted
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64923 Accepted
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64918 [200]: GET /styles/tokens.css
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64919 [200]: GET /styles/base.css
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64920 [200]: GET /styles/components.css
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64921 [200]: GET /styles/aurora-public.css
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64922 [200]: GET /es/pre-consulta/pre-consulta.css
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64923 [200]: GET /es/pre-consulta/pre-consulta.js
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64918 Closing
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64919 Closing
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64920 Closing
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64921 Closing
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64922 Closing
+[2m[WebServer] [22m[Mon Mar 30 00:20:49 2026] 127.0.0.1:64923 Closing
