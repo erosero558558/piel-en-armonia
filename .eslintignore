@@ -1,0 +1,19 @@
+# Dependencias y build
+node_modules/
+.codex-worktrees/
+_archive/
+_deploy_bundle/
+dist/
+
+# Apps con bundler propio (Astro, Vite) — tienen su propio ESLint config
+src/apps/astro/
+src/apps/admin-v3/
+src/apps/queue-kiosk/
+src/apps/queue-shared/
+src/apps/patient-flow-os/
+src/apps/turnero-desktop/
+
+# Archivos minificados / generados
+*.min.js
+js/engines/
+js/bootstrap-inline-engine.js
