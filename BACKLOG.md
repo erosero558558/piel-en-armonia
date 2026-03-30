@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:29:43 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:35:51 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **37%** completado (144/393)
+`███████░░░░░░░░░░░░░` **37%** completado (145/393)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -24,7 +24,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 8 | 0 | 17 | 0% |
 | ⏸ Sprint 9 | 1 | 26 | 4% |
 | ⏸ Sprint 10 | 0 | 30 | 0% |
-| ⏸ Sprint 12 | 0 | 26 | 0% |
+| ⏸ Sprint 12 | 1 | 25 | 4% |
 | ⏸ Sprint 13 | 1 | 20 | 5% |
 | ⏸ Sprint UI | 0 | 20 | 0% |
 
@@ -204,21 +204,21 @@ _Esperando que Sprint anterior esté completo. 30 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S10-11** `[S10]` → _antigravity_ (expira en 480min)
+- **S10-11** `[S10]` → _antigravity_ (expira en 474min)
 
 ## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
-_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
-### 🟢 Disponibles (26)
+### 🟢 Disponibles (25)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S12-01** | `[S12]` | M |
-| **S12-02** | `[S12]` | M |
 | **S12-03** | `[S12]` | S |
 | **S12-04** | `[S12]` | M |
 | **S12-05** | `[S12]` | M |
-| ... | | _+21 más_ |
+| **S12-06** | `[S12]` | M |
+| ... | | _+20 más_ |
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
