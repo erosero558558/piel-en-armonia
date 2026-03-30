@@ -63,6 +63,13 @@ const SMOKE_SCRIPT_PATH = resolve(
     'setup',
     'SMOKE-HOSTING-WINDOWS.ps1'
 );
+const WINDOWS_HOSTING_SSH_COMMON_PATH = resolve(
+    REPO_ROOT,
+    'scripts',
+    'ops',
+    'setup',
+    'windows-hosting-ssh-common.sh'
+);
 
 function load(filePath) {
     return readFileSync(filePath, 'utf8');
@@ -99,6 +106,9 @@ test('Windows V7 define modulo comun de compatibilidad, runtime Caddy y wrapper 
         'function Get-HostingRuntimePaths',
         "CaddyRuntimeConfigPath = Join-Path $runtimeRoot 'Caddyfile.runtime'",
         'function Convert-HostingPathToCaddyLiteral',
+        'function Convert-HostingPathToGitLiteral',
+        'function Get-HostingGitSafeArguments',
+        'function Normalize-HostingGitCommit',
         'function New-HostingRuntimeCaddyConfig',
         'function Invoke-HostingRuntimeFingerprint',
         "-Url ($trimmedBaseUrl + '/__hosting/runtime')",
@@ -133,6 +143,7 @@ test('sync V7 usa runtime Caddy fijo, valida fingerprint local y corta restart c
         "[switch]$PreflightOnly",
         "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
         'Get-HostingRuntimePaths -RepoRoot $mirrorRepoPathResolved',
+        'Get-HostingGitSafeArguments -RepoPath $mirrorRepoPathResolved',
         'New-HostingRuntimeCaddyConfig',
         'Invoke-HostingRuntimeFingerprint',
         'Test-HostingRuntimeFingerprintMatch',
@@ -176,6 +187,8 @@ test('sync V7 usa runtime Caddy fijo, valida fingerprint local y corta restart c
         'lock_age_seconds =',
         'lock_repaired = $false',
         'lock_repair_reason =',
+        'Normalize-HostingGitCommit -Value ([string]$existingStatus.current_commit)',
+        'Normalize-HostingGitCommit -Value ([string]$existingReleaseTarget.target_commit)',
         "status_source = 'sync_runtime'",
         'ExpectedSiteRoot $mirrorRepoPathResolved',
         'ExpectedRuntimeConfigPath $runtimeConfig.Path',
@@ -241,6 +254,7 @@ test('repair, supervisor, start y smoke usan contrato V7 fail-safe, observable y
             snippets: [
                 "[switch]$PreflightOnly",
                 "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
+                'Get-HostingGitSafeArguments -RepoPath $mirrorRepoPathResolved',
                 "status_source = 'repair_runtime'",
                 "phase = 'discover'",
                 "Set-RepairPhase -CurrentStatus $status -Phase 'sanitize_legacy_state'",
@@ -270,6 +284,8 @@ test('repair, supervisor, start y smoke usan contrato V7 fail-safe, observable y
                 'Update-StatusFromSyncPayload -CurrentStatus $status -SyncStatus $syncStatus',
                 'Assert-SyncStatusHealthy -SyncStatus $syncStatus',
                 'sync_status_invalid:',
+                'release_target_invalid_commit',
+                'Normalize-HostingGitCommit -Value ([string]$releaseTargetPayload.target_commit)',
                 'site_root_mismatch',
                 'site_root_ok = $false',
                 "served_site_root = ''",
@@ -472,6 +488,20 @@ test('runtime Caddy y fingerprint local de hosting quedan expuestos en el repo',
         "'C:\\\\ProgramData\\\\Pielarmonia\\\\hosting\\\\release-target.json'",
     ]) {
         assert.equal(helperRaw.includes(snippet), true, `falta helper PHP de fingerprint: ${snippet}`);
+    }
+});
+
+test('helper SSH de Windows usa release target runtime y contrato externo de auth', () => {
+    const raw = load(WINDOWS_HOSTING_SSH_COMMON_PATH);
+
+    for (const snippet of [
+        "WINDOWS_RELEASE_TARGET_PATH_DEFAULT='C:\\ProgramData\\Pielarmonia\\hosting\\release-target.runtime.json'",
+        'export SSH_PORT="${SSH_PORT:-22}"',
+        'export SSH_PASSWORD="${SSH_PASSWORD:-}"',
+        'if [[ -n "${SSH_IDENTITY_FILE:-}" ]]; then',
+        'WINDOWS_SSH_TARGET="${SSH_USERNAME}@${SSH_HOST}"',
+    ]) {
+        assert.equal(raw.includes(snippet), true, `falta contrato SSH Windows: ${snippet}`);
     }
 });
 

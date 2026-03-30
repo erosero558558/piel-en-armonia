@@ -146,6 +146,49 @@ function Test-HostingPathEquivalent {
     return $leftNormalized -eq $rightNormalized
 }
 
+function Convert-HostingPathToGitLiteral {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ''
+    }
+
+    try {
+        $resolved = [System.IO.Path]::GetFullPath($Path)
+    } catch {
+        $resolved = $Path
+    }
+
+    return ($resolved.TrimEnd('\', '/')).Replace('\', '/')
+}
+
+function Get-HostingGitSafeArguments {
+    param([string]$RepoPath)
+
+    $gitLiteral = Convert-HostingPathToGitLiteral -Path $RepoPath
+    if ([string]::IsNullOrWhiteSpace($gitLiteral)) {
+        return @()
+    }
+
+    return @('-c', ("safe.directory={0}" -f $gitLiteral))
+}
+
+function Normalize-HostingGitCommit {
+    param([string]$Value)
+
+    $text = [string]$Value
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return ''
+    }
+
+    $trimmed = $text.Trim()
+    if ($trimmed -notmatch '^[0-9a-fA-F]{7,40}$') {
+        return ''
+    }
+
+    return $trimmed.ToLowerInvariant()
+}
+
 function New-HostingRuntimeCaddyConfig {
     param(
         [string]$TemplatePath,

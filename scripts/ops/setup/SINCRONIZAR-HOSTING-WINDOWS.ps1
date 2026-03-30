@@ -44,6 +44,7 @@ $mirrorStartScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\AR
 $lockPath = $statusPathResolved + '.lock'
 $lockInfoPath = Get-HostingLockInfoPath -LockDirectoryPath $lockPath
 $gitExe = (Get-Command git -ErrorAction Stop).Source
+$gitSafeArguments = Get-HostingGitSafeArguments -RepoPath $mirrorRepoPathResolved
 $powershellExe = (Get-Command powershell -ErrorAction Stop).Source
 $npmExe = (Get-Command npm.cmd -ErrorAction SilentlyContinue | Select-Object -First 1).Source
 if ([string]::IsNullOrWhiteSpace($npmExe)) {
@@ -98,7 +99,8 @@ function Write-Status {
 function Invoke-Git {
     param([string[]]$Arguments)
 
-    return Invoke-HostingCommandWithOutput -FilePath $gitExe -Arguments $Arguments
+    $effectiveArguments = @($gitSafeArguments) + @($Arguments)
+    return Invoke-HostingCommandWithOutput -FilePath $gitExe -Arguments $effectiveArguments
 }
 
 function Get-GitHeadSafe {
@@ -113,7 +115,7 @@ function Get-GitHeadSafe {
         return ''
     }
 
-    return [string]($result.Output.Trim())
+    return (Normalize-HostingGitCommit -Value ([string]$result.Output.Trim()))
 }
 
 function Get-GitRevisionOrThrow {
@@ -128,7 +130,7 @@ function Get-GitRevisionOrThrow {
         throw ("{0} {1}" -f $ErrorMessage, $result.Output.Trim())
     }
 
-    return [string]($result.Output.Trim())
+    return (Normalize-HostingGitCommit -Value ([string]$result.Output.Trim()))
 }
 
 function Get-LockSnapshot {
@@ -688,7 +690,7 @@ $previousSuccessfulAt = ''
 if ($null -ne $existingStatus) {
     try {
         if (($existingStatus.ok -eq $true) -and ($existingStatus.health_ok -eq $true) -and ($existingStatus.auth_contract_ok -eq $true)) {
-            $previousSuccessfulCommit = [string]$existingStatus.current_commit
+            $previousSuccessfulCommit = Normalize-HostingGitCommit -Value ([string]$existingStatus.current_commit)
             $previousSuccessfulAt = [string]$existingStatus.last_successful_deploy_at
         }
     } catch {
@@ -748,13 +750,13 @@ $status = [ordered]@{
 }
 
 if ($null -ne $existingStatus) {
-    try { $status.current_commit = [string]$existingStatus.current_commit } catch {}
-    try { $status.current_head = [string]$existingStatus.current_head } catch {}
-    try { $status.previous_commit = [string]$existingStatus.previous_commit } catch {}
-    try { $status.previous_head = [string]$existingStatus.previous_head } catch {}
+    try { $status.current_commit = Normalize-HostingGitCommit -Value ([string]$existingStatus.current_commit) } catch {}
+    try { $status.current_head = Normalize-HostingGitCommit -Value ([string]$existingStatus.current_head) } catch {}
+    try { $status.previous_commit = Normalize-HostingGitCommit -Value ([string]$existingStatus.previous_commit) } catch {}
+    try { $status.previous_head = Normalize-HostingGitCommit -Value ([string]$existingStatus.previous_head) } catch {}
 }
 if ($null -ne $existingReleaseTarget) {
-    try { $status.desired_commit = [string]$existingReleaseTarget.target_commit } catch {}
+    try { $status.desired_commit = Normalize-HostingGitCommit -Value ([string]$existingReleaseTarget.target_commit) } catch {}
 }
 
 $lockStream = $null
@@ -889,7 +891,7 @@ try {
         -CurrentRemoteHead $remoteHead `
         -AllowBootstrap:$BootstrapReleaseTargetIfMissing
 
-    $status.desired_commit = [string]$targetResolution.TargetCommit
+    $status.desired_commit = Normalize-HostingGitCommit -Value ([string]$targetResolution.TargetCommit)
 
     $currentHeadBefore = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
     $status.previous_commit = $currentHeadBefore
@@ -1062,9 +1064,9 @@ try {
 
             $status.rollback_performed = $true
             $status.rollback_reason = $originalFailure
-            $status.desired_commit = $previousSuccessfulCommit
-            $status.current_commit = $previousSuccessfulCommit
-            $status.current_head = $previousSuccessfulCommit
+            $status.desired_commit = Normalize-HostingGitCommit -Value $previousSuccessfulCommit
+            $status.current_commit = Normalize-HostingGitCommit -Value $previousSuccessfulCommit
+            $status.current_head = Normalize-HostingGitCommit -Value $previousSuccessfulCommit
             $status.head_changed = $false
             Set-SyncPhase -CurrentStatus $status -State 'rolled_back' -DeployState 'rollback_succeeded'
             $status.last_failure_reason = $originalFailure

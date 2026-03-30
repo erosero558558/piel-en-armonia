@@ -4,7 +4,7 @@ set -euo pipefail
 WINDOWS_EXPECTED_COMMIT_FALLBACK="c7619c25ad5ad5ad0436b80d75d6effb7d9f1e8b"
 WINDOWS_MIRROR_PATH_DEFAULT='C:\dev\pielarmonia-clean-main'
 WINDOWS_ENV_PATH_DEFAULT='C:\ProgramData\Pielarmonia\hosting\env.php'
-WINDOWS_RELEASE_TARGET_PATH_DEFAULT='C:\ProgramData\Pielarmonia\hosting\release-target.json'
+WINDOWS_RELEASE_TARGET_PATH_DEFAULT='C:\ProgramData\Pielarmonia\hosting\release-target.runtime.json'
 WINDOWS_HOSTING_DIR_DEFAULT='C:\ProgramData\Pielarmonia\hosting'
 WINDOWS_PUBLIC_DOMAIN_DEFAULT='pielarmonia.com'
 

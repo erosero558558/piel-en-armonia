@@ -43,6 +43,7 @@ $smokeScriptPath = Join-Path $repoRoot 'scripts\ops\setup\SMOKE-HOSTING-WINDOWS.
 $supervisorLauncherPath = Join-Path $mirrorRepoPathResolved 'data\runtime\hosting\supervisor.cmd'
 $powershellExe = (Get-Command powershell -ErrorAction Stop).Source
 $gitExe = (Get-Command git -ErrorAction Stop).Source
+$gitSafeArguments = Get-HostingGitSafeArguments -RepoPath $mirrorRepoPathResolved
 $taskNames = @(
     'Pielarmonia Hosting Supervisor',
     'Pielarmonia Hosting Main Sync',
@@ -69,7 +70,8 @@ function Write-Info {
 function Invoke-Git {
     param([string[]]$Arguments)
 
-    return Invoke-HostingCommandWithOutput -FilePath $gitExe -Arguments $Arguments
+    $effectiveArguments = @($gitSafeArguments) + @($Arguments)
+    return Invoke-HostingCommandWithOutput -FilePath $gitExe -Arguments $effectiveArguments
 }
 
 function Write-Status {
@@ -91,7 +93,7 @@ function Get-CurrentCommitSafe {
         return ''
     }
 
-    return [string]$result.Output.Trim()
+    return (Normalize-HostingGitCommit -Value ([string]$result.Output.Trim()))
 }
 
 function Resolve-RemoteHead {
@@ -114,7 +116,7 @@ function Resolve-RemoteHead {
         throw ("No se pudo resolver origin/{0}. {1}" -f $BranchName, $revParse.Output.Trim())
     }
 
-    return [string]$revParse.Output.Trim()
+    return (Normalize-HostingGitCommit -Value ([string]$revParse.Output.Trim()))
 }
 
 function Get-ServiceStateSafe {
@@ -250,9 +252,9 @@ function Update-StatusFromSyncPayload {
 
     try { $CurrentStatus.sync_state = [string]$SyncStatus.state } catch {}
     try { $CurrentStatus.sync_deploy_state = [string]$SyncStatus.deploy_state } catch {}
-    try { $CurrentStatus.desired_commit = [string]$SyncStatus.desired_commit } catch {}
-    try { $CurrentStatus.current_commit = [string]$SyncStatus.current_commit } catch {}
-    try { $CurrentStatus.previous_commit = [string]$SyncStatus.previous_commit } catch {}
+    try { $CurrentStatus.desired_commit = Normalize-HostingGitCommit -Value ([string]$SyncStatus.desired_commit) } catch {}
+    try { $CurrentStatus.current_commit = Normalize-HostingGitCommit -Value ([string]$SyncStatus.current_commit) } catch {}
+    try { $CurrentStatus.previous_commit = Normalize-HostingGitCommit -Value ([string]$SyncStatus.previous_commit) } catch {}
     try { $CurrentStatus.last_successful_deploy_at = [string]$SyncStatus.last_successful_deploy_at } catch {}
     try { $CurrentStatus.rollback_performed = ($SyncStatus.rollback_performed -eq $true) } catch {}
     try { $CurrentStatus.rollback_reason = [string]$SyncStatus.rollback_reason } catch {}
@@ -261,7 +263,7 @@ function Update-StatusFromSyncPayload {
     try { $CurrentStatus.auth_contract_ok = ($SyncStatus.auth_contract_ok -eq $true) } catch {}
     try { $CurrentStatus.site_root_ok = ($SyncStatus.site_root_ok -eq $true) } catch {}
     try { $CurrentStatus.served_site_root = [string]$SyncStatus.served_site_root } catch {}
-    try { $CurrentStatus.served_commit = [string]$SyncStatus.served_commit } catch {}
+    try { $CurrentStatus.served_commit = Normalize-HostingGitCommit -Value ([string]$SyncStatus.served_commit) } catch {}
     try { $CurrentStatus.caddy_runtime_config_path = [string]$SyncStatus.caddy_runtime_config_path } catch {}
     try { $CurrentStatus.auth_mode = [string]$SyncStatus.auth_mode } catch {}
     try { $CurrentStatus.auth_transport = [string]$SyncStatus.auth_transport } catch {}
@@ -286,7 +288,7 @@ function Assert-SyncStatusHealthy {
     try { $syncOk = ($SyncStatus.ok -eq $true) } catch {}
     try { $syncState = [string]$SyncStatus.state } catch {}
     try { $syncDeployState = [string]$SyncStatus.deploy_state } catch {}
-    try { $syncCurrentCommit = [string]$SyncStatus.current_commit } catch {}
+    try { $syncCurrentCommit = Normalize-HostingGitCommit -Value ([string]$SyncStatus.current_commit) } catch {}
     try { $syncAuthContractOk = ($SyncStatus.auth_contract_ok -eq $true) } catch {}
     try { $syncSiteRootOk = ($SyncStatus.site_root_ok -eq $true) } catch {}
     try { $syncError = [string]$SyncStatus.error } catch {}
@@ -321,8 +323,13 @@ function Write-ReleaseTarget {
         [string]$SourceRunId
     )
 
+    $normalizedCommit = Normalize-HostingGitCommit -Value $Commit
+    if ([string]::IsNullOrWhiteSpace($normalizedCommit)) {
+        throw 'release_target_invalid_commit'
+    }
+
     $payload = [ordered]@{
-        target_commit = $Commit
+        target_commit = $normalizedCommit
         approved_at = [DateTimeOffset]::Now.ToString('o')
         source_run_id = $SourceRunId
         approved_by = 'windows_hosting_repair'
@@ -405,7 +412,7 @@ function Remove-InvalidHostingStatusFile {
     try { $lockState = [string]$payload.lock_state } catch {}
     try { $lockReason = [string]$payload.lock_reason } catch {}
     try { $state = [string]$payload.state } catch {}
-    try { $currentCommit = [string]$payload.current_commit } catch {}
+    try { $currentCommit = Normalize-HostingGitCommit -Value ([string]$payload.current_commit) } catch {}
 
     $invalidLockState = @('stale_legacy_file', 'stale_metadata_missing', 'transient', 'present', 'lock_invalid') -contains $lockState
     $invalidLockReason = @('legacy_file_lock', 'metadata_missing', 'lock_unrecoverable') -contains $lockReason
@@ -717,6 +724,7 @@ try {
     if ([string]::IsNullOrWhiteSpace($TargetCommit) -and $PromoteCurrentRemoteHead) {
         $TargetCommit = Resolve-RemoteHead -RepoPath $mirrorRepoPathResolved -BranchName 'main'
     }
+    $TargetCommit = Normalize-HostingGitCommit -Value $TargetCommit
 
     if (-not [string]::IsNullOrWhiteSpace($TargetCommit)) {
         Write-ReleaseTarget -Path $releaseTargetPathResolved -Commit $TargetCommit -SourceRunId 'repair_promote_remote'
@@ -726,12 +734,16 @@ try {
 
     $releaseTargetPayload = Read-HostingJsonFileSafe -Path $releaseTargetPathResolved
     if ($null -ne $releaseTargetPayload) {
-        try { $status.desired_commit = [string]$releaseTargetPayload.target_commit } catch {}
+        try { $status.desired_commit = Normalize-HostingGitCommit -Value ([string]$releaseTargetPayload.target_commit) } catch {}
     }
     $runtime = Invoke-LocalRuntimeFingerprintStatus -ExpectedDesiredCommit $status.desired_commit
     $status.site_root_ok = ($runtime.Ok -eq $true)
     $status.served_site_root = [string]$runtime.SiteRoot
-    $status.served_commit = if (-not [string]::IsNullOrWhiteSpace([string]$runtime.CurrentCommit)) { [string]$runtime.CurrentCommit } else { [string]$runtime.DesiredCommit }
+    $status.served_commit = if (-not [string]::IsNullOrWhiteSpace([string]$runtime.CurrentCommit)) {
+        Normalize-HostingGitCommit -Value ([string]$runtime.CurrentCommit)
+    } else {
+        Normalize-HostingGitCommit -Value ([string]$runtime.DesiredCommit)
+    }
     $status.caddy_runtime_config_path = [string]$runtime.CaddyRuntimeConfigPath
     Write-Status -Payload $status
 
