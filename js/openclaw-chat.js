@@ -552,6 +552,10 @@ CONTEXTO DEL PACIENTE:
       const chip = e.target.closest('.oc-action-chip');
       if (chip) handleAction(chip.dataset.action, JSON.parse(chip.dataset.value));
     });
+    document.addEventListener('click', e => {
+      const dismiss = e.target.closest('#oc-interaction-dismiss');
+      if (dismiss) clearInteractionBanner();
+    });
 
     // New/close session
     document.getElementById('oc-new-session').addEventListener('click', newSession);
@@ -740,11 +744,21 @@ CONTEXTO DEL PACIENTE:
         break;
 
       case 'add_medication':
-        await fetch(`${CONFIG.apiBase}/action/add-medication`, {
+        try {
+          const interactionPayload = await checkMedicationInteractions(value);
+          renderInteractionBanner(interactionPayload);
+        } catch (error) {
+          console.warn('No se pudo verificar interacciones medicamentosas.', error);
+        }
+
+        const medicationResponse = await fetch(`${CONFIG.apiBase}/action/add-medication`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ case_id: state.caseId, ...value }),
         });
+        if (!medicationResponse.ok) {
+          throw new Error('No se pudo agregar el medicamento a la receta.');
+        }
         showToast(`✅ ${value.name} ${value.dose} agregado a la receta`);
         break;
 
@@ -768,6 +782,7 @@ CONTEXTO DEL PACIENTE:
   async function newSession() {
     if (state.messages.length > 0 && !confirm('¿Iniciar nueva consulta? Se perderá el chat actual.')) return;
     state.messages = [];
+    clearInteractionBanner();
     document.getElementById('oc-messages').innerHTML = `
       <div class="oc-welcome">
         <div class="oc-welcome-icon">🩺</div>
@@ -1002,6 +1017,56 @@ CONTEXTO DEL PACIENTE:
       }
       .oc-actions-label { font-size: 11px; color: var(--oc-text-dim); white-space: nowrap; }
       .oc-actions-row { display: flex; gap: 6px; flex-wrap: wrap; }
+      .oc-alert-banner {
+        margin: 12px 16px 0;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(245, 158, 11, 0.45);
+        background: rgba(245, 158, 11, 0.12);
+      }
+      .oc-alert-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .oc-alert-header p {
+        margin: 4px 0 0;
+        color: var(--oc-text-dim);
+        line-height: 1.5;
+      }
+      .oc-alert-dismiss {
+        background: none;
+        border: none;
+        color: var(--oc-text);
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 1;
+        padding: 0;
+      }
+      .oc-alert-list {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .oc-alert-item + .oc-alert-item { margin-top: 10px; }
+      .oc-alert-item span { color: var(--oc-text-dim); margin-left: 4px; }
+      .oc-alert-severity {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 1px 8px;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.18);
+        color: #fbbf24;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .oc-alert-description {
+        margin-top: 4px;
+        color: var(--oc-text-dim);
+        line-height: 1.5;
+      }
 
       /* Input area */
       .oc-input-area {
