@@ -262,6 +262,14 @@ export function renderClinicalHistorySection() {
                         </button>
                         <button
                             type="button"
+                            id="clinicalHistoryCertBtn"
+                            data-clinical-review-action="issue-certificate"
+                            style="border-color: var(--color-slate-400); background: rgba(255, 255, 255, 0.05);"
+                        >
+                            📋 Certificado
+                        </button>
+                        <button
+                            type="button"
                             id="clinicalHistorySendFollowUpBtn"
                             data-clinical-review-action="send-follow-up"
                         >

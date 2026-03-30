@@ -1642,3 +1642,52 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ---
 
 > **Sprint 11 (Multi-sede SaaS)** — postergado. Se activa una vez que la clínica 1 esté en producción estable (post-julio 2026). Las 30 tareas S11-01→S11-30 existen como propuesta pero no se inyectan al backlog hasta que el negocio valide la expansión.
+
+---
+
+### 🔍 Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
+
+> **Fuente:** Audit independiente del Gobernador (Antigravity) ejecutado el 30-mar-2026. Estos hallazgos no vienen de propuestas externas — los encontré yo revisando el estado real del repo. Incluye: reverificación de tareas marcadas done incorrectamente, gaps de seguridad no reportados y fundamentos que faltaron en todos los sprints anteriores.
+
+#### 🚨 13.0 Reversión de tareas done incorrectas (URGENTE)
+
+- [ ] **S13-00** `[S]` REVERSIÓN: S4-08 marcada done pero no existe — `verify.js` detectó que `es/software/turnero-clinicas/precios/index.html` **no existe** a pesar de estar marcada `[x]`. Crear la página referenciada en la tarea original. Sin el archivo, la tarea no está done. Verificable: `ls es/software/turnero-clinicas/precios/index.html` → existe.
+
+#### 13.1 Fundamentos de producción — nadie los auditó
+
+- [ ] **S13-01** `[M]` robots.txt hardening — el archivo actual expone `/lib/` y `/templates/` al crawling. Añadir: `Disallow: /lib/`, `Disallow: /templates/`, `Disallow: /backup/`, `Disallow: /bin/`, `Disallow: /store/` (si existe directorio). `/data/` ya está bloqueada (✅). El riesgo: Google puede indexar código PHP o templates HTML internos. Verificable: `curl https://aurora-derm.com/robots.txt | grep "/lib/"` → Disallow.
+- [ ] **S13-02** `[M]` sitemap.xml — actualización y cobertura completa — sitemap tiene 73 URLs pero falta: `/es/paquetes/` (recién creada S4-13), todas las URLs nuevas de Sprint 2/3/UI. `lastmod` desactualizado en muchas. Añadir generación automática al `sync-backlog.js` o crear `bin/gen-sitemap.js`. Verificable: `grep "paquetes" sitemap.xml` → existe.
+- [ ] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
+- [ ] **S13-04** `[M]` Security headers en nginx — `nginx-pielarmonia.conf` no tiene `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Sin estos headers, la clínica es vulnerable a clickjacking y XSS reflejado. Verificable: `curl -I https://aurora-derm.com | grep -i "x-frame"` → match.
+- [ ] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
+- [ ] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
+
+#### 13.2 `tele-head-links.html` — regresión silenciosa detectada
+
+- [ ] **S13-07** `[M]` `[UI]` `tele-head-links.html` usa CSS legacy — el partial `templates/partials/tele-head-links.html` carga `styles.css?v=figo-20260227-redesignfix3` y `styles-deferred.css`. Estos son archivos del sistema **anterior a la migración "Clinical Luxury"**. El partial tiene 1 referencia a tokens pero aún arrastra el CSS viejo. Resultado: las páginas de telemedicina tienen regresión visual. Reemplazar imports por: `tokens.css` + `base.css` + `aurora-public.css`. Verificable: `grep "styles.css" templates/partials/tele-head-links.html` → 0.
+- [ ] **S13-08** `[S]` Partial órfano — `tele-head-links.html` no es incluido por ninguna plantilla (0 includes detectados). O es un dead file o las plantillas que deberían usarlo lo están ignorando. Investigar: si ninguna plantilla lo usa → `git rm`. Si debería usarse → conectar. Verificable: `grep -r "tele-head-links" templates/ | wc -l` → ≥1 o archivo eliminado.
+
+#### 13.3 `lib/common.php` — deuda técnica crítica
+
+- [ ] **S13-09** `[L]` `lib/common.php` sin sanitización de input — 368 líneas, **0 referencias** a `htmlspecialchars`, `strip_tags`, `filter_input`, `intval` o `PDO::`. Las funciones comunes reciben input del usuario sin sanitizar antes de pasarlo a queries o a HTML. Esto es un vector directo de XSS/SQLi. Auditar toda la lib: añadir sanitización en el punto de entrada, no en cada uso. Entregable: `lib/common.php` con 100% de inputs sanitizados + `lib/input-validator.php` como helper.
+- [ ] **S13-10** `[M]` `admin.html` — `innerHTML` con datos de usuario — el audit detecta usos de `innerHTML = variable` sin escape en admin.html. Si un campo de texto del paciente contiene `<script>`, se ejecuta en el panel del médico. Reemplazar `innerHTML` por `textContent` donde el contenido es texto plano, y por `DOMPurify.sanitize()` donde se necesita HTML controlado. Añadir `DOMPurify` en `tele-head-links.html` y en `admin.html`.
+
+#### 13.4 Consistencia de marca y datos
+
+- [ ] **S13-11** `[S]` WhatsApp number — fuente única de verdad — el número de WhatsApp de la clínica aparece hardcodeado en múltiples lugares. Si cambia, hay que encontrarlo en 40+ páginas. Centralizar en `data/clinic-config.json`: `"whatsapp": "+593982453672"`. El sistema lo consume desde ahí. Script de audit: `grep -rn "wa.me" es/ | grep -v "593982453672"` → 0 resultados. Si hay un número diferente → bug.
+- [ ] **S13-12** `[M]` `[UI]` Páginas de servicios sin `lang="es"` — audit detecta que varias páginas en `es/servicios/` no tienen `lang="es"` en `<html>`. Google y lectores de pantalla no saben el idioma. Crítico para SEO local en Ecuador. Verificable: `grep -rL 'lang="es"' es/servicios/*/index.html | wc -l` → 0.
+- [ ] **S13-13** `[S]` Canonical URLs en todas las páginas — muchas páginas no tienen `<link rel="canonical">`. Sin canonical, Google puede indexar versiones con y sin trailing slash como páginas distintas. Añadir a todas las páginas de servicios. Verificable: `grep -rl 'rel="canonical"' es/servicios/ | wc -l` → 20.
+
+#### 13.5 Herramientas de gobierno — gaps que impiden cerrar el loop
+
+- [ ] **S13-14** `[M]` `bin/gate.js` — checks para S8/S9/S10/S12 — los nuevos sprints no tienen checks de gate. S4-08 está marcada done sin archivo. La gate debía haber bloqueado eso. Añadir checks mínimos para: S8-01 (DESKTOP_CATALOG.md existe), S8-07 (JSON parser no rompe con BOM), S9-11 (services.json tiene los 20 servicios), S10-06 (ComplianceMSP.validate existe), S12-06 (GOOGLE_BUSINESS_CHECKLIST.md existe). Cada sprint debe tener al menos 1 check de entrada en gate.
+- [ ] **S13-15** `[M]` `bin/verify.js` — extender con checks de tareas verdaderamente done — `verify.js` actualmente verifica 50 tareas y encontró 2 falsas (S4-08, S4-13 posterior). Extender a 100 tareas con criterio de verificación siempre verificable con el sistema de archivos o grep. Las tareas `[x]` sin criterio verificable tienen `"evidencia: file_exists|grep|json_key"` en su registro. Esto impide que se repita el caso S4-08.
+- [ ] **S13-16** `[S]` `bin/gen-sitemap.js` — generador automático — hoy el sitemap es manual y ya quedó atrás. Crear script que recorra `es/**/index.html` y genere `sitemap.xml` automático con `lastmod = git log --format=%cI -- <file>`. Ejecutar en `sync-backlog.js` post-sync. Verificable: `node bin/gen-sitemap.js && grep "paquetes" sitemap.xml` → match.
+- [ ] **S13-17** `[S]` Audit de dead files — detectar archivos HTML/JS/CSS que existen en el repo pero no son referenciados desde ningún otro archivo. Candidato a `git rm` con confirmación. Lista current: `styles/archive/` tiene legacy CSS que ya no debería cargarse. Entregable: `docs/DEAD_FILES.md` con lista y plan de limpieza. Script: `node bin/dead-file-audit.js`.
+
+#### 13.6 Booking y flujo de conversión — gaps reales
+
+- [ ] **S13-18** `[M]` Double-submit protection en booking — `es/agendar/index.html` tiene 4 referencias a `disabled`/`preventDefault` pero sin un lock de estado mientras la API responde. Si el usuario hace doble clic antes del response → cita duplicada. Añadir `isSubmitting` flag: button disabled desde el primer clic hasta response con éxito o error. Verificable: test funcional en `tests-node/booking-double-submit.test.js`.
+- [ ] **S13-19** `[M]` `[UI]` `es/agendar/` — loading state visible — durante el submit del booking, el usuario no ve feedback (spinner, mensaje "Agendando..."). Añadir: botón con spinner inline mientras `isLoading=true`, overlay semitransparente sobre el formulario, mensaje "Confirmando tu cita..." con el componente `.skeleton` de `aurora-public.css`. Sin esto el usuario hace doble clic creyendo que falló.
+- [ ] **S13-20** `[M]` Booking confirmation email/WhatsApp — una vez creada la cita, ¿el paciente recibe confirmación automática? Audit: verificar que `BookingController.php` llama a `WhatsAppService::sendConfirmation()` en el happy path. Si no → implementar. La confirmación debe incluir: fecha, hora, dirección, instrucciones previas según servicio y link de cancelación. Sin esto el no-show sube.
+

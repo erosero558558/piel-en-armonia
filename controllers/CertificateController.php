@@ -171,10 +171,26 @@ final class CertificateController
 
         $pdf = self::generatePdfBase64($certData);
         $raw = base64_decode($pdf);
+        $fileName = 'certificado-' . ($certData['folio'] ?? $certId) . '.pdf';
+
+        if (defined('TESTING_ENV')) {
+            $payload = [
+                'ok' => true,
+                'format' => 'pdf',
+                'filename' => $fileName,
+                'contentType' => 'application/pdf',
+                'contentLength' => strlen((string) $raw),
+                'binary' => (string) $raw,
+            ];
+            $GLOBALS['__TEST_RESPONSE'] = ['payload' => $payload, 'status' => 200];
+            if (!defined('TESTING_FORCE_EXIT')) {
+                throw new TestingExitException($payload, 200);
+            }
+        }
 
         header('Content-Type: application/pdf');
-        header('Content-Disposition: inline; filename="certificado-' . $certData['folio'] . '.pdf"');
-        header('Content-Length: ' . strlen($raw));
+        header('Content-Disposition: inline; filename="' . $fileName . '"');
+        header('Content-Length: ' . strlen((string) $raw));
         header('Cache-Control: private, max-age=3600');
         echo $raw;
         exit;
@@ -189,28 +205,46 @@ final class CertificateController
     {
         $html = self::buildCertificateHtml($cert);
 
-        // Intentar dompdf (si está instalado via composer)
-        $dompdfPath = __DIR__ . '/../vendor/dompdf/dompdf/src/Dompdf.php';
-        if (file_exists($dompdfPath)) {
-            try {
-                require_once $dompdfPath;
-                $dompdf = new \Dompdf\Dompdf([
-                    'isHtml5ParserEnabled' => true,
-                    'isRemoteEnabled'      => false,
-                    'defaultPaperSize'     => 'a4',
-                ]);
-                $dompdf->loadHtml($html, 'UTF-8');
-                $dompdf->setPaper('A4', 'portrait');
-                $dompdf->render();
-                return base64_encode($dompdf->output());
-            } catch (\Throwable $e) {
-                error_log('[CertificateController] dompdf error: ' . $e->getMessage());
-            }
+        $pdfBytes = self::renderHtmlWithDompdf($html);
+        if (is_string($pdfBytes) && $pdfBytes !== '') {
+            return base64_encode($pdfBytes);
         }
 
         // Fallback: PDF mínimo válido con el HTML embebido como stream
         // Esto permite mostrar el contenido aunque no haya PDF real
         return self::buildFallbackPdf($html, $cert);
+    }
+
+    private static function renderHtmlWithDompdf(string $html): ?string
+    {
+        $autoloadPath = __DIR__ . '/../vendor/autoload.php';
+        if (file_exists($autoloadPath)) {
+            require_once $autoloadPath;
+        }
+
+        $dompdfPath = __DIR__ . '/../vendor/dompdf/dompdf/src/Dompdf.php';
+        if (file_exists($dompdfPath)) {
+            require_once $dompdfPath;
+        }
+
+        if (!class_exists(\Dompdf\Dompdf::class)) {
+            return null;
+        }
+
+        try {
+            $dompdf = new \Dompdf\Dompdf([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => false,
+                'defaultPaperSize'     => 'a4',
+            ]);
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+            return $dompdf->output();
+        } catch (\Throwable $e) {
+            error_log('[CertificateController] dompdf error: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**

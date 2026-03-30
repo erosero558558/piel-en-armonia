@@ -13511,6 +13511,20 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'issue-certificate') {
+            const review = currentReviewSource();
+            if (!review || !review.patientRecordId || !review.caseId) {
+                createToast('Este caso clínico no admite interacción para certificados', 'warning');
+                return;
+            }
+            if (window.openCertificateModal) {
+                window.openCertificateModal(review.caseId);
+            } else {
+                createToast('Módulo de certificados no cargado', 'error');
+            }
+            return;
+        }
+
         if (action === 'send-follow-up') {
             const question = normalizeString(
                 getClinicalHistorySlice().followUpQuestion

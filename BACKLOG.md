@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:20:50 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:23:37 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████░░░░░░░░░░░░` **39%** completado (138/352)
+`███████░░░░░░░░░░░░░` **37%** completado (138/373)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -25,6 +25,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 9 | 0 | 27 | 0% |
 | ⏸ Sprint 10 | 0 | 30 | 0% |
 | ⏸ Sprint 12 | 0 | 26 | 0% |
+| ⏸ Sprint 13 | 0 | 21 | 0% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -55,16 +56,20 @@ _Sprint completado. 24/24 tareas._
 ## ⏸ Sprint 4 — Escalar el negocio
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 
-### 🟢 Disponibles (10)
+### 🟢 Disponibles (9)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S4-07** | `[S4]` | XL |
-| **S4-08** | `[S4]` | L |
 | **S4-09** | `[S4]` | L |
 | **S4-12** | `[S4]` | L |
 | **S4-14** | `[S4]` | M |
-| ... | | _+5 más_ |
+| **S4-15** | `[S4]` | M |
+| ... | | _+4 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S4-08** `[S4]` → _Codex-erosero558558_ (expira en 477min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -215,6 +220,20 @@ _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 | **S12-04** | `[S12]` | M |
 | **S12-05** | `[S12]` | M |
 | ... | | _+21 más_ |
+
+## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
+_Esperando que Sprint anterior esté completo. 21 tareas pendientes._
+
+### 🟢 Disponibles (21)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S13-00** | `[S13]` | S |
+| **S13-01** | `[S13]` | M |
+| **S13-02** | `[S13]` | M |
+| **S13-03** | `[S13]` | M |
+| **S13-04** | `[S13]` | M |
+| ... | | _+16 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
