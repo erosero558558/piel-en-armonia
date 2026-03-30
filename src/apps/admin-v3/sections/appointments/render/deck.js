@@ -640,18 +640,26 @@ export function renderOpsDeck(
     setText(
         '#appointmentsOpsTodayMeta',
         ops.todayCount > 0
-            ? `${ops.todayCount} cita(s) en agenda de hoy`
+            ? ops.overbookingCount > 0
+                ? `${ops.todayCount} cita(s) hoy · ${ops.overbookingCount} alerta(s)`
+                : ops.arrivedCount > 0
+                  ? `${ops.todayCount} cita(s) hoy · ${ops.arrivedCount} llegada(s)`
+                  : `${ops.todayCount} cita(s) en agenda de hoy`
             : 'Carga diaria limpia'
     );
 
     const summary =
         totalCount > 0
-            ? `${ops.pendingTransferCount} transferencia(s), ${ops.triageCount} frente(s) accionables y ${visibleCount} cita(s) visibles.`
+            ? ops.overbookingCount > 0
+                ? `${ops.overbookingCount} alerta(s) de overbooking, ${ops.pendingTransferCount} transferencia(s) y ${visibleCount} cita(s) visibles.`
+                : `${ops.pendingTransferCount} transferencia(s), ${ops.triageCount} frente(s) accionables y ${visibleCount} cita(s) visibles.`
             : 'Sin citas cargadas.';
     setText('#appointmentsDeckSummary', summary);
     setText(
         '#appointmentsWorkbenchHint',
-        ops.pendingTransferCount > 0
+        ops.overbookingCount > 0
+            ? 'Revisa primero los choques de horario en la agenda del día antes de confirmar más llegadas.'
+            : ops.pendingTransferCount > 0
             ? 'Primero valida pagos; luego ordena la mesa por fecha o paciente.'
             : ops.triageCount > 0
               ? 'La agenda tiene incidencias abiertas dentro de esta misma mesa.'
@@ -661,11 +669,17 @@ export function renderOpsDeck(
     const chip = document.getElementById('appointmentsDeckChip');
     if (chip) {
         const state =
-            ops.pendingTransferCount > 0 || ops.noShowCount > 0
-                ? 'warning'
-                : 'success';
+            ops.overbookingCount > 0
+                ? 'danger'
+                : ops.pendingTransferCount > 0 || ops.noShowCount > 0
+                  ? 'warning'
+                  : 'success';
         chip.textContent =
-            state === 'warning' ? 'Atencion operativa' : 'Agenda estable';
+            state === 'danger'
+                ? 'Overbooking detectado'
+                : state === 'warning'
+                  ? 'Atencion operativa'
+                  : 'Agenda estable';
         chip.setAttribute('data-state', state);
     }
 

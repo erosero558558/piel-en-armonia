@@ -47,6 +47,8 @@ export function renderAppointmentsWorkbench() {
                 <p id="appointmentsToolbarState">Sin filtros activos</p>
             </div>
 
+            <div id="appointmentsDailyAgenda" class="appointments-daily-agenda" aria-live="polite"></div>
+
             <div class="table-scroll appointments-table-shell">
                 <table id="appointmentsTable" class="sony-table">
                     <thead>

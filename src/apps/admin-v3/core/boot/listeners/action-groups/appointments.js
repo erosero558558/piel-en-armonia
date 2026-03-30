@@ -6,6 +6,7 @@ import {
     clearAppointmentFilters,
     exportAppointmentsCsv,
     markNoShow,
+    markArrived,
     rejectTransfer,
     setAppointmentDensity,
     setAppointmentFilter,
@@ -199,6 +200,21 @@ export async function handleAppointmentAction(action, element) {
             await markNoShow(Number(element.dataset.id || 0));
             createToast('Marcado como no show', 'warning');
             return true;
+        case 'appointment-mark-arrived': {
+            const result = await markArrived(Number(element.dataset.id || 0));
+            const ticketCode = String(result?.ticket?.ticketCode || '').trim();
+            createToast(
+                result?.replay
+                    ? ticketCode
+                        ? `${ticketCode} ya estaba en cola`
+                        : 'La llegada ya estaba registrada'
+                    : ticketCode
+                      ? `${ticketCode} enviado a la cola`
+                      : 'Llegada registrada en cola',
+                result?.replay ? 'info' : 'success'
+            );
+            return true;
+        }
         case 'cancel-appointment':
             await cancelAppointment(Number(element.dataset.id || 0));
             createToast('Cita cancelada', 'warning');

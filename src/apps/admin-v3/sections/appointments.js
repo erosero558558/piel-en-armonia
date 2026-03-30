@@ -5,6 +5,7 @@ export {
     clearAppointmentFilters,
     exportAppointmentsCsv,
     hydrateAppointmentPreferences,
+    markArrived,
     markNoShow,
     rejectTransfer,
     renderAppointmentsSection,

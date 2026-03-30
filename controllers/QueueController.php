@@ -53,11 +53,13 @@ class QueueController
 
         $ticket = is_array($result['ticket'] ?? null) ? $result['ticket'] : [];
         $print = TicketPrinter::fromEnv()->printQueueTicket($ticket);
+        $state = $service->getQueueState($result['store'] ?? []);
 
         json_response([
             'ok' => true,
             'data' => $ticket,
             'replay' => (bool) ($result['replay'] ?? false),
+            'queueState' => $state['data'] ?? [],
             'printed' => (bool) ($print['printed'] ?? false),
             'print' => [
                 'ok' => (bool) ($print['ok'] ?? false),

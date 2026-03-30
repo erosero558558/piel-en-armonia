@@ -2,10 +2,12 @@ import { getState } from '../../../shared/core/store.js';
 import {
     applyFilter,
     applySearch,
+    buildDailyAgenda,
     computeOps,
     sortItems,
 } from '../selectors.js';
 import { syncAppointmentControls } from './controls.js';
+import { renderDailyAgenda } from './daily.js';
 import { renderOpsDeck } from './deck.js';
 import { renderAppointmentsTable } from './rows.js';
 
@@ -37,11 +39,16 @@ export function renderAppointmentsSection() {
     const filtered = applyFilter(source, appointmentsState.filter);
     const searched = applySearch(filtered, appointmentsState.search);
     const sorted = sortItems(searched, appointmentsState.sort);
+    const dailyAgenda = buildDailyAgenda(
+        source,
+        Array.isArray(state?.data?.queueTickets) ? state.data.queueTickets : []
+    );
 
     renderAppointmentsTable(sorted);
+    renderDailyAgenda(dailyAgenda);
     syncAppointmentControls(appointmentsState, sorted.length, source.length);
     renderOpsDeck(
-        computeOps(source),
+        computeOps(source, dailyAgenda),
         sorted.length,
         source.length,
         source,

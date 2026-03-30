@@ -5,6 +5,8 @@ export function resolveQueueStatePayload(payload) {
         payload?.data?.queueState ||
         payload?.data?.queue_state ||
         payload?.data?.queueMeta ||
+        payload?.queueState ||
+        payload?.queue_state ||
         payload?.data ||
         null;
     const fullTickets =

@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:49:07 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:54:44 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **36%** completado (77/213)
+`███████░░░░░░░░░░░░░` **37%** completado (79/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 39 | 28 | 58% |
+| 🎯 Sprint 3 | 41 | 26 | 61% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -32,7 +32,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (26)
+### 🟢 Disponibles (24)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -41,7 +41,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-44** | `[S]` | Historial de certificados en admin — en el perfil del paciente, pestañ... |
 | **S3-46** | `[S]` | ComplianceMSP validator — crear  con método  que devuelve lista de cam... |
 | **S3-47** | `[S]` | Health check completo — el endpoint  debe verificar y reportar: estado... |
-| **S3-48** | `[S]` | BLOCKERS.md auto-generado — modificar  para que además de liberar el c... |
 | **S3-49** | `[S]` | npm run status — comando que en una sola ejecución muestra: progreso d... |
 | **S3-50** | `[S]` | Notificación de bloqueo por email/WhatsApp — cuando un agente ejecuta ... |
 | **S3-63** | `[S]` | Tabla de comandos oficiales — en  (o  sección Desarrollo), agregar tab... |
@@ -61,7 +60,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-59** | `[L]` | Split  (4.766 líneas) — archivo monolítico con 3 responsabilidades mez... |
 | **S3-60** | `[L]` | Split  (4.198 líneas) — separar en repositorios por agregado:  (sesion... |
 | **S3-61** | `[L]` | Split  (24.990 líneas) — módulo de admin más grande del repo. Separar ... |
-| **S3-29** | `[XL]` | Flujo completo de teleconsulta — paciente solicita →  evalúa →  decide... |
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

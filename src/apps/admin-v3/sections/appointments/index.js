@@ -14,6 +14,7 @@ export {
     approveTransfer,
     cancelAppointment,
     exportAppointmentsCsv,
+    markArrived,
     markNoShow,
     rejectTransfer,
 } from './actions.js';

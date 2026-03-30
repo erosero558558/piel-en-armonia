@@ -117,7 +117,7 @@ export function buildFocusAppointment(items) {
     };
 }
 
-export function computeOps(items) {
+export function computeOps(items, dailyAgenda = null) {
     const pendingTransfers = applyFilter(items, 'pending_transfer');
     const upcoming48h = applyFilter(items, 'upcoming_48h');
     const noShows = applyFilter(items, 'no_show');
@@ -128,7 +128,9 @@ export function computeOps(items) {
         pendingTransferCount: pendingTransfers.length,
         upcomingCount: upcoming48h.length,
         noShowCount: noShows.length,
-        todayCount: today.length,
+        todayCount: Number(dailyAgenda?.totalCount || 0) || today.length,
+        overbookingCount: Number(dailyAgenda?.overbookingCount || 0) || 0,
+        arrivedCount: Number(dailyAgenda?.arrivedCount || 0) || 0,
         triageCount: triage.length,
         focus: buildFocusAppointment(items),
     };
