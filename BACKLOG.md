@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:35:47 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:40:14 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **35%** completado (74/213)
+`███████░░░░░░░░░░░░░` **35%** completado (75/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 36 | 31 | 54% |
+| 🎯 Sprint 3 | 37 | 30 | 55% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -32,7 +32,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (28)
+### 🟢 Disponibles (27)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -52,7 +52,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-39** | `[M]` | Receta PDF renderer — actualmente  guarda la receta en HCE pero  devue... |
 | **S3-40** | `[M]` | Integrar OpenClaw en admin — en , dentro del panel del caso del pacien... |
 | **S3-42** | `[M]` | Panel de protocolo clínico — cuando el médico selecciona un código CIE... |
-| **S3-45** | `[M]` | Gate checks específicos por tarea — ampliar  para verificar artefactos... |
 | **S3-51** | `[M]` | openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero ... |
 | **S3-52** | `[M]` | Custom GPT instructions — crear  con las instrucciones exactas para co... |
 | **S3-58** | `[M]` | conflict.js — precisión quirúrgica — cambiar de heurística solo textua... |
@@ -67,7 +66,7 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-27** `[M]` → _Antigravity_ (expira en 230min)
+- **S3-45** `[M]` → _Codex-erosero558558_ (expira en 239min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

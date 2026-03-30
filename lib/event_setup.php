@@ -7,16 +7,19 @@ require_once __DIR__ . '/events/BookingCreated.php';
 require_once __DIR__ . '/events/BookingCancelled.php';
 require_once __DIR__ . '/events/BookingRescheduled.php';
 require_once __DIR__ . '/listeners/EmailListener.php';
+require_once __DIR__ . '/listeners/WaitlistListener.php';
 
 // Instantiate dispatcher
 $eventDispatcher = new EventDispatcher();
 
 // Instantiate listeners
 $emailListener = new EmailListener();
+$waitlistListener = new WaitlistListener();
 
 // Register listeners
 $eventDispatcher->addListener(BookingCreated::class, [$emailListener, 'onBookingCreated']);
 $eventDispatcher->addListener(BookingCancelled::class, [$emailListener, 'onBookingCancelled']);
+$eventDispatcher->addListener(BookingCancelled::class, [$waitlistListener, 'onBookingCancelled']);
 $eventDispatcher->addListener(BookingRescheduled::class, [$emailListener, 'onBookingRescheduled']);
 
 /**
