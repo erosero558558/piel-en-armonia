@@ -70,7 +70,7 @@ body.admin-body {
   padding: 0 24px;
   font-family: var(--font-display);
   font-size: var(--text-2xl);
-  color: #fff;
+  color: var(--admin-text-primary);
   border-bottom: 1px solid var(--admin-border);
   white-space: nowrap;
   gap: 16px;
@@ -132,7 +132,7 @@ body.admin-body {
 }
 
 .sidebar-nav a.nav-item.active {
-  color: #fff;
+  color: var(--admin-text-primary);
   background: var(--admin-accent-glow);
 }
 
@@ -191,7 +191,7 @@ body.admin-body {
 .admin-search input {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--admin-text-primary);
   outline: none;
   width: 100%;
   font-family: inherit;

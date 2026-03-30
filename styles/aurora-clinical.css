@@ -1,0 +1,254 @@
+/* ==========================================================================
+   Clinical History Premium Shell (UI-11)
+   Replaces legacy 13k lines of inline JS styles with Clinical Luxury CSS
+   ========================================================================== */
+
+/* 1. Global Reset for the Clinical History Canvas */
+#clinical-history,
+.clinical-history-dashboard,
+.clinical-history-export-layout {
+  background-color: var(--admin-bg-base);
+  color: var(--admin-text-primary);
+  font-family: var(--font-body);
+  padding: var(--space-6);
+  min-height: 100vh;
+}
+
+/* Base Headings & Titles */
+.clinical-history-event-head,
+.clinical-history-export-header h2,
+.clinical-history-export-header h3 {
+  font-family: var(--font-display) !important;
+  color: var(--admin-text-primary) !important;
+  font-size: var(--text-2xl) !important;
+  margin-bottom: var(--space-4) !important;
+  font-weight: 500 !important;
+}
+
+/* 2. Timeline of Events (.clinical-history-events) */
+.clinical-history-events {
+  position: relative;
+  margin-top: var(--space-6);
+  padding-left: var(--space-8);
+  list-style: none;
+}
+
+/* The vertical connecting line */
+.clinical-history-events::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 15px; /* Adjust according to node */
+  width: 2px;
+  background: var(--admin-border);
+  border-radius: 2px;
+}
+
+/* 3. Event Card / Evolution Card */
+.clinical-history-event-card {
+  position: relative;
+  background: var(--admin-bg-surface) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--radius-xl) !important;
+  padding: var(--space-6) !important;
+  margin-bottom: var(--space-6) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+  transition: transform var(--transition-normal), border-color var(--transition-normal);
+}
+
+.clinical-history-event-card:hover {
+  border-color: var(--color-aurora-500) !important;
+  transform: translateY(-2px);
+}
+
+/* The Glowing Node on Timeline */
+.clinical-history-event-card::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: -38px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--admin-bg-base);
+  border: 2px solid var(--color-aurora-400);
+  box-shadow: 0 0 12px rgba(106, 126, 150, 0.4);
+  z-index: 2;
+}
+
+/* Header inside card */
+.clinical-history-event-card .event-meta {
+  font-size: var(--text-sm);
+  color: var(--admin-text-muted);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Nested Action Buttons within events */
+.clinical-history-action-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--admin-border) !important;
+  color: var(--admin-text-primary) !important;
+  padding: var(--space-2) var(--space-4) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 500 !important;
+  font-size: var(--text-sm) !important;
+  cursor: pointer !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.clinical-history-action-btn:hover:not(.disabled) {
+  background: var(--color-aurora-500) !important;
+  color: var(--color-slate-900) !important;
+  border-color: var(--color-aurora-400) !important;
+}
+
+/* 4. Diagnoses Chips (CIE-10 Export Pills) */
+.clinical-history-export-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.clinical-history-export-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px !important;
+  border-radius: var(--radius-full) !important;
+  font-size: var(--text-xs) !important;
+  font-weight: 600 !important;
+  letter-spacing: var(--tracking-wide) !important;
+  text-transform: uppercase !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--admin-text-primary) !important;
+  border: 1px solid var(--admin-border) !important;
+}
+
+/* Dynamic State Colors for Pills (Injected by JS via.is-success, etc.) */
+.clinical-history-export-pill.is-success {
+  background: rgba(74, 222, 128, 0.1) !important;
+  color: var(--color-green-400) !important;
+  border-color: rgba(74, 222, 128, 0.3) !important;
+}
+
+.clinical-history-export-pill.is-danger {
+  background: rgba(248, 113, 113, 0.1) !important;
+  color: var(--color-red-400) !important;
+  border-color: rgba(248, 113, 113, 0.3) !important;
+}
+
+.clinical-history-export-pill.is-warning {
+  background: rgba(250, 204, 21, 0.1) !important;
+  color: var(--color-gold-400) !important;
+  border-color: rgba(250, 204, 21, 0.3) !important;
+}
+
+/* 5. Medical Media Lightbox Gallery (.clinical-history-attachment-card) */
+.clinical-history-media-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.clinical-history-attachment-card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden;
+  border: 1px solid var(--admin-border) !important;
+  background: var(--admin-bg-elevated) !important;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.clinical-history-attachment-card img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transition: opacity var(--transition-fast), filter var(--transition-fast);
+  filter: brightness(0.85);
+}
+
+.clinical-history-attachment-card:hover {
+  transform: scale(1.02);
+  border-color: var(--color-aurora-400) !important;
+  box-shadow: 0 4px 12px rgba(106, 126, 150, 0.2);
+}
+
+.clinical-history-attachment-card:hover img {
+  filter: brightness(1.1);
+}
+
+/* Lightbox Modal High-Z-Index Rescue (if rendered outside shell) */
+.clinical-history-lightbox {
+  z-index: 9999 !important;
+  background: rgba(15, 23, 42, 0.95) !important; /* deep slate 900 */
+  backdrop-filter: blur(10px);
+}
+
+/* 6. Accordions for Prescriptions / Notes */
+.clinical-history-export-section {
+  background: transparent !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--radius-lg) !important;
+  margin-bottom: var(--space-4) !important;
+  overflow: hidden;
+}
+
+.clinical-history-export-section-head {
+  background: rgba(255, 255, 255, 0.02) !important;
+  padding: var(--space-4) !important;
+  font-weight: 500 !important;
+  color: var(--admin-text-primary) !important;
+  border-bottom: 1px solid transparent !important;
+  transition: background var(--transition-fast);
+  cursor: pointer;
+}
+
+.clinical-history-export-section-head:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.clinical-history-export-content {
+  padding: var(--space-4) !important;
+  background: var(--admin-bg-surface) !important;
+  border-top: 1px solid var(--admin-border) !important;
+  color: var(--admin-text-muted) !important;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+/* Input Fields overrides (Forms inside Clinical History) */
+.clinical-history-field input,
+.clinical-history-field textarea,
+.clinical-history-field select {
+  background-color: var(--admin-bg-elevated) !important;
+  border: 1px solid var(--admin-border) !important;
+  color: var(--admin-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  padding: var(--space-2) var(--space-3) !important;
+  font-family: var(--font-body) !important;
+  width: 100%;
+}
+
+.clinical-history-field input:focus,
+.clinical-history-field textarea:focus {
+  outline: none !important;
+  border-color: var(--color-aurora-500) !important;
+  box-shadow: 0 0 0 2px rgba(106, 126, 150, 0.2) !important;
+}
+
+/* Empty states */
+.clinical-history-empty-text {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--admin-text-muted);
+  font-style: italic;
+  font-size: var(--text-sm);
+}
