@@ -26,7 +26,9 @@ const {
 const { resolve, join } = require('path');
 const { execSync } = require('child_process');
 
-const ROOT        = resolve(__dirname, '..');
+const ROOT        = process.env.AURORA_DERM_ROOT
+  ? resolve(process.env.AURORA_DERM_ROOT)
+  : resolve(__dirname, '..');
 const CLAIMS_DIR  = resolve(ROOT, 'data/claims/tasks');    // ← archivos individuales
 const LEGACY_FILE = resolve(ROOT, 'data/claims/tasks.json'); // ← compatibilidad
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
@@ -185,6 +187,12 @@ function hoursAgo(isoDate) {
   return Math.round((new Date() - new Date(isoDate)) / 3600000);
 }
 
+function sortClaimEntries(entries) {
+  return [...entries].sort(([leftId], [rightId]) =>
+    String(leftId).localeCompare(String(rightId), undefined, { numeric: true })
+  );
+}
+
 // ── commands ──────────────────────────────────────────────────────────────────
 
 const cmd  = process.argv[2];
@@ -317,12 +325,13 @@ switch (cmd) {
   }
 
   // ── status ────────────────────────────────────────────────────────────────
-  case 'status': {
+  case 'status':
+  case 'list': {
     const claims  = loadAllClaims();
     const tasks   = parseTasks(loadAgentsMd());
     const done    = tasks.filter(t => t.done).length;
-    const active  = Object.entries(claims).filter(([, c]) => !isExpired(c));
-    const expired = Object.entries(claims).filter(([, c]) => isExpired(c));
+    const active  = sortClaimEntries(Object.entries(claims).filter(([, c]) => !isExpired(c)));
+    const expired = sortClaimEntries(Object.entries(claims).filter(([, c]) => isExpired(c)));
 
     console.log(`\n📊 Aurora Derm — Task Board`);
     console.log(`   Total: ${tasks.length} | Done: ${done} (${Math.round(done/tasks.length*100)}%) | Pending: ${tasks.length - done}`);
@@ -335,7 +344,7 @@ switch (cmd) {
       );
     }
     if (expired.length > 0) {
-      console.log(`\n⚠️  Claims expirados (trabajo posiblemente incompleto):`);
+      console.log(`\n⚠️ Claims expiradas:`);
       expired.forEach(([id, c]) =>
         console.log(`   ${id} → "${c.agent}" (expiró hace ${hoursAgo(c.expiresAt)}h)`)
       );
@@ -434,6 +443,7 @@ Commands:
   claim <id> <who>  Reclamar una tarea antes de trabajar
   release <id>      Liberar al terminar
   status            Vista general del board
+  list              Alias de status con foco en claims activos/expirados
   list-pending      Lista tareas disponibles ahora
   purge-expired     Limpiar claims muertos
   verify-mine <n>   Ver mis claims activos

@@ -9,18 +9,78 @@
  * Cualquier agente que llegue aquí es redirigido a AGENTS.md.
  */
 
-const { readFileSync } = require('fs');
-const { resolve } = require('path');
+const { readFileSync, existsSync, readdirSync } = require('fs');
+const { resolve, join } = require('path');
+
+const ROOT = process.env.AURORA_DERM_ROOT
+  ? resolve(process.env.AURORA_DERM_ROOT)
+  : __dirname;
+const CLAIMS_DIR = resolve(ROOT, 'data/claims/tasks');
+const LEGACY_FILE = resolve(ROOT, 'data/claims/tasks.json');
 
 const cmd = process.argv[2] || 'status';
 
+function loadAllClaims() {
+  const claims = {};
+
+  try {
+    const files = readdirSync(CLAIMS_DIR).filter((fileName) => fileName.endsWith('.json'));
+    for (const fileName of files) {
+      const taskId = fileName.replace(/\.json$/u, '');
+      try {
+        claims[taskId] = JSON.parse(readFileSync(join(CLAIMS_DIR, fileName), 'utf8'));
+      } catch {}
+    }
+  } catch {}
+
+  if (existsSync(LEGACY_FILE)) {
+    try {
+      const legacy = JSON.parse(readFileSync(LEGACY_FILE, 'utf8'));
+      for (const [taskId, payload] of Object.entries(legacy)) {
+        if (!claims[taskId]) {
+          claims[taskId] = payload;
+        }
+      }
+    } catch {}
+  }
+
+  return claims;
+}
+
+function isExpired(claim) {
+  return Boolean(claim?.expiresAt) && new Date(claim.expiresAt) < new Date();
+}
+
+function buildExpiryWarning() {
+  const expiredClaims = Object.entries(loadAllClaims())
+    .filter(([, claim]) => isExpired(claim))
+    .sort(([leftId], [rightId]) =>
+      String(leftId).localeCompare(String(rightId), undefined, { numeric: true })
+    )
+    .map(([taskId, claim]) => ({
+      taskId,
+      agent: String(claim?.agent || 'unknown'),
+      expiresAt: String(claim?.expiresAt || ''),
+    }));
+
+  if (expiredClaims.length === 0) {
+    return null;
+  }
+
+  return {
+    count: expiredClaims.length,
+    claims: expiredClaims,
+  };
+}
+
 const messages = {
   status: () => {
-    const agents = readFileSync(resolve(__dirname, 'AGENTS.md'), 'utf8');
+    const agents = readFileSync(resolve(ROOT, 'AGENTS.md'), 'utf8');
     // S14-00 fix: regex unificado igual que dispatch.js — captura S3-09, UI-01, UI2-20, UI3-15, S14-00, etc.
     const done    = (agents.match(/^- \[x\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/gm) || []).length;
     const pending = (agents.match(/^- \[ \] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/gm) || []).length;
     const total   = done + pending;
+    const expiryWarning = buildExpiryWarning();
 
     // Detect current sprint dynamically — busca el primero con tareas pendientes
     let currentSprint = 'Sprint 3';
@@ -48,6 +108,7 @@ const messages = {
         percentDone: Math.round((done / total) * 100),
         currentSprint,
       },
+      expiryWarning,
       roles: {
         content:   'npm run dispatch:content   → blog, SEO, textos',
         frontend:  'npm run dispatch:frontend  → HTML, CSS, páginas',
