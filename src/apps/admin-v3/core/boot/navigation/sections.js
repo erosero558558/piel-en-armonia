@@ -11,6 +11,7 @@ import {
     syncQueueAutoRefresh,
 } from '../../../shared/modules/queue.js';
 import { renderAdminChrome, setActiveSection } from '../../../ui/frame.js';
+import { renderAppointmentsSection } from '../../../sections/appointments.js';
 import { hasPendingAvailabilityChanges } from '../../../sections/availability.js';
 import { openClinicalHistorySession } from '../../../sections/clinical-history.js';
 import {
@@ -77,6 +78,9 @@ export async function navigateToSection(section, options = {}) {
     }
     if (normalized === 'clinical-history') {
         await openClinicalHistorySession();
+    }
+    if (normalized === 'appointments') {
+        renderAppointmentsSection();
     }
     if (normalized === 'queue') {
         applyQueueRuntimeDefaults();

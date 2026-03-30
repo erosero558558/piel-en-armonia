@@ -43,6 +43,93 @@ function buildAdminDataPayload(overrides = {}) {
     };
 }
 
+function normalizeAdminQueueTicket(ticket, index = 0) {
+    const source = ticket && typeof ticket === 'object' ? ticket : {};
+    const id = Number(source.id || index + 1) || index + 1;
+    const ticketCode =
+        typeof source.ticketCode === 'string' && source.ticketCode.trim()
+            ? source.ticketCode.trim()
+            : `A-${String(id).padStart(3, '0')}`;
+    const status = String(source.status || 'waiting').trim() || 'waiting';
+
+    return {
+        id,
+        ticketCode,
+        appointmentId: Number(source.appointmentId || 0) || 0,
+        patientInitials:
+            typeof source.patientInitials === 'string' &&
+            source.patientInitials.trim()
+                ? source.patientInitials.trim()
+                : 'PA',
+        queueType: String(source.queueType || 'appointment').trim() ||
+            'appointment',
+        priorityClass:
+            String(source.priorityClass || 'appointment').trim() ||
+            'appointment',
+        status,
+        createdAt:
+            typeof source.createdAt === 'string' && source.createdAt.trim()
+                ? source.createdAt.trim()
+                : new Date().toISOString(),
+        calledAt:
+            typeof source.calledAt === 'string' && source.calledAt.trim()
+                ? source.calledAt.trim()
+                : '',
+        assignedConsultorio:
+            source.assignedConsultorio === null ||
+            source.assignedConsultorio === undefined
+                ? null
+                : Number(source.assignedConsultorio || 0) || null,
+    };
+}
+
+function buildAdminQueueStatePayload(queueTickets = []) {
+    const tickets = (Array.isArray(queueTickets) ? queueTickets : []).map(
+        (ticket, index) => normalizeAdminQueueTicket(ticket, index)
+    );
+    const waiting = tickets.filter((ticket) => ticket.status === 'waiting');
+    const called = tickets.filter((ticket) => ticket.status === 'called');
+    const completed = tickets.filter((ticket) => ticket.status === 'completed');
+    const noShow = tickets.filter((ticket) => ticket.status === 'no_show');
+    const cancelled = tickets.filter((ticket) => ticket.status === 'cancelled');
+
+    return {
+        ok: true,
+        data: {
+            updatedAt: new Date().toISOString(),
+            waitingCount: waiting.length,
+            calledCount: called.length,
+            counts: {
+                waiting: waiting.length,
+                called: called.length,
+                completed: completed.length,
+                no_show: noShow.length,
+                cancelled: cancelled.length,
+            },
+            callingNow: called.map((ticket) => ({
+                id: ticket.id,
+                ticketCode: ticket.ticketCode,
+                appointmentId: ticket.appointmentId,
+                patientInitials: ticket.patientInitials,
+                queueType: ticket.queueType,
+                priorityClass: ticket.priorityClass,
+                calledAt: ticket.calledAt || ticket.createdAt,
+                assignedConsultorio: ticket.assignedConsultorio,
+            })),
+            nextTickets: waiting.map((ticket, index) => ({
+                id: ticket.id,
+                ticketCode: ticket.ticketCode,
+                appointmentId: ticket.appointmentId,
+                patientInitials: ticket.patientInitials,
+                queueType: ticket.queueType,
+                priorityClass: ticket.priorityClass,
+                position: index + 1,
+                createdAt: ticket.createdAt,
+            })),
+        },
+    };
+}
+
 function buildAdminFunnelMetricsFixture(overrides = {}) {
     const {
         summary: summaryOverride = {},
@@ -342,6 +429,13 @@ async function installBasicAdminApiMocks(page, options = {}) {
                 data: context.data.availability,
                 meta: context.data.availabilityMeta,
             });
+        }
+
+        if (resource === 'queue-state') {
+            return fulfillJson(
+                route,
+                buildAdminQueueStatePayload(context.data.queue_tickets || [])
+            );
         }
 
         if (resource === 'monitoring-config') {

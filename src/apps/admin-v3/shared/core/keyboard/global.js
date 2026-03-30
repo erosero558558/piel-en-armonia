@@ -137,7 +137,10 @@ export function handleGlobalKeyboardShortcut(event, options) {
 
 function resolveQuickActions(activeSection) {
     if (activeSection === 'queue') {
-        return QUEUE_QUICK_ACTIONS;
+        return {
+            ...DEFAULT_QUICK_ACTIONS,
+            ...QUEUE_QUICK_ACTIONS,
+        };
     }
     return DEFAULT_QUICK_ACTIONS;
 }
