@@ -221,21 +221,17 @@ function flow_os_stage_index(string $stageId): int
 
 function flow_os_prepare_store(array $store): array
 {
-    $existingCases = isset($store['patient_cases']) && is_array($store['patient_cases'])
-        ? array_values($store['patient_cases'])
-        : [];
-
-    $hasLeadCaptured = false;
-    $hasIntakeCompleted = false;
-    $hasScheduled = false;
-    $hasClosedCase = false;
-    $hasCarePlanReady = false;
-    $hasFollowUpActive = false;
-
-        return $prepared;
-    } catch (Throwable $_error) {
+    if (!isset($store['patient_cases']) || !is_array($store['patient_cases'])) {
+        $store['patient_cases'] = [];
         return $store;
     }
+
+    $store['patient_cases'] = array_values(array_filter(
+        $store['patient_cases'],
+        static fn($case): bool => is_array($case)
+    ));
+
+    return $store;
 }
 
 function flow_os_merge_existing_cases(array $preparedCases, array $existingCases): array
@@ -253,28 +249,17 @@ function flow_os_merge_existing_cases(array $preparedCases, array $existingCases
             continue;
         }
 
-        if ($status === 'lead_captured') {
-            $hasLeadCaptured = true;
+        $preparedById[$caseId] = $case;
+    }
+
+    foreach ($existingCases as $existingCase) {
+        if (!is_array($existingCase)) {
             continue;
         }
 
-        if ($status === 'intake_completed') {
-            $hasIntakeCompleted = true;
+        $caseId = trim((string) ($existingCase['id'] ?? ''));
+        if ($caseId === '') {
             continue;
-        }
-
-        if ($status === 'scheduled' || $status === 'booked') {
-            $hasScheduled = true;
-            continue;
-        }
-
-        if (in_array($status, ['resolved', 'closed', 'completed', 'archived'], true)) {
-            $hasClosedCase = true;
-            continue;
-        }
-
-        if (in_array($status, ['care_plan_ready', 'plan_ready', 'ready_for_plan'], true)) {
-            $hasCarePlanReady = true;
         }
 
         if (isset($preparedById[$caseId])) {
