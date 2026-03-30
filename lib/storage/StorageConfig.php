@@ -82,6 +82,7 @@ final class StorageConfig
             'callbacks' => [],
             'reviews' => [],
             'certificates' => [],
+            'prescriptions' => [],
             'checkout_orders' => [],
             'queue_tickets' => [],
             'queue_help_requests' => [],
@@ -151,6 +152,31 @@ final class StorageConfig
         return $normalized;
     }
 
+    public static function normalizeStoreRecordsWithStringId(array $records, string $namespace): array
+    {
+        $normalized = [];
+
+        foreach ($records as $index => $record) {
+            if (!is_array($record)) {
+                continue;
+            }
+
+            $rawId = trim((string) ($record['id'] ?? ''));
+            if ($rawId === '') {
+                if (is_string($index) && trim($index) !== '') {
+                    $rawId = trim($index);
+                } else {
+                    $rawId = $namespace . '-' . (count($normalized) + 1);
+                }
+            }
+
+            $record['id'] = $rawId;
+            $normalized[$rawId] = $record;
+        }
+
+        return $normalized;
+    }
+
     public static function normalizeStorePayload($rawStore): array
     {
         $store = is_array($rawStore) ? $rawStore : [];
@@ -159,6 +185,7 @@ final class StorageConfig
         $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
         $reviews = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
         $certificates = isset($store['certificates']) && is_array($store['certificates']) ? $store['certificates'] : [];
+        $prescriptions = isset($store['prescriptions']) && is_array($store['prescriptions']) ? $store['prescriptions'] : [];
         $checkoutOrders = isset($store['checkout_orders']) && is_array($store['checkout_orders']) ? $store['checkout_orders'] : [];
         $queueTickets = isset($store['queue_tickets']) && is_array($store['queue_tickets']) ? $store['queue_tickets'] : [];
         $queueHelpRequests = isset($store['queue_help_requests']) && is_array($store['queue_help_requests'])
@@ -211,6 +238,7 @@ final class StorageConfig
         $appointments = self::normalizeStoreRecordsWithNumericId($appointments, 'appointments');
         $callbacks = self::normalizeStoreRecordsWithNumericId($callbacks, 'callbacks');
         $reviews = self::normalizeStoreRecordsWithNumericId($reviews, 'reviews');
+        $prescriptions = self::normalizeStoreRecordsWithStringId($prescriptions, 'prescription');
         $queueTickets = self::normalizeStoreRecordsWithNumericId($queueTickets, 'queue_tickets');
         $queueHelpRequests = self::normalizeStoreRecordsWithNumericId($queueHelpRequests, 'queue_help_requests');
         $telemedicineIntakes = self::normalizeStoreRecordsWithNumericId($telemedicineIntakes, 'telemedicine_intakes');
@@ -228,6 +256,7 @@ final class StorageConfig
             'callbacks' => array_values($callbacks),
             'reviews' => array_values($reviews),
             'certificates' => $certificates,
+            'prescriptions' => $prescriptions,
             'checkout_orders' => array_values($checkoutOrders),
             'queue_tickets' => array_values($queueTickets),
             'queue_help_requests' => array_values($queueHelpRequests),

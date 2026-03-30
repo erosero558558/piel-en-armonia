@@ -428,6 +428,186 @@ final class LeadOpsService
         return $summary;
     }
 
+    public static function queueMedicationTreatmentReminders(array &$store, array $options = []): array
+    {
+        $nowRaw = trim((string) ($options['now'] ?? local_date('c')));
+        $now = self::normalizeAppointmentReminderTimestamp($nowRaw);
+        if ($now === null) {
+            $now = self::normalizeAppointmentReminderTimestamp(local_date('c'));
+        }
+
+        $queueAvailable = false;
+        if (function_exists('whatsapp_openclaw_repository')) {
+            $queueAvailable = true;
+        } elseif (file_exists(__DIR__ . '/whatsapp_openclaw/bootstrap.php')) {
+            require_once __DIR__ . '/whatsapp_openclaw/bootstrap.php';
+            $queueAvailable = function_exists('whatsapp_openclaw_repository');
+        }
+
+        $prescriptions = isset($store['prescriptions']) && is_array($store['prescriptions'])
+            ? $store['prescriptions']
+            : [];
+
+        $summary = [
+            'now' => $now ? $now->format(DATE_ATOM) : '',
+            'queued' => 0,
+            'medicationsQueued' => 0,
+            'medicationsDue' => 0,
+            'alreadySent' => 0,
+            'missingPhone' => 0,
+            'missingDuration' => 0,
+            'unsupportedDuration' => 0,
+            'notDue' => 0,
+            'invalidIssuedAt' => 0,
+            'queueUnavailable' => 0,
+            'candidates' => 0,
+            'skipped' => 0,
+        ];
+
+        foreach ($prescriptions as $prescriptionKey => $prescription) {
+            if (!is_array($prescription)) {
+                continue;
+            }
+
+            $prescriptionId = trim((string) ($prescription['id'] ?? ''));
+            if ($prescriptionId === '' && is_string($prescriptionKey)) {
+                $prescriptionId = trim($prescriptionKey);
+            }
+            if ($prescriptionId === '') {
+                continue;
+            }
+
+            $prescription['id'] = $prescriptionId;
+            $medications = isset($prescription['medications']) && is_array($prescription['medications'])
+                ? array_values($prescription['medications'])
+                : [];
+            $dueItems = [];
+
+            foreach ($medications as $index => $medication) {
+                if (!is_array($medication)) {
+                    continue;
+                }
+
+                $summary['candidates']++;
+
+                $durationValue = trim((string) ($medication['duration'] ?? ''));
+                if ($durationValue === '') {
+                    $summary['missingDuration']++;
+                    $summary['skipped']++;
+                    continue;
+                }
+
+                $durationDays = self::parseMedicationDurationDays($durationValue);
+                if ($durationDays === null) {
+                    $summary['unsupportedDuration']++;
+                    $summary['skipped']++;
+                    continue;
+                }
+
+                $issuedAt = self::normalizeAppointmentReminderTimestamp(
+                    (string) ($prescription['issued_at'] ?? $prescription['issuedAt'] ?? $prescription['createdAt'] ?? '')
+                );
+                if ($issuedAt === null) {
+                    $summary['invalidIssuedAt']++;
+                    $summary['skipped']++;
+                    continue;
+                }
+
+                $schedule = self::buildMedicationReminderSchedule($issuedAt, $durationDays);
+
+                $sentAt = trim((string) ($medication['halfwayReminderSentAt'] ?? ''));
+                if ($sentAt !== '') {
+                    $summary['alreadySent']++;
+                    $summary['skipped']++;
+                    continue;
+                }
+
+                if ($now === null || $schedule['dueAt'] > $now) {
+                    $summary['notDue']++;
+                    $summary['skipped']++;
+                    continue;
+                }
+
+                $dueItems[] = [
+                    'index' => $index,
+                    'label' => self::buildMedicationReminderLabel($medication),
+                    'endAt' => $schedule['endAt'],
+                    'endLabel' => function_exists('format_date_label')
+                        ? format_date_label($schedule['endAt']->format('Y-m-d'))
+                        : $schedule['endAt']->format('Y-m-d'),
+                ];
+            }
+
+            if ($dueItems === []) {
+                $prescriptions[$prescriptionId] = $prescription;
+                if (is_string($prescriptionKey) && $prescriptionKey !== $prescriptionId) {
+                    unset($prescriptions[$prescriptionKey]);
+                }
+                continue;
+            }
+
+            $summary['medicationsDue'] += count($dueItems);
+
+            $patient = self::resolvePrescriptionReminderPatient($store, $prescription);
+            $phone = self::normalizeBirthdayPhone((string) ($patient['phone'] ?? ''));
+            if ($phone === '') {
+                $summary['missingPhone'] += count($dueItems);
+                $summary['skipped'] += count($dueItems);
+                $prescriptions[$prescriptionId] = $prescription;
+                if (is_string($prescriptionKey) && $prescriptionKey !== $prescriptionId) {
+                    unset($prescriptions[$prescriptionKey]);
+                }
+                continue;
+            }
+
+            if (!$queueAvailable) {
+                $summary['queueUnavailable']++;
+                $prescriptions[$prescriptionId] = $prescription;
+                if (is_string($prescriptionKey) && $prescriptionKey !== $prescriptionId) {
+                    unset($prescriptions[$prescriptionKey]);
+                }
+                continue;
+            }
+
+            $text = self::buildMedicationTreatmentReminderText($patient, $dueItems);
+            $record = whatsapp_openclaw_repository()->enqueueOutbox([
+                'phone' => $phone,
+                'source' => 'system',
+                'type' => 'text',
+                'text' => $text,
+                'status' => 'pending',
+                'priority' => 'normal',
+                'category' => 'medication_treatment_reminder',
+                'template' => 'medication_halfway_reminder',
+                'meta' => [
+                    'prescriptionId' => $prescriptionId,
+                    'caseId' => (string) ($prescription['caseId'] ?? ''),
+                    'medications' => array_values(array_map(static function (array $item): string {
+                        return (string) ($item['label'] ?? '');
+                    }, $dueItems)),
+                ],
+            ]);
+
+            foreach ($dueItems as $item) {
+                $medications[$item['index']]['halfwayReminderSentAt'] = local_date('c');
+                $medications[$item['index']]['halfwayReminderChannel'] = 'whatsapp';
+                $medications[$item['index']]['halfwayReminderOutboxId'] = (string) ($record['id'] ?? '');
+            }
+
+            $prescription['medications'] = $medications;
+            $prescriptions[$prescriptionId] = $prescription;
+            if (is_string($prescriptionKey) && $prescriptionKey !== $prescriptionId) {
+                unset($prescriptions[$prescriptionKey]);
+            }
+
+            $summary['queued']++;
+            $summary['medicationsQueued'] += count($dueItems);
+        }
+
+        $store['prescriptions'] = $prescriptions;
+        return $summary;
+    }
+
     public static function enrichCallbacks(array $callbacks, array $store, ?array $funnelMetrics = null): array
     {
         $enriched = [];
@@ -1368,6 +1548,148 @@ final class LeadOpsService
             'sessionId' => $sessionId,
             'caseId' => $caseId,
         ];
+    }
+
+    private static function resolvePrescriptionReminderPatient(array $store, array $prescription): array
+    {
+        $caseId = trim((string) ($prescription['caseId'] ?? ''));
+        $patientSnapshot = isset($prescription['patient']) && is_array($prescription['patient'])
+            ? $prescription['patient']
+            : [];
+        $hydratedPatient = $caseId !== '' && isset($store['patients'][$caseId]) && is_array($store['patients'][$caseId])
+            ? $store['patients'][$caseId]
+            : [];
+        $appointment = self::findPrescriptionAppointmentContext($store, $caseId, (string) ($prescription['appointmentId'] ?? ''));
+
+        return [
+            'name' => self::firstNonEmptyString(
+                (string) ($patientSnapshot['name'] ?? ''),
+                (string) ($hydratedPatient['name'] ?? ''),
+                (string) ($appointment['name'] ?? '')
+            ),
+            'phone' => self::firstNonEmptyString(
+                (string) ($patientSnapshot['phone'] ?? ''),
+                (string) ($hydratedPatient['phone'] ?? ''),
+                (string) ($appointment['phone'] ?? '')
+            ),
+        ];
+    }
+
+    private static function findPrescriptionAppointmentContext(array $store, string $caseId, string $appointmentId): array
+    {
+        $appointments = isset($store['appointments']) && is_array($store['appointments'])
+            ? array_values($store['appointments'])
+            : [];
+        $best = [];
+        $bestScore = -1;
+
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $matches = false;
+            if ($appointmentId !== '' && (string) ($appointment['id'] ?? '') === $appointmentId) {
+                $matches = true;
+            }
+            if (
+                !$matches
+                && $caseId !== ''
+                && trim((string) ($appointment['patientCaseId'] ?? $appointment['caseId'] ?? '')) === $caseId
+            ) {
+                $matches = true;
+            }
+            if (!$matches) {
+                continue;
+            }
+
+            $score = self::timestampValue((string) ($appointment['dateBooked'] ?? ''));
+            $scheduledAt = self::buildAppointmentScheduledAt($appointment);
+            if ($scheduledAt !== null) {
+                $score = max($score, $scheduledAt->getTimestamp());
+            }
+
+            if ($best === [] || $score >= $bestScore) {
+                $best = $appointment;
+                $bestScore = $score;
+            }
+        }
+
+        return $best;
+    }
+
+    private static function buildMedicationReminderSchedule(DateTimeImmutable $issuedAt, int $durationDays): array
+    {
+        $halfwayOffsetDays = max(0, (int) floor($durationDays / 2));
+        $endOffsetDays = max(0, $durationDays - 1);
+
+        return [
+            'dueAt' => $issuedAt->modify('+' . $halfwayOffsetDays . ' days'),
+            'endAt' => $issuedAt->modify('+' . $endOffsetDays . ' days'),
+        ];
+    }
+
+    private static function parseMedicationDurationDays(string $duration): ?int
+    {
+        $normalized = strtolower(trim($duration));
+        if ($normalized === '') {
+            return null;
+        }
+
+        $normalized = str_replace(
+            ['á', 'é', 'í', 'ó', 'ú'],
+            ['a', 'e', 'i', 'o', 'u'],
+            $normalized
+        );
+
+        if (preg_match('/(\d+)\s*(dia|dias|semana|semanas|mes|meses)\b/', $normalized, $matches) !== 1) {
+            return null;
+        }
+
+        $value = (int) ($matches[1] ?? 0);
+        $unit = (string) ($matches[2] ?? '');
+        if ($value <= 0) {
+            return null;
+        }
+
+        if (str_starts_with($unit, 'dia')) {
+            return $value;
+        }
+        if (str_starts_with($unit, 'semana')) {
+            return $value * 7;
+        }
+        if (str_starts_with($unit, 'mes')) {
+            return $value * 30;
+        }
+
+        return null;
+    }
+
+    private static function buildMedicationReminderLabel(array $medication): string
+    {
+        $name = trim((string) ($medication['medication'] ?? $medication['name'] ?? ''));
+        $dose = trim((string) ($medication['dose'] ?? ''));
+        return trim($name . ($dose !== '' ? ' ' . $dose : ''));
+    }
+
+    private static function buildMedicationTreatmentReminderText(array $patient, array $items): string
+    {
+        $name = self::extractBirthdayFirstName((string) ($patient['name'] ?? 'Paciente'));
+
+        if (count($items) === 1) {
+            $item = $items[0];
+            return "Hola {$name}, recuerde continuar con {$item['label']} hasta {$item['endLabel']}. "
+                . "Si tiene dudas, responda a este mensaje.";
+        }
+
+        $lines = [];
+        foreach ($items as $item) {
+            $lines[] = '- ' . (string) ($item['label'] ?? '') . ' hasta ' . (string) ($item['endLabel'] ?? '');
+        }
+
+        return "Hola {$name}, le recordamos continuar con su tratamiento:\n"
+            . implode("\n", $lines)
+            . "\nSi tiene dudas, responda a este mensaje.";
     }
 
     private static function buildBirthdayGreetingText(string $firstName): string
