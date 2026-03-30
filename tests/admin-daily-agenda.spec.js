@@ -172,7 +172,7 @@ test.describe('Admin appointments daily agenda', () => {
                     intendedMethod === 'POST'
                 ) {
                     checkinPayload = payload;
-                    return fulfillJson(route, {
+                    await fulfillJson(route, {
                         ok: true,
                         data: {
                             id: 911,
@@ -215,6 +215,7 @@ test.describe('Admin appointments daily agenda', () => {
                             ],
                         },
                     });
+                    return true;
                 }
 
                 return false;
@@ -226,8 +227,11 @@ test.describe('Admin appointments daily agenda', () => {
         ).toHaveCount(3);
         const card = page
             .locator('#appointmentsDailyAgenda [data-daily-agenda-item="true"]')
-            .filter({ hasText: 'Eva Torres' });
-        const checkinButton = card.getByRole('button', { name: 'Marcar llegó' });
+            .first();
+        await expect(card).toContainText('Eva Torres');
+        const checkinButton = card.locator('button', {
+            hasText: 'Marcar llegó',
+        });
         await expect(checkinButton).toBeVisible();
         await checkinButton.click();
 

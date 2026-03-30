@@ -1377,7 +1377,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### UI-2 Admin — "La herramienta que el médico ama"
 
 - [x] **UI-09** `[L]` `[UI]` Admin shell y navegación — rediseño de `admin.html`: sidebar colapsable con dark theme (`data-theme="admin"`), navegación por íconos + labels, sección activa con acento aurora, header con estado del sistema (claims activos, alertas), búsqueda global. Glassmorphism en sidebar. Sin cambiar ningún endpoint PHP — solo el shell HTML/CSS/JS de navegación.
-- [ ] **UI-10** `[L]` `[UI]` Dashboard principal admin — la vista que ve el médico al abrir el admin: 4 KPI cards (citas hoy, pacientes activos, turnos en espera, alertas clínicas), agenda del día (timeline visual), accesos rápidos (nueva cita, OpenClaw, HCE último paciente). Dark theme, micro-animaciones, datos en tiempo real via endpoints existentes.
+- [x] **UI-10** `[L]` `[UI]` Dashboard principal admin — la vista que ve el médico al abrir el admin: 4 KPI cards (citas hoy, pacientes activos, turnos en espera, alertas clínicas), agenda del día (timeline visual), accesos rápidos (nueva cita, OpenClaw, HCE último paciente). Dark theme, micro-animaciones, datos en tiempo real via endpoints existentes.
 - [ ] **UI-11** `[M]` `[UI]` Historia clínica — render premium — el render de `clinical-history/render/index.js` (13.837 líneas de JS) genera UI actualmente. Crear un CSS dedicado `styles/aurora-clinical.css` que reemplace el estilo inline/legacy: timeline de episodios, cards de evolución, sección de fotos clínicas con lightbox, recetas en acordeón, diagnósticos CIE-10 con chips visuales. El JS no cambia — solo CSS class hooks.
 
 #### UI-3 OpenClaw — "El copiloto clínico"

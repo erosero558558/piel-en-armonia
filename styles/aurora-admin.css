@@ -300,3 +300,219 @@ body.admin-body {
 #adminRawControlRoom {
   display: none; /* We hide the meta-raw section as we have visual layout now */
 }
+\n
+/* ==========================================================================
+   Dashboard UI-10 (Bento Grid & Analytics)
+   ========================================================================== */
+
+.dashboard-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* KPI Top Row */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.kpi-card {
+  background: var(--admin-bg-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-2);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-aurora-500);
+}
+
+.kpi-card .kpi-title {
+  font-size: var(--text-sm);
+  color: var(--admin-text-muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-card .kpi-value {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  color: var(--admin-text-primary);
+  line-height: 1;
+}
+
+.kpi-card .kpi-meta {
+  font-size: var(--text-xs);
+  color: var(--color-green-400);
+  background: rgba(74, 222, 128, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.kpi-card.warn .kpi-meta {
+  color: var(--color-gold-400);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+/* Bento Layout */
+.bento-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 1024px) {
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bento-card {
+  background: var(--admin-bg-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.bento-card-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--admin-text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Chart Resizing Override */
+.chart-container {
+  flex: 1;
+  position: relative;
+  min-height: 250px;
+  width: 100%;
+}
+.chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Agenda Timeline */
+.agenda-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  position: relative;
+  padding-left: var(--space-6);
+}
+
+.agenda-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 11px;
+  width: 2px;
+  background: var(--admin-border);
+  border-radius: 2px;
+}
+
+.timeline-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--admin-bg-surface);
+  border: 2px solid var(--color-aurora-500);
+  z-index: 1;
+}
+
+.timeline-item.past::before {
+  border-color: var(--admin-text-muted);
+  background: var(--admin-text-muted);
+}
+.timeline-item.active::before {
+  border-color: var(--color-gold-400);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+}
+
+.timeline-time {
+  font-size: var(--text-xs);
+  color: var(--admin-text-muted);
+  font-weight: 600;
+}
+
+.timeline-content {
+  background: rgba(255, 255, 255, 0.03);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text-primary);
+  font-size: var(--text-sm);
+}
+
+/* Quick Actions Grid */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.quick-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--admin-text-primary);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quick-action-btn svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--color-aurora-400);
+  fill: none;
+  transition: transform var(--transition-fast);
+}
+
+.quick-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-aurora-500);
+}
+.quick-action-btn:hover svg {
+  transform: scale(1.1);
+}
