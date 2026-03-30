@@ -318,6 +318,116 @@ final class LeadOpsService
         return $summary;
     }
 
+    public static function queuePostConsultationFollowUps(array &$store, array $options = []): array
+    {
+        $nowRaw = trim((string) ($options['now'] ?? local_date('c')));
+        $now = self::normalizeAppointmentReminderTimestamp($nowRaw);
+        if ($now === null) {
+            $now = self::normalizeAppointmentReminderTimestamp(local_date('c'));
+        }
+
+        $queueAvailable = false;
+        if (function_exists('whatsapp_openclaw_repository')) {
+            $queueAvailable = true;
+        } elseif (file_exists(__DIR__ . '/whatsapp_openclaw/bootstrap.php')) {
+            require_once __DIR__ . '/whatsapp_openclaw/bootstrap.php';
+            $queueAvailable = function_exists('whatsapp_openclaw_repository');
+        }
+
+        $appointments = isset($store['appointments']) && is_array($store['appointments'])
+            ? array_values($store['appointments'])
+            : [];
+
+        $summary = [
+            'now' => $now ? $now->format(DATE_ATOM) : '',
+            'queued' => 0,
+            'alreadySent' => 0,
+            'missingPhone' => 0,
+            'notCompleted' => 0,
+            'notDue' => 0,
+            'invalidSchedule' => 0,
+            'queueUnavailable' => 0,
+            'candidates' => 0,
+            'skipped' => 0,
+        ];
+
+        foreach ($appointments as $index => $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $summary['candidates']++;
+
+            $status = trim((string) ($appointment['status'] ?? ''));
+            if ($status !== 'completed') {
+                $summary['notCompleted']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            $followUpSentAt = trim((string) ($appointment['followUpSentAt'] ?? ''));
+            if ($followUpSentAt !== '') {
+                $summary['alreadySent']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            $phone = self::normalizeBirthdayPhone((string) ($appointment['phone'] ?? ''));
+            if ($phone === '') {
+                $summary['missingPhone']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            $scheduledAt = self::buildAppointmentScheduledAt($appointment);
+            if ($scheduledAt === null) {
+                $summary['invalidSchedule']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            $dueAt = $scheduledAt->modify('+48 hours');
+            if (!$now || $dueAt > $now) {
+                $summary['notDue']++;
+                $summary['skipped']++;
+                continue;
+            }
+
+            if (!$queueAvailable) {
+                $summary['queueUnavailable']++;
+                continue;
+            }
+
+            $text = self::buildPostConsultationFollowUpText($appointment);
+            $record = whatsapp_openclaw_repository()->enqueueOutbox([
+                'phone' => $phone,
+                'source' => 'system',
+                'type' => 'text',
+                'text' => $text,
+                'status' => 'pending',
+                'priority' => 'normal',
+                'category' => 'post_consult_follow_up',
+                'template' => 'post_consult_follow_up_48h',
+                'meta' => [
+                    'appointmentId' => (int) ($appointment['id'] ?? 0),
+                    'date' => (string) ($appointment['date'] ?? ''),
+                    'time' => (string) ($appointment['time'] ?? ''),
+                    'doctor' => (string) ($appointment['doctor'] ?? ''),
+                ],
+            ]);
+
+            $appointment['phone'] = $phone;
+            $appointment['followUpSentAt'] = local_date('c');
+            $appointment['followUpChannel'] = 'whatsapp';
+            $appointment['followUpOutboxId'] = (string) ($record['id'] ?? '');
+            $appointments[$index] = $appointment;
+            $summary['queued']++;
+        }
+
+        $store['appointments'] = $appointments;
+        return $summary;
+    }
+
     public static function enrichCallbacks(array $callbacks, array $store, ?array $funnelMetrics = null): array
     {
         $enriched = [];
@@ -1290,6 +1400,45 @@ final class LeadOpsService
         return "Hola {$name}, le recordamos que manana tiene consulta con {$doctor} a las {$time}. "
             . "Si desea confirmar, puede responder a este mensaje. "
             . "Si necesita reagendar, use este enlace: {$rescheduleUrl}";
+    }
+
+    private static function buildPostConsultationFollowUpText(array $appointment): string
+    {
+        $name = self::extractBirthdayFirstName((string) ($appointment['name'] ?? 'Paciente'));
+        $portalUrl = AppConfig::BASE_URL . '/es/portal/';
+
+        return "Hola {$name}, como se ha sentido despues de su consulta? "
+            . "Si tiene dudas, escribanos por este medio. "
+            . "Tambien puede revisar su portal aqui: {$portalUrl}";
+    }
+
+    private static function buildAppointmentScheduledAt(array $appointment): ?DateTimeImmutable
+    {
+        $date = self::normalizeBirthdayDate((string) ($appointment['date'] ?? ''));
+        $time = trim((string) ($appointment['time'] ?? ''));
+        if ($date === '' || $time === '') {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($date . ' ' . $time);
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    private static function normalizeAppointmentReminderTimestamp(string $value): ?DateTimeImmutable
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($trimmed);
+        } catch (Throwable $e) {
+            return null;
+        }
     }
 
     private static function extractBirthdayFirstName(string $value): string

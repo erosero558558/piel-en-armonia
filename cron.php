@@ -189,6 +189,11 @@ function cron_task_reminders(array $payload): array
     ]);
     $sent += (int) ($appointmentReminderSummary['queued'] ?? 0);
 
+    $postConsultationSummary = LeadOpsService::queuePostConsultationFollowUps($store, [
+        'now' => (string) ($payload['now'] ?? local_date('c')),
+    ]);
+    $sent += (int) ($postConsultationSummary['queued'] ?? 0);
+
     foreach ($store['appointments'] as &$appt) {
         $status = (string) ($appt['status'] ?? '');
         $date = (string) ($appt['date'] ?? '');
@@ -231,6 +236,7 @@ function cron_task_reminders(array $payload): array
         'skipped' => $skipped,
         'failed' => $failed,
         'appointmentReminders' => $appointmentReminderSummary,
+        'postConsultationFollowUps' => $postConsultationSummary,
         'birthdays' => $birthdaySummary,
     ];
 }

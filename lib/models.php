@@ -228,7 +228,8 @@ function normalize_appointment(array $appointment): array
         'rescheduleToken' => isset($appointment['rescheduleToken']) && $appointment['rescheduleToken'] !== ''
             ? (string) $appointment['rescheduleToken']
             : bin2hex(random_bytes(16)),
-        'reminderSentAt' => truncate_field(trim((string) ($appointment['reminderSentAt'] ?? '')), 30)
+        'reminderSentAt' => truncate_field(trim((string) ($appointment['reminderSentAt'] ?? '')), 30),
+        'followUpSentAt' => truncate_field(trim((string) ($appointment['followUpSentAt'] ?? '')), 30)
     ];
 }
 
