@@ -41,7 +41,7 @@ test('helper SSH fija pin, target Windows y encoded command canonico', () => {
         'WINDOWS_EXPECTED_COMMIT_FALLBACK="c7619c25ad5ad5ad0436b80d75d6effb7d9f1e8b"',
         "WINDOWS_MIRROR_PATH_DEFAULT='C:\\dev\\pielarmonia-clean-main'",
         "WINDOWS_ENV_PATH_DEFAULT='C:\\ProgramData\\Pielarmonia\\hosting\\env.php'",
-        "WINDOWS_RELEASE_TARGET_PATH_DEFAULT='C:\\ProgramData\\Pielarmonia\\hosting\\release-target.json'",
+        "WINDOWS_RELEASE_TARGET_PATH_DEFAULT='C:\\ProgramData\\Pielarmonia\\hosting\\release-target.runtime.json'",
         "WINDOWS_HOSTING_DIR_DEFAULT='C:\\ProgramData\\Pielarmonia\\hosting'",
         'windows_hosting_resolve_expected_commit()',
         'WINDOWS_EXPECTED_COMMIT no estaba definido; se usa origin/main=${WINDOWS_EXPECTED_COMMIT}',
@@ -72,7 +72,9 @@ test('wrapper diagnostico valida runtime fingerprint, auth local/publica y statu
         'http://127.0.0.1/admin-auth.php?action=status',
         'https://{0}/admin-auth.php?action=status',
         "Join-Path $hostingDir 'repair-hosting-status.json'",
-        "Join-Path $hostingDir 'main-sync-status.json'",
+        'Read-MainSyncRawMaybe',
+        "Join-Path $CurrentHostingDir 'main-sync-status.sync.json'",
+        "Join-Path $CurrentHostingDir 'main-sync-status.json'",
         "Join-Path $hostingDir 'hosting-supervisor-status.json'",
         'site_root_mismatch',
         'local_auth_contract_invalid',
@@ -102,6 +104,8 @@ test('wrapper ejecucion remota aplica flujo canonico y evidencia final', () => {
         "Invoke-ScriptSection -Name 'repair_full'",
         "-Arguments @('-PromoteCurrentRemoteHead')",
         'runtime_fingerprint_pre_repair',
+        'Read-MainSyncRawMaybe',
+        "Join-Path $CurrentHostingDir 'main-sync-status.sync.json'",
         'site_root_mismatch',
         'served_site_root_mismatch',
         'main_sync_not_ok',
@@ -139,6 +143,7 @@ test('documentacion setup expone wrappers remotos y variables canonicas', () => 
         'C:\\dev\\pielarmonia-clean-main',
         '`origin/main` actual',
         'c7619c25ad5ad5ad0436b80d75d6effb7d9f1e8b',
+        'main-sync-status.sync.json',
     ];
 
     for (const snippet of requiredSnippets) {

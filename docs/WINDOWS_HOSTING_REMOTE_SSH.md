@@ -19,7 +19,8 @@ Contrato operativo:
 - El env sensible canonico debe vivir en
   `C:\ProgramData\Pielarmonia\hosting\env.php`.
 - El wrapper remoto valida `http://127.0.0.1/__hosting/runtime`,
-  `repair-hosting-status.json`, `main-sync-status.json`,
+  `repair-hosting-status.json`, `main-sync-status.sync.json`
+  (con fallback a `main-sync-status.json` y `main-sync-status.runtime.json`),
   `hosting-supervisor-status.json` y `admin-auth.php?action=status`
   local/publico.
 
@@ -62,11 +63,11 @@ scripts/ops/setup/EXECUTAR-HOSTING-WINDOWS-SSH.sh
 
 Criterio de cierre del wrapper mutante:
 
-- `main-sync-status.json.ok = true`
-- `main-sync-status.json.site_root_ok = true`
-- `main-sync-status.json.served_site_root = C:\dev\pielarmonia-clean-main`
-- `main-sync-status.json.current_commit = WINDOWS_EXPECTED_COMMIT`
-- `main-sync-status.json.auth_contract_ok = true`
+- `main-sync-status.sync.json.ok = true`
+- `main-sync-status.sync.json.site_root_ok = true`
+- `main-sync-status.sync.json.served_site_root = C:\dev\pielarmonia-clean-main`
+- `main-sync-status.sync.json.current_commit = WINDOWS_EXPECTED_COMMIT`
+- `main-sync-status.sync.json.auth_contract_ok = true`
 - `hosting-supervisor-status.json` presente
 - `hosting-supervisor-status.json.supervisor_state = running | recovering`
 - `http://127.0.0.1/admin-auth.php?action=status` con

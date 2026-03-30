@@ -336,6 +336,107 @@ YAML
         $this->assertTrue((bool) ($snapshot['statusCommitMismatch'] ?? false));
     }
 
+    public function testAuthorizedHealthDiagnosticsPrefersFresherWindowsSyncSiblingWhenConfiguredMainStatusIsStale(): void
+    {
+        $jobsFile = $this->tempDir . DIRECTORY_SEPARATOR . 'AGENT_JOBS.publicsync.yaml';
+        $statusPath = $this->tempDir . DIRECTORY_SEPARATOR . 'main-sync-status.json';
+        $syncStatusPath = $this->tempDir . DIRECTORY_SEPARATOR . 'main-sync-status.sync.json';
+        $releaseTargetPath = $this->tempDir . DIRECTORY_SEPARATOR . 'release-target.runtime.json';
+        $repoRoot = $this->tempDir . DIRECTORY_SEPARATOR . 'mirror-sync';
+        $targetCommit = '481d9597231ec25ac67504f5bbd077fedb5f2ebf';
+        $staleCommit = 'a35ee6833c18b657b1b4d5bdaf9d21e3b3c00325';
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+        mkdir($repoRoot . DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR . 'refs' . DIRECTORY_SEPARATOR . 'heads', 0777, true);
+        file_put_contents($repoRoot . DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR . 'HEAD', "ref: refs/heads/main\n");
+        file_put_contents(
+            $repoRoot . DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR . 'refs' . DIRECTORY_SEPARATOR . 'heads' . DIRECTORY_SEPARATOR . 'main',
+            $targetCommit . "\n"
+        );
+        file_put_contents($releaseTargetPath, json_encode(['target_commit' => $targetCommit], JSON_PRETTY_PRINT));
+        file_put_contents(
+            $jobsFile,
+            <<<YAML
+version: 1
+updated_at: "2026-03-26T00:00:00Z"
+jobs:
+  - key: public_main_sync
+    job_id: "8d31e299-7e57-4959-80b5-aaa2d73e9674"
+    enabled: true
+    type: external_cron
+    owner: codex_backend_ops
+    environment: production
+    repo_path: {$repoRoot}
+    branch: main
+    schedule: "* * * * *"
+    command: powershell -NoProfile -ExecutionPolicy Bypass -File C:\ProgramData\Pielarmonia\hosting\runtime-main-sync.ps1
+    wrapper_fallback: C:\ProgramData\Pielarmonia\hosting\runtime-main-sync.ps1
+    lock_file: C:\tmp\sync-pielarmonia.lock
+    log_path: C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log
+    status_path: {$statusPath}
+    health_url: https://pielarmonia.com/api.php?resource=health
+    expected_max_lag_seconds: 120
+    source_of_truth: host_cron
+    publish_strategy: main_auto_guarded
+YAML
+        );
+        file_put_contents(
+            $statusPath,
+            json_encode([
+                'ok' => true,
+                'state' => 'starting',
+                'timestamp' => $now->modify('-20 minutes')->format('c'),
+                'last_successful_deploy_at' => $now->modify('-20 minutes')->format('c'),
+                'mirror_repo_path' => $repoRoot,
+                'branch' => 'main',
+                'desired_commit' => $staleCommit,
+                'current_commit' => $staleCommit,
+                'served_commit' => $staleCommit,
+                'auth_contract_ok' => false,
+                'site_root_ok' => false,
+            ], JSON_PRETTY_PRINT)
+        );
+        file_put_contents(
+            $syncStatusPath,
+            json_encode([
+                'ok' => true,
+                'state' => 'updated',
+                'timestamp' => $now->format('c'),
+                'last_successful_deploy_at' => $now->format('c'),
+                'mirror_repo_path' => $repoRoot,
+                'branch' => 'main',
+                'desired_commit' => $targetCommit,
+                'current_commit' => $targetCommit,
+                'served_commit' => $targetCommit,
+                'auth_contract_ok' => true,
+                'site_root_ok' => true,
+            ], JSON_PRETTY_PRINT)
+        );
+
+        putenv('PIELARMONIA_AGENT_JOBS_FILE=' . $jobsFile);
+        putenv('PIELARMONIA_HOSTING_RUNTIME_REPO_ROOT=' . $repoRoot);
+        putenv('PIELARMONIA_HOSTING_RELEASE_TARGET_PATH=' . $releaseTargetPath);
+
+        $response = $this->captureJsonResponse(static function (): void {
+            \HealthController::check([
+                'store' => \read_store(),
+                'method' => 'GET',
+                'resource' => 'health',
+                'diagnosticsAuthorized' => true,
+            ]);
+        });
+
+        $snapshot = $response['payload']['checks']['publicSync'] ?? [];
+        $this->assertSame(200, $response['status']);
+        $this->assertTrue((bool) ($snapshot['healthy'] ?? false));
+        $this->assertSame($statusPath, (string) ($snapshot['statusPathConfigured'] ?? ''));
+        $this->assertSame($syncStatusPath, (string) ($snapshot['statusPathResolved'] ?? ''));
+        $this->assertSame('windows_main_sync', (string) ($snapshot['statusSourceKind'] ?? ''));
+        $this->assertSame($targetCommit, (string) ($snapshot['deployedCommit'] ?? ''));
+        $this->assertSame($targetCommit, (string) ($snapshot['currentHead'] ?? ''));
+        $this->assertSame($targetCommit, (string) ($snapshot['remoteHead'] ?? ''));
+    }
+
     public function testAuthorizedHealthIncludesWhatsappOpenclawSnapshot(): void
     {
         putenv('PIELARMONIA_WHATSAPP_OPENCLAW_ENABLED=true');

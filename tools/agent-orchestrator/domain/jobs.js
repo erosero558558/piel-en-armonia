@@ -22,6 +22,142 @@ function normalizeStringArray(value) {
     return value.map((item) => String(item || '').trim()).filter(Boolean);
 }
 
+function normalizeStatusPathKind(statusPath = '') {
+    const normalized = String(statusPath || '')
+        .trim()
+        .replace(/\\/g, '/')
+        .toLowerCase();
+    if (!normalized) return 'unknown';
+    if (/(^|\/)main-sync-status(?:\.(?:sync|runtime))?\.json$/.test(normalized)) {
+        return 'windows_main_sync';
+    }
+    if (/(^|\/)public-sync-status\.json$/.test(normalized)) {
+        return 'legacy_public_sync';
+    }
+    return 'configured_status';
+}
+
+function siblingStatusPath(statusPath = '', basename = '') {
+    const input = String(statusPath || '').trim();
+    const targetBasename = String(basename || '').trim();
+    if (!input || !targetBasename) return targetBasename;
+    const lastSlash = Math.max(input.lastIndexOf('/'), input.lastIndexOf('\\'));
+    if (lastSlash < 0) return targetBasename;
+    return `${input.slice(0, lastSlash + 1)}${targetBasename}`;
+}
+
+function candidateStatusPaths(statusPath = '') {
+    const configuredPath = String(statusPath || '').trim();
+    if (!configuredPath) return [];
+
+    const candidates = [configuredPath];
+    const sourceKind = normalizeStatusPathKind(configuredPath);
+    if (sourceKind === 'legacy_public_sync') {
+        candidates.push(
+            siblingStatusPath(configuredPath, 'main-sync-status.sync.json'),
+            siblingStatusPath(configuredPath, 'main-sync-status.json'),
+            siblingStatusPath(configuredPath, 'main-sync-status.runtime.json')
+        );
+    } else if (sourceKind === 'windows_main_sync') {
+        candidates.push(
+            siblingStatusPath(configuredPath, 'main-sync-status.sync.json'),
+            siblingStatusPath(configuredPath, 'main-sync-status.json'),
+            siblingStatusPath(configuredPath, 'main-sync-status.runtime.json'),
+            siblingStatusPath(configuredPath, 'public-sync-status.json')
+        );
+    }
+
+    const seen = new Set();
+    return candidates.filter((candidate) => {
+        const normalized = String(candidate || '')
+            .trim()
+            .replace(/\\/g, '/')
+            .toLowerCase();
+        if (!normalized || seen.has(normalized)) return false;
+        seen.add(normalized);
+        return true;
+    });
+}
+
+function statusReferenceTimestamp(payload = {}) {
+    for (const key of [
+        'checked_at',
+        'timestamp',
+        'finished_at',
+        'last_success_at',
+        'last_successful_deploy_at',
+        'started_at',
+    ]) {
+        const value = String(payload?.[key] || '').trim();
+        if (value) return value;
+    }
+    return '';
+}
+
+function statusReferenceMillis(payload = {}) {
+    const parsed = parseIsoMillis(statusReferenceTimestamp(payload));
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isCandidateStatusNewer(candidatePayload = {}, baselinePayload = {}) {
+    const candidateMs = statusReferenceMillis(candidatePayload);
+    const baselineMs = statusReferenceMillis(baselinePayload);
+    if (candidateMs !== null && baselineMs !== null) {
+        return candidateMs > baselineMs;
+    }
+    if (candidateMs !== null) return true;
+    if (baselineMs !== null) return false;
+    return false;
+}
+
+function resolveLocalStatusFile(job = {}, deps = {}) {
+    const {
+        existsSync = () => false,
+        readFileSync = () => '',
+    } = deps;
+    const configuredPath = String(job.status_path || '').trim();
+    if (!configuredPath) return null;
+
+    const configuredKind = normalizeStatusPathKind(configuredPath);
+    let resolved = null;
+    for (const candidatePath of candidateStatusPaths(configuredPath)) {
+        if (!existsSync(candidatePath)) continue;
+        try {
+            const raw = String(readFileSync(candidatePath, 'utf8') || '');
+            const payload = JSON.parse(raw);
+            if (!payload || typeof payload !== 'object') continue;
+
+            const candidate = { path: candidatePath, payload };
+            if (!resolved) {
+                resolved = candidate;
+                continue;
+            }
+
+            const candidateKind = normalizeStatusPathKind(candidatePath);
+            if (configuredKind === 'legacy_public_sync') {
+                if (
+                    candidateKind === 'windows_main_sync' &&
+                    isCandidateStatusNewer(candidate.payload, resolved.payload)
+                ) {
+                    resolved = candidate;
+                }
+                continue;
+            }
+
+            if (
+                configuredKind === 'windows_main_sync' &&
+                candidateKind === 'windows_main_sync' &&
+                isCandidateStatusNewer(candidate.payload, resolved.payload)
+            ) {
+                resolved = candidate;
+            }
+        } catch (_error) {
+        }
+    }
+
+    return resolved;
+}
+
 function stripLeadingUtf8Bom(value) {
     return String(value || '').replace(/^\uFEFF/, '');
 }
@@ -531,11 +667,13 @@ async function resolveJobSnapshot(jobRaw, deps = {}) {
         fetchImpl = typeof fetch === 'function' ? fetch : null,
     } = deps;
 
-    if (job.status_path && existsSync(job.status_path)) {
+    const localStatus = resolveLocalStatusFile(job, { existsSync, readFileSync });
+    if (localStatus) {
         try {
-            const raw = String(readFileSync(job.status_path, 'utf8') || '');
-            const payload = JSON.parse(raw);
-            return normalizeSnapshotFromFile(job, payload);
+            return normalizeSnapshotFromFile(
+                { ...job, status_path: localStatus.path },
+                localStatus.payload
+            );
         } catch (error) {
             const snapshot = {
                 key: job.key,
@@ -709,4 +847,6 @@ module.exports = {
     computeOperationalHealth,
     parseIsoMillis,
     computeAgeSeconds,
+    normalizeStatusPathKind,
+    candidateStatusPaths,
 };

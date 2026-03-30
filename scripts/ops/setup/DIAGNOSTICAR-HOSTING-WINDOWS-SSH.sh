@@ -78,6 +78,22 @@ function Read-RawMaybe {
     return '__MISSING__'
 }
 
+function Read-MainSyncRawMaybe {
+    param([string]$CurrentHostingDir)
+
+    foreach ($candidatePath in @(
+        (Join-Path $CurrentHostingDir 'main-sync-status.sync.json'),
+        (Join-Path $CurrentHostingDir 'main-sync-status.json'),
+        (Join-Path $CurrentHostingDir 'main-sync-status.runtime.json')
+    )) {
+        if (Test-Path -LiteralPath $candidatePath) {
+            return [string](Get-Content -LiteralPath $candidatePath -Raw)
+        }
+    }
+
+    return '__MISSING__'
+}
+
 function Invoke-JsonRawMaybe {
     param([string]$Url)
 
@@ -178,7 +194,7 @@ if (-not $summary.public_auth_ok) {
 }
 
 $repairRaw = Read-RawMaybe -Path (Join-Path $hostingDir 'repair-hosting-status.json')
-$mainSyncRaw = Read-RawMaybe -Path (Join-Path $hostingDir 'main-sync-status.json')
+$mainSyncRaw = Read-MainSyncRawMaybe -CurrentHostingDir $hostingDir
 $supervisorRaw = Read-RawMaybe -Path (Join-Path $hostingDir 'hosting-supervisor-status.json')
 
 $summary.problems = @($problems)

@@ -208,6 +208,77 @@ test('jobs-engine resolveJobSnapshot normaliza main-sync-status canonico de Wind
     assert.equal(typeof snapshot.age_seconds, 'number');
 });
 
+test('jobs-engine prefiere el snapshot Windows mas fresco cuando existe sibling .sync', async (t) => {
+    const dir = createTempDir();
+    const statusPath = join(dir, 'main-sync-status.json');
+    const syncStatusPath = join(dir, 'main-sync-status.sync.json');
+    const staleAt = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const freshAt = new Date().toISOString();
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+
+    writeFileSync(
+        statusPath,
+        `${JSON.stringify(
+            {
+                ok: true,
+                state: 'starting',
+                timestamp: staleAt,
+                last_successful_deploy_at: staleAt,
+                mirror_repo_path: 'C:\\dev\\pielarmonia-clean-main',
+                branch: 'main',
+                desired_commit: 'old1111',
+                current_commit: 'old1111',
+                served_commit: 'old1111',
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+    writeFileSync(
+        syncStatusPath,
+        `${JSON.stringify(
+            {
+                ok: true,
+                state: 'updated',
+                timestamp: freshAt,
+                last_successful_deploy_at: freshAt,
+                mirror_repo_path: 'C:\\dev\\pielarmonia-clean-main',
+                branch: 'main',
+                desired_commit: 'new2222',
+                current_commit: 'new2222',
+                served_commit: 'new2222',
+                auth_contract_ok: true,
+                site_root_ok: true,
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    const snapshot = await jobs.resolveJobSnapshot(
+        {
+            key: 'public_main_sync',
+            job_id: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+            status_path: statusPath,
+            expected_max_lag_seconds: 120,
+        },
+        {
+            existsSync: (path) => path === statusPath || path === syncStatusPath,
+            readFileSync,
+            fetchImpl: null,
+        }
+    );
+
+    assert.equal(snapshot.status_path, syncStatusPath);
+    assert.equal(snapshot.state, 'updated');
+    assert.equal(snapshot.deployed_commit, 'new2222');
+    assert.equal(snapshot.current_head, 'new2222');
+    assert.equal(snapshot.remote_head, 'new2222');
+    assert.equal(snapshot.healthy, true);
+});
+
 test('jobs-engine resolveJobSnapshot usa health_url cuando no existe status local', async () => {
     const fetchImpl = async () => ({
         ok: true,

@@ -273,7 +273,7 @@ if (!function_exists('public_sync_status_source_kind')) {
         if ($normalized === '') {
             return 'unknown';
         }
-        if (str_ends_with($normalized, '/main-sync-status.json') || str_ends_with($normalized, 'main-sync-status.json')) {
+        if (preg_match('~(?:^|/)main-sync-status(?:\.(?:sync|runtime))?\.json$~', $normalized) === 1) {
             return 'windows_main_sync';
         }
         if (str_ends_with($normalized, '/public-sync-status.json') || str_ends_with($normalized, 'public-sync-status.json')) {
@@ -344,8 +344,13 @@ if (!function_exists('public_sync_candidate_status_paths')) {
         $candidates = [$configuredPath];
         $sourceKind = public_sync_status_source_kind($configuredPath);
         if ($sourceKind === 'legacy_public_sync') {
+            $candidates[] = public_sync_sibling_path($configuredPath, 'main-sync-status.sync.json');
             $candidates[] = public_sync_sibling_path($configuredPath, 'main-sync-status.json');
+            $candidates[] = public_sync_sibling_path($configuredPath, 'main-sync-status.runtime.json');
         } elseif ($sourceKind === 'windows_main_sync') {
+            $candidates[] = public_sync_sibling_path($configuredPath, 'main-sync-status.sync.json');
+            $candidates[] = public_sync_sibling_path($configuredPath, 'main-sync-status.json');
+            $candidates[] = public_sync_sibling_path($configuredPath, 'main-sync-status.runtime.json');
             $candidates[] = public_sync_sibling_path($configuredPath, 'public-sync-status.json');
         }
 
@@ -439,6 +444,7 @@ if (!function_exists('public_sync_read_status')) {
     {
         $config = public_sync_job_config();
         $configuredPath = trim((string) ($config['status_path'] ?? ''));
+        $configuredSourceKind = public_sync_status_source_kind($configuredPath);
         $configuredEnvelope = [
             'configured' => (bool) ($config['configured'] ?? false),
             'configured_path' => $configuredPath,
@@ -446,7 +452,7 @@ if (!function_exists('public_sync_read_status')) {
             'path' => $configuredPath,
             'status' => [],
             'error' => '',
-            'source_kind' => public_sync_status_source_kind($configuredPath),
+            'source_kind' => $configuredSourceKind,
             'mtime' => null,
         ];
 
@@ -479,7 +485,7 @@ if (!function_exists('public_sync_read_status')) {
             }
         }
 
-        if (public_sync_status_source_kind($configuredPath) === 'legacy_public_sync') {
+        if ($configuredSourceKind === 'legacy_public_sync') {
             foreach ($candidates as $candidateEnvelope) {
                 if (
                     trim((string) ($candidateEnvelope['source_kind'] ?? '')) === 'windows_main_sync' &&
@@ -489,6 +495,21 @@ if (!function_exists('public_sync_read_status')) {
                 ) {
                     $resolvedEnvelope = $candidateEnvelope;
                     break;
+                }
+            }
+        } elseif ($configuredSourceKind === 'windows_main_sync') {
+            foreach ($candidates as $candidateEnvelope) {
+                if (
+                    trim((string) ($candidateEnvelope['source_kind'] ?? '')) === 'windows_main_sync' &&
+                    (bool) ($candidateEnvelope['exists'] ?? false) &&
+                    trim((string) ($candidateEnvelope['error'] ?? '')) === '' &&
+                    (
+                        !((bool) ($resolvedEnvelope['exists'] ?? false)) ||
+                        trim((string) ($resolvedEnvelope['error'] ?? '')) !== '' ||
+                        public_sync_is_newer_envelope($candidateEnvelope, $resolvedEnvelope)
+                    )
+                ) {
+                    $resolvedEnvelope = $candidateEnvelope;
                 }
             }
         }
