@@ -1,4 +1,5 @@
 const ADMIN_LAST_SECTION_STORAGE_KEY = 'adminLastSection';
+const ADMIN_PENDING_QUICK_ACTION_STORAGE_KEY = 'adminPendingQuickAction';
 const PREBOOT_SECTION_SHORTCUTS = new Map([
     ['digit1', 'dashboard'],
     ['digit2', 'appointments'],
@@ -15,6 +16,50 @@ const PREBOOT_SECTION_SHORTCUTS = new Map([
     ['3', 'callbacks'],
     ['4', 'clinical-history'],
     ['5', 'availability'],
+]);
+const PREBOOT_QUICK_ACTIONS = new Map([
+    [
+        'keyt',
+        {
+            section: 'appointments',
+            action: 'appointments_pending_transfer',
+        },
+    ],
+    [
+        'keya',
+        {
+            section: 'appointments',
+            action: 'appointments_all',
+        },
+    ],
+    [
+        'keyn',
+        {
+            section: 'appointments',
+            action: 'appointments_no_show',
+        },
+    ],
+    [
+        'keyp',
+        {
+            section: 'callbacks',
+            action: 'callbacks_pending',
+        },
+    ],
+    [
+        'keyc',
+        {
+            section: 'callbacks',
+            action: 'callbacks_contacted',
+        },
+    ],
+    [
+        'keyu',
+        {
+            section: 'callbacks',
+            action: 'callbacks_sla_urgent',
+        },
+    ],
 ]);
 const SHIFTED_SHORTCUT_ALIASES = Object.freeze({
     '!': 'digit1',
@@ -83,6 +128,26 @@ function resolvePrebootShortcutSection(event) {
     return '';
 }
 
+function resolvePrebootQuickAction(event) {
+    if (!event.altKey || !event.shiftKey || event.ctrlKey || event.metaKey) {
+        return null;
+    }
+
+    const key = String(event.key || '').toLowerCase();
+    const code = String(event.code || '').toLowerCase();
+    const candidates = [];
+
+    if (code) candidates.push(code);
+    if (key) candidates.push(key);
+
+    for (const candidate of candidates) {
+        const action = PREBOOT_QUICK_ACTIONS.get(candidate);
+        if (action) return action;
+    }
+
+    return null;
+}
+
 function persistLastSection(section) {
     if (!section) return;
     try {
@@ -107,6 +172,45 @@ function updateSectionHash(section) {
     }
 }
 
+function persistPendingQuickAction(action) {
+    try {
+        if (action) {
+            window.sessionStorage.setItem(
+                ADMIN_PENDING_QUICK_ACTION_STORAGE_KEY,
+                action
+            );
+            return;
+        }
+        window.sessionStorage.removeItem(ADMIN_PENDING_QUICK_ACTION_STORAGE_KEY);
+    } catch (_error) {
+        // no-op
+    }
+}
+
+function readPendingQuickAction() {
+    try {
+        return (
+            window.sessionStorage.getItem(
+                ADMIN_PENDING_QUICK_ACTION_STORAGE_KEY
+            ) || ''
+        );
+    } catch (_error) {
+        return '';
+    }
+}
+
+async function replayPendingQuickAction() {
+    const action = readPendingQuickAction();
+    if (!action) return;
+
+    persistPendingQuickAction('');
+
+    const module = await import('../admin-v3/core/boot/navigation/commands.js');
+    if (typeof module?.runQuickAction === 'function') {
+        await module.runQuickAction(action);
+    }
+}
+
 function installPrebootShortcutCapture() {
     const handler = (event) => {
         if (
@@ -118,12 +222,22 @@ function installPrebootShortcutCapture() {
             return;
         }
 
+        const quickAction = resolvePrebootQuickAction(event);
+        if (quickAction) {
+            event.preventDefault();
+            persistLastSection(quickAction.section);
+            updateSectionHash(quickAction.section);
+            persistPendingQuickAction(quickAction.action);
+            return;
+        }
+
         const section = resolvePrebootShortcutSection(event);
         if (!section) return;
 
         event.preventDefault();
         persistLastSection(section);
         updateSectionHash(section);
+        persistPendingQuickAction('');
     };
 
     window.addEventListener('keydown', handler, true);
@@ -164,6 +278,7 @@ async function loadSonyV3Variant() {
 
     try {
         await loadSonyV3Variant();
+        await replayPendingQuickAction();
         setDocumentReadyState(true);
     } catch (error) {
         setDocumentReadyState(false);
