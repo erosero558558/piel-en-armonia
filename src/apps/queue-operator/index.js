@@ -3834,7 +3834,7 @@ function buildOperatorPostConsultActionButtons(ticket, snapshot = null) {
         .map((config) => {
             const isPending =
                 pendingTicketId === ticketId && pendingActionId === config.action;
-            const disabled = patientCaseId === '' || isPending;
+            const disabled = patientCaseId === '' || pendingTicketId === ticketId;
             const title =
                 patientCaseId === ''
                     ? 'El turno necesita un patientCaseId antes de disparar acciones post-consulta.'
@@ -3920,7 +3920,6 @@ function buildOperatorPostConsultActionMessage(
     responseData = {}
 ) {
     const config = getOperatorPostConsultActionConfig(actionId);
-    const patientLabel = resolveOperatorPostConsultPatientLabel(ticket);
 
     if (!config) {
         return {

@@ -40,6 +40,8 @@ async function installOperatorApiMock(
         heartbeatRequests = null,
         heartbeatPayloads = null,
         queueCallNextRequests = null,
+        clinicalEpisodeActionRequests = null,
+        handleClinicalEpisodeAction = null,
     } = {}
 ) {
     await installTurneroQueueStateMock(page, {
@@ -149,6 +151,56 @@ async function installOperatorApiMock(
                         queueState: getQueueState(),
                     },
                 });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action') {
+                let body;
+                try {
+                    body = request.postDataJSON() || {};
+                } catch (_error) {
+                    body = {};
+                }
+
+                if (Array.isArray(clinicalEpisodeActionRequests)) {
+                    clinicalEpisodeActionRequests.push(body);
+                }
+
+                if (typeof handleClinicalEpisodeAction === 'function') {
+                    const response = await handleClinicalEpisodeAction(body);
+                    await json(
+                        route,
+                        response?.payload ?? response ?? { ok: true, data: {} },
+                        Number(response?.status || 200) || 200
+                    );
+                    return true;
+                }
+
+                const caseId = String(body.caseId || '');
+                const sessionId = String(body.sessionId || 'chs-operator-1');
+                const basePayload = {
+                    ok: true,
+                    data: {
+                        session: {
+                            sessionId,
+                            caseId,
+                        },
+                        documents: {
+                            prescription: {
+                                status:
+                                    body.action === 'issue_prescription'
+                                        ? 'issued'
+                                        : 'missing',
+                            },
+                        },
+                        interconsultations:
+                            body.action === 'create_interconsultation'
+                                ? [{ interconsultId: 'ic-operator-1' }]
+                                : [],
+                    },
+                };
+
+                await json(route, basePayload);
                 return true;
             }
 
@@ -325,6 +377,7 @@ async function mockOperatorSurface(page, overrides = {}) {
     const heartbeatPayloads = [];
     const heartbeatRequests = [];
     const queueCallNextRequests = [];
+    const clinicalEpisodeActionRequests = [];
     let queueTickets =
         Array.isArray(overrides.queueTickets) && overrides.queueTickets.length
             ? overrides.queueTickets.map((ticket) => ({ ...ticket }))
@@ -350,6 +403,8 @@ async function mockOperatorSurface(page, overrides = {}) {
         heartbeatRequests,
         heartbeatPayloads,
         queueCallNextRequests,
+        clinicalEpisodeActionRequests,
+        handleClinicalEpisodeAction: overrides.handleClinicalEpisodeAction,
     });
 
     if (overrides.desktopSnapshot) {
@@ -393,6 +448,9 @@ async function mockOperatorSurface(page, overrides = {}) {
         },
         getQueueCallNextRequests() {
             return [...queueCallNextRequests];
+        },
+        getClinicalEpisodeActionRequests() {
+            return [...clinicalEpisodeActionRequests];
         },
     };
 }
@@ -1224,6 +1282,105 @@ test.describe('Turnero Operador', () => {
         await expect(page.locator('#operatorCurrentTicketPanel')).toContainText(
             'Paciente con apoyo activo en recepcion.'
         );
+    });
+
+    test('dispara acciones post-consulta del turno llamado usando clinical-episode-action', async ({
+        page,
+    }) => {
+        const queueTickets = [
+            buildOperatorQueueTicket({
+                id: 3302,
+                ticketCode: 'B-3302',
+                patientInitials: 'AR',
+                patientCaseId: 'pc-3302',
+                appointmentId: 732,
+                status: 'called',
+                assignedConsultorio: 1,
+                patientCaseSnapshot: {
+                    patientLabel: 'Ana Ruiz',
+                    reasonLabel: 'Control',
+                    journeyStage: 'care_plan_ready',
+                    journeyStageLabel: 'Plan de cuidado listo',
+                    previousVisitsCount: 3,
+                    lastCompletedVisitAt: '2026-03-18T14:30:00.000Z',
+                    alerts: [],
+                },
+            }),
+        ];
+
+        const operatorSurface = await mockOperatorSurface(page, {
+            queueTickets,
+            queueState: buildOperatorQueueState(queueTickets, {
+                nextTickets: [],
+            }),
+        });
+
+        await page.goto(operatorUrl('station=c1&lock=1'));
+        const panel = page.locator('#operatorCurrentTicketPanel');
+
+        await expect(
+            panel.locator('[data-post-consult-action="schedule_follow_up"]')
+        ).toBeVisible();
+        await expect(
+            panel.locator('[data-post-consult-action="deliver_care_plan"]')
+        ).toBeVisible();
+        await expect(
+            panel.locator('[data-post-consult-action="issue_prescription"]')
+        ).toBeVisible();
+        await expect(
+            panel.locator('[data-post-consult-action="create_interconsultation"]')
+        ).toBeVisible();
+
+        await panel
+            .locator('[data-post-consult-action="schedule_follow_up"]')
+            .click();
+        await expect(page.locator('#toastContainer')).toContainText(
+            'Ana Ruiz: Seguimiento listo para coordinar.'
+        );
+
+        await panel
+            .locator('[data-post-consult-action="deliver_care_plan"]')
+            .click();
+        await expect(page.locator('#toastContainer')).toContainText(
+            'Ana Ruiz: Guia post-consulta lista para compartir.'
+        );
+
+        await panel
+            .locator('[data-post-consult-action="issue_prescription"]')
+            .click();
+        await expect(page.locator('#toastContainer')).toContainText(
+            'Ana Ruiz: Receta clinica regenerada.'
+        );
+
+        await panel
+            .locator('[data-post-consult-action="create_interconsultation"]')
+            .click();
+        await expect(page.locator('#toastContainer')).toContainText(
+            'Ana Ruiz: Derivacion clinica creada para el caso.'
+        );
+        await expect(panel).toContainText(
+            'Derivacion clinica creada para el caso.'
+        );
+
+        const requests =
+            operatorSurface.getClinicalEpisodeActionRequests();
+        expect(requests[0]).toMatchObject({
+            action: 'open_episode',
+            caseId: 'pc-3302',
+            appointmentId: 732,
+            surface: 'queue_operator',
+            source: 'operator_post_consult',
+        });
+        expect(
+            requests
+                .filter((item) => item.action !== 'open_episode')
+                .map((item) => item.action)
+        ).toEqual([
+            'schedule_follow_up',
+            'deliver_care_plan',
+            'issue_prescription',
+            'create_interconsultation',
+        ]);
     });
 
     test('muestra metadata del shell desktop Windows cuando existe el bridge', async ({

@@ -3763,6 +3763,98 @@ final class ClinicalHistoryControllerTest extends TestCase
         );
     }
 
+    public function testClinicalHistoryPostConsultActionsCanResumeByCaseId(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Ana Ruiz',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+        $caseId = (string) ($session['caseId'] ?? '');
+        self::assertNotSame('', $caseId);
+
+        $_SESSION['csrf_token'] = 'csrf-test';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-test';
+
+        $scheduleFollowUp = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'caseId' => $caseId,
+                'action' => 'schedule_follow_up',
+            ]
+        );
+
+        self::assertSame(200, $scheduleFollowUp['status']);
+        self::assertSame(
+            $caseId,
+            (string) ($scheduleFollowUp['payload']['data']['session']['caseId'] ?? '')
+        );
+        self::assertNotSame(
+            'review_required',
+            (string) ($scheduleFollowUp['payload']['data']['draft']['reviewStatus'] ?? '')
+        );
+
+        $scheduleTranscript = $scheduleFollowUp['payload']['data']['session']['transcript'] ?? [];
+        self::assertGreaterThanOrEqual(1, count($scheduleTranscript));
+        $scheduleMessage = $scheduleTranscript[count($scheduleTranscript) - 1] ?? [];
+        self::assertSame(
+            'Coordinar la siguiente cita de seguimiento post-consulta.',
+            (string) ($scheduleMessage['content'] ?? '')
+        );
+        self::assertSame(
+            'queue_operator',
+            (string) ($scheduleMessage['surface'] ?? '')
+        );
+        self::assertSame(
+            'schedule_follow_up',
+            (string) (($scheduleMessage['meta']['operatorAction'] ?? ''))
+        );
+
+        $deliverCarePlan = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'caseId' => $caseId,
+                'action' => 'deliver_care_plan',
+            ]
+        );
+
+        self::assertSame(200, $deliverCarePlan['status']);
+        self::assertSame(
+            (string) ($scheduleFollowUp['payload']['data']['session']['sessionId'] ?? ''),
+            (string) ($deliverCarePlan['payload']['data']['session']['sessionId'] ?? '')
+        );
+
+        $deliverTranscript = $deliverCarePlan['payload']['data']['session']['transcript'] ?? [];
+        self::assertGreaterThanOrEqual(2, count($deliverTranscript));
+        $deliverMessage = $deliverTranscript[count($deliverTranscript) - 1] ?? [];
+        self::assertSame(
+            'Enviar guia e indicaciones post-consulta al paciente.',
+            (string) ($deliverMessage['content'] ?? '')
+        );
+        self::assertSame(
+            'queue_operator',
+            (string) ($deliverMessage['surface'] ?? '')
+        );
+        self::assertSame(
+            'deliver_care_plan',
+            (string) (($deliverMessage['meta']['operatorAction'] ?? ''))
+        );
+    }
+
     private function buildAdmission001Payload(array $overrides = []): array
     {
         return array_replace_recursive([
