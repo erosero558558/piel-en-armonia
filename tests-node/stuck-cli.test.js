@@ -10,6 +10,7 @@ const { tmpdir } = require('node:os');
 const REPO_ROOT = resolve(__dirname, '..');
 const SCRIPT_PATH = resolve(REPO_ROOT, 'bin', 'stuck.js');
 const BLOCKERS_TEMPLATE = readFileSync(resolve(REPO_ROOT, 'BLOCKERS.md'), 'utf8');
+const { isValidTaskId } = require('../bin/stuck.js');
 
 function git(cwd, args) {
   return execFileSync('git', args, {
@@ -111,4 +112,33 @@ test('bin/stuck.js clear removes the active blocker section and auto-commits the
   } finally {
     rmSync(repoDir, { recursive: true, force: true });
   }
+});
+
+test('bin/stuck.js accepts UI task IDs without falling back to usage output', () => {
+  const repoDir = setupTempRepo('UI2-07');
+
+  try {
+    const result = runStuck(repoDir, ['UI2-07', 'No tengo acceso a admin.html']);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /Usage:/);
+    assert.match(result.stdout, /Bloqueado registrado: UI2-07/);
+    assert.match(result.stdout, /Commit automático creado: stuck: UI2-07 - No tengo acceso a admin\.html/);
+
+    const blockers = readFileSync(join(repoDir, 'BLOCKERS.md'), 'utf8');
+    const stuckJson = JSON.parse(readFileSync(join(repoDir, 'data', 'claims', 'stuck.json'), 'utf8'));
+
+    assert.equal(stuckJson['UI2-07'].resolved, false);
+    assert.match(blockers, /### UI2-07/);
+  } finally {
+    rmSync(repoDir, { recursive: true, force: true });
+  }
+});
+
+test('isValidTaskId accepts S and UI task families from the board', () => {
+  assert.equal(isValidTaskId('S3-24'), true);
+  assert.equal(isValidTaskId('S14-00'), true);
+  assert.equal(isValidTaskId('UI2-07'), true);
+  assert.equal(isValidTaskId('UI3-15'), true);
+  assert.equal(isValidTaskId('bad-id'), false);
 });
