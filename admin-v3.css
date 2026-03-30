@@ -3089,7 +3089,7 @@ body.admin-v3-mode .clinical-history-workbench {
 }
 
 body.admin-v3-mode .clinical-history-footer-grid {
-    grid-template-columns: minmax(0, 0.88fr) minmax(320px, 0.82fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 body.admin-v3-mode .clinical-history-summary-panel,
@@ -3097,6 +3097,7 @@ body.admin-v3-mode .clinical-history-side-panel,
 body.admin-v3-mode .clinical-history-transcript-panel,
 body.admin-v3-mode .clinical-history-draft-panel,
 body.admin-v3-mode .clinical-history-events-panel,
+body.admin-v3-mode .clinical-history-documents-panel,
 body.admin-v3-mode .clinical-history-followup-panel {
     padding: 24px;
     display: grid;
@@ -3187,14 +3188,16 @@ body.admin-v3-mode .clinical-history-attachment-card span {
 
 body.admin-v3-mode .clinical-history-queue-list,
 body.admin-v3-mode .clinical-history-transcript,
-body.admin-v3-mode .clinical-history-events {
+body.admin-v3-mode .clinical-history-events,
+body.admin-v3-mode .clinical-history-documents-list {
     display: grid;
     gap: 12px;
 }
 
 body.admin-v3-mode .clinical-history-queue-list,
 body.admin-v3-mode .clinical-history-transcript,
-body.admin-v3-mode .clinical-history-events {
+body.admin-v3-mode .clinical-history-events,
+body.admin-v3-mode .clinical-history-documents-list {
     max-height: 680px;
     overflow: auto;
     padding-right: 4px;
@@ -3202,7 +3205,8 @@ body.admin-v3-mode .clinical-history-events {
 
 body.admin-v3-mode .clinical-history-queue-item,
 body.admin-v3-mode .clinical-history-message,
-body.admin-v3-mode .clinical-history-event-card {
+body.admin-v3-mode .clinical-history-event-card,
+body.admin-v3-mode .clinical-history-document-card {
     display: grid;
     gap: 10px;
     width: 100%;
@@ -3231,8 +3235,34 @@ body.admin-v3-mode .clinical-history-mini-chip-row {
 
 body.admin-v3-mode .clinical-history-message p,
 body.admin-v3-mode .clinical-history-event-card p,
+body.admin-v3-mode .clinical-history-document-card p,
 body.admin-v3-mode .clinical-history-queue-item p {
     margin: 0;
+}
+
+body.admin-v3-mode .clinical-history-document-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+body.admin-v3-mode .clinical-history-document-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(23, 66, 209, 0.2);
+    background: rgba(23, 66, 209, 0.08);
+    color: var(--admin3-ink);
+    text-decoration: none;
+    transition: transform 0.18s ease, background 0.18s ease;
+}
+
+body.admin-v3-mode .clinical-history-document-link:hover {
+    transform: translateY(-1px);
+    background: rgba(23, 66, 209, 0.14);
 }
 
 body.admin-v3-mode .clinical-history-message p {
@@ -3678,6 +3708,7 @@ body.admin-v3-mode .clinical-compare-range::-moz-range-thumb {
     body.admin-v3-mode .clinical-history-transcript-panel,
     body.admin-v3-mode .clinical-history-draft-panel,
     body.admin-v3-mode .clinical-history-events-panel,
+    body.admin-v3-mode .clinical-history-documents-panel,
     body.admin-v3-mode .clinical-history-followup-panel {
         padding: 18px;
     }

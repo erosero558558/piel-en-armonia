@@ -13259,10 +13259,17 @@ async function loadCertificateHistory(caseId, options = {}) {
 
     setClinicalHistoryState({
         certificateHistory: {
-            ...currentHistory,
             caseId: desiredCaseId,
             loading: true,
             error: '',
+            items:
+                desiredCaseId === currentHistory.caseId
+                    ? currentHistory.items
+                    : [],
+            lastLoadedAt:
+                desiredCaseId === currentHistory.caseId
+                    ? currentHistory.lastLoadedAt
+                    : 0,
         },
     });
     renderClinicalHistorySection();
@@ -13291,12 +13298,15 @@ async function loadCertificateHistory(caseId, options = {}) {
     } catch (error) {
         setClinicalHistoryState({
             certificateHistory: {
-                ...currentHistory,
                 caseId: desiredCaseId,
                 loading: false,
                 error:
                     error?.message ||
                     'No se pudo cargar el historial de certificados.',
+                items:
+                    desiredCaseId === currentHistory.caseId
+                        ? currentHistory.items
+                        : [],
                 lastLoadedAt: Date.now(),
             },
         });
@@ -13662,6 +13672,29 @@ function bindClinicalHistoryEvents() {
         return;
     }
 
+    if (!clinicalHistoryCertificateBridgeBound) {
+        window.addEventListener(
+            CLINICAL_HISTORY_CERTIFICATE_ISSUED_EVENT,
+            (event) => {
+                const detail =
+                    event instanceof CustomEvent &&
+                    event.detail &&
+                    typeof event.detail === 'object'
+                        ? event.detail
+                        : {};
+                const caseId = normalizeString(detail.caseId);
+                if (!caseId || caseId !== currentReviewCaseId()) {
+                    return;
+                }
+                void loadCertificateHistory(caseId, {
+                    force: true,
+                    silent: true,
+                });
+            }
+        );
+        clinicalHistoryCertificateBridgeBound = true;
+    }
+
     root.addEventListener('click', async (event) => {
         const actionTarget =
             event.target instanceof Element
@@ -13760,14 +13793,16 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'invoke-openclaw') {
             const review = currentReviewSource();
-            if (!review || !review.patientRecordId || !review.caseId) {
+            const caseId = currentReviewCaseId(review);
+            const patientRecordId = currentReviewPatientRecordId(review);
+            if (!review || !patientRecordId || !caseId) {
                 createToast('Este caso clínico no admite interacción con OpenClaw', 'warning');
                 return;
             }
             const container = document.getElementById('openclaw-root-container');
             if (container && window.OpenclawChat) {
-                container.dataset.patientId = review.patientRecordId;
-                container.dataset.caseId = review.caseId;
+                container.dataset.patientId = patientRecordId;
+                container.dataset.caseId = caseId;
                 container.style.display = 'block';
                 window.OpenclawChat.mount('#openclaw-root-container');
             } else {
@@ -13778,15 +13813,24 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'issue-certificate') {
             const review = currentReviewSource();
-            if (!review || !review.patientRecordId || !review.caseId) {
+            const caseId = currentReviewCaseId(review);
+            const patientRecordId = currentReviewPatientRecordId(review);
+            if (!review || !patientRecordId || !caseId) {
                 createToast('Este caso clínico no admite interacción para certificados', 'warning');
                 return;
             }
             if (window.openCertificateModal) {
-                window.openCertificateModal(review.caseId);
+                window.openCertificateModal(caseId);
             } else {
                 createToast('Módulo de certificados no cargado', 'error');
             }
+            return;
+        }
+
+        if (action === 'refresh-certificates') {
+            await loadCertificateHistory(currentReviewCaseId(), {
+                force: true,
+            });
             return;
         }
 
@@ -14082,6 +14126,7 @@ export function renderClinicalHistorySection() {
     const slice = getClinicalHistorySlice(state);
     const review = currentReviewSource(state);
     const draft = currentDraftSource(state);
+    const certificateHistory = readCertificateHistorySlice(state);
     const activeWorkspace = currentActiveWorkspace(state);
     const queueFilter = currentQueueFilter(state);
 
@@ -14101,6 +14146,10 @@ export function renderClinicalHistorySection() {
         buildTranscriptCountText(review)
     );
     setText('#clinicalHistoryEventsMeta', buildEventsMetaText(review));
+    setText(
+        '#clinicalHistoryDocumentsMeta',
+        buildCertificateHistoryMetaText(review, certificateHistory)
+    );
 
     setHtml('#clinicalHistorySummaryGrid', buildSummaryCards(review));
     setHtml(
@@ -14134,6 +14183,10 @@ export function renderClinicalHistorySection() {
         buildDraftForm(review, draft, slice.saving)
     );
     setHtml('#clinicalHistoryEvents', buildEvents(review));
+    setHtml(
+        '#clinicalHistoryDocuments',
+        buildCertificateHistoryList(review, certificateHistory)
+    );
 
     syncFollowUpInput();
     syncDraftStatusMeta();

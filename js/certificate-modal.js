@@ -147,9 +147,18 @@
                 modal.querySelector('#cert-btn-download').onclick = () => window.open(data.pdf_url, '_blank');
                 if (data.whatsapp_url) {
                     modal.querySelector('#cert-btn-whatsapp').onclick = () => window.open(data.whatsapp_url, '_blank');
+                    modal.querySelector('#cert-btn-whatsapp').style.display = '';
                 } else {
                     modal.querySelector('#cert-btn-whatsapp').style.display = 'none';
                 }
+
+                window.dispatchEvent(new CustomEvent('aurora:certificate-issued', {
+                    detail: {
+                        caseId: payload.case_id || '',
+                        certificateId: data.certificate_id || '',
+                        folio: data.folio || ''
+                    }
+                }));
 
             } catch (err) {
                 alert('No se pudo generar el certificado: ' + err.message);
@@ -181,6 +190,7 @@
         const submitBtn = modalElement.querySelector('#cert-btn-submit');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Generar PDF Oficial';
+        modalElement.querySelector('#cert-btn-whatsapp').style.display = '';
         modalElement.querySelector('#cert-issue-form').reset();
         
         // Auto-llenar desde el diagnostico en la UI si existe

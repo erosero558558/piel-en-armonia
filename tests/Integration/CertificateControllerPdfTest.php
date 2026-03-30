@@ -94,21 +94,12 @@ final class CertificateControllerPdfTest extends TestCase
             'dompdf debe estar instalada para esta prueba.'
         );
 
-        $_SERVER['REQUEST_METHOD'] = 'POST';
-        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
-            'case_id' => 'CASE-CERT-001',
-            'type' => 'reposo_laboral',
+        $createResponse = $this->issueCertificate([
             'rest_days' => 3,
             'diagnosis_text' => 'Dermatitis de contacto',
             'cie10_code' => 'L23.9',
             'observations' => 'Reposo y control en 72 horas.',
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-        $createResponse = $this->captureResponse(static function (): void {
-            \CertificateController::store([
-                'isAdmin' => true,
-            ]);
-        });
+        ]);
 
         $this->assertSame(200, $createResponse['status']);
         $this->assertTrue($createResponse['payload']['ok']);
@@ -148,6 +139,50 @@ final class CertificateControllerPdfTest extends TestCase
         $this->assertGreaterThan(2000, strlen($binary));
     }
 
+    public function testCertificateIndexListsCertificatesByCaseSortedNewestFirst(): void
+    {
+        $firstResponse = $this->issueCertificate([
+            'rest_days' => 2,
+            'diagnosis_text' => 'Rosacea papulopustulosa',
+            'cie10_code' => 'L71.9',
+            'observations' => 'Control en una semana.',
+        ]);
+        $secondResponse = $this->issueCertificate([
+            'rest_days' => 5,
+            'diagnosis_text' => 'Dermatitis atopica',
+            'cie10_code' => 'L20.9',
+            'observations' => 'Reposo y seguimiento fotografico.',
+        ]);
+
+        $firstCertificateId = (string) ($firstResponse['payload']['certificate_id'] ?? '');
+        $secondCertificateId = (string) ($secondResponse['payload']['certificate_id'] ?? '');
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET = [
+            'case_id' => 'CASE-CERT-001',
+        ];
+
+        $listResponse = $this->captureResponse(static function (): void {
+            \CertificateController::index([
+                'isAdmin' => true,
+            ]);
+        });
+
+        $this->assertSame(200, $listResponse['status']);
+        $this->assertTrue($listResponse['payload']['ok']);
+
+        $certificates = $listResponse['payload']['certificates'] ?? null;
+        $this->assertIsArray($certificates);
+        $this->assertCount(2, $certificates);
+        $this->assertSame($secondCertificateId, (string) ($certificates[0]['id'] ?? ''));
+        $this->assertSame($firstCertificateId, (string) ($certificates[1]['id'] ?? ''));
+        $this->assertSame('CASE-CERT-001', (string) ($certificates[0]['caseId'] ?? ''));
+        $this->assertSame(
+            'CERTIFICADO DE REPOSO',
+            (string) ($certificates[0]['typeLabel'] ?? '')
+        );
+    }
+
     /**
      * @return array{payload: array<string,mixed>, status: int}
      */
@@ -164,6 +199,32 @@ final class CertificateControllerPdfTest extends TestCase
                 'status' => (int) $exception->status,
             ];
         }
+    }
+
+    /**
+     * @param array<string,mixed> $overrides
+     * @return array{payload: array<string,mixed>, status: int}
+     */
+    private function issueCertificate(array $overrides = []): array
+    {
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode(
+            array_merge([
+                'case_id' => 'CASE-CERT-001',
+                'type' => 'reposo_laboral',
+                'rest_days' => 1,
+                'diagnosis_text' => 'Dermatitis de contacto',
+                'cie10_code' => 'L23.9',
+                'observations' => '',
+            ], $overrides),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+
+        return $this->captureResponse(static function (): void {
+            \CertificateController::store([
+                'isAdmin' => true,
+            ]);
+        });
     }
 
     private function removeDirectory(string $dir): void
