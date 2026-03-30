@@ -117,6 +117,45 @@ test('bin/stuck.js clear removes the active blocker section and auto-commits the
   }
 });
 
+test('bin/stuck.js list re-syncs BLOCKERS.md from stuck.json when the markdown is stale', () => {
+  const repoDir = setupTempRepo('S9-96');
+
+  try {
+    writeJson(join(repoDir, 'data', 'claims', 'stuck.json'), {
+      'S9-96': {
+        agent: 'TestAgent',
+        reason: 'Necesita decision',
+        stuckAt: '2026-03-29T12:00:00.000Z',
+        resolved: false,
+        resolvedAt: null,
+      },
+    });
+
+    writeFileSync(
+      join(repoDir, 'BLOCKERS.md'),
+      BLOCKERS_TEMPLATE.replace(
+        '_No hay blockers activos generados por `bin/stuck.js`._',
+        '### S0-00\n- Fecha: stale\n- Agente: stale\n- Razón: stale'
+      ),
+      'utf8'
+    );
+
+    const listResult = runStuck(repoDir, ['list']);
+    assert.equal(listResult.status, 0, listResult.stderr);
+    assert.match(listResult.stdout, /🚧 Tareas bloqueadas/);
+    assert.match(listResult.stdout, /S9-96/);
+
+    const blockers = readFileSync(join(repoDir, 'BLOCKERS.md'), 'utf8');
+    assert.match(blockers, /### S9-96/);
+    assert.match(blockers, /- Agente: TestAgent/);
+    assert.match(blockers, /- Razón: Necesita decision/);
+    assert.doesNotMatch(blockers, /### S0-00/);
+    assert.doesNotMatch(blockers, /Agente: stale/);
+  } finally {
+    rmSync(repoDir, { recursive: true, force: true });
+  }
+});
+
 test('bin/stuck.js queues a director WhatsApp notification when AURORADERM_DIRECTOR_PHONE is configured', () => {
   const repoDir = setupTempRepo('S9-97');
 

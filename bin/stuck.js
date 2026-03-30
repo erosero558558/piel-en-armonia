@@ -162,6 +162,11 @@ function updateBlockersMarkdown(stuck) {
   writeFileSync(BLOCKERS_FILE, next, 'utf8');
 }
 
+function syncBlockersMarkdown(stuck) {
+  ensureBlockersFile();
+  updateBlockersMarkdown(stuck);
+}
+
 function git(commandArgs, options = {}) {
   return execFileSync('git', commandArgs, {
     cwd: ROOT,
@@ -296,6 +301,7 @@ function ensureBlockersFile() {
 
 function listBlockers() {
   const stuck = loadStuck();
+  syncBlockersMarkdown(stuck);
   const activeIds = Object.keys(stuck).filter((taskId) => !stuck[taskId].resolved);
   if (activeIds.length === 0) {
     console.log('\n✅ No hay tareas bloqueadas actualmente.\n');
@@ -327,11 +333,10 @@ function clearBlocker(taskId) {
     process.exit(1);
   }
 
-  ensureBlockersFile();
   stuck[taskId].resolved = true;
   stuck[taskId].resolvedAt = new Date().toISOString();
   writeJson(STUCK_FILE, stuck);
-  updateBlockersMarkdown(stuck);
+  syncBlockersMarkdown(stuck);
 
   const commit = autoCommit(taskId, '', 'clear');
   console.log(`✅ ${taskId} marked as resolved.`);
@@ -361,8 +366,6 @@ function markStuck(taskId, reason) {
     process.exit(1);
   }
 
-  ensureBlockersFile();
-
   const claim = loadClaim(taskId);
   const agent = claim?.agent || process.env.AGENT_NAME || 'unknown';
   if (claim) {
@@ -380,7 +383,7 @@ function markStuck(taskId, reason) {
   };
 
   writeJson(STUCK_FILE, stuck);
-  updateBlockersMarkdown(stuck);
+  syncBlockersMarkdown(stuck);
   const directorNotification = notifyDirector(taskId, reason, agent);
 
   const commit = autoCommit(taskId, reason, 'stuck');
