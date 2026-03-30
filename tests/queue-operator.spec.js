@@ -1200,6 +1200,11 @@ test.describe('Turnero Operador', () => {
         });
 
         await page.goto(operatorUrl('station=c1&lock=1'));
+        await expect(page.locator('#operatorApp')).toBeVisible();
+        await expect(page.locator('#queueCalledCountAdmin')).toHaveText('1');
+        await expect(page.locator('#operatorActionTitle')).toContainText(
+            'Ticket B-3301 en curso'
+        );
 
         await expect(page.locator('#operatorCurrentTicketPanel')).toContainText(
             'Ana Ruiz'

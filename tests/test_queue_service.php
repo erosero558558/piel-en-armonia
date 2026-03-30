@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../api-lib.php';
+require_once __DIR__ . '/../lib/PatientCaseService.php';
 require_once __DIR__ . '/../lib/QueueService.php';
 require_once __DIR__ . '/../lib/TicketPrinter.php';
 
@@ -357,7 +358,116 @@ qs_assert_equals(
     'resolved help request should retain structured resolution outcome'
 );
 
-// 8) Printer fallback behavior when disabled
+// 8) Hydrated queue tickets should expose operator case snapshot
+$patientCaseService = new PatientCaseService();
+$operatorSnapshotStore = qs_base_store();
+$operatorSnapshotStore['patient_cases'] = [[
+    'id' => 'pc-operator-001',
+    'tenantId' => 'pielarmonia',
+    'patientId' => 'pt-operator-001',
+    'status' => 'called',
+    'journeyStage' => 'scheduled',
+    'openedAt' => date('c', strtotime('-40 day')),
+    'latestActivityAt' => date('c', strtotime('-1 hour')),
+    'summary' => [
+        'patientLabel' => 'Ana Ruiz',
+        'serviceLine' => 'Control de acne',
+        'milestones' => [],
+    ],
+]];
+$operatorSnapshotStore['queue_tickets'] = [
+    normalize_queue_ticket([
+        'id' => 8101,
+        'ticketCode' => 'B-8101',
+        'queueType' => 'walk_in',
+        'patientInitials' => 'AR',
+        'status' => 'called',
+        'assignedConsultorio' => 1,
+        'createdAt' => date('c', strtotime('-2 hour')),
+        'calledAt' => date('c', strtotime('-1 hour')),
+        'patientCaseId' => 'pc-operator-001',
+        'visitReason' => 'urgencia',
+        'needsAssistance' => true,
+    ]),
+];
+$operatorSnapshotStore['patient_case_timeline_events'] = [
+    [
+        'id' => 'pte-visit-01',
+        'tenantId' => 'pielarmonia',
+        'patientCaseId' => 'pc-operator-001',
+        'type' => 'visit_completed',
+        'title' => 'Visita previa 1',
+        'payload' => [],
+        'createdAt' => date('c', strtotime('-30 day')),
+    ],
+    [
+        'id' => 'pte-visit-02',
+        'tenantId' => 'pielarmonia',
+        'patientCaseId' => 'pc-operator-001',
+        'type' => 'visit_completed',
+        'title' => 'Visita previa 2',
+        'payload' => [],
+        'createdAt' => date('c', strtotime('-10 day')),
+    ],
+];
+$operatorSnapshotStore['patient_case_approvals'] = [
+    [
+        'id' => 'pca-operator-001',
+        'tenantId' => 'pielarmonia',
+        'patientCaseId' => 'pc-operator-001',
+        'type' => 'ops_exception',
+        'status' => 'pending',
+        'requestedBy' => 'frontdesk',
+        'createdAt' => date('c', strtotime('-2 day')),
+        'updatedAt' => date('c', strtotime('-2 day')),
+    ],
+];
+$hydratedOperatorSnapshot = $patientCaseService->hydrateStore(
+    $operatorSnapshotStore
+);
+$hydratedOperatorTicket = $hydratedOperatorSnapshot['queue_tickets'][0] ?? [];
+$hydratedOperatorCaseSnapshot =
+    is_array($hydratedOperatorTicket['patientCaseSnapshot'] ?? null)
+        ? $hydratedOperatorTicket['patientCaseSnapshot']
+        : [];
+qs_assert_equals(
+    'Ana Ruiz',
+    (string) ($hydratedOperatorCaseSnapshot['patientLabel'] ?? ''),
+    'operator snapshot should expose patient label'
+);
+qs_assert_equals(
+    'Urgencia',
+    (string) ($hydratedOperatorCaseSnapshot['reasonLabel'] ?? ''),
+    'operator snapshot should expose reason label'
+);
+qs_assert_equals(
+    'scheduled',
+    (string) ($hydratedOperatorCaseSnapshot['journeyStage'] ?? ''),
+    'operator snapshot should expose journey stage'
+);
+qs_assert_equals(
+    2,
+    (int) ($hydratedOperatorCaseSnapshot['previousVisitsCount'] ?? 0),
+    'operator snapshot should count previous completed visits'
+);
+qs_assert_true(
+    in_array(
+        'Paciente con apoyo activo en recepcion.',
+        $hydratedOperatorCaseSnapshot['alerts'] ?? [],
+        true
+    ),
+    'operator snapshot should expose active assistance alert'
+);
+qs_assert_true(
+    in_array(
+        'Hay 1 aprobacion pendiente.',
+        $hydratedOperatorCaseSnapshot['alerts'] ?? [],
+        true
+    ),
+    'operator snapshot should expose pending approval alert'
+);
+
+// 9) Printer fallback behavior when disabled
 putenv('PIELARMONIA_TICKET_PRINTER_ENABLED=false');
 $printer = TicketPrinter::fromEnv();
 $printed = $printer->printQueueTicket([

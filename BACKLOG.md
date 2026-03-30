@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 7:56:19 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 8:01:28 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **33%** completado (48/144)
+`███████░░░░░░░░░░░░░` **34%** completado (49/144)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 10 | 25 | 29% |
+| 🎯 Sprint 3 | 11 | 24 | 31% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -30,7 +30,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (18)
+### 🟢 Disponibles (19)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -41,6 +41,7 @@ _Sprint completado. 24/24 tareas._
 | **S3-18** | `[M]` | Plan de tratamiento — template: diagnóstico, tratamientos (con sesione... |
 | **S3-19** | `[M]` | Receta digital — datos doctor (MSP), datos paciente, medicamentos (nom... |
 | **S3-20** | `[M]` | Evolución clínica — nota por visita: hallazgos, procedimientos, evoluc... |
+| **S3-23** | `[M]` | Compliance MSP Ecuador — el formulario oficial es SNS-MSP/HCU-form.002... |
 | **S3-28** | `[M]` | Vista de agenda diaria — en admin: agenda del día con pacientes confir... |
 | **S3-33** | `[M]` | Verificación de transferencia — paciente sube foto del comprobante. Ad... |
 | **S3-34** | `[M]` | Estado de cuenta — vista en admin: historial de pagos por paciente, sa... |
@@ -55,7 +56,6 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
-- **S3-09** `[M]` — necesita: S3-08 primero
 - **S3-25** `[M]` — necesita: S3-24 primero
 - **S3-26** `[M]` — necesita: S3-24 primero
 - **S3-27** `[M]` — necesita: S3-24 primero
@@ -63,7 +63,6 @@ _Sprint completado. 24/24 tareas._
 
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
 
-- **S3-23** `[M]` Compliance MSP Ecuador — verificar campos obligatorios del f...
 - **S3-35** `[L]` Factura SRI — integrar con facturación electrónica del SRI E...
 
 ## ⏸ Sprint 4 — Escalar el negocio
