@@ -41,6 +41,9 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'flow-os-manifest', [FlowOsController::class, 'manifest']);
     $router->add('GET', 'flow-os-journey-preview', [FlowOsController::class, 'journeyPreview']);
     $router->add('POST', 'flow-os-intake', [IntakeController::class, 'store']);
+    $router->add('POST', 'patient-portal-auth-start', [PatientPortalController::class, 'start']);
+    $router->add('POST', 'patient-portal-auth-complete', [PatientPortalController::class, 'complete']);
+    $router->add('GET', 'patient-portal-auth-status', [PatientPortalController::class, 'status']);
     $router->add('GET', 'patient-cases', [PatientCaseController::class, 'index']);
     $router->add('POST', 'patient-cases', [PatientCaseController::class, 'store']);
     $router->add('GET', 'patient-search', [PatientCaseController::class, 'search']);

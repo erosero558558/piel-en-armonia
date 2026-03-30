@@ -113,6 +113,7 @@
     "smoke:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/prod/SMOKE-PRODUCCION.ps1 -Domain https://pielarmonia.com -TestFigoPost",
     "smoke:prod:turnero:web-pilot": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/prod/SMOKE-PRODUCCION.ps1 -Domain https://pielarmonia.com -TestFigoPost -RequireTurneroWebSurfaces",
     "smoke:prod:turnero:operator:pilot": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/prod/SMOKE-PRODUCCION.ps1 -Domain https://pielarmonia.com -TestFigoPost -AllowDegradedFigo -RequireTurneroWebSurfaces -RequireTurneroOperatorPilot",
+    "smoke:calendar:token": "node bin/smoke-calendar-token.js",
     "smoke:public:routing": "node bin/check-public-routing-smoke.js",
     "smoke:public:conversion": "node bin/check-public-conversion-smoke.js",
     "smoke:auth": "node bin/smoke-auth.js",

@@ -37,7 +37,7 @@ function loadClaims() {
     const files = readdirSync(CLAIMS_DIR).filter(f => f.endsWith('.json'));
     for (const f of files) {
       const id = f.replace('.json', '');
-      try { claims[id] = JSON.parse(readFileSync(join(CLAIMS_DIR, f), 'utf8')); } catch {}
+      try { claims[id] = JSON.parse(readFileSync(join(CLAIMS_DIR, f), 'utf8').replace(/^\uFEFF/, '')); } catch {}
     }
   } catch {}
   return claims;
@@ -89,7 +89,7 @@ const expiredClaims = Object.entries(claims).filter(([, c]) => {
 // Explicitly stuck tasks
 function loadStuck() {
   const f = resolve(ROOT, 'data/claims/stuck.json');
-  try { return JSON.parse(read(f)); } catch { return {}; }
+  try { return JSON.parse(read(f).replace(/^\uFEFF/, '')); } catch { return {}; }
 }
 const stuckData = loadStuck();
 const stuckTasks = Object.entries(stuckData).filter(([, s]) => !s.resolved);

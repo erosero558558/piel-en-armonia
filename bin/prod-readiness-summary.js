@@ -762,7 +762,8 @@ function parseWeeklyReportPayload(payload, meta = {}) {
 function readWeeklyReportFromFile(filePath, meta = {}) {
     let payload;
     try {
-        payload = JSON.parse(readFileSync(filePath, 'utf8'));
+        const raw = readFileSync(filePath, 'utf8');
+        payload = JSON.parse(stripLeadingUtf8Bom(raw));
     } catch (error) {
         return {
             found: true,
@@ -1022,7 +1023,8 @@ function parseSentryEvidencePayload(payload, meta = {}) {
 function readSentryEvidenceFromFile(filePath, meta = {}) {
     let payload;
     try {
-        payload = JSON.parse(readFileSync(filePath, 'utf8'));
+        const raw = readFileSync(filePath, 'utf8');
+        payload = JSON.parse(stripLeadingUtf8Bom(raw));
     } catch (error) {
         return {
             found: true,

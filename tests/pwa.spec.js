@@ -1,5 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
+test.use({ serviceWorkers: 'allow' });
+
 test('patient portal publishes an installable PWA contract', async ({ page }) => {
     await page.goto('/es/portal/');
     await page.waitForLoadState('load');
