@@ -1122,7 +1122,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 3.11 OpenClaw — Integraciones externas
 
-- [ ] **S3-51** `[M]` openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero hay 12 endpoints en el backend. Verificar que el YAML tiene todos: `openclaw-patient`, `openclaw-cie10-suggest`, `openclaw-protocol`, `openclaw-chat`, `openclaw-save-diagnosis`, `openclaw-save-evolution`, `openclaw-prescription`, `openclaw-certificate`, `openclaw-interactions`, `openclaw-summarize`, `openclaw-router-status`. Agregar los que falten con schema correcto. Este YAML es el que se carga en el Custom GPT de ChatGPT para que el médico use desde ChatGPT directamente.
+- [x] **S3-51** `[M]` openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero hay 12 endpoints en el backend. Verificar que el YAML tiene todos: `openclaw-patient`, `openclaw-cie10-suggest`, `openclaw-protocol`, `openclaw-chat`, `openclaw-save-diagnosis`, `openclaw-save-evolution`, `openclaw-prescription`, `openclaw-certificate`, `openclaw-interactions`, `openclaw-summarize`, `openclaw-router-status`. Agregar los que falten con schema correcto. Este YAML es el que se carga en el Custom GPT de ChatGPT para que el médico use desde ChatGPT directamente.
 - [ ] **S3-52** `[M]` Custom GPT instructions — crear `docs/chatgpt-custom-gpt-instructions.md` con las instrucciones exactas para configurar el Custom GPT de ChatGPT: nombre ("Aurora Derm OpenClaw"), descripción, instrucciones del sistema (rol del GPT, cómo usar los actions, lenguaje español), URL del servidor, autenticación OAuth. El médico copia esto al crear su GPT en platform.openai.com. Sin esto no puede usar la integración ChatGPT↔Aurora Derm.
 - [x] **S3-53** `[S]` Modo offline del AIRouter — cuando todos los tiers fallan, el Tier 3 (heurística local) debe devolver respuestas útiles pre-construidas para los casos más comunes en dermatología: "¿qué es esto en la piel?" → template de diagnóstico diferencial, "genera receta" → template de receta en blanco, "genera certificado" → redirigir a botón de certificado. El médico debe saber que está en modo offline: badge visible "🔴 IA sin conexión — modo local".
 - [ ] **S3-54** `[L]` Resumen de consulta para paciente — al cerrar la consulta (`openclaw-summarize`), generar automáticamente un mensaje WhatsApp para el paciente con: diagnóstico en lenguaje no técnico, medicamentos con instrucciones de toma, fecha del próximo control, 3 señales de alarma cuando debe consultar urgente. El médico puede editar el mensaje antes de enviarlo. Un click: enviado.
@@ -1142,7 +1142,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S3-63** `[S]` Tabla de comandos oficiales — en `CLAUDE.md` (o `README.md` sección Desarrollo), agregar tabla markdown de 2 columnas: **Comando oficial** | **Para qué sirve**. Máximo 12 filas. Incluir solo los comandos que un agente nuevo debería conocer en day 1: dispatch, claim, gate, release, report, conflict, stuck, velocity, sync-backlog. Agregar columna **NO usar** con los equivalentes legacy. Esto reduce el error de usar herramientas desactualizadas.
 
 ---
-
 
 ### 🔵 Sprint 4 — Escalar el negocio
 
@@ -1322,7 +1321,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 7.6 Observabilidad y reporting
 
 - [ ] **S7-21** `[M]` Status page de Flow OS — `S6-22` tiene la tarea de status page externa. Esta tarea es previa: crear el **endpoint interno** `/api.php?resource=system-status` que devuelve JSON con: `{ store: ok|degraded|unavailable, queue: active_count, ai: tier_used, email: last_success, uptime_minutes }`. Consumir desde la status page pública cuando exista.
-- [ ] **S7-22** `[S]` Mejorar `bin/verify.js` — actualmente verifica una fracción del backlog real (pocas tareas). Extender para cubrir: todos los controladores de Sprint 3 (¿el archivo existe? ¿la ruta está en routes.php?), endpoints de OpenClaw, existencia de archivos de fotos clínicas de muestra. Objetivo: que `node bin/verify.js` detecte en <10s si hay regresión estructural obvia.
+- [x] **S7-22** `[S]` Mejorar `bin/verify.js` — actualmente verifica una fracción del backlog real (pocas tareas). Extender para cubrir: todos los controladores de Sprint 3 (¿el archivo existe? ¿la ruta está en routes.php?), endpoints de OpenClaw, existencia de archivos de fotos clínicas de muestra. Objetivo: que `node bin/verify.js` detecte en <10s si hay regresión estructural obvia.
 - [ ] **S7-23** `[S]` `npm run audit` wrapper — crear script que ejecute en secuencia: `node bin/velocity.js && node bin/verify.js && node bin/conflict.js --json && php -l lib/email.php && php -l controllers/OpenclawController.php`. Exit 0 solo si todos pasan. Agregar a `package.json` como `"gov:audit": "..."`. Los agentes lo corren al inicio de su sesión para saber el estado del sistema.
 
 #### 7.7 Distribución desktop y downloads

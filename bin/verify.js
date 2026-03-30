@@ -27,6 +27,61 @@ const CLINICAL_SAMPLE_PHOTOS = [
     'images/optimized/v6-clinic-telemedicine-intake-800.jpg',
     'images/optimized/v6-clinic-telemedicine-review-1400.jpg',
 ];
+const OPENCLAW_ENDPOINTS = [
+    { method: 'GET', resource: 'openclaw-patient', action: 'patient' },
+    {
+        method: 'GET',
+        resource: 'openclaw-cie10-suggest',
+        action: 'cie10Suggest',
+    },
+    { method: 'GET', resource: 'openclaw-protocol', action: 'protocol' },
+    { method: 'POST', resource: 'openclaw-chat', action: 'chat' },
+    {
+        method: 'POST',
+        resource: 'openclaw-save-diagnosis',
+        action: 'saveDiagnosis',
+    },
+    {
+        method: 'POST',
+        resource: 'openclaw-save-evolution',
+        action: 'saveEvolution',
+    },
+    {
+        method: 'GET',
+        resource: 'openclaw-prescription',
+        action: 'getPrescriptionPdf',
+    },
+    {
+        method: 'POST',
+        resource: 'openclaw-prescription',
+        action: 'savePrescription',
+    },
+    {
+        method: 'POST',
+        resource: 'openclaw-certificate',
+        action: 'generateCertificate',
+    },
+    {
+        method: 'GET',
+        resource: 'openclaw-certificate',
+        action: 'getCertificatePdf',
+    },
+    {
+        method: 'POST',
+        resource: 'openclaw-interactions',
+        action: 'checkInteractions',
+    },
+    {
+        method: 'POST',
+        resource: 'openclaw-summarize',
+        action: 'summarizeSession',
+    },
+    {
+        method: 'GET',
+        resource: 'openclaw-router-status',
+        action: 'routerStatus',
+    },
+];
 
 function read(filePath) {
     return existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
@@ -52,7 +107,9 @@ function escapeRegex(value) {
 
 function fileContains(relativePath, pattern) {
     const content = readRepoFile(relativePath);
-    return pattern instanceof RegExp ? pattern.test(content) : content.includes(pattern);
+    return pattern instanceof RegExp
+        ? pattern.test(content)
+        : content.includes(pattern);
 }
 
 function phpClassExists(relativePath, className) {
@@ -89,7 +146,12 @@ function allFilesExist(relativePaths) {
     return relativePaths.every((relativePath) => fileExists(relativePath));
 }
 
-function controllerSurfaceExists({ file, className, methods = [], routes = [] }) {
+function controllerSurfaceExists({
+    file,
+    className,
+    methods = [],
+    routes = [],
+}) {
     if (!phpClassExists(file, className)) {
         return false;
     }
@@ -98,9 +160,22 @@ function controllerSurfaceExists({ file, className, methods = [], routes = [] })
         return false;
     }
 
-    return routes.every(({ method, resource, action, controller = className }) =>
-        routeExists(method, resource, controller, action)
+    return routes.every(
+        ({ method, resource, action, controller = className }) =>
+            routeExists(method, resource, controller, action)
     );
+}
+
+function openclawSurfaceExists(resources) {
+    const selectedEndpoints = OPENCLAW_ENDPOINTS.filter((endpoint) =>
+        resources.includes(endpoint.resource)
+    );
+    return controllerSurfaceExists({
+        file: 'controllers/OpenclawController.php',
+        className: 'OpenclawController',
+        methods: selectedEndpoints.map((endpoint) => endpoint.action),
+        routes: selectedEndpoints,
+    });
 }
 
 function parseTaskLines(markdown) {
@@ -187,7 +262,8 @@ function createVerificationChecks() {
         'S2-11': () =>
             fileExists('es/blog/como-elegir-dermatologo-quito/index.html'),
         'S2-12': () => fileExists('es/blog/senales-alarma-lunares/index.html'),
-        'S2-13': () => fileExists('es/blog/proteccion-solar-ecuador/index.html'),
+        'S2-13': () =>
+            fileExists('es/blog/proteccion-solar-ecuador/index.html'),
         'S2-14': () => fileExists('es/blog/acne-adulto/index.html'),
         'S2-15': () => fileExists('es/blog/melasma-embarazo/index.html'),
         'S2-16': () =>
@@ -217,7 +293,9 @@ function createVerificationChecks() {
 
         'S2-19': () => {
             const legacy = normalizeHtmlEntities(readRepoFile('index.html'));
-            const localized = normalizeHtmlEntities(readRepoFile('es/index.html'));
+            const localized = normalizeHtmlEntities(
+                readRepoFile('es/index.html')
+            );
             return (
                 legacy.includes('MSP Certificado') &&
                 legacy.includes('hero-trust-badges') &&
@@ -229,8 +307,11 @@ function createVerificationChecks() {
 
         'S2-20': () => {
             const legacy = normalizeHtmlEntities(readRepoFile('index.html'));
-            const localized = normalizeHtmlEntities(readRepoFile('es/index.html'));
-            const listingUrl = 'https://www.google.com/maps?cid=15768128031462376471';
+            const localized = normalizeHtmlEntities(
+                readRepoFile('es/index.html')
+            );
+            const listingUrl =
+                'https://www.google.com/maps?cid=15768128031462376471';
             return (
                 legacy.includes('reviews-section') &&
                 legacy.includes(listingUrl) &&
@@ -249,7 +330,9 @@ function createVerificationChecks() {
                 guide.includes('Primera consulta en Aurora Derm') &&
                 guide.includes('45 min') &&
                 guide.includes('Que traer para aprovechar mejor la visita') &&
-                guide.includes('Llegue con tiempo y sin adivinar el ultimo tramo') &&
+                guide.includes(
+                    'Llegue con tiempo y sin adivinar el ultimo tramo'
+                ) &&
                 guide.includes('Estacionamiento')
             );
         },
@@ -281,7 +364,11 @@ function createVerificationChecks() {
         'S3-05': () => fileExists('es/pre-consulta/index.html'),
         'S3-07': () => {
             const kiosko = readRepoFile('kiosco-turnos.html');
-            return kiosko.includes('qr') || kiosko.includes('QR') || kiosko.includes('scan');
+            return (
+                kiosko.includes('qr') ||
+                kiosko.includes('QR') ||
+                kiosko.includes('scan')
+            );
         },
         'S3-11': () => {
             const statusPage = readRepoFile(
@@ -311,7 +398,9 @@ function createVerificationChecks() {
             const builder = readRepoFile('lib/queue/QueueSummaryBuilder.php');
             const kioskHtml = readRepoFile('kiosco-turnos.html');
             const kioskRuntime = readRepoFile('src/apps/queue-kiosk/index.js');
-            const displayRuntime = readRepoFile('src/apps/queue-display/index.js');
+            const displayRuntime = readRepoFile(
+                'src/apps/queue-display/index.js'
+            );
             return (
                 builder.includes('buildWaitingEstimates') &&
                 builder.includes('activeConsultorios') &&
@@ -325,7 +414,9 @@ function createVerificationChecks() {
         },
         'S3-13': () => {
             const displayHtml = readRepoFile('sala-turnos.html');
-            const displayRuntime = readRepoFile('src/apps/queue-display/index.js');
+            const displayRuntime = readRepoFile(
+                'src/apps/queue-display/index.js'
+            );
             return (
                 displayHtml.includes('displaySmartLane') &&
                 displayHtml.includes('displaySmartTreatment') &&
@@ -400,36 +491,14 @@ function createVerificationChecks() {
                 ],
             }),
         'S3-19': () =>
-            controllerSurfaceExists({
-                file: 'controllers/OpenclawController.php',
-                className: 'OpenclawController',
-                methods: ['getPrescriptionPdf', 'savePrescription'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'openclaw-prescription',
-                        action: 'getPrescriptionPdf',
-                    },
-                    {
-                        method: 'POST',
-                        resource: 'openclaw-prescription',
-                        action: 'savePrescription',
-                    },
-                ],
-            }) && fileExists('lib/openclaw/PrescriptionPdfRenderer.php'),
+            openclawSurfaceExists(['openclaw-prescription']) &&
+            fileExists('lib/openclaw/PrescriptionPdfRenderer.php'),
         'S3-20': () =>
-            controllerSurfaceExists({
-                file: 'controllers/OpenclawController.php',
-                className: 'OpenclawController',
-                methods: ['saveEvolution'],
-                routes: [
-                    {
-                        method: 'POST',
-                        resource: 'openclaw-save-evolution',
-                        action: 'saveEvolution',
-                    },
-                ],
-            }) && phpMethodExists('lib/clinical_history/ClinicalHistoryService.php', 'saveEvolutionNote'),
+            openclawSurfaceExists(['openclaw-save-evolution']) &&
+            phpMethodExists(
+                'lib/clinical_history/ClinicalHistoryService.php',
+                'saveEvolutionNote'
+            ),
         'S3-21': () =>
             phpClassExists(
                 'lib/clinical_history/ClinicalHistoryGuardrails.php',
@@ -479,8 +548,14 @@ function createVerificationChecks() {
                 ],
             }),
         'S3-23': () =>
-            phpClassExists('lib/clinical_history/ComplianceMSP.php', 'ComplianceMSP') &&
-            phpMethodExists('lib/clinical_history/ComplianceMSP.php', 'validate') &&
+            phpClassExists(
+                'lib/clinical_history/ComplianceMSP.php',
+                'ComplianceMSP'
+            ) &&
+            phpMethodExists(
+                'lib/clinical_history/ComplianceMSP.php',
+                'validate'
+            ) &&
             controllerSurfaceExists({
                 file: 'controllers/ClinicalHistoryController.php',
                 className: 'ClinicalHistoryController',
@@ -580,31 +655,17 @@ function createVerificationChecks() {
                 ],
             }),
         'S3-OC1': () =>
-            controllerSurfaceExists({
-                file: 'controllers/OpenclawController.php',
-                className: 'OpenclawController',
-                methods: ['cie10Suggest'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'openclaw-cie10-suggest',
-                        action: 'cie10Suggest',
-                    },
-                ],
-            }),
+            openclawSurfaceExists([
+                'openclaw-patient',
+                'openclaw-cie10-suggest',
+                'openclaw-chat',
+                'openclaw-save-diagnosis',
+            ]),
         'S3-OC2': () =>
-            controllerSurfaceExists({
-                file: 'controllers/OpenclawController.php',
-                className: 'OpenclawController',
-                methods: ['protocol'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'openclaw-protocol',
-                        action: 'protocol',
-                    },
-                ],
-            }),
+            openclawSurfaceExists([
+                'openclaw-protocol',
+                'openclaw-router-status',
+            ]),
         'S3-OC3': () =>
             controllerSurfaceExists({
                 file: 'controllers/CertificateController.php',
@@ -623,44 +684,23 @@ function createVerificationChecks() {
                     },
                 ],
             }) &&
-            controllerSurfaceExists({
-                file: 'controllers/OpenclawController.php',
-                className: 'OpenclawController',
-                methods: ['generateCertificate', 'getCertificatePdf'],
-                routes: [
-                    {
-                        method: 'POST',
-                        resource: 'openclaw-certificate',
-                        action: 'generateCertificate',
-                    },
-                    {
-                        method: 'GET',
-                        resource: 'openclaw-certificate',
-                        action: 'getCertificatePdf',
-                    },
-                ],
-            }) &&
+            openclawSurfaceExists(['openclaw-certificate']) &&
             fileExists('controllers/DoctorProfileController.php'),
         'S3-OC4': () =>
-            controllerSurfaceExists({
-                file: 'controllers/OpenclawController.php',
-                className: 'OpenclawController',
-                methods: ['checkInteractions'],
-                routes: [
-                    {
-                        method: 'POST',
-                        resource: 'openclaw-interactions',
-                        action: 'checkInteractions',
-                    },
-                ],
-            }) && fileExists('js/openclaw-chat.js'),
+            openclawSurfaceExists([
+                'openclaw-interactions',
+                'openclaw-summarize',
+            ]) && fileExists('js/openclaw-chat.js'),
 
         // ── Sprint 4 ───────────────────────────────────────────────────────
-        'S4-08': () => fileExists('es/software/turnero-clinicas/precios/index.html'),
+        'S4-08': () =>
+            fileExists('es/software/turnero-clinicas/precios/index.html'),
         'S4-13': () => fileExists('es/paquetes/index.html'),
         'S4-19': () => {
             const idx = readRepoFile('index.html');
-            return idx.includes('clarity.ms') || idx.includes('Microsoft Clarity');
+            return (
+                idx.includes('clarity.ms') || idx.includes('Microsoft Clarity')
+            );
         },
         'S4-21': () => {
             try {
@@ -671,7 +711,10 @@ function createVerificationChecks() {
                     ).trim(),
                     10
                 );
-                return existsSync(resolve(ROOT, 'docs/surface-audit.md')) || count < 100;
+                return (
+                    existsSync(resolve(ROOT, 'docs/surface-audit.md')) ||
+                    count < 100
+                );
             } catch {
                 return false;
             }
@@ -712,7 +755,9 @@ function main() {
     console.log('\n🔍 Aurora Derm — Board Verification\n');
 
     if (results.nowDone.length > 0) {
-        console.log(`✅ DONE (evidence found, not marked): ${results.nowDone.length}`);
+        console.log(
+            `✅ DONE (evidence found, not marked): ${results.nowDone.length}`
+        );
         results.nowDone.forEach(({ taskId }) => console.log(`   ${taskId}`));
 
         if (FIX) {
@@ -721,16 +766,23 @@ function main() {
             results.nowDone.sort((a, b) => b.lineIndex - a.lineIndex);
             results.nowDone.forEach(({ lineIndex }) => {
                 const lineArr = updatedMd.split('\n');
-                lineArr[lineIndex] = lineArr[lineIndex].replace('- [ ]', '- [x]');
+                lineArr[lineIndex] = lineArr[lineIndex].replace(
+                    '- [ ]',
+                    '- [x]'
+                );
                 updatedMd = lineArr.join('\n');
             });
             writeFileSync(AGENTS_FILE, updatedMd, 'utf8');
-            console.log(`   Fixed ${results.nowDone.length} tasks in AGENTS.md`);
+            console.log(
+                `   Fixed ${results.nowDone.length} tasks in AGENTS.md`
+            );
             console.log(
                 '   Run: git add AGENTS.md && git commit -m "docs: sync board with actual state"'
             );
         } else {
-            console.log('\n   Run with --fix to auto-mark these as done in AGENTS.md');
+            console.log(
+                '\n   Run with --fix to auto-mark these as done in AGENTS.md'
+            );
         }
     }
 
@@ -767,6 +819,7 @@ if (require.main === module) {
 
 module.exports = {
     CLINICAL_SAMPLE_PHOTOS,
+    OPENCLAW_ENDPOINTS,
     TASK_LINE_PATTERN,
     allFilesExist,
     controllerSurfaceExists,
@@ -775,6 +828,7 @@ module.exports = {
     fileExists,
     main,
     normalizeHtmlEntities,
+    openclawSurfaceExists,
     parseTaskLines,
     phpClassExists,
     phpMethodExists,
