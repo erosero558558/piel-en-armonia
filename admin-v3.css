@@ -3239,6 +3239,125 @@ body.admin-v3-mode .clinical-media-flow-form-grid {
     }
 }
 
+/* S3-17: Clinical History Gallery & Compare Slider */
+body.admin-v3-mode .clinical-history-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    padding: 16px 0;
+}
+
+body.admin-v3-mode .clinical-history-gallery-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform var(--admin3-motion-fast) var(--admin3-ease), border-color var(--admin3-motion-fast) var(--admin3-ease);
+}
+
+body.admin-v3-mode .clinical-history-gallery-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--admin3-line-strong);
+}
+
+body.admin-v3-mode .clinical-history-gallery-item.is-selected {
+    border-color: var(--admin3-focus);
+}
+
+body.admin-v3-mode .clinical-history-gallery-item.is-selected::after {
+    content: attr(data-selection-label);
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: var(--admin3-focus);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+body.admin-v3-mode .clinical-history-gallery-img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+}
+
+body.admin-v3-mode .clinical-compare-container {
+    margin-top: 24px;
+    background: var(--admin3-surface-alt);
+    padding: 24px;
+    border-radius: 20px;
+    border: 1px solid var(--admin3-line);
+    display: grid;
+    gap: 16px;
+}
+
+body.admin-v3-mode .clinical-compare-slider {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+
+body.admin-v3-mode .clinical-compare-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+body.admin-v3-mode .clinical-compare-after {
+    z-index: 1;
+}
+
+body.admin-v3-mode .clinical-compare-before {
+    z-index: 2;
+    clip-path: inset(0 50% 0 0);
+}
+
+body.admin-v3-mode .clinical-compare-range {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+    z-index: 3;
+    cursor: ew-resize;
+}
+
+body.admin-v3-mode .clinical-compare-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 6px;
+    height: 500px;
+    background: #fff;
+    cursor: ew-resize;
+    border-left: 1px solid rgba(0,0,0,0.2);
+    border-right: 1px solid rgba(0,0,0,0.2);
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+body.admin-v3-mode .clinical-compare-range::-moz-range-thumb {
+    width: 6px;
+    height: 500px;
+    background: #fff;
+    cursor: ew-resize;
+    border: none;
+    border-left: 1px solid rgba(0,0,0,0.2);
+    border-right: 1px solid rgba(0,0,0,0.2);
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
 @media (max-width: 1024px) {
     body.admin-v3-mode .clinical-history-inline-grid {
         grid-template-columns: 1fr;

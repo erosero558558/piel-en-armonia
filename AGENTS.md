@@ -1058,7 +1058,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S3-15** `[L]` Formulario de anamnesis — vista en admin: motivo, antecedentes personales/familiares, alergias, medicación, fototipo Fitzpatrick, hábitos (sol, tabaco). `ClinicalHistoryService`.
 - [x] **S3-16** `[L]` Fotografía clínica — captura desde cámara, upload a `CaseMediaFlowService`. Metadata: fecha, zona corporal. Almacenar organizado por paciente/fecha.
-- [ ] **S3-17** `[L]` Comparación before/after — en admin: dos fotos side-by-side de misma zona en diferentes fechas. Slider de comparación. Seleccionar fotos del historial del paciente.
+- [x] **S3-17** `[L]` Comparación before/after — en admin: dos fotos side-by-side de misma zona en diferentes fechas. Slider de comparación. Seleccionar fotos del historial del paciente.
 - [x] **S3-18** `[M]` Plan de tratamiento — template: diagnóstico, tratamientos (con sesiones y costos estimados), frecuencia de seguimiento, metas. Exportar PDF para el paciente.
 - [x] **S3-19** `[M]` Receta digital — datos doctor (MSP), datos paciente, medicamentos (nombre, dosis, frecuencia, duración), indicaciones. PDF con membrete clínico.
 - [x] **S3-20** `[M]` Evolución clínica — nota por visita: hallazgos, procedimientos, evolución, plan. Append-only. Integrada al timeline del journey.
@@ -1350,3 +1350,54 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S7-37** `[M]` `StorePersistence` integrity — verificar qué ocurre si `store.json` se corrompe parcialmente. ¿`read_store()` falla silencioso? Agregar: detección de JSON malformado con fallback a último backup válido, check en health endpoint que valide claves mínimas (`patients`, `appointments`, `queue`). Entregable: `docs/STORE_INTEGRITY.md`.
 
 ---
+
+---
+
+### 🎨 Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
+
+> **Arquitecto:** Antigravity (Gemini) · **Otros agentes: NO TOCAR**
+> **Filosofía:** "Clinical Luxury" — elegancia médica, no genericidad.
+> **Guía de diseño:** `DESIGN_SYSTEM.md` — leer antes de escribir una sola línea de CSS.
+> **Comando:** `npm run dispatch:ui` → `node bin/claim.js claim UI-XX "Antigravity"`.
+> **Regla dura:** Cada tarea es una superficie completa. No se entregan medias tintas.
+
+#### UI-0 Fundamentos del sistema
+
+- [ ] **UI-01** `[S]` `[UI]` Design tokens globales — crear `styles/tokens.css` con todos los tokens del `DESIGN_SYSTEM.md`: colores HSL aurora, gold, neutros cálidos, tipografía (Instrument Serif + Inter), espaciado 8px, radios, sombras cálidas, glow effects, transiciones. Este archivo se importa primero en toda página. Sin este archivo, nada más del Sprint UI arranca.
+- [ ] **UI-02** `[S]` `[UI]` Reset + base CSS — crear `styles/base.css`: reset moderno (box-sizing border-box, margin 0, font-size rem, smooth scroll), variables de tema público (`data-theme="public"`) y admin (`data-theme="admin"`), classes de utilidad mínimas (`.sr-only`, `.container`, `.section`). No usar frameworks externos — CSS puro con variables del sistema.
+- [ ] **UI-03** `[M]` `[UI]` Sistema de componentes base — crear `styles/components.css`: `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.card`, `.badge`, `.input`, `.select`, `.modal`, `.toast`, `.avatar`, `.divider`. Cada componente usa exclusivamente tokens de `tokens.css`. Con animaciones hover y focus accesibles. Entregable: Storybook-like demo en `dev/components.html`.
+
+#### UI-1 Web pública — "La clínica que quieres visitar"
+
+- [ ] **UI-04** `[L]` `[UI]` Landing page hero + navegación — rediseño total de `index.html` sección hero: headline con `Instrument Serif`, subheadline sobre la doctora, imagen clínica premium, 2 CTAs (agendar + WhatsApp), barra de trust badges (MSP, SRI, Excelencia). Navbar fija con blur glassmorphism. Nada del diseño anterior sobrevive. Mobile-first obligatorio.
+- [ ] **UI-05** `[M]` `[UI]` Landing sections interiores — Las secciones de `index.html` debajo del hero: servicios (grid de cards con hover premium), resultados before/after (slider táctil), testimoni 3-column (fotos reales o svg), especialidades con icons médicos, y CTA final con gradiente aurora. Coherente con UI-04.
+- [ ] **UI-06** `[M]` `[UI]` Template de páginas de servicio — crear `styles/aurora-service.css` + actualizar la estructura HTML base de `es/servicios/laser-co2/index.html` como referencia. Header de servicio con imagen hero + badge de resultado esperado, secciones: qué es, para quién, proceso paso a paso, antes/después, preguntas frecuentes (accordion), CTA flotante en mobile. El mismo template aplica a todos los servicios.
+- [ ] **UI-07** `[M]` `[UI]` Página de booking público — rediseño total de `es/agendar/index.html`: stepper visual de 3 pasos (servicio → fecha/hora → confirmación), calendar de disponibilidad con slots visuales, formulario mínimo (nombre, teléfono, motivo), confirmación en pantalla + WhatsApp. Premium pero sin fricción. Los datos ya vienen del backend existente — solo el UI cambia.
+- [ ] **UI-08** `[S]` `[UI]` Página de pre-consulta — rediseño de `es/pre-consulta/index.html`: formulario vertical con progreso visual, upload de fotos con preview, instrucciones claras. Diseño calmante (colores suaves, tipografía generosa). Entregable: el paciente siente que está en buenas manos desde el formulario.
+
+#### UI-2 Admin — "La herramienta que el médico ama"
+
+- [ ] **UI-09** `[L]` `[UI]` Admin shell y navegación — rediseño de `admin.html`: sidebar colapsable con dark theme (`data-theme="admin"`), navegación por íconos + labels, sección activa con acento aurora, header con estado del sistema (claims activos, alertas), búsqueda global. Glassmorphism en sidebar. Sin cambiar ningún endpoint PHP — solo el shell HTML/CSS/JS de navegación.
+- [ ] **UI-10** `[L]` `[UI]` Dashboard principal admin — la vista que ve el médico al abrir el admin: 4 KPI cards (citas hoy, pacientes activos, turnos en espera, alertas clínicas), agenda del día (timeline visual), accesos rápidos (nueva cita, OpenClaw, HCE último paciente). Dark theme, micro-animaciones, datos en tiempo real via endpoints existentes.
+- [ ] **UI-11** `[M]` `[UI]` Historia clínica — render premium — el render de `clinical-history/render/index.js` (13.837 líneas de JS) genera UI actualmente. Crear un CSS dedicado `styles/aurora-clinical.css` que reemplace el estilo inline/legacy: timeline de episodios, cards de evolución, sección de fotos clínicas con lightbox, recetas en acordeón, diagnósticos CIE-10 con chips visuales. El JS no cambia — solo CSS class hooks.
+
+#### UI-3 OpenClaw — "El copiloto clínico"
+
+- [ ] **UI-12** `[M]` `[UI]` OpenClaw chat interface — rediseño total del chat en `js/openclaw-chat.js`: burbujas de mensaje con distinción visual IA/médico, código de diagnóstico CIE-10 como chip clickeable, receta generada con preview de tarjeta, estado de IA (tier activo, modo offline badge), input médico con autocompletado de medicamentos. Dark clinical theme. Typing indicator animado. El JS backend no cambia.
+
+#### UI-4 Turnero — "La sala de espera del siglo XXI"
+
+- [ ] **UI-13** `[L]` `[UI]` Kiosco de turnos — rediseño de `kiosco-turnos.html`: pantalla táctil 1080×1920 (o 16:9), grande y legible desde 1 metro, touch targets mínimo 120px, selección de servicio con iconos grandes, confirmación con QR animado. Dark theme clínico. Sin scroll — todo en una pantalla.
+- [ ] **UI-14** `[M]` `[UI]` Sala de espera TV — rediseño de `sala-turnos.html`: display en pantalla TV 16:9, turnos llamados con animación de entrada, número actual GRANDE, próximos 3 turnos en gris, hora en esquina, branding discreta de Aurora Derm. Transiciones suaves. Nunca debe haber un estado "en blanco".
+- [ ] **UI-15** `[M]` `[UI]` Operador de turnos — rediseño de `operador-turnos.html`: interfaz compacta para escritorio, lista de turnos en espera con drag-to-call, botón LLAMAR prominente, historial de turnos del día, alertas de espera larga. Dark theme denso pero legible.
+
+#### UI-5 Portal del paciente — "Mi salud en mi celular"
+
+- [ ] **UI-16** `[L]` `[UI]` Portal base mobile-first — crear `es/portal/index.html` + `styles/aurora-portal.css`: bottom navigation (5 iconos: inicio, citas, historial, recetas, perfil), header con foto/nombre del paciente, card de próxima cita, estado de plan activo, CTA WhatsApp siempre visible. PWA-ready. iOS y Android se ven nativos.
+- [ ] **UI-17** `[M]` `[UI]` Vista de historial del paciente — `es/portal/historial/index.html`: lista de consultas con fechas, doctor y motivo. Tap para expandir detalle con diagnóstico, receta, y plan. Timeline vertical. Solo lectura. Datos del endpoint existente `clinical-history`.
+
+#### UI-6 PDF y documentos — "Los documentos que la doctora firma con orgullo"
+
+- [ ] **UI-18** `[M]` `[UI]` Template HTML de receta — crear `templates/pdf/prescription.html`: membrete con logo de clínica (de `ClinicProfileStore`), nombre y MSP del médico (de `DoctorProfileStore`), tabla de medicamentos con tipografía clara y legible, instrucciones en lenguaje simple, QR de verificación en esquina. Diseño que el paciente puede imprimir o guardar sin vergüenza.
+- [ ] **UI-19** `[M]` `[UI]` Template HTML de certificado médico — crear `templates/pdf/certificate.html`: membrete oficial, firma digital del médico como imagen, datos del paciente, diagnóstico en bloque visual, firmas y sellos. Estilo documento legal pero legible. El médico puede firmarlo digitalmente sin imprimir.
+

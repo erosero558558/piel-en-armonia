@@ -539,6 +539,46 @@ final class ClinicalHistoryService
         ];
     }
 
+    public function getPatientGallery(array $store, string $caseId): array
+    {
+        $caseId = ClinicalHistoryRepository::trimString($caseId);
+        if ($caseId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 400,
+                'error' => 'Case ID invalido',
+                'errorCode' => 'case_id_invalid',
+                'data' => [],
+            ];
+        }
+
+        $drafts = ClinicalHistoryRepository::findAllDraftsByCaseId($store, $caseId);
+        $gallery = [];
+
+        foreach ($drafts as $draft) {
+            $attachments = ClinicalHistoryRepository::normalizeAttachmentList($draft['attachments'] ?? []);
+            foreach ($attachments as $attachment) {
+                $mime = strtolower(ClinicalHistoryRepository::trimString($attachment['mime'] ?? ''));
+                if (str_starts_with($mime, 'image/')) {
+                    $attachment['date'] = $draft['updatedAt'] ?? '';
+                    $attachment['sessionId'] = $draft['sessionId'] ?? '';
+                    $gallery[] = $attachment;
+                }
+            }
+        }
+
+        // Ordenar con las más recientes primero
+        usort($gallery, static function ($a, $b) {
+            return strcmp($b['date'] ?? '', $a['date'] ?? '');
+        });
+
+        return [
+            'ok' => true,
+            'statusCode' => 200,
+            'data' => $gallery,
+        ];
+    }
+
     public function getPatientHistory(array $store, string $patientId): array
     {
         $patientId = ClinicalHistoryRepository::trimString($patientId);

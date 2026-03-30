@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:14:45 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:24:04 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -19,6 +19,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 0 | 37 | 0% |
+| ⏸ Sprint UI | 0 | 0 | 0% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -31,7 +32,7 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (28)
+### 🟢 Disponibles (29)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -56,6 +57,7 @@ _Sprint completado. 24/24 tareas._
 | **S3-52** | `[M]` | Custom GPT instructions — crear  con las instrucciones exactas para co... |
 | **S3-58** | `[M]` | conflict.js — precisión quirúrgica — cambiar de heurística solo textua... |
 | **S3-62** | `[M]` | Consolidar npm scripts —  tiene 273 scripts: demasiada superficie cogn... |
+| **S3-17** | `[L]` | Comparación before/after — en admin: dos fotos side-by-side de misma z... |
 | **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
 | **S3-54** | `[L]` | Resumen de consulta para paciente — al cerrar la consulta (), generar ... |
@@ -66,8 +68,7 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-17** `[L]` → _antigravity_ (expira en 475min)
-- **S3-56** `[M]` → _antigravity_ (expira en 236min)
+- **S3-56** `[M]` → _antigravity_ (expira en 226min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -170,6 +171,9 @@ _Esperando que Sprint anterior esté completo. 37 tareas pendientes._
 | **S7-08** | `[S]` | Backup y restore automatizado — no hay ninguna tarea que valide backup... |
 | **S7-09** | `[S]` | k8s readiness/liveness probes —  no tiene  ni . Kubernetes no puede de... |
 | ... | | _+32 más_ |
+
+## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
+_Sprint completado. 0/0 tareas._
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

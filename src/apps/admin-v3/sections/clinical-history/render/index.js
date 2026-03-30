@@ -45,6 +45,11 @@ const CLINICAL_HISTORY_WORKSPACE_OPTIONS = Object.freeze([
         metaLabel: (_meta, state = getState()) =>
             `${normalizeList(state?.data?.mediaFlowMeta?.queue).length} caso(s) con media`,
     },
+    {
+        workspace: 'compare',
+        label: 'Evolución Visual',
+        metaLabel: () => 'Comparación fotográfica',
+    },
 ]);
 const CLINICAL_HISTORY_SEX_CHOICES = Object.freeze([
     { value: '', label: 'Sin dato' },
@@ -13363,16 +13368,25 @@ function syncWorkspaceVisibility(activeWorkspace) {
     const mediaFlowWorkbench = document.getElementById(
         'clinicalMediaFlowWorkbench'
     );
-    const mediaFlowActive = activeWorkspace === 'media-flow';
+    const compareWorkbench = document.getElementById(
+        'clinicalCompareWorkbench'
+    );
+
+    const isMediaFlow = activeWorkspace === 'media-flow';
+    const isCompare = activeWorkspace === 'compare';
+    const isReview = !isMediaFlow && !isCompare;
 
     if (reviewWorkbench instanceof HTMLElement) {
-        reviewWorkbench.hidden = mediaFlowActive;
+        reviewWorkbench.hidden = !isReview;
     }
     if (reviewFooter instanceof HTMLElement) {
-        reviewFooter.hidden = mediaFlowActive;
+        reviewFooter.hidden = !isReview;
     }
     if (mediaFlowWorkbench instanceof HTMLElement) {
-        mediaFlowWorkbench.hidden = !mediaFlowActive;
+        mediaFlowWorkbench.hidden = !isMediaFlow;
+    }
+    if (compareWorkbench instanceof HTMLElement) {
+        compareWorkbench.hidden = !isCompare;
     }
 }
 
@@ -13828,5 +13842,6 @@ export function renderClinicalHistorySection() {
     syncWorkspaceVisibility(activeWorkspace);
     bindClinicalHistoryEvents();
     renderClinicalMediaFlow();
+    renderClinicalCompareFlow();
     ensureSessionSelection();
 }

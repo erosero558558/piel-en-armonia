@@ -197,26 +197,50 @@ const ROLE_AFFINITY = {
 
   fullstack: {
     description: 'Cualquier tarea disponible — prioridad junio',
-    // Ordenadas por impacto real en la consulta del médico, junio 2026
     prefer: [
-      'S3-19', // Receta digital
-      'S3-20', // Evolución clínica
-      'S3-15', // Anamnesis
-      'S3-24', // Booking público
-      'S3-09', // Vista operador
-      'S3-11', // Ticket QR
-      'S3-18', // Plan de tratamiento
-      'S3-25', // Confirmación cita
-      'S3-28', // Agenda diaria admin
-      'S3-16', // Fotografía clínica
-      'S3-10', // Acciones post-consulta
-      'S3-12', // Estimación espera
-      'S3-13', // Sala inteligente
+      'S3-19', 'S3-20', 'S3-15', 'S3-24', 'S3-09',
+      'S3-11', 'S3-18', 'S3-25', 'S3-28', 'S3-16',
+      'S3-10', 'S3-12', 'S3-13',
     ],
     keywords: [],
     sprints: ['Sprint 3', 'Sprint 4', 'Sprint 2', 'Sprint 5', 'Sprint 6'],
     avoid: [],
     sizes: ['S', 'M', 'L', 'XL'],
+  },
+
+  // ── UI LANE: ANTIGRAVITY EXCLUSIVO ───────────────────────────────────────────
+  // NO TOCAR: este lane pertenece a Antigravity (Gemini).
+  // ChatGPT y otros agentes NO deben reclamar tareas [UI].
+  // Para tomar trabajo: npm run dispatch:ui
+  // Para reclamar:      node bin/claim.js claim <ID> "Antigravity"
+  ui: {
+    description: '🎨 ANTIGRAVITY EXCLUSIVO — Rediseño total UI/UX Aurora Derm',
+    prefer: [
+      'UI-01', // Design tokens — la base de todo
+      'UI-02', // Tipografía + variables CSS
+      'UI-03', // Sistema de componentes base
+      'UI-04', // Landing page pública — hero + secciones
+      'UI-05', // Páginas de servicios — template premium
+      'UI-06', // Admin dashboard — shell y navegación
+      'UI-07', // OpenClaw chat UI
+      'UI-08', // Kiosco de turnos
+      'UI-09', // Sala de espera TV
+      'UI-10', // Operador de turnos
+      'UI-11', // Portal del paciente — mobile-first
+      'UI-12', // Formulario de booking público
+      'UI-13', // Historia clínica — render admin
+      'UI-14', // Recetas y certificados PDF — HTML template
+    ],
+    keywords: [
+      '[UI]', 'diseño', 'ui', 'ux', 'interfaz', 'visual', 'componente',
+      'design system', 'token', 'css variable', 'layout', 'grid',
+      'animación', 'hover', 'glassmorphism', 'dark mode', 'responsive',
+    ],
+    sprints: ['Sprint UI'],
+    avoid: ['php', 'controller', 'service', 'repository', 'api.php', 'routes.php'],
+    sizes: ['S', 'M', 'L', 'XL'],
+    exclusive: true, // Solo Antigravity puede reclamar estas tareas
+    agent: 'Antigravity',
   },
 };
 

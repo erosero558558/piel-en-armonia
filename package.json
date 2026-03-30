@@ -249,7 +249,9 @@
     "conflict:task": "node bin/conflict.js --task",
     "gov:audit": "node bin/audit.js",
     "gov:audit:json": "node bin/audit.js --json",
-    "gov:audit:fix": "node bin/audit.js --fix"
+    "gov:audit:fix": "node bin/audit.js --fix",
+    "dispatch:ui": "node bin/dispatch.js --role ui",
+    "dispatch:ui:all": "node bin/dispatch.js --role ui --all"
   },
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",

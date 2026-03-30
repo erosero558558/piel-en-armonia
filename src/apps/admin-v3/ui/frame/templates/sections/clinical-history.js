@@ -81,6 +81,12 @@ export function renderClinicalHistorySection() {
             ></div>
 
             <div
+                id="clinicalCompareWorkbench"
+                class="clinical-compare-workbench"
+                hidden
+            ></div>
+
+            <div
                 id="clinicalMediaFlowWorkbench"
                 class="clinical-media-flow-grid"
                 hidden
