@@ -244,7 +244,9 @@
     "velocity": "node bin/velocity.js",
     "merge-ready": "node bin/merge-ready.js",
     "merge-ready:auto": "node bin/merge-ready.js --merge",
-    "report:full": "node bin/report.js && node bin/velocity.js"
+    "report:full": "node bin/report.js && node bin/velocity.js",
+    "conflict": "node bin/conflict.js",
+    "conflict:task": "node bin/conflict.js --task"
   },
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",
