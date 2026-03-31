@@ -6,77 +6,258 @@ const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const SITEMAP_FILE = path.join(ROOT, 'sitemap.xml');
-const BASE_URL = 'https://aurora-derm.com';
+const BASE_URL = 'https://pielarmonia.com';
+const LEGACY_CONTRACT_ROUTES = [
+    '/es/agendar/',
+    '/es/blog/',
+    '/es/blog/acne-adulto/',
+    '/es/blog/bioestimuladores-vs-rellenos/',
+    '/es/blog/como-elegir-dermatologo-quito/',
+    '/es/blog/melasma-embarazo/',
+    '/es/blog/proteccion-solar-ecuador/',
+    '/es/blog/senales-alarma-lunares/',
+    '/es/pago/',
+    '/es/servicios/depilacion-laser/',
+    '/en/services/depilacion-laser/',
+];
 
-function getGitLastMod(filePath) {
+function getGitLastMod(relativePath) {
     try {
-        const cmd = `git log -1 --format=%cI -- "${filePath}"`;
+        const cmd = `git log -1 --format=%cI -- "${relativePath}"`;
         const result = execSync(cmd, { cwd: ROOT, encoding: 'utf8' }).trim();
-        // Return YYYY-MM-DD format as required by sitemaps
         if (result) {
             return result.split('T')[0];
         }
-    } catch (e) {
+    } catch (_error) {
         // ignore
     }
-    // Fallback to today
+
     return new Date().toISOString().split('T')[0];
 }
 
-function scanHtmlFiles(dir, fileList = []) {
-    if (!fs.existsSync(dir)) return fileList;
-    const files = fs.readdirSync(dir);
-    for (const file of files) {
-        if (file === 'node_modules' || file === '.git') continue;
-        const fullPath = path.join(dir, file);
-        if (fs.statSync(fullPath).isDirectory()) {
-            scanHtmlFiles(fullPath, fileList);
-        } else if (file === 'index.html') {
-            fileList.push(fullPath);
+function normalizeRoute(routePath) {
+    const raw = String(routePath || '/')
+        .trim()
+        .replace(/[?#].*$/, '') || '/';
+    const withLeading = raw.startsWith('/') ? raw : `/${raw}`;
+    return withLeading === '/' ? '/' : withLeading.replace(/\/+$/, '') + '/';
+}
+
+function isPublicSitemapRoute(routePath) {
+    const normalized = normalizeRoute(routePath);
+    return normalized === '/' || normalized.startsWith('/es/') || normalized.startsWith('/en/');
+}
+
+function routeToRepoRelative(routePath) {
+    if (routePath === '/') {
+        return 'index.html';
+    }
+
+    return `${routePath.replace(/^\//, '')}index.html`;
+}
+
+function fileExists(relativePath) {
+    return fs.existsSync(path.join(ROOT, relativePath));
+}
+
+function scanIndexFiles(dir, extension, routes, relativeBase = ROOT) {
+    if (!fs.existsSync(dir)) {
+        return;
+    }
+
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name === 'node_modules' || entry.name === '.git') {
+            continue;
+        }
+
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            scanIndexFiles(fullPath, extension, routes, relativeBase);
+            continue;
+        }
+
+        if (!entry.isFile() || entry.name !== `index.${extension}`) {
+            continue;
+        }
+
+        const relativePath = path.relative(relativeBase, fullPath).replace(/\\/g, '/');
+        let routePath = relativePath.replace(new RegExp(`index\\.${extension}$`), '');
+        if (!routePath.startsWith('/')) {
+            routePath = `/${routePath}`;
+        }
+
+        if (isPublicSitemapRoute(routePath)) {
+            routes.add(normalizeRoute(routePath));
         }
     }
-    return fileList;
+}
+
+function collectHrefValues(value, hrefs) {
+    if (Array.isArray(value)) {
+        value.forEach((item) => collectHrefValues(item, hrefs));
+        return;
+    }
+
+    if (!value || typeof value !== 'object') {
+        return;
+    }
+
+    for (const [key, entry] of Object.entries(value)) {
+        if (key === 'href' && typeof entry === 'string' && entry.startsWith('/')) {
+            if (isPublicSitemapRoute(entry)) {
+                hrefs.add(normalizeRoute(entry));
+            }
+            continue;
+        }
+
+        collectHrefValues(entry, hrefs);
+    }
+}
+
+function collectJsonRoutes(relativePath, routes) {
+    if (!fileExists(relativePath)) {
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(
+            fs.readFileSync(path.join(ROOT, relativePath), 'utf8')
+        );
+        collectHrefValues(parsed, routes);
+    } catch (_error) {
+        // ignore malformed optional source files
+    }
+}
+
+function collectCatalogRoutes(routes) {
+    const catalogPath = path.join(ROOT, 'data/catalog/services.json');
+    if (!fs.existsSync(catalogPath)) {
+        return;
+    }
+
+    try {
+        const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+        const services = Array.isArray(catalog.services) ? catalog.services : [];
+        for (const service of services) {
+            if (String(service.catalog_scope || '') !== 'public_route') {
+                continue;
+            }
+
+            const slug = String(service.slug || '').trim();
+            if (!slug) {
+                continue;
+            }
+
+            routes.add(`/es/servicios/${slug}/`);
+            routes.add(`/en/services/${slug}/`);
+        }
+    } catch (_error) {
+        // ignore malformed optional source files
+    }
+}
+
+function collectRouteSet() {
+    const routes = new Set(['/']);
+    const astroPagesRoot = path.join(ROOT, 'src/apps/astro/src/pages');
+
+    scanIndexFiles(path.join(ROOT, 'es'), 'html', routes);
+    scanIndexFiles(path.join(ROOT, 'en'), 'html', routes);
+    scanIndexFiles(path.join(astroPagesRoot, 'es'), 'astro', routes, astroPagesRoot);
+    scanIndexFiles(path.join(astroPagesRoot, 'en'), 'astro', routes, astroPagesRoot);
+
+    collectJsonRoutes('content/public-v6/es/software.json', routes);
+    collectJsonRoutes('content/public-v6/en/software.json', routes);
+    collectJsonRoutes('content/public-v6/es/legal.json', routes);
+    collectJsonRoutes('content/public-v6/en/legal.json', routes);
+    collectCatalogRoutes(routes);
+
+    for (const routePath of LEGACY_CONTRACT_ROUTES) {
+        if (isPublicSitemapRoute(routePath)) {
+            routes.add(normalizeRoute(routePath));
+        }
+    }
+
+    return [...routes]
+        .map((routePath) => normalizeRoute(routePath))
+        .sort((left, right) => left.localeCompare(right));
+}
+
+function resolveLastMod(routePath) {
+    const repoRelative = routeToRepoRelative(routePath);
+    if (fileExists(repoRelative)) {
+        return getGitLastMod(repoRelative);
+    }
+
+    if (routePath.startsWith('/es/servicios/') || routePath.startsWith('/en/services/')) {
+        return getGitLastMod('data/catalog/services.json');
+    }
+
+    if (routePath.startsWith('/es/legal/')) {
+        return getGitLastMod('content/public-v6/es/legal.json');
+    }
+
+    if (routePath.startsWith('/en/legal/')) {
+        return getGitLastMod('content/public-v6/en/legal.json');
+    }
+
+    if (routePath.startsWith('/es/software/')) {
+        return getGitLastMod('content/public-v6/es/software.json');
+    }
+
+    if (routePath.startsWith('/en/software/')) {
+        return getGitLastMod('content/public-v6/en/software.json');
+    }
+
+    if (routePath.startsWith('/es/blog/') || routePath === '/es/blog/') {
+        return getGitLastMod('AGENTS.md');
+    }
+
+    return getGitLastMod('src/apps/astro/src/pages/es/index.astro');
+}
+
+function resolvePriority(routePath) {
+    if (routePath === '/' || routePath === '/es/' || routePath === '/en/') {
+        return '1.0';
+    }
+
+    if (routePath.includes('/servicios/') || routePath.includes('/services/')) {
+        return '0.9';
+    }
+
+    if (routePath.includes('/blog/')) {
+        return '0.8';
+    }
+
+    if (routePath.includes('/portal/')) {
+        return '0.6';
+    }
+
+    return '0.7';
+}
+
+function resolveChangeFreq(priority) {
+    if (priority === '1.0') {
+        return 'daily';
+    }
+
+    if (priority === '0.9' || priority === '0.8') {
+        return 'weekly';
+    }
+
+    return 'monthly';
 }
 
 function generate() {
-    // Collect all index.html paths in root, es/ and en/
-    const pages = [];
-    
-    // Add root index.html
-    const rootIndex = path.join(ROOT, 'index.html');
-    if (fs.existsSync(rootIndex)) {
-        pages.push(rootIndex);
-    }
-    
-    // Add everything in es/ and en/
-    scanHtmlFiles(path.join(ROOT, 'es'), pages);
-    scanHtmlFiles(path.join(ROOT, 'en'), pages);
-    
+    const routes = collectRouteSet();
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n`;
     xml += `        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n`;
-    
-    for (const page of pages) {
-        const relPath = path.relative(ROOT, page).replace(/\\/g, '/');
-        
-        let urlPath = relPath.replace('index.html', '');
-        if (!urlPath.startsWith('/')) {
-            urlPath = '/' + urlPath;
-        }
-        
-        const loc = `${BASE_URL}${urlPath}`;
-        const lastmod = getGitLastMod(relPath);
-        
-        let priority = '0.7';
-        if (urlPath === '/' || urlPath === '/es/' || urlPath === '/en/') priority = '1.0';
-        else if (urlPath.includes('/servicios/')) priority = '0.9';
-        else if (urlPath.includes('/blog/')) priority = '0.8';
-        else if (urlPath.includes('/portal/')) priority = '0.6';
-        
-        // Let's use weekly/monthly logic
-        let freq = 'monthly';
-        if (priority === '1.0') freq = 'daily';
-        else if (priority === '0.9' || priority === '0.8') freq = 'weekly';
+
+    for (const routePath of routes) {
+        const loc = new URL(routePath, BASE_URL).toString();
+        const priority = resolvePriority(routePath);
+        const lastmod = resolveLastMod(routePath);
+        const freq = resolveChangeFreq(priority);
 
         xml += `  <url>\n`;
         xml += `    <loc>${loc}</loc>\n`;
@@ -85,10 +266,10 @@ function generate() {
         xml += `    <priority>${priority}</priority>\n`;
         xml += `  </url>\n`;
     }
-    
+
     xml += `</urlset>\n`;
     fs.writeFileSync(SITEMAP_FILE, xml, 'utf8');
-    console.log(`Generated sitemap.xml with ${pages.length} URLs`);
+    console.log(`Generated sitemap.xml with ${routes.length} URLs`);
 }
 
 generate();
