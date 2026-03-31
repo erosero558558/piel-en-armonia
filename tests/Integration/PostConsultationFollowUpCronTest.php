@@ -15,6 +15,7 @@ final class PostConsultationFollowUpCronTest extends TestCase
 
     protected function setUp(): void
     {
+        unset($GLOBALS['__TEST_EMAIL_OUTBOX']);
         $this->tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'post-consult-follow-up-cron-' . bin2hex(random_bytes(6));
         mkdir($this->tempDir, 0777, true);
 
@@ -38,6 +39,7 @@ final class PostConsultationFollowUpCronTest extends TestCase
                 'id' => 5111,
                 'status' => 'completed',
                 'name' => 'Ana Seguimiento',
+                'email' => 'ana.seguimiento@example.com',
                 'phone' => '0990003210',
                 'date' => '2026-03-28',
                 'time' => '09:00',
@@ -102,6 +104,7 @@ final class PostConsultationFollowUpCronTest extends TestCase
 
         self::assertTrue((bool) ($result['ok'] ?? false));
         self::assertSame(1, (int) ($result['postConsultationFollowUps']['queued'] ?? 0));
+        self::assertSame(1, (int) ($result['postConsultationFollowUps']['emailSent'] ?? 0));
         self::assertSame(1, (int) ($result['postConsultationFollowUps']['notDue'] ?? 0));
         self::assertSame(1, (int) ($result['postConsultationFollowUps']['notCompleted'] ?? 0));
 
@@ -114,8 +117,17 @@ final class PostConsultationFollowUpCronTest extends TestCase
         $store = \read_store();
         self::assertNotSame('', (string) ($store['appointments'][0]['followUpSentAt'] ?? ''));
         self::assertSame('whatsapp', (string) ($store['appointments'][0]['followUpChannel'] ?? ''));
+        self::assertSame('email', (string) ($store['appointments'][0]['followUpEmailChannel'] ?? ''));
+        self::assertNotSame('', (string) ($store['appointments'][0]['followUpEmailSentAt'] ?? ''));
         self::assertSame('', (string) ($store['appointments'][1]['followUpSentAt'] ?? ''));
         self::assertSame('', (string) ($store['appointments'][2]['followUpSentAt'] ?? ''));
+
+        $emailOutbox = $GLOBALS['__TEST_EMAIL_OUTBOX'] ?? [];
+        self::assertCount(1, $emailOutbox);
+        self::assertSame('ana.seguimiento@example.com', (string) ($emailOutbox[0]['to'] ?? ''));
+        self::assertStringContainsString('Seguimiento de tu consulta', (string) ($emailOutbox[0]['subject'] ?? ''));
+        self::assertTrue((bool) ($emailOutbox[0]['isHtml'] ?? false));
+        self::assertStringContainsString('/es/portal/', (string) ($emailOutbox[0]['body'] ?? ''));
 
         $secondRun = \cron_task_reminders([
             'today' => '2026-03-30',
@@ -127,6 +139,7 @@ final class PostConsultationFollowUpCronTest extends TestCase
         self::assertSame(0, (int) ($secondRun['postConsultationFollowUps']['queued'] ?? 0));
         self::assertSame(1, (int) ($secondRun['postConsultationFollowUps']['alreadySent'] ?? 0));
         self::assertCount(1, \whatsapp_openclaw_repository()->listPendingOutbox(10));
+        self::assertCount(1, $GLOBALS['__TEST_EMAIL_OUTBOX'] ?? []);
     }
 
     private function removeDirectory(string $dir): void

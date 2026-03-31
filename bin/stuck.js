@@ -125,6 +125,19 @@ function buildAutoBlockersSection(stuck) {
   return lines.join('\n');
 }
 
+function removeManualBlockerFromMarkdown(markdown, taskId) {
+  if (!taskId) return markdown;
+  // Match `---` (optional), then `## ... TASKID ...` up to the next `##` or `---` or EOF
+  const pattern = new RegExp(
+    `(?:\\n+---\\n+)?(?:^|\\n)##[^\\n]*\\b${taskId}\\b[^\\n]*\\n[\\s\\S]*?(?=\\n## |\\n---\\n|$)`,
+    'i'
+  );
+  let cleaned = markdown.replace(pattern, '');
+  // Clean up duplicate separators if left any
+  cleaned = cleaned.replace(/\n+---\n+(?=\n*---)/g, '\n');
+  return cleaned;
+}
+
 function injectAutoBlockersSection(markdown, section) {
   const markersPattern = new RegExp(
     `${AUTO_BLOCKERS_START}[\\s\\S]*?${AUTO_BLOCKERS_END}`,
@@ -156,8 +169,11 @@ function injectAutoBlockersSection(markdown, section) {
   return `${trimmed}\n\n---\n\n${section}\n`;
 }
 
-function updateBlockersMarkdown(stuck) {
-  const current = read(BLOCKERS_FILE);
+function updateBlockersMarkdown(stuck, clearedTaskId = null) {
+  let current = read(BLOCKERS_FILE);
+  if (clearedTaskId) {
+    current = removeManualBlockerFromMarkdown(current, clearedTaskId);
+  }
   const next = injectAutoBlockersSection(current, buildAutoBlockersSection(stuck));
   writeFileSync(BLOCKERS_FILE, next, 'utf8');
 }
@@ -251,7 +267,6 @@ function autoCommit(taskId, reason, mode) {
     relative(ROOT, BLOCKERS_FILE),
     relative(ROOT, STUCK_FILE),
     relative(ROOT, CLAIMS_DIR),
-    relative(ROOT, WHATSAPP_DATA_DIR),
   ].filter((path) => existsSync(resolve(ROOT, path)));
 
   git(['add', '-A', ...pathsToStage]);

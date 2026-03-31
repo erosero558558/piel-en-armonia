@@ -1406,12 +1406,16 @@ function maybe_send_reminder_email(array $appointment): bool
 function maybe_send_reschedule_email(array $appointment): bool
 {
     $subject = build_email_subject('Cita reprogramada');
-    $body = build_reschedule_email_text($appointment);
+    $htmlBody = build_reschedule_email_html($appointment);
+    $textBody = build_reschedule_email_text($appointment);
 
     return send_mail_to_recipient(
         (string) ($appointment['email'] ?? ''),
         $subject,
-        $body
+        $htmlBody,
+        true,
+        [],
+        $textBody
     );
 }
 

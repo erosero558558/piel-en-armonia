@@ -7,6 +7,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
 require_once __DIR__ . '/../lib/DoctorProfileStore.php';
 require_once __DIR__ . '/../lib/ClinicProfileStore.php';
+require_once __DIR__ . '/../lib/email.php';
 
 final class ClinicalHistoryController
 {
@@ -230,6 +231,7 @@ final class ClinicalHistoryController
         $result = self::mutateStore(static function (array $store) use ($service, $payload): array {
             return $service->episodeAction($store, $payload);
         });
+        self::dispatchPatientNotifications($payload, $result);
 
         self::emitMutationResponse($result);
     }
@@ -598,6 +600,84 @@ final class ClinicalHistoryController
                 'error' => 'Respuesta invalida de historia clinica',
                 'errorCode' => 'clinical_history_internal_error',
             ];
+    }
+
+    private static function dispatchPatientNotifications(array $payload, array &$result): void
+    {
+        if (($result['ok'] ?? false) !== true) {
+            return;
+        }
+
+        self::dispatchPrescriptionReadyEmail($payload, $result);
+    }
+
+    private static function dispatchPrescriptionReadyEmail(array $payload, array &$result): void
+    {
+        $action = trim((string) ($payload['action'] ?? ''));
+        if (!in_array($action, ['issue_prescription', 'approve_final_note'], true)) {
+            return;
+        }
+
+        $draft = isset($result['draft']) && is_array($result['draft']) ? $result['draft'] : [];
+        $session = isset($result['session']) && is_array($result['session']) ? $result['session'] : [];
+        $store = isset($result['store']) && is_array($result['store']) ? $result['store'] : [];
+        $documents = isset($draft['documents']) && is_array($draft['documents']) ? $draft['documents'] : [];
+        $prescriptionDocument = isset($documents['prescription']) && is_array($documents['prescription'])
+            ? $documents['prescription']
+            : [];
+
+        if (trim((string) ($prescriptionDocument['status'] ?? '')) !== 'issued') {
+            return;
+        }
+        if (trim((string) ($prescriptionDocument['patientEmailSentAt'] ?? '')) !== '') {
+            return;
+        }
+
+        $caseId = trim((string) ($draft['caseId'] ?? ($session['caseId'] ?? '')));
+        $medications = function_exists('normalize_prescription_email_items')
+            ? normalize_prescription_email_items($prescriptionDocument)
+            : [];
+        if ($caseId === '' || $medications === []) {
+            return;
+        }
+
+        $doctorData = doctor_profile_document_fields([
+            'name' => trim((string) ($_SESSION['admin_email'] ?? '')),
+        ]);
+        $prescriptionPayload = [
+            'id' => trim((string) ($prescriptionDocument['id'] ?? ('rx-' . substr(sha1($caseId . '|' . json_encode($medications, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)), 0, 12)))),
+            'caseId' => $caseId,
+            'issued_at' => trim((string) ($prescriptionDocument['signedAt'] ?? ($documents['finalNote']['generatedAt'] ?? local_date('c')))),
+            'issued_by' => (string) ($doctorData['name'] ?? 'Medico tratante'),
+            'doctor' => $doctorData,
+            'medications' => $medications,
+        ];
+
+        if (!maybe_send_prescription_ready_email($store, $prescriptionPayload, $session)) {
+            return;
+        }
+
+        $draft['documents']['prescription']['patientEmailSentAt'] = local_date('c');
+        $draft['documents']['prescription']['patientEmailChannel'] = 'email';
+        $draftSave = ClinicalHistoryRepository::upsertDraft($store, $draft);
+        $nextStore = isset($draftSave['store']) && is_array($draftSave['store']) ? $draftSave['store'] : $store;
+        $nextDraft = isset($draftSave['draft']) && is_array($draftSave['draft']) ? $draftSave['draft'] : $draft;
+
+        if (!write_store($nextStore, false)) {
+            return;
+        }
+
+        $result['store'] = $nextStore;
+        $result['draft'] = $nextDraft;
+        if (isset($result['data']) && is_array($result['data'])) {
+            if (!isset($result['data']['documents']) || !is_array($result['data']['documents'])) {
+                $result['data']['documents'] = [];
+            }
+            $result['data']['documents']['prescription'] = $nextDraft['documents']['prescription'] ?? [];
+            if (isset($result['data']['draft']) && is_array($result['data']['draft'])) {
+                $result['data']['draft']['documents'] = $nextDraft['documents'] ?? ($result['data']['draft']['documents'] ?? []);
+            }
+        }
     }
 
     private static function readStore(callable $callback): array

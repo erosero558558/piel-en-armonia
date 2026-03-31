@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lead/LeadScoringService.php';
 require_once __DIR__ . '/ServiceCatalog.php';
+require_once __DIR__ . '/email.php';
 
 final class LeadOpsService
 {
@@ -352,8 +353,10 @@ final class LeadOpsService
         $summary = [
             'now' => $now ? $now->format(DATE_ATOM) : '',
             'queued' => 0,
+            'emailSent' => 0,
             'alreadySent' => 0,
             'missingPhone' => 0,
+            'missingEmail' => 0,
             'notCompleted' => 0,
             'notDue' => 0,
             'invalidSchedule' => 0,
@@ -384,11 +387,9 @@ final class LeadOpsService
             }
 
             $phone = self::normalizeBirthdayPhone((string) ($appointment['phone'] ?? ''));
-            if ($phone === '') {
-                $summary['missingPhone']++;
-                $summary['skipped']++;
-                continue;
-            }
+            $recipientEmail = function_exists('email_recipient_or_empty')
+                ? email_recipient_or_empty((string) ($appointment['email'] ?? ''))
+                : '';
 
             $scheduledAt = self::buildAppointmentScheduledAt($appointment);
             if ($scheduledAt === null) {
@@ -404,33 +405,59 @@ final class LeadOpsService
                 continue;
             }
 
-            if (!$queueAvailable) {
+            $delivered = false;
+            $channels = [];
+
+            if ($phone === '') {
+                $summary['missingPhone']++;
+            } elseif (!$queueAvailable) {
                 $summary['queueUnavailable']++;
+            } else {
+                $text = self::buildPostConsultationFollowUpText($appointment);
+                $record = whatsapp_openclaw_repository()->enqueueOutbox([
+                    'phone' => $phone,
+                    'source' => 'system',
+                    'type' => 'text',
+                    'text' => $text,
+                    'status' => 'pending',
+                    'priority' => 'normal',
+                    'category' => 'post_consult_follow_up',
+                    'template' => 'post_consult_follow_up_48h',
+                    'meta' => [
+                        'appointmentId' => (int) ($appointment['id'] ?? 0),
+                        'date' => (string) ($appointment['date'] ?? ''),
+                        'time' => (string) ($appointment['time'] ?? ''),
+                        'doctor' => (string) ($appointment['doctor'] ?? ''),
+                    ],
+                ]);
+
+                $appointment['phone'] = $phone;
+                $appointment['followUpOutboxId'] = (string) ($record['id'] ?? '');
+                $appointment['followUpChannel'] = 'whatsapp';
+                $channels[] = 'whatsapp';
+                $delivered = true;
+            }
+
+            if ($recipientEmail === '') {
+                $summary['missingEmail']++;
+            } elseif (maybe_send_post_consultation_followup_email($appointment)) {
+                $appointment['followUpEmailSentAt'] = local_date('c');
+                $appointment['followUpEmailChannel'] = 'email';
+                $channels[] = 'email';
+                $summary['emailSent']++;
+                $delivered = true;
+            }
+
+            if (!$delivered) {
+                $summary['skipped']++;
+                $appointments[$index] = $appointment;
                 continue;
             }
 
-            $text = self::buildPostConsultationFollowUpText($appointment);
-            $record = whatsapp_openclaw_repository()->enqueueOutbox([
-                'phone' => $phone,
-                'source' => 'system',
-                'type' => 'text',
-                'text' => $text,
-                'status' => 'pending',
-                'priority' => 'normal',
-                'category' => 'post_consult_follow_up',
-                'template' => 'post_consult_follow_up_48h',
-                'meta' => [
-                    'appointmentId' => (int) ($appointment['id'] ?? 0),
-                    'date' => (string) ($appointment['date'] ?? ''),
-                    'time' => (string) ($appointment['time'] ?? ''),
-                    'doctor' => (string) ($appointment['doctor'] ?? ''),
-                ],
-            ]);
-
-            $appointment['phone'] = $phone;
             $appointment['followUpSentAt'] = local_date('c');
-            $appointment['followUpChannel'] = 'whatsapp';
-            $appointment['followUpOutboxId'] = (string) ($record['id'] ?? '');
+            if (count($channels) > 1) {
+                $appointment['followUpChannels'] = $channels;
+            }
             $appointments[$index] = $appointment;
             $summary['queued']++;
         }
