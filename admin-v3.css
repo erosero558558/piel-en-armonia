@@ -2855,6 +2855,84 @@ body.admin-v3-mode .settings-completion-pill {
     font-size: 0.82rem;
 }
 
+body.admin-v3-mode .settings-promotion-list {
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .settings-promotion-empty {
+    border: 1px dashed var(--admin3-line);
+    border-radius: 20px;
+    background: var(--admin3-surface-alt);
+    color: var(--admin3-muted);
+    padding: 18px;
+    text-align: center;
+}
+
+body.admin-v3-mode .settings-promotion-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: start;
+    padding: 18px;
+    border-radius: 22px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface-alt);
+}
+
+body.admin-v3-mode .settings-promotion-copy,
+body.admin-v3-mode .settings-promotion-meta {
+    display: grid;
+    gap: 10px;
+}
+
+body.admin-v3-mode .settings-promotion-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+body.admin-v3-mode .settings-promotion-heading strong {
+    font-size: 1rem;
+}
+
+body.admin-v3-mode .settings-promotion-discount {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(201, 169, 110, 0.16);
+    color: var(--admin3-ink);
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body.admin-v3-mode .settings-promotion-copy p,
+body.admin-v3-mode .settings-promotion-meta span {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .settings-promotion-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface);
+    white-space: nowrap;
+}
+
+body.admin-v3-mode .settings-promotion-toggle input {
+    accent-color: var(--admin3-accent, #c9a96e);
+}
+
 body.admin-v3-mode .availability-calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));

@@ -2,6 +2,7 @@
 
 let deps = null;
 let initialized = false;
+let promotionsRequestSequence = 0;
 const completedFormSteps = Object.create(null);
 const formEngagementState = {
     started: false,
@@ -24,6 +25,13 @@ function getBookingFeedbackEl() {
     return (
         document.getElementById('v5-booking-feedback') ||
         document.getElementById('bookingInlineFeedback')
+    );
+}
+
+function getBookingPromotionsEl() {
+    return (
+        document.getElementById('v5-booking-promotions') ||
+        document.getElementById('bookingPromotions')
     );
 }
 
@@ -60,6 +68,83 @@ function clearBookingFeedback() {
     feedback.className = 'booking-inline-feedback is-hidden';
     feedback.setAttribute('role', 'status');
     feedback.setAttribute('aria-live', 'polite');
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function hideBookingPromotions() {
+    const promotions = getBookingPromotionsEl();
+    if (!promotions) return;
+    promotions.innerHTML = '';
+    promotions.classList.add('is-hidden');
+}
+
+function renderBookingPromotions(list = [], options = {}) {
+    const promotions = getBookingPromotionsEl();
+    if (!promotions) return;
+
+    if (options.loading === true) {
+        promotions.innerHTML = `
+            <div class="booking-promotions__header">
+                <p>${escapeHtml(
+                    t(
+                        'Revisando beneficios activos',
+                        'Checking active benefits'
+                    )
+                )}</p>
+                <span class="booking-promotions__badge">${escapeHtml(
+                    t('Buscando...', 'Checking...')
+                )}</span>
+            </div>
+        `;
+        promotions.classList.remove('is-hidden');
+        return;
+    }
+
+    if (!Array.isArray(list) || list.length === 0) {
+        hideBookingPromotions();
+        return;
+    }
+
+    promotions.innerHTML = `
+        <div class="booking-promotions__header">
+            <p>${escapeHtml(
+                t(
+                    'Beneficios activos para esta reserva',
+                    'Active benefits for this booking'
+                )
+            )}</p>
+            <span class="booking-promotions__badge">${escapeHtml(
+                `${list.length} ${t('promo', 'promo')}${list.length === 1 ? '' : 's'}`
+            )}</span>
+        </div>
+        <div class="booking-promotions__list">
+            ${list
+                .map((promotion) => {
+                    const discount = Number(promotion?.discountPercent || 0);
+                    return `
+                        <article class="booking-promotions__item" data-promotion-id="${escapeHtml(
+                            promotion?.id || ''
+                        )}">
+                            <div class="booking-promotions__item-head">
+                                <strong>${escapeHtml(promotion?.title || '')}</strong>
+                                <span>${escapeHtml(`${discount}% OFF`)}</span>
+                            </div>
+                            <p>${escapeHtml(promotion?.description || '')}</p>
+                        </article>
+                    `;
+                })
+                .join('')}
+        </div>
+    `;
+    promotions.classList.remove('is-hidden');
 }
 
 function findFieldByName(form, fieldName) {
@@ -370,6 +455,80 @@ function hasClinicalContext(formData) {
     );
 }
 
+async function loadActivePromotions(appointmentForm, serviceSelect) {
+    if (!appointmentForm) return;
+
+    const emailInput = appointmentForm.querySelector('input[name="email"]');
+    const phoneInput = appointmentForm.querySelector('input[name="phone"]');
+    const nameInput = appointmentForm.querySelector('input[name="name"]');
+
+    const email = String(emailInput?.value || '')
+        .trim()
+        .toLowerCase();
+    const phone = normalizeEcuadorPhone(String(phoneInput?.value || '').trim());
+    const name = String(nameInput?.value || '').trim();
+    const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const hasValidPhone = hasValidPhoneLength(phone);
+
+    if (!hasValidEmail && !hasValidPhone) {
+        promotionsRequestSequence += 1;
+        hideBookingPromotions();
+        return;
+    }
+
+    const params = new URLSearchParams();
+    if (hasValidEmail) {
+        params.set('email', email);
+    }
+    if (hasValidPhone) {
+        params.set('phone', phone);
+    }
+    if (name.length >= 2) {
+        params.set('name', name);
+    }
+    if (serviceSelect && typeof serviceSelect.value === 'string' && serviceSelect.value) {
+        params.set('service', serviceSelect.value);
+    }
+
+    const routeParams = new URLSearchParams(window.location.search);
+    const referralCode =
+        routeParams.get('referral_code') || routeParams.get('ref') || '';
+    if (referralCode) {
+        params.set('referral_code', referralCode);
+    }
+
+    const requestId = ++promotionsRequestSequence;
+    renderBookingPromotions([], { loading: true });
+
+    try {
+        const response = await fetch(
+            `/api.php?resource=active-promotions&${params.toString()}`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                },
+                credentials: 'same-origin',
+            }
+        );
+        const payload = await response.json();
+        if (requestId !== promotionsRequestSequence) {
+            return;
+        }
+
+        renderBookingPromotions(
+            Array.isArray(payload?.data?.promotions)
+                ? payload.data.promotions
+                : []
+        );
+    } catch (_error) {
+        if (requestId !== promotionsRequestSequence) {
+            return;
+        }
+        hideBookingPromotions();
+    }
+}
+
 export function init(inputDeps) {
     deps = inputDeps || deps;
     if (initialized) {
@@ -541,6 +700,9 @@ export function init(inputDeps) {
             });
         }
 
+        loadActivePromotions(appointmentForm, serviceSelect).catch(
+            () => undefined
+        );
         updateAvailableTimes().catch(() => undefined);
     });
 
@@ -593,6 +755,9 @@ export function init(inputDeps) {
             if (validPhoneLength) {
                 trackFormStep('phone_added');
             }
+            loadActivePromotions(appointmentForm, serviceSelect).catch(
+                () => undefined
+            );
         });
         phoneInput.addEventListener('input', () => {
             phoneInput.setCustomValidity('');
@@ -605,6 +770,9 @@ export function init(inputDeps) {
             if ((nameInput.value || '').trim().length >= 2) {
                 trackFormStep('name_added');
             }
+            loadActivePromotions(appointmentForm, serviceSelect).catch(
+                () => undefined
+            );
         });
     }
 
@@ -615,6 +783,9 @@ export function init(inputDeps) {
             if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 trackFormStep('email_added');
             }
+            loadActivePromotions(appointmentForm, serviceSelect).catch(
+                () => undefined
+            );
         });
     }
 
@@ -662,6 +833,10 @@ export function init(inputDeps) {
 
     if (serviceSelect.value) {
         serviceSelect.dispatchEvent(new Event('change'));
+    } else {
+        loadActivePromotions(appointmentForm, serviceSelect).catch(
+            () => undefined
+        );
     }
 
     appointmentForm.addEventListener('submit', async function (e) {

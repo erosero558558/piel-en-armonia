@@ -162,6 +162,32 @@ export function renderSettingsSection() {
                     </form>
                 </article>
 
+                <article class="sony-panel settings-form-panel" style="margin-top: 20px;">
+                    <header class="section-header">
+                        <div>
+                            <h3>Promociones del booking</h3>
+                            <p>Activa o pausa reglas promocionales sin tocar el copy público de campañas.</p>
+                        </div>
+                    </header>
+
+                    <form id="promotionConfigForm" class="settings-form" novalidate>
+                        <div id="promotionConfigList" class="settings-promotion-list" aria-live="polite">
+                            <div class="settings-promotion-empty">Cargando promociones...</div>
+                        </div>
+
+                        <div class="settings-form-actions">
+                            <p id="promotionConfigSaveMeta">Cargando configuración...</p>
+                            <button
+                                type="submit"
+                                id="promotionConfigSaveBtn"
+                                class="admin-v3-command-btn settings-primary-btn"
+                            >
+                                Guardar promociones
+                            </button>
+                        </div>
+                    </form>
+                </article>
+
                 <aside class="settings-rail">
                     <article class="sony-panel soft settings-preview-panel">
                         <header class="section-header">
@@ -200,8 +226,12 @@ export function renderSettingsSection() {
                                 <dd id="clinicProfileUpdatedAt">Sin guardar</dd>
                             </div>
                             <div>
+                                <dt>Ultima actualizacion (Promos)</dt>
+                                <dd id="promotionConfigUpdatedAt">Sin guardar</dd>
+                            </div>
+                            <div>
                                 <dt>Superficies</dt>
-                                <dd>Certificados, recetas y evoluciones</dd>
+                                <dd>Certificados, recetas, evoluciones y booking público</dd>
                             </div>
                         </dl>
                     </article>

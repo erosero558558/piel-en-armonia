@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Promotions Harness</title>
+    </head>
+    <body>
+        <section id="citas">
+            <form id="appointmentForm" class="appointment-form">
+                <label>
+                    <span>Nombre</span>
+                    <input id="appointmentName" name="name" type="text">
+                </label>
+
+                <label>
+                    <span>Email</span>
+                    <input id="appointmentEmail" name="email" type="email">
+                </label>
+
+                <label>
+                    <span>Telefono</span>
+                    <input id="appointmentPhone" name="phone" type="tel">
+                </label>
+
+                <label>
+                    <span>Servicio</span>
+                    <select id="serviceSelect" name="service">
+                        <option value="">Selecciona un servicio</option>
+                        <option
+                            value="acne"
+                            data-price="50"
+                            data-service-tax="0.12"
+                            data-price-total="56"
+                            data-price-label-short="$56.00"
+                            data-price-rule="base_plus_tax"
+                            data-price-disclaimer="Incluye IVA"
+                            data-service-type="clinical"
+                            data-duration-min="30"
+                            selected
+                        >
+                            Acne
+                        </option>
+                    </select>
+                </label>
+
+                <div id="priceSummary" class="is-hidden">
+                    <span id="subtotalPrice"></span>
+                    <span id="ivaPrice"></span>
+                    <span id="totalPrice"></span>
+                </div>
+
+                <p id="selectedPriceLabel"></p>
+                <p id="selectedPriceRule"></p>
+                <p id="selectedServiceMeta"></p>
+                <p id="selectedPriceDisclaimer"></p>
+
+                <div id="bookingInlineFeedback" class="booking-inline-feedback is-hidden"></div>
+                <div id="bookingPromotions" class="booking-promotions is-hidden"></div>
+
+                <button type="submit">Reservar</button>
+            </form>
+        </section>
+
+        <script type="module">
+            await import('/js/engines/booking-ui.js');
+
+            window.Piel.BookingUi.init({
+                apiRequest: async () => ({}),
+                buildAppointmentPayload: async (payload) => payload,
+                debugLog: () => {},
+                getBookedSlots: async () => [],
+                getCasePhotoFiles: () => [],
+                getCurrentAppointment: () => null,
+                getCurrentLang: () => 'es',
+                loadAvailabilityData: async () => ({}),
+                markBookingViewed: () => {},
+                normalizeAnalyticsLabel: (value, fallback) =>
+                    String(value || fallback || ''),
+                openPaymentModal: () => {},
+                setCheckoutStep: () => {},
+                setCurrentAppointment: () => {},
+                showToast: () => {},
+                startCheckoutSession: () => {},
+                trackEvent: () => {},
+                updateAvailableTimes: async () => {},
+                validateCasePhotoFiles: () => {},
+            });
+        </script>
+    </body>
+</html>

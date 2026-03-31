@@ -379,6 +379,129 @@ test.describe('Panel de administracion', () => {
         );
     });
 
+    test('settings guarda los toggles de promociones del booking', async ({
+        page,
+    }) => {
+        const savedConfigs = [];
+        let currentConfig = {
+            updatedAt: '2026-03-30T08:00:00-05:00',
+            promotions: [
+                {
+                    id: 'first_consult',
+                    title: 'Primera consulta',
+                    description:
+                        'Beneficio de bienvenida para pacientes sin historial previo en Aurora Derm.',
+                    discountPercent: 20,
+                    eligibility: ['primera_vez'],
+                    exclusions: ['miembro'],
+                    startsAt: '',
+                    endsAt: '',
+                    active: true,
+                },
+                {
+                    id: 'member_loyalty',
+                    title: 'Beneficio miembro',
+                    description:
+                        'Precio preferencial para pacientes con membresía activa.',
+                    discountPercent: 10,
+                    eligibility: ['miembro'],
+                    exclusions: [],
+                    startsAt: '',
+                    endsAt: '',
+                    active: true,
+                },
+            ],
+        };
+
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_test_token',
+        });
+
+        await installBasicAdminApiMocks(page, {
+            handleRoute: async ({
+                route,
+                resource,
+                method,
+                payload,
+                fulfillJson,
+            }) => {
+                if (resource === 'promotion-config' && method === 'GET') {
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: currentConfig,
+                    });
+                    return true;
+                }
+
+                if (resource === 'promotion-config' && method === 'POST') {
+                    savedConfigs.push(payload);
+                    currentConfig = {
+                        ...currentConfig,
+                        updatedAt: '2026-03-31T09:15:00-05:00',
+                        promotions: currentConfig.promotions.map((rule) => {
+                            const nextRule = (payload.promotions || []).find(
+                                (item) => item.id === rule.id
+                            );
+                            return nextRule
+                                ? {
+                                      ...rule,
+                                      active: nextRule.active === true,
+                                  }
+                                : rule;
+                        }),
+                    };
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: currentConfig,
+                    });
+                    return true;
+                }
+
+                return false;
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+
+        await page
+            .locator('#adminSidebar .nav-item[data-section="settings"]')
+            .click();
+
+        await expect(page.locator('#settings')).toHaveClass(/active/);
+        await expect(
+            page.locator(
+                '#promotionConfigList .settings-promotion-card[data-promotion-id="first_consult"]'
+            )
+        ).toContainText('Primera consulta');
+
+        const firstToggle = page.locator(
+            '[data-promotion-toggle="true"][data-promotion-id="first_consult"]'
+        );
+        await expect(firstToggle).toBeChecked();
+        await firstToggle.uncheck();
+
+        await expect(page.locator('#promotionConfigSaveMeta')).toContainText(
+            'Cambios sin guardar'
+        );
+
+        await page.locator('#promotionConfigSaveBtn').click();
+
+        await expect.poll(() => savedConfigs.length).toBe(1);
+        expect(savedConfigs[0].promotions).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: 'first_consult',
+                    active: false,
+                }),
+            ])
+        );
+        await expect(firstToggle).not.toBeChecked();
+        await expect(page.locator('#promotionConfigUpdatedAt')).toContainText(
+            '2026'
+        );
+    });
+
     test('login legacy de respaldo con contrasena vacia no funciona', async ({
         page,
     }) => {

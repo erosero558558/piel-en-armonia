@@ -84,6 +84,8 @@ final class StorageConfig
             'certificates' => [],
             'prescriptions' => [],
             'checkout_orders' => [],
+            'memberships' => [],
+            'promotion_config' => [],
             'queue_tickets' => [],
             'queue_help_requests' => [],
             'patient_cases' => [],
@@ -187,6 +189,8 @@ final class StorageConfig
         $certificates = isset($store['certificates']) && is_array($store['certificates']) ? $store['certificates'] : [];
         $prescriptions = isset($store['prescriptions']) && is_array($store['prescriptions']) ? $store['prescriptions'] : [];
         $checkoutOrders = isset($store['checkout_orders']) && is_array($store['checkout_orders']) ? $store['checkout_orders'] : [];
+        $memberships = isset($store['memberships']) && is_array($store['memberships']) ? $store['memberships'] : [];
+        $promotionConfig = isset($store['promotion_config']) && is_array($store['promotion_config']) ? $store['promotion_config'] : [];
         $queueTickets = isset($store['queue_tickets']) && is_array($store['queue_tickets']) ? $store['queue_tickets'] : [];
         $queueHelpRequests = isset($store['queue_help_requests']) && is_array($store['queue_help_requests'])
             ? $store['queue_help_requests']
@@ -258,6 +262,8 @@ final class StorageConfig
             'certificates' => $certificates,
             'prescriptions' => $prescriptions,
             'checkout_orders' => array_values($checkoutOrders),
+            'memberships' => array_values($memberships),
+            'promotion_config' => $promotionConfig,
             'queue_tickets' => array_values($queueTickets),
             'queue_help_requests' => array_values($queueHelpRequests),
             'patient_cases' => array_values($patientCases),

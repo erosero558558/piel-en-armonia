@@ -217,6 +217,73 @@ body[data-public-shell-version='v5'] .booking-bridge__mount .booking-step-pill {
     letter-spacing: 0.075em;
 }
 
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(201, 169, 110, 0.28);
+    background:
+        radial-gradient(circle at 100% 0%, rgba(201, 169, 110, 0.16), transparent 38%),
+        linear-gradient(180deg, #fffdf7 0%, #fff8eb 100%);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions.is-hidden {
+    display: none;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__header,
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__header p,
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__item p {
+    margin: 0;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__badge,
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__item-head span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(201, 169, 110, 0.18);
+    color: #6b4c14;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__list {
+    display: grid;
+    gap: 10px;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__item {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(201, 169, 110, 0.22);
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__item strong {
+    color: #2d2410;
+}
+
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__item p,
+body[data-public-shell-version='v5'] .booking-bridge__mount .booking-promotions__header p {
+    color: #5d4b27;
+    line-height: 1.55;
+}
+
 body[data-public-shell-version='v5'] .booking-bridge__mount .booking-pricing-model {
     border-radius: 16px;
     border: 1px solid rgba(31, 94, 255, 0.18);

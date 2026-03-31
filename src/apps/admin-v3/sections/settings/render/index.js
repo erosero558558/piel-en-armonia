@@ -15,6 +15,10 @@ let activeSignatureImage = '';
 let activeLogoImage = '';
 let savingDoctor = false;
 let savingClinic = false;
+let promotionConfig = null;
+let promotionConfigLoaded = false;
+let promotionConfigLoading = false;
+let savingPromotionConfig = false;
 
 function normalizeDoctorProfile(profile) {
     const source = profile && typeof profile === 'object' ? profile : {};
@@ -44,6 +48,40 @@ function normalizeClinicProfile(profile) {
 
 function getClinicProfileFromState() {
     return normalizeClinicProfile(getState()?.data?.clinicProfile || {});
+}
+
+function normalizePromotionRule(rule) {
+    const source = rule && typeof rule === 'object' ? rule : {};
+    const toList = (value) =>
+        Array.isArray(value)
+            ? value
+                  .map((item) => String(item || '').trim())
+                  .filter(Boolean)
+            : [];
+
+    return {
+        id: String(source.id || '').trim(),
+        title: String(source.title || '').trim(),
+        description: String(source.description || '').trim(),
+        discountPercent: Number(source.discountPercent || 0) || 0,
+        eligibility: toList(source.eligibility),
+        exclusions: toList(source.exclusions),
+        startsAt: String(source.startsAt || '').trim(),
+        endsAt: String(source.endsAt || '').trim(),
+        active: source.active === true,
+    };
+}
+
+function normalizePromotionConfig(config) {
+    const source = config && typeof config === 'object' ? config : {};
+    return {
+        updatedAt: String(source.updatedAt || '').trim(),
+        promotions: Array.isArray(source.promotions)
+            ? source.promotions
+                  .map((rule) => normalizePromotionRule(rule))
+                  .filter((rule) => rule.id !== '')
+            : [],
+    };
 }
 
 function countCompletedFields(profile) {
@@ -265,6 +303,165 @@ function saveClinicProfileInState(profile) {
     persistLocalAdminData(nextData);
 }
 
+function formatPromotionTags(values = []) {
+    return values
+        .map((value) => {
+            if (value === 'primera_vez') return 'Primera vez';
+            if (value === 'miembro') return 'Miembro';
+            if (value === 'referido') return 'Referido';
+            return value;
+        })
+        .join(' · ');
+}
+
+function formatPromotionWindow(rule) {
+    const startsAt = String(rule?.startsAt || '').trim();
+    const endsAt = String(rule?.endsAt || '').trim();
+
+    if (startsAt && endsAt) {
+        return `${startsAt} → ${endsAt}`;
+    }
+    if (startsAt) {
+        return `Desde ${startsAt}`;
+    }
+    if (endsAt) {
+        return `Hasta ${endsAt}`;
+    }
+    return 'Siempre activa';
+}
+
+function renderPromotionConfig(root) {
+    const container = qs('#promotionConfigList', root);
+    if (!(container instanceof HTMLElement)) {
+        return;
+    }
+
+    if (!promotionConfigLoaded && promotionConfigLoading) {
+        container.innerHTML =
+            '<div class="settings-promotion-empty">Cargando promociones...</div>';
+        return;
+    }
+
+    const promotions = Array.isArray(promotionConfig?.promotions)
+        ? promotionConfig.promotions
+        : [];
+    if (promotions.length === 0) {
+        container.innerHTML =
+            '<div class="settings-promotion-empty">No hay promociones configuradas.</div>';
+        return;
+    }
+
+    container.innerHTML = promotions
+        .map((rule) => {
+            const eligibility = formatPromotionTags(rule.eligibility);
+            const exclusions = formatPromotionTags(rule.exclusions);
+
+            return `
+                <label class="settings-promotion-card" data-promotion-id="${escapeHtml(rule.id)}">
+                    <div class="settings-promotion-copy">
+                        <div class="settings-promotion-heading">
+                            <strong>${escapeHtml(rule.title)}</strong>
+                            <span class="settings-promotion-discount">${escapeHtml(String(rule.discountPercent))}% OFF</span>
+                        </div>
+                        <p>${escapeHtml(rule.description)}</p>
+                        <div class="settings-promotion-meta">
+                            <span><strong>Elegibilidad:</strong> ${escapeHtml(eligibility || 'General')}</span>
+                            <span><strong>Exclusiones:</strong> ${escapeHtml(exclusions || 'Sin exclusiones')}</span>
+                            <span><strong>Vigencia:</strong> ${escapeHtml(formatPromotionWindow(rule))}</span>
+                        </div>
+                    </div>
+                    <span class="settings-promotion-toggle">
+                        <input
+                            type="checkbox"
+                            data-promotion-toggle="true"
+                            data-promotion-id="${escapeHtml(rule.id)}"
+                            ${rule.active ? 'checked' : ''}
+                        >
+                        <span>${rule.active ? 'Activa' : 'Pausada'}</span>
+                    </span>
+                </label>
+            `;
+        })
+        .join('');
+}
+
+function syncPromotionConfig(root) {
+    renderPromotionConfig(root);
+
+    const form = qs('#promotionConfigForm', root);
+    const dirty = form instanceof HTMLFormElement && form.dataset.dirty === 'true';
+    const updatedAt = String(promotionConfig?.updatedAt || '').trim();
+
+    setText(
+        '#promotionConfigSaveMeta',
+        dirty
+            ? 'Cambios sin guardar.'
+            : updatedAt
+              ? `Actualizado ${formatDateTime(updatedAt)}`
+              : promotionConfigLoading
+                ? 'Cargando configuración...'
+                : 'Sin cambios guardados todavia.'
+    );
+    setText(
+        '#promotionConfigUpdatedAt',
+        updatedAt ? formatDateTime(updatedAt) : 'Sin guardar'
+    );
+}
+
+function readPromotionConfigFromForm(root) {
+    const promotions = Array.isArray(promotionConfig?.promotions)
+        ? promotionConfig.promotions
+        : [];
+
+    return {
+        promotions: promotions.map((rule) => {
+            const checkbox = qs(
+                `[data-promotion-toggle="true"][data-promotion-id="${rule.id}"]`,
+                root
+            );
+            return {
+                id: rule.id,
+                active:
+                    checkbox instanceof HTMLInputElement
+                        ? checkbox.checked
+                        : Boolean(rule.active),
+                startsAt: rule.startsAt,
+                endsAt: rule.endsAt,
+            };
+        }),
+    };
+}
+
+async function ensurePromotionConfigLoaded(root, options = {}) {
+    if (promotionConfigLoading) {
+        return;
+    }
+
+    if (promotionConfigLoaded && options.force !== true) {
+        syncPromotionConfig(root);
+        return;
+    }
+
+    promotionConfigLoading = true;
+    syncPromotionConfig(root);
+
+    try {
+        const response = await apiRequest('promotion-config');
+        promotionConfig = normalizePromotionConfig(response?.data || {});
+        promotionConfigLoaded = true;
+    } catch (error) {
+        promotionConfig = normalizePromotionConfig({});
+        promotionConfigLoaded = true;
+        createToast(
+            error?.message || 'No se pudo cargar la configuración de promociones.',
+            'error'
+        );
+    } finally {
+        promotionConfigLoading = false;
+        syncPromotionConfig(root);
+    }
+}
+
 function attachListeners(root) {
     const form = qs('#doctorProfileForm', root);
     if (!(form instanceof HTMLFormElement) || form.dataset.bound === 'true') {
@@ -371,6 +568,7 @@ export function renderSettingsSection(options = {}) {
 
     attachListeners(root);
     attachClinicListeners(root);
+    attachPromotionListeners(root);
 
     const currentProfile = getDoctorProfileFromState();
     const form = qs('#doctorProfileForm', root);
@@ -411,6 +609,9 @@ export function renderSettingsSection(options = {}) {
             ? formatDateTime(currentClinic.updatedAt)
             : 'Sin guardar'
     );
+
+    void ensurePromotionConfigLoaded(root, options);
+    syncPromotionConfig(root);
 }
 
 function attachClinicListeners(root) {
@@ -499,6 +700,78 @@ function attachClinicListeners(root) {
             if (saveButton instanceof HTMLButtonElement) {
                 saveButton.disabled = false;
                 saveButton.textContent = 'Guardar perfil';
+            }
+        }
+    });
+}
+
+function attachPromotionListeners(root) {
+    const form = qs('#promotionConfigForm', root);
+    if (!(form instanceof HTMLFormElement) || form.dataset.bound === 'true') {
+        return;
+    }
+
+    form.dataset.bound = 'true';
+    form.addEventListener('change', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement)) {
+            return;
+        }
+        if (target.matches('[data-promotion-toggle="true"]')) {
+            const ruleId = String(target.dataset.promotionId || '').trim();
+            if (ruleId && Array.isArray(promotionConfig?.promotions)) {
+                promotionConfig = {
+                    ...promotionConfig,
+                    promotions: promotionConfig.promotions.map((rule) =>
+                        rule.id === ruleId
+                            ? {
+                                  ...rule,
+                                  active: target.checked,
+                              }
+                            : rule
+                    ),
+                };
+            }
+            form.dataset.dirty = 'true';
+            syncPromotionConfig(root);
+        }
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (savingPromotionConfig) {
+            return;
+        }
+
+        const saveButton = qs('#promotionConfigSaveBtn', root);
+        const payload = readPromotionConfigFromForm(root);
+        savingPromotionConfig = true;
+
+        if (saveButton instanceof HTMLButtonElement) {
+            saveButton.disabled = true;
+            saveButton.textContent = 'Guardando...';
+        }
+
+        try {
+            const response = await apiRequest('promotion-config', {
+                method: 'POST',
+                body: payload,
+            });
+            promotionConfig = normalizePromotionConfig(response?.data || {});
+            promotionConfigLoaded = true;
+            form.dataset.dirty = 'false';
+            syncPromotionConfig(root);
+            createToast('Promociones guardadas.', 'success');
+        } catch (error) {
+            createToast(
+                error?.message || 'No se pudo guardar la configuración de promociones.',
+                'error'
+            );
+        } finally {
+            savingPromotionConfig = false;
+            if (saveButton instanceof HTMLButtonElement) {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Guardar promociones';
             }
         }
     });

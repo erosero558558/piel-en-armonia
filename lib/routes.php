@@ -137,6 +137,11 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'gift-card-validate', [GiftCardController::class, 'validate']);
     $router->add('GET', 'gift-cards-expiring', [GiftCardController::class, 'expiring']);
 
+    // Promociones
+    $router->add('GET', 'active-promotions', [PromotionController::class, 'active']);
+    $router->add('GET', 'promotion-config', [PromotionController::class, 'configGet']);
+    $router->add('POST', 'promotion-config', [PromotionController::class, 'configUpdate']);
+
     // Certificados médicos — standalone (lista, crear, PDF)
     $router->add('GET', 'certificate', [CertificateController::class, 'index']);
     $router->add('POST', 'certificate', [CertificateController::class, 'store']);

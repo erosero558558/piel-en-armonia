@@ -608,6 +608,73 @@ main > nav { width: var(--public-width); margin: 0 auto; }
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
+
+.booking-bridge__mount .booking-promotions {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(201, 169, 110, 0.28);
+    background:
+        radial-gradient(circle at 100% 0%, rgba(201, 169, 110, 0.16), transparent 38%),
+        linear-gradient(180deg, #fffdf7 0%, #fff8eb 100%);
+}
+
+.booking-bridge__mount .booking-promotions.is-hidden {
+    display: none;
+}
+
+.booking-bridge__mount .booking-promotions__header,
+.booking-bridge__mount .booking-promotions__item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.booking-bridge__mount .booking-promotions__header p,
+.booking-bridge__mount .booking-promotions__item p {
+    margin: 0;
+}
+
+.booking-bridge__mount .booking-promotions__badge,
+.booking-bridge__mount .booking-promotions__item-head span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(201, 169, 110, 0.18);
+    color: #6b4c14;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.booking-bridge__mount .booking-promotions__list {
+    display: grid;
+    gap: 10px;
+}
+
+.booking-bridge__mount .booking-promotions__item {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(201, 169, 110, 0.22);
+}
+
+.booking-bridge__mount .booking-promotions__item strong {
+    color: #2d2410;
+}
+
+.booking-bridge__mount .booking-promotions__item p,
+.booking-bridge__mount .booking-promotions__header p {
+    color: #5d4b27;
+    line-height: 1.55;
+}
 .booking-bridge__mount .booking-inline-feedback {
     border-radius: 16px;
     background: rgba(23, 66, 209, 0.08);

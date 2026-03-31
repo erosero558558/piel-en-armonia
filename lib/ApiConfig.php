@@ -17,6 +17,7 @@ class ApiConfig
             'availability:GET' => [60, 60],
             'reviews:GET' => [60, 60],
             'booked-slots:GET' => [60, 60],
+            'active-promotions:GET' => [60, 60],
             'queue-state:GET' => [180, 60],
             'services-catalog:GET' => [60, 60],
             'service-priorities:GET' => [60, 60],
@@ -116,6 +117,8 @@ class ApiConfig
             'media-flow-proposal-review:POST' => [30, 60],
             'media-flow-publication-state:POST' => [30, 60],
             'checkout-orders:PATCH' => [30, 60],
+            'promotion-config:GET' => [60, 60],
+            'promotion-config:POST' => [20, 60],
 
             // Predictions
             'predictions:GET' => [20, 60],
@@ -133,6 +136,7 @@ class ApiConfig
             ['method' => 'GET', 'resource' => 'availability'],
             ['method' => 'GET', 'resource' => 'reviews'],
             ['method' => 'GET', 'resource' => 'booked-slots'],
+            ['method' => 'GET', 'resource' => 'active-promotions'],
             ['method' => 'GET', 'resource' => 'queue-state'],
             ['method' => 'GET', 'resource' => 'services-catalog'],
             ['method' => 'GET', 'resource' => 'service-priorities'],

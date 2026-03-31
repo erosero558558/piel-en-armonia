@@ -1872,7 +1872,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 17.5 Conversión de páginas a ventas
 
-- [ ] **S17-10** `[M]` Motor de promociones con elegibilidad — `es/promociones/index.html` existe como copy estático. Crear `lib/promotions/PromotionEngine.php`: promotional rule (vigencia, elegibilidad: primera_vez|miembro|referido, descuento, exclusiones). Admin puede activar/desactivar promos. En booking: `GET /api.php?resource=active-promotions` → lista de promos aplicables al paciente. Verificable: un paciente nueva visita ve promo "Primera consulta" y otro con membresía no la ve (exclusión).
+- [x] **S17-10** `[M]` Motor de promociones con elegibilidad — `es/promociones/index.html` existe como copy estático. Crear `lib/promotions/PromotionEngine.php`: promotional rule (vigencia, elegibilidad: primera_vez|miembro|referido, descuento, exclusiones). Admin puede activar/desactivar promos. En booking: `GET /api.php?resource=active-promotions` → lista de promos aplicables al paciente. Verificable: un paciente nueva visita ve promo "Primera consulta" y otro con membresía no la ve (exclusión).
 - [ ] **S17-15** `[M]` Social proof dinámico por servicio — `es/servicios/*/index.html` tiene testimonios estáticos. Conectar con reviews reales: `GET /api.php?resource=reviews?service=botox` → `{rating, count, latest[3]}`. Mostrar rating con estrellas y los 3 testimonios más recientes en cada página de servicio. Fallback elegante si no hay reviews. Verificable: `grep "dynamic-reviews" es/servicios/botox/index.html` → match.
 
 #### 17.6 Turnero como producto vendible
@@ -1935,4 +1935,3 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S19-16** `[M]` Sentry aterrizado en runtime — `SENTRY_AUTH_TOKEN` y `SENTRY_ORG` siguen como `missing_env` en runtime. Configurar en CI Secrets + `monitoring-loader.js`. Verificable: `node bin/audit.js` → `sentry.configured: true`, sin `missing_env` en Sentry section.
 - [ ] **S19-17** `[M]` Dead endpoints en routes.php — auditoría identificó rutas que apuntan a controllers inexistentes. Crear suite `tests/Unit/RoutesIntegrityTest.php` que para cada ruta registrada verifique que el controller::method existe. Verificable: 0 rutas huérfanas en PHPUnit.
 - [ ] **S19-18** `[S]` Métricas de WhatsApp OpenClaw en dashboard — `GET /api.php?resource=whatsapp-openclaw-metrics` con `{conversations_total, holds_active, handoff_pending, outbox_failed, conversion_rate}`. Verificable: el endpoint devuelve JSON con todos los campos aunque sean 0.
-
