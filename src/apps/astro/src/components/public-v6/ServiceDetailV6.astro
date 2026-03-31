@@ -96,6 +96,13 @@ if (faqModels.length) {
         sectionMenuItems.push(faqItem);
     }
 }
+const socialProof = service.socialProof && typeof service.socialProof === 'object' ? service.socialProof : null;
+if (socialProof) {
+    const socialProofItem = makeMenuItem(socialProof.title || '', '#v6-service-casos-clinicos');
+    if (socialProofItem) {
+        sectionMenuItems.push(socialProofItem);
+    }
+}
 if (safeRelated.length) {
     const relatedItem = makeMenuItem(menuUi.related || '', '#v6-service-related');
     if (relatedItem) {
@@ -361,6 +368,51 @@ const heroMenuItems = sectionMenuItems.slice(0, 3);
                 ) : null
             }
         </section>
+
+        {
+            socialProof ? (
+                <section id="v6-service-casos-clinicos" class="v6-service-detail v6-service-detail--shell">
+                    <article class="v6-service-detail__column v6-service-detail__full">
+                        <header class="v6-service-detail__head">
+                            <p class="v6-service-detail__index">04</p>
+                            <h3>{socialProof.title}</h3>
+                        </header>
+                        
+                        <p style="margin-bottom: 24px; color: var(--pub-text-muted); font-size: var(--text-md);">{socialProof.intro}</p>
+
+                        <div class="social-proof-widget">
+                            <blockquote class="social-proof-quote">
+                                "{socialProof.quote}"
+                            </blockquote>
+                            <div class="social-proof-meta">
+                                <div class="social-proof-author">{socialProof.author}</div>
+                                <div class="social-proof-service">{socialProof.serviceInfo}</div>
+                            </div>
+                            
+                            <details class="social-proof-before-after">
+                                <summary>{locale === 'en' ? 'View documented case (Images)' : 'Ver caso clínico documentado (Imágenes)'}</summary>
+                                <div class="social-proof-images">
+                                    <div class="image-box">
+                                        <span>{socialProof.beforeLabel}</span>
+                                        <div style="background-color: var(--pub-bg-surface); height: 260px; border-radius: var(--radius-md); display:flex; flex-direction: column; align-items:center; justify-content:center; border: 1px dashed var(--pub-border); color: var(--color-stone-400);">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                            <span style="display:block; font-size:var(--text-xs); margin-top:8px;">{locale === 'en' ? 'Photo Archive 01' : 'Archivo Fotográfico 01'}</span>
+                                        </div>
+                                    </div>
+                                    <div class="image-box">
+                                        <span>{socialProof.afterLabel}</span>
+                                        <div style="background-color: var(--pub-bg-surface); height: 260px; border-radius: var(--radius-md); display:flex; flex-direction: column; align-items:center; justify-content:center; border: 1px dashed var(--pub-border); color: var(--color-stone-400);">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                            <span style="display:block; font-size:var(--text-xs); margin-top:8px;">{locale === 'en' ? 'Photo Archive 02' : 'Archivo Fotográfico 02'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </article>
+                </section>
+            ) : null
+        }
 
         {
             safeRelated.length ? (

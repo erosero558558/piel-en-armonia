@@ -1453,7 +1453,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ### ⚙️ Sprint 8 — Operación Real, Deuda Desktop y Hardening
 
-> Deuda técnica y operativa detectada en el audit del 30-mar-2026. Prerequisito para que kiosco, sala_tv, turnero y auth funcionen sin sorpresas en producción. \*_Sprint 11 (multi-sede) postergado hasta post-lanzamiento junio 2026._
+> Deuda técnica y operativa detectada en el audit del 30-mar-2026. Prerequisito para que kiosco, sala*tv, turnero y auth funcionen sin sorpresas en producción. \*\_Sprint 11 (multi-sede) postergado hasta post-lanzamiento junio 2026.*
 
 #### 8.1 Desktop y distribución
 
@@ -1634,7 +1634,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S12-24** `[M]` Recovery para booking abandonado — si alguien inicia el booking pero no confirma en 30 minutos, activar WhatsApp con slot sugerido y link directo al paso donde quedó. `lib/booking/AbandonedBookingService.php`. Requiere que el usuario haya dado teléfono en paso 1.
 - [ ] **S12-25** `[S]` Source-to-revenue attribution v1 — conectar: `lead.source` → cita creada → tratamiento iniciado → monto. Estimación, no exacta. Endpoint `GET /api.php?resource=attribution-report`. Da a marketing una evidencia real del canal que funciona.
-- [ ] **S12-26** `[M]` `[UI]` Social proof surface system — decidir dónde y cómo mostrar testimonios, before/after y reseñas por página de servicio. Componente `SocialProofWidget` en `components.css`: testimonio + servicio + foto antes/después colapsable. Sin saturar el diseño.
+- [x] **S12-26** `[M]` `[UI]` Social proof surface system — decidir dónde y cómo mostrar testimonios, before/after y reseñas por página de servicio. Componente `SocialProofWidget` en `styles/components.css`: testimonio + servicio + foto antes/después colapsable. Sin saturar el diseño.
 - [ ] **S12-27** `[M]` `[UI]` Authority page de la doctora — página premium `/es/equipo/` o `/es/doctora/`: foto editorial, trayectoria, enfoque clínico, especializaciones, publicaciones si existen, diferenciadores reales. `Instrument Serif` para el nombre, tonos dorados. La página que el paciente lee antes de confiar.
 - [ ] **S12-28** `[M]` Clinic story / brand narrative — construir narrativa de marca más fuerte y específica en `index.html` y `es/index.html`: por qué Aurora Derm existe, qué problema resuelve que otros no, qué tipo de paciente atiende mejor. No genérico. Entregable: copy revisado + `brand-narrative.md` como brief.
 - [ ] **S12-29** `[M]` Competitor differentiation audit — revisar cómo se diferencia Aurora Derm de otras clínicas dermatológicas en Quito. Formato: `docs/COMPETITIVE_ANALYSIS.md` con tabla 5 competidores × 8 dimensiones. Insumo para S12-28 y para OpenClaw explainability (S9-26).
@@ -1711,7 +1711,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### UI3-C Admin UX — detalles que usa el médico 8h al día
 
 - [x] **UI3-06** `[L]` `[UI]` Admin responsive para tablet — `styles/aurora-admin.css` tiene 0 media queries para 768px o 1024px. Los médicos frecuentemente usan iPads en consultorios. El admin debe ser usable en pantalla de 768px: sidebar colapsable (toggle con hamburger), cards de KPI en 2 columnas, tabla de pacientes con columnas priorizadas (nombre, estado, próxima cita) y scroll horizontal para el resto. CSS en `aurora-admin.css`. Verificable: `grep "@media.*768" styles/aurora-admin.css` → ≥3 matches.
-- [x] **UI3-07** `[M]` `[UI]` Empty states en todos los paneles admin — `admin.html` tiene 0 referencias a `.empty-state`. Cuando no hay pacientes hoy, o no hay turnos activos, o la agenda está vacía, el médico ve un espacio en blanco que parece un bug. Crear componente `.empty-state` en `components.css`: icono grande + título + subtítulo + CTA opcional. Variantes: `empty-state--patients`, `empty-state--agenda`, `empty-state--queue`, `empty-state--notifications`. Frases amigables: "Sin citas hoy — disfruta el respiro ☀️". Verificable: `grep "empty-state" components.css` → ≥5 variantes.
+- [x] **UI3-07** `[M]` `[UI]` Empty states en todos los paneles admin — `admin.html` tiene 0 referencias a `.empty-state`. Cuando no hay pacientes hoy, o no hay turnos activos, o la agenda está vacía, el médico ve un espacio en blanco que parece un bug. Crear componente `.empty-state` en `styles/components.css`: icono grande + título + subtítulo + CTA opcional. Variantes: `empty-state--patients`, `empty-state--agenda`, `empty-state--queue`, `empty-state--notifications`. Frases amigables: "Sin citas hoy — disfruta el respiro ☀️". Verificable: `grep "empty-state" components.css` → ≥5 variantes.
 - [x] **UI3-08** `[M]` `[UI]` Búsqueda de paciente en tiempo real — el admin actual tiene `<select>` estático o búsqueda sin debounce. Añadir a `js/admin-search.js`: input con debounce 250ms → `GET /api.php?resource=patient-search&q=...` → dropdown con resultados instantáneo. Cada resultado: foto de avatar (iniciales si no hay foto), nombre, RUC/CI, última visita. Seleccionar rellena el formulario activo. Atajos: `Escape` cierra, `Enter` selecciona primero. `aria-expanded`, `role="listbox"`, `role="option"`. Verificable: `grep "debounce\|patient-search" js/admin-search.js` → match.
 - [x] **UI3-09** `[S]` `[UI]` Breadcrumb de navegación en admin — el médico abre una ficha de paciente y no sabe cómo volver. 0 breadcrumbs detectados. Añadir barra fija debajo del header: `Inicio / Pacientes / Juan García / Consulta #47`. CSS en `aurora-admin.css`: `.breadcrumb a { color: --color-aurora-400; }`. `<nav aria-label="breadcrumb">` para accesibilidad. Verificable: `grep "breadcrumb" admin.html` → ≥1 match con aria-label.
 - [x] **UI3-10** `[M]` `[UI]` Dark mode toggle persistente en admin — `admin.html` tiene 1 referencia a `data-theme` pero sin toggle UI visible y sin `localStorage`. El token `[data-theme="dark"]` ya está preparado en `tokens.css` (según DESIGN_SYSTEM.md). Añadir: botón toggle 🌙/☀️ en el header del admin, `js/aurora-theme.js` que lee `localStorage.getItem('aurora-theme')` al cargar y lo aplica al `<html>`. Sin preferencia: respetar `prefers-color-scheme`. Verificable: `grep "localStorage.*theme" js/aurora-theme.js` → match.
@@ -1843,7 +1843,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S16-11** `[M]` Guard de drift para openapi-openclaw.yaml — si un endpoint OpenClaw cambia en backend pero no en el YAML, nadie lo detecta. Crear `bin/check-openapi-drift.js`: leer `openapi-openclaw.yaml`, extraer paths/operations, comparar con endpoints registrados en `routes.php` o `OpenclawController.php`. Si hay diff → exit 1 con lista de discrepancias. Añadir como step en CI. Verificable: añadir ruta a OpenclawController sin actualizar YAML → `node bin/check-openapi-drift.js` → exit 1.
 - [ ] **S16-12** `[S]` Release pack de schema para Custom GPT — versionar `openapi-openclaw.yaml` y `docs/chatgpt-custom-gpt-instructions.md` juntos. Añadir campo `x-schema-version: YYYY-MM-DD-hash` al YAML. Crear `bin/gen-gpt-schema-pack.js` que genera `docs/gpt-schema-pack-latest.md` con: versión, hash del YAML, fecha, instrucciones de importación. El equipo médico puede ver qué schema está vigente sin revisar git. Verificable: `node bin/gen-gpt-schema-pack.js && grep "x-schema-version" docs/gpt-schema-pack-latest.md` → match.
 
-
 ---
 
 ### 💰 Sprint 17 — Producto y Monetización Real
@@ -1879,7 +1878,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S17-16** `[M]` Clinic onboarding wizard persistente — el onboarding console actual es JS estático sin persistencia. Convertir en flujo con progreso real: Paso 1 Config básica → Paso 2 Staff → Paso 3 Servicios → Paso 4 Superficies → Paso 5 Test final. Progreso guardado en store. "Next best action" visible. Backend: `GET /api.php?resource=onboarding-status?clinic_id=X` → `{step, percent, blockers[]}`. Verificable: interrumpir onboarding y retomar → estado conservado.
 - [ ] **S17-17** `[M]` Package selector integrado al clinic profile — al completar el onboarding, mostrar packages/planes disponibles del software (Básico/Pro/Enterprise) con features comparativas. Selección persiste en `clinic-profile`. Admin puede ver qué plan tiene cada clínica. Verificable: `GET /api.php?resource=clinic-profile?clinic_id=X` → campo `software_plan` present.
-
 
 ---
 

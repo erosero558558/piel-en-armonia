@@ -14,6 +14,7 @@
 #v6-service-checkpoints,
 #v6-service-process,
 #v6-service-faq,
+#v6-service-casos-clinicos,
 #v6-service-related,
 #v6-tele-initiatives,
 [data-v6-tele-block] {
@@ -81,7 +82,7 @@
 }
 
 .v6-statement-band__content h2 {
-    color: #f4f7fb;
+    color: var(--pub-bg-base);
     font-family: var(--v6-font-display);
     font-size: clamp(34px, 2.6vw, 46px);
     line-height: 1.04;
@@ -292,7 +293,7 @@
 }
 
 .v6-service-glance article.is-lead h3 {
-    color: #f4f7fb;
+    color: var(--pub-bg-base);
 }
 
 .v6-service-detail__column {
@@ -341,7 +342,7 @@
 .v6-service-detail__column--checkpoints h3,
 .v6-service-detail__column--checkpoints .v6-service-checklist p,
 .v6-service-detail__column--checkpoints .v6-service-checklist__dot {
-    color: #f4f7fb;
+    color: var(--pub-bg-base);
 }
 
 .v6-service-detail__column--checkpoints .v6-service-detail__index {
@@ -560,7 +561,7 @@
 }
 
 .v6-related-grid a.is-lead h3 {
-    color: #f4f7fb;
+    color: var(--pub-bg-base);
 }
 
 .v6-related-grid a.is-lead .v6-related-grid__summary {
@@ -608,7 +609,7 @@
 
 .v6-tele-kpis h3 {
     margin-top: 9px;
-    color: #f4f7fb;
+    color: var(--pub-bg-base);
     font-family: var(--v6-font-display);
     font-size: clamp(30px, 2.2vw, 42px);
     letter-spacing: -0.03em;
@@ -791,7 +792,7 @@
 }
 
 .v6-tele-grid article[data-v6-tele-block-variant='fit'] h3 {
-    color: #f4f7fb;
+    color: var(--pub-bg-base);
 }
 
 .v6-tele-grid article[data-v6-tele-block-variant='fit'] li {

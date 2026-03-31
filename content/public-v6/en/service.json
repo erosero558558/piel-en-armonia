@@ -125,7 +125,16 @@
             "cardAssetId": "v6-clinic-acne-rosacea",
             "cardAlt": "Dermatology follow-up for inflammation and skin sensitivity",
             "statementAssetId": "v6-clinic-statement-clinical-direction",
-            "statementAlt": "Clinical dermatology direction with a structured read"
+            "statementAlt": "Clinical dermatology direction with a structured read",
+            "socialProof": {
+                "title": "Real Medical Results",
+                "intro": "Photographic documentation and clinical testimony are the best proof of the Aurora Derm approach.",
+                "quote": "My skin changed radically in 3 months. The doctor explained why commercial creams irritated me, adjusted my routine, and with the laser we managed to control the rosacea.",
+                "author": "Female Patient, 28 years old",
+                "serviceInfo": "Treatment: Rosacea Control Protocol + Laser",
+                "beforeLabel": "Day 0 - Active inflammation",
+                "afterLabel": "Day 90 - Medical discharge"
+            }
         },
         {
             "slug": "verrugas",
