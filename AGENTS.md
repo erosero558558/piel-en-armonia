@@ -1830,7 +1830,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 16.4 Logging y Papertrail
 
-- [ ] **S16-07** `[M]` Smoke de entrega Papertrail — `lib/logger.php` intenta enviar logs por UDP a Papertrail pero no hay smoke ni evidencia operativa de que el canal esté vivo. Crear `tests/smoke/PapertrailSmokeTest.php`: inicializar Logger, enviar mensaje de prueba `[smoke] aurora-derm test`, verificar que no lanza excepción y que el payload UDP tiene el formato mínimo correcto (facility, severity, timestamp, message). Fallback a stderr si `PAPERTRAIL_HOST` no está. Verificable: `php tests/smoke/PapertrailSmokeTest.php` → exit 0.
+- [x] **S16-07** `[M]` Smoke de entrega Papertrail — `lib/logger.php` intenta enviar logs por UDP a Papertrail pero no hay smoke ni evidencia operativa de que el canal esté vivo. Crear `tests/smoke/PapertrailSmokeTest.php`: inicializar Logger, enviar mensaje de prueba `[smoke] aurora-derm test`, verificar que no lanza excepción y que el payload UDP tiene el formato mínimo correcto (facility, severity, timestamp, message). Fallback a stderr si `PAPERTRAIL_HOST` no está. Verificable: `php tests/smoke/PapertrailSmokeTest.php` → exit 0.
 
 #### 16.5 Documentación de observabilidad
 

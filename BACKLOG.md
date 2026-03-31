@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 11:17:57 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 11:29:31 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **52%** completado (232/449)
+`██████████░░░░░░░░░░` **52%** completado (234/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -22,14 +22,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint 8 | 8 | 9 | 47% |
-| ⏸ Sprint 9 | 2 | 25 | 7% |
+| ⏸ Sprint 9 | 3 | 24 | 11% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
 | ⏸ Sprint 13 | 4 | 17 | 19% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
 | ⏸ Sprint 14 | 2 | 12 | 14% |
 | ⏸ Sprint 15 | 1 | 12 | 8% |
-| ⏸ Sprint 16 | 7 | 6 | 54% |
+| ⏸ Sprint 16 | 8 | 5 | 62% |
 | ⏸ Sprint 17 | 0 | 12 | 0% |
 | ⏸ Sprint 18 | 0 | 4 | 0% |
 
@@ -144,7 +144,7 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 | ... | | _+4 más_ |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
-_Esperando que Sprint anterior esté completo. 25 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 
 ### 🟢 Disponibles (24)
 
@@ -156,10 +156,6 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 | **S9-04** | `[S9]` | M |
 | **S9-07** | `[S9]` | S |
 | ... | | _+19 más_ |
-
-### 🔒 En progreso — NO tomar
-
-- **S9-06** `[S9]` → _Codex-erosero558558_ (expira en 219min)
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
@@ -241,18 +237,17 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | ... | | _+7 más_ |
 
 ## ⏸ Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
-_Esperando que Sprint anterior esté completo. 6 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 5 tareas pendientes._
 
-### 🟢 Disponibles (6)
+### 🟢 Disponibles (5)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S16-07** | `[S16]` | M |
 | **S16-08** | `[S16]` | M |
 | **S16-09** | `[S16]` | S |
 | **S16-10** | `[S16]` | M |
 | **S16-11** | `[S16]` | M |
-| ... | | _+1 más_ |
+| **S16-12** | `[S16]` | S |
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
