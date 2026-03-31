@@ -232,7 +232,17 @@ function readJson(relativePath) {
     if (cache.has(key)) {
         return cache.get(key);
     }
-    const raw = fs.readFileSync(filePath, 'utf8');
+    let raw = fs.readFileSync(filePath, 'utf8');
+
+    try {
+        const configPath = path.join(REPO_ROOT, 'data/clinic-config.json');
+        const clinicConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        const waNumber = clinicConfig.whatsapp.replace('+', '');
+        raw = raw.replace(/593982453672/g, waNumber);
+    } catch (err) {
+        // Fallback silently
+    }
+
     const parsed = JSON.parse(raw);
     cache.set(key, parsed);
     return parsed;

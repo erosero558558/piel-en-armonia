@@ -43,7 +43,15 @@ const PUBLIC_V3_SECTIONS = [
 ];
 
 function readJsonFile(filePath) {
-    const payload = fs.readFileSync(filePath, 'utf8');
+    let payload = fs.readFileSync(filePath, 'utf8');
+
+    try {
+        const configPath = path.join(REPO_ROOT, 'data/clinic-config.json');
+        const clinicConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        const waNumber = clinicConfig.whatsapp.replace('+', '');
+        payload = payload.replace(/593982453672/g, waNumber);
+    } catch(err) {}
+
     return JSON.parse(payload);
 }
 

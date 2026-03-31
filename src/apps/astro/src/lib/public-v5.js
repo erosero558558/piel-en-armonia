@@ -86,7 +86,14 @@ function readV5NavigationConfig() {
     }
 
     try {
-        const raw = fs.readFileSync(V5_NAVIGATION_PATH, 'utf8');
+        let raw = fs.readFileSync(V5_NAVIGATION_PATH, 'utf8');
+        try {
+            const configPath = path.join(REPO_ROOT, 'data/clinic-config.json');
+            const clinicConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            const waNumber = clinicConfig.whatsapp.replace('+', '');
+            raw = raw.replace(/593982453672/g, waNumber);
+        } catch (err) {}
+
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
             v5NavigationConfigCache = parsed;
