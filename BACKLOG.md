@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:13:44 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 5:29:07 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **57%** completado (258/449)
+`███████████░░░░░░░░░` **56%** completado (260/467)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -28,10 +28,11 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 13 | 4 | 17 | 19% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
 | ⏸ Sprint 14 | 2 | 12 | 14% |
-| ⏸ Sprint 15 | 1 | 12 | 8% |
+| ⏸ Sprint 15 | 3 | 10 | 23% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
 | ⏸ Sprint 17 | 8 | 4 | 67% |
 | ⏸ Sprint 18 | 2 | 2 | 50% |
+| ⏸ Sprint 19 | 0 | 18 | 0% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -141,7 +142,7 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
 _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 
-### 🟢 Disponibles (20)
+### 🟢 Disponibles (19)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -149,8 +150,12 @@ _Esperando que Sprint anterior esté completo. 20 tareas pendientes._
 | **S9-02** | `[S9]` | M |
 | **S9-03** | `[S9]` | L |
 | **S9-04** | `[S9]` | M |
-| **S9-11** | `[S9]` | M |
-| ... | | _+15 más_ |
+| **S9-12** | `[S9]` | S |
+| ... | | _+14 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S9-11** `[S9]` → _codex_ (expira en 221min)
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
@@ -218,18 +223,18 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | ... | | _+7 más_ |
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
-_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 10 tareas pendientes._
 
-### 🟢 Disponibles (12)
+### 🟢 Disponibles (10)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S15-02** | `[S15]` | S |
-| **S15-03** | `[S15]` | S |
 | **S15-04** | `[S15]` | M |
 | **S15-05** | `[S15]` | M |
 | **S15-06** | `[S15]` | S |
-| ... | | _+7 más_ |
+| **S15-08** | `[S15]` | M |
+| ... | | _+5 más_ |
 
 ## ✅ Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
 _Sprint completado. 13/13 tareas._
@@ -255,6 +260,20 @@ _Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 |----|--------|-------|
 | **S18-11** | `[S18]` | M |
 | **S18-12** | `[S18]` | M |
+
+## ⏸ Sprint 19 — Notificaciones, WhatsApp Ops y Android TV
+_Esperando que Sprint anterior esté completo. 18 tareas pendientes._
+
+### 🟢 Disponibles (18)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S19-01** | `[S19]` | M |
+| **S19-02** | `[S19]` | M |
+| **S19-03** | `[S19]` | S |
+| **S19-04** | `[S19]` | M |
+| **S19-05** | `[S19]` | M |
+| ... | | _+13 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

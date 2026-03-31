@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/memberships/MembershipService.php';
 require_once __DIR__ . '/../lib/packages/PackageService.php';
+require_once __DIR__ . '/../lib/PatientPortalAuth.php';
 
 /**
  * MembershipController — S17-06, S17-07, S17-08
@@ -23,6 +24,15 @@ final class MembershipController
     {
         $store     = is_array($context['store'] ?? null) ? $context['store'] : [];
         $patientId = trim((string) ($_GET['patient_id'] ?? ''));
+
+        if ($patientId === '') {
+            $authSession = PatientPortalAuth::authenticateSession($store, PatientPortalAuth::bearerTokenFromRequest());
+            if (($authSession['ok'] ?? false) === true) {
+                $sessionData = is_array($authSession['data'] ?? null) ? $authSession['data'] : [];
+                $patientInfo = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+                $patientId   = (string) ($patientInfo['id'] ?? '');
+            }
+        }
 
         if ($patientId === '') {
             json_response(['ok' => false, 'error' => 'patient_id requerido'], 400);

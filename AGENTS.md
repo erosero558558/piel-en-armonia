@@ -1785,14 +1785,14 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S15-01** `[S]` Mejorar regex en `bin/velocity.js` — ✅ _Corregido hoy mismo por el Gobernador._ Las 3 regex `S\d+` ahora capturan `(?:S\d+|UI\d*)-[A-Z0-9]+`. Verificar que las proyecciones de velocidad cuentan los 37 tasks UI de Fase 1/2/3 y los 99 de S8-S14. Refina: extender además la búsqueda de "sprints críticos para junio" para incluir S8/S9 como high-priority además de Sprint 3. Verificable: `node bin/velocity.js --json | jq .totalTasks` → ≥407.
 - [ ] **S15-02** `[S]` Mejorar regex en `bin/stuck.js` — ✅ _Corregido hoy mismo._ La validación `^S\d+-[A-Z0-9]+$` bloqueaba silenciosamente a cualquier agente tratando de marcar stuck una tarea UI. Ahora acepta `^(S\d+|UI\d*)-[A-Z0-9]+$`. Verificable: `node bin/stuck.js UI2-07 "test"` → no sale "Usage:" de ID inválido.
-- [ ] **S15-03** `[S]` `bin/dispatch.js` — actualizar `prefer[]` de roles para S8-S14 — el array `prefer` del rol `backend` solo lista tasks S3-XX. Con 99 tareas nuevas en S8-S14, el dispatch nunca las prioriza. Añadir a `backend prefer[]`: `'S8-05', 'S8-06', 'S8-07', 'S8-12', 'S8-20', 'S9-08', 'S10-06', 'S14-13'`. Añadir a `frontend prefer[]`: `'S9-01', 'S9-09', 'S10-01', 'S10-25', 'S12-17'`. Añadir a `devops prefer[]`: `'S14-00', 'S14-02', 'S14-06', 'S14-07', 'S14-09', 'S13-04'`. Verificable: `npm run dispatch:backend` → retorna alguna tarea de S8/S9/S10.
+- [x] **S15-03** `[S]` `bin/dispatch.js` — actualizar `prefer[]` de roles para S8-S14 — el array `prefer` del rol `backend` solo lista tasks S3-XX. Con 99 tareas nuevas en S8-S14, el dispatch nunca las prioriza. Añadir a `backend prefer[]`: `'S8-05', 'S8-06', 'S8-07', 'S8-12', 'S8-20', 'S9-08', 'S10-06', 'S14-13'`. Añadir a `frontend prefer[]`: `'S9-01', 'S9-09', 'S10-01', 'S10-25', 'S12-17'`. Añadir a `devops prefer[]`: `'S14-00', 'S14-02', 'S14-06', 'S14-07', 'S14-09', 'S13-04'`. Verificable: `npm run dispatch:backend` → retorna alguna tarea de S8/S9/S10.
 
 #### 15.2 Convergencia e integridad del board
 
 - [ ] **S15-04** `[M]` Sistema de evidencia para tareas done — la falla de S4-08 (done sin archivo) debe ser imposible en el futuro. Añadir a `bin/gate.js` un "generic evidence check": si la tarea tiene una referencia a un archivo explícito (ej: `es/paquetes/index.html`, `js/aurora-toast.js`), el gate verifica que el archivo exista antes de aceptar el done. Regex de extracción: `[\`'"]([a-z][a-z\/\-\.]+\.[a-z]{2,5})[\`'"]`dentro del texto de la tarea. Verificable:`node bin/gate.js S4-08` → error si el archivo no existe.
 - [ ] **S15-05** `[M]` Alertas de claim abandonado — `bin/claim.js` detecta claims expiradas pero no notifica a nadie. Añadir: cuando `list` se ejecuta, si hay claims con `expiresAt` < now, mostrar sección "⚠️ Claims expiradas:" con nombre de tarea y agente. Añadir campo `expiryWarning` en `agent-orchestrator status --json` para que los dashboards lo consuman. Verificable: un claim con fecha pasada aparece en el output de `node bin/claim.js list`.
 - [ ] **S15-06** `[S]` Detector de commits done sin claim — hoy un agente puede marcar `[x]` en AGENTS.md y hacer commit sin haber hecho `claim.js claim` primero. Añadir check en `sync-backlog.js`: si la tarea acaba de pasar de `[ ]` a `[x]` (detectar diff en AGENTS.md), verificar que existe `data/claims/tasks/<ID>.json`. Si no existe → warning en el output (no error — el gobernador puede hacer done directos). Verificable: `npm run sync:backlog` → advierte si hay done sin claim.
-- [ ] **S15-07** `[S]` `bin/audit.js` — integrar `verify-scripts.js` — el `gov:audit` no llama a `verify-scripts.js`. Añadir al pipeline de audit: spawn de `node bin/verify-scripts.js`, capturar el JSON de `governance/broken-scripts.json` y añadir sección "Scripts rotos" al reporte. Verificable: `npm run gov:audit` → muestra tabla de scripts rotos + conteo.
+- [x] **S15-07** `[S]` `bin/audit.js` — integrar `verify-scripts.js` — el `gov:audit` no llama a `verify-scripts.js`. Añadir al pipeline de audit: spawn de `node bin/verify-scripts.js`, capturar el JSON de `governance/broken-scripts.json` y añadir sección "Scripts rotos" al reporte. Verificable: `npm run gov:audit` → muestra tabla de scripts rotos + conteo.
 
 #### 15.3 Nuevas herramientas de autosanación
 
@@ -1895,3 +1895,44 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S18-11** `[M]` Knowledge base contextual en admin/operator — hoy hay páginas de FAQ externas. Falta: panel de ayuda in-app en `admin.html` y `operator.html`. Botón "?" en header que abre sidebar con artículos filtrados según la pantalla activa. Artículos en JSON `data/kb/articles.json`. Motor de búsqueda simple (filtro por keyword). Sin esto el operador sale del sistema para buscar ayuda y se pierde el contexto. Verificable: en pantalla de "Turnos" → artículos sobre turnos aparecen primero.
 - [ ] **S18-12** `[M]` Clinic profile live preview — antes de publicar cambios de branding o configuración de una clínica, poder ver cómo queda en cada superficie (admin, operator, kiosk, display). Botón "Vista previa" en el panel de configuración de clínica que abre un iframe con los parámetros de la clínica sin guardar. Sin esto, un error de branding llega directo a los pacientes. Verificable: cambiar logo en config → preview muestra el nuevo logo antes de guardar.
+
+---
+
+### 📱 Sprint 19 — Notificaciones, WhatsApp Ops y Android TV
+
+> **Prerrequisito de dispatch:** S15-03 y S15-07 deben cerrarse **antes** de abrir S20. No se incluye Sprint 20 aquí.
+> **Criterio de inclusión:** tareas con impacto operativo directo antes de junio 2026, deuda técnica ya visibilizada en auditoría, y nuevo alcance de canal (Android TV como superficie real).
+
+#### 19.1 Push — Preferencias y automatizaciones
+
+- [ ] **S19-01** `[M]` Push preference center del paciente — `GET/POST /api.php?resource=push-preferences`: el paciente elige por categoría qué notificaciones recibe: `appointments`, `queue_updates`, `documents_ready`, `marketing`. El portal lee y guarda preferencias reales por paciente. Si `queue_updates=false`, los pushes de turno se omiten. Verificable: `POST push-preferences {queue_updates: false}` → siguiente push de turno no se envía.
+- [ ] **S19-02** `[M]` Push automations para journey real — conectar `NotificationService` y `PushService` a eventos ya existentes: confirmación de cita, recordatorio 24h, "le toca pasar" desde operador, documento listo. Verificable: cada evento genera payload estándar `{title, body, url, surface}` sin push huérfano.
+- [ ] **S19-03** `[S]` Push diagnostics en admin — `GET /api.php?resource=push-diagnostics`: `{configured, publicKeyPresent, subscriptionsTotal, subscriptionsBySurface, lastTestAt, lastSendStatus}`. Sin esto, el admin no sabe si Push está activo. Verificable: `curl /api.php?resource=push-diagnostics` → JSON con todos los campos sin error.
+
+#### 19.2 WhatsApp OpenClaw — Ops y resiliencia
+
+- [ ] **S19-04** `[M]` Ops console para WhatsApp OpenClaw — vista operativa `whatsapp-openclaw-ops`: muestra conversations, drafts, outbox, holds y human_followup agrupados. Verificable: una conversación con hold activo aparece en el panel con su `conversationId`.
+- [ ] **S19-05** `[M]` Retry y dead-letter para outbox WhatsApp — formalizar estados `queued|sent|failed|requeued`, campos `retryCount`, `lastError`, y acción admin `requeue_outbox`. Verificable: un mensaje fallido puede reencolarse (`status=requeued`) sin duplicar mensajes ya enviados.
+- [ ] **S19-06** `[M]` Dashboard de slot holds WhatsApp — listar holds `active|expired|released|consumed` por doctor/fecha con TTL visible y acción de liberación manual con motivo. Verificable: un hold expirado ya no figura como `active` después de `expireSlotHolds()`.
+- [ ] **S19-07** `[M]` Cola de handoff humano desde WhatsApp — cuando `intent=handoff_clinical` o FAQ no resuelve, crear item operativo con `{conversationId, phone, reason, latestDraftSummary, sla_due_at}`. Verificable: pregunta clínica sin resolución → registro trazable fuera del chat.
+- [ ] **S19-08** `[M]` Funnel de booking por WhatsApp OpenClaw — generar artifact `data/funnel/whatsapp-openclaw-latest.json` con etapas: `inbound → availability_lookup → hold_created → checkout_ready → appointment_created → handoff`. Verificable: el artifact existe aunque alguna etapa esté en 0.
+
+#### 19.3 Android TV — Release y runtime
+
+- [ ] **S19-09** `[M]` Contrato de release para Android TV — formalizar build release, firma, checksum y ruta publicada para `TurneroSalaTV.apk`. Entregable: `docs/TURNERO_ANDROID_RELEASE.md` + script/workflow reproducible. Verificable: una release genera APK + metadata sin pasos implícitos o manuales.
+- [ ] **S19-10** `[M]` Heartbeat y health de turnero-sala-tv-android — contrato de heartbeat con `{device_id, version, last_seen_at, surface_url, status}`. Endpoint: `POST /api.php?resource=tv-heartbeat`. Un dispositivo TV aparece como online/offline por TTL. Verificable: TV sin conexión por >5min → `status=offline` en panel.
+- [ ] **S19-11** `[S]` Offline diagnostics UX en Android TV — cuando falle WebView/red, mostrar pantalla clara con último intento, próximo reintento, host, estado de red. La app nunca queda en "pantalla en blanco". Verificable: sin red → pantalla de diagnóstico, con reconexión automática al recuperar conectividad.
+- [ ] **S19-12** `[M]` Remote config para Android TV — mover `BASE_URL`, `SURFACE_PATH` y flags operativos a un JSON remoto versionado. Sin recompilar, staging/prod se pueden cambiar. Verificable: cambiar `BASE_URL` en `GET /api.php?resource=tv-config` → TV aplica sin reinstalar APK.
+
+#### 19.4 Tooling y deuda técnica (bloqueadas por S15-03/07)
+
+- [ ] **S19-13** `[S]` Actualizar `prefer[]` de roles en dispatch — S15-03 completado: actualizar `prefer[]` en `bin/dispatch.js` para roles `backend`, `frontend` y `devops` incluyendo tareas de S17-S19. Verificable: `npm run dispatch:backend` → retorna tarea de S17/S18/S19.
+- [ ] **S19-14** `[S]` Integrar `verify-scripts.js` en `gov:audit` — S15-07 completado: conectar `bin/verify-scripts.js` al pipeline de audit, sección "Scripts rotos" con conteo. Verificable: `npm run gov:audit` → muestra tabla de broken scripts.
+- [ ] **S19-15** `[S]` Resource-hint warnings en verify-scripts — los warnings de `preload`/`prefetch` en `verify-scripts.js` son deuda visible. Purgar o justificar cada warning hasta bajar conteo a 0. Verificable: `node bin/verify-scripts.js` → 0 warnings de resource hints.
+
+#### 19.5 Observabilidad y calidad (propuestas editoriales)
+
+- [ ] **S19-16** `[M]` Sentry aterrizado en runtime — `SENTRY_AUTH_TOKEN` y `SENTRY_ORG` siguen como `missing_env` en runtime. Configurar en CI Secrets + `monitoring-loader.js`. Verificable: `node bin/audit.js` → `sentry.configured: true`, sin `missing_env` en Sentry section.
+- [ ] **S19-17** `[M]` Dead endpoints en routes.php — auditoría identificó rutas que apuntan a controllers inexistentes. Crear suite `tests/Unit/RoutesIntegrityTest.php` que para cada ruta registrada verifique que el controller::method existe. Verificable: 0 rutas huérfanas en PHPUnit.
+- [ ] **S19-18** `[S]` Métricas de WhatsApp OpenClaw en dashboard — `GET /api.php?resource=whatsapp-openclaw-metrics` con `{conversations_total, holds_active, handoff_pending, outbox_failed, conversion_rate}`. Verificable: el endpoint devuelve JSON con todos los campos aunque sean 0.
+

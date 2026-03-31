@@ -56,6 +56,13 @@ const AUDIT_STEPS = [
         command: 'php',
         args: ['-l', 'controllers/OpenclawController.php'],
     },
+    {
+        // S15-07: verify-scripts integrado en gov:audit
+        id: 'verify_scripts',
+        label: 'Broken Scripts',
+        command: 'node',
+        args: ['bin/verify-scripts.js', '--json'],
+    },
 ];
 
 function formatCommand(step) {
@@ -139,7 +146,7 @@ function formatAuditText(report) {
         const { existsSync, readFileSync } = require('fs');
         const perfJsonPath = require('path').resolve(__dirname, '../governance/performance-gate.json');
         lines.push('');
-        lines.push('⚡ Performance Gate');
+        lines.push('\u26a1 Performance Gate');
         if (existsSync(perfJsonPath)) {
             const pData = JSON.parse(readFileSync(perfJsonPath, 'utf8'));
             let maxLcp = 0;
@@ -147,12 +154,38 @@ function formatAuditText(report) {
                 maxLcp = Math.max(...pData.routes.map(r => r.metrics?.lcpMs || 0));
             }
             if (pData.passed) {
-                lines.push(`   🟢 Budget OK (Max LCP: ${Math.round(maxLcp)}ms)`);
+                lines.push(`   \uD83D\uDFE2 Budget OK (Max LCP: ${Math.round(maxLcp)}ms)`);
             } else {
-                lines.push(`   🔴 LCP over budget (Max LCP: ${Math.round(maxLcp)}ms)`);
+                lines.push(`   \uD83D\uDD34 LCP over budget (Max LCP: ${Math.round(maxLcp)}ms)`);
             }
         } else {
-            lines.push('   ⚪ No performance data available');
+            lines.push('   \u26AA No performance data available');
+        }
+    } catch (e) {}
+
+    // S15-07: Scripts rotos
+    try {
+        const { existsSync, readFileSync } = require('fs');
+        const brokenPath = require('path').resolve(__dirname, '../governance/broken-scripts.json');
+        lines.push('');
+        lines.push('\uD83D\uDD27 Scripts rotos');
+        if (existsSync(brokenPath)) {
+            const broken = JSON.parse(readFileSync(brokenPath, 'utf8'));
+            const items = Array.isArray(broken) ? broken : (broken.broken || []);
+            if (items.length === 0) {
+                lines.push('   \u2705 0 scripts rotos');
+            } else {
+                lines.push(`   \u26A0\uFE0F ${items.length} script(s) roto(s):`);
+                items.slice(0, 5).forEach(item => {
+                    const name = typeof item === 'string' ? item : (item.script || item.name || JSON.stringify(item));
+                    lines.push(`   - ${name}`);
+                });
+                if (items.length > 5) {
+                    lines.push(`   ... y ${items.length - 5} m\u00e1s`);
+                }
+            }
+        } else {
+            lines.push('   \u26AA governance/broken-scripts.json no existe a\u00FAn');
         }
     } catch (e) {}
 

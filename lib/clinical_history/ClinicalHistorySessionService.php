@@ -871,16 +871,22 @@ public function  buildAdminPayload(array $store, array $session, array $draft): 
     public function buildClinicalRecordPayload(array $store, array $session, array $draft): array
     {
         require_once __DIR__ . '/../memberships/MembershipService.php';
+        require_once __DIR__ . '/../packages/PackageService.php';
+        
         $membershipSvc = new MembershipService();
         $pid = trim((string)($session['caseId'] ?? $session['patient']['id'] ?? ''));
         $membershipStatus = false;
+        $activePackages = [];
+        
         if ($pid !== '') {
             $status = $membershipSvc->getStatus($pid);
             $membershipStatus = $status !== null;
+            $activePackages = PackageService::getBalance($store, $pid);
         }
 
         $session = ClinicalHistoryRepository::adminSession($session);
         $session['membership_status'] = $membershipStatus;
+        $session['activePackages'] = $activePackages;
         
         $draft = $this->synchronizeDraftClinicalState(
             ClinicalHistoryRepository::adminDraft($draft),

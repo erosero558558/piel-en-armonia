@@ -126,6 +126,14 @@ const ROLE_AFFINITY = {
       'S3-10', // Acciones post-consulta (backend de botones)
       'S3-34', // Estado de cuenta por paciente
       'S3-33', // Verificación de transferencia
+      // S8-S10 con mayor impacto (S15-03 fix)
+      'S8-05', 'S8-06', 'S8-07', 'S8-12', 'S8-20',
+      'S9-08', 'S10-06',
+      'S14-13',
+      // S17-S19
+      'S17-06', 'S17-07', 'S17-08', 'S17-10',
+      'S19-04', 'S19-05', 'S19-06', 'S19-07', 'S19-08',
+      'S19-10', 'S19-16', 'S19-17', 'S19-18',
     ],
     keywords: [
       'php', 'controller', 'service', 'endpoint', 'api', 'backend',
@@ -151,6 +159,11 @@ const ROLE_AFFINITY = {
       'S3-32', // Checkout integrado
       'S4-08', // Portal del paciente
       'S4-13', // App kiosco offline-first
+      // S9-S12 frontend (S15-03 fix)
+      'S9-01', 'S9-09', 'S10-01', 'S10-25', 'S12-17',
+      // S18-S19 customer success y adopción
+      'S18-11', 'S18-12',
+      'S19-01', 'S19-02', 'S19-03', 'S19-09', 'S19-11', 'S19-12',
     ],
     keywords: [
       'html', 'css', 'vista', 'página', 'modal', 'form', 'formulario',
@@ -192,6 +205,10 @@ const ROLE_AFFINITY = {
       'S4-24', // Security headers
       'S4-25', // Dead code cleanup
       'S1-12', // Tests de contrato
+      // S13-S15 devops (S15-03 fix)
+      'S14-00', 'S14-02', 'S14-06', 'S14-07', 'S14-09', 'S13-04',
+      // S19 tooling
+      'S19-13', 'S19-14', 'S19-15',
     ],
     keywords: [
       'audit', 'limpieza', 'dead code', 'ci', 'pipeline', 'lighthouse',
@@ -208,6 +225,10 @@ const ROLE_AFFINITY = {
       'S3-19', 'S3-20', 'S3-15', 'S3-24', 'S3-09',
       'S3-11', 'S3-18', 'S3-25', 'S3-28', 'S3-16',
       'S3-10', 'S3-12', 'S3-13',
+      // S17-S19 fullstack
+      'S17-10', 'S17-15', 'S17-16', 'S17-17',
+      'S18-11', 'S18-12',
+      'S19-01', 'S19-02', 'S19-04', 'S19-08', 'S19-09',
     ],
     keywords: [],
     sprints: ['Sprint 3', 'Sprint 4', 'Sprint 2', 'Sprint 5', 'Sprint 6'],
@@ -251,8 +272,10 @@ function scoreTask(task, role, claims) {
 
   // ── Hard filter: rol ui SOLO acepta tareas con [UI] tag ───────────────────
   if (role === 'ui' && !task.uiTag) return -9999;
-  // Hard filter inverso: rutas excludes chat no aplican cuando ya se tiene
-  // el uiTag — ui tasks never avoid php/controller in keywords scan below
+
+  // ── Hard filter INVERSO: roles NO-ui NUNCA aceptan tareas [UI] ─────────────
+  // Esto previene que Codex (fullstack/backend) tome tareas reservadas a Antigravity.
+  if (role !== 'ui' && task.uiTag) return -9999;
 
   let score = 0;
 

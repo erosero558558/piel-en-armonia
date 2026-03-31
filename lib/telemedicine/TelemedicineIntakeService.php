@@ -340,6 +340,111 @@ final class TelemedicineIntakeService
         ];
     }
 
+    public function recordPatientPreConsultation(array $store, array $appointment, array $payload): array
+    {
+        if (!$this->shadowModeEnabled()) {
+            return [
+                'ok' => false,
+                'error' => 'Telemedicina no disponible en este momento.',
+                'code' => 409,
+            ];
+        }
+
+        $service = (string) ($appointment['service'] ?? '');
+        if (!TelemedicineChannelMapper::isTelemedicineService($service)) {
+            return [
+                'ok' => false,
+                'error' => 'La cita indicada no corresponde a telemedicina.',
+                'code' => 400,
+            ];
+        }
+
+        $channel = TelemedicineChannelMapper::mapServiceToChannel($service);
+        $existing = TelemedicineRepository::findIntakeByAppointmentId($store, (int) ($appointment['id'] ?? 0));
+        if (!is_array($existing)) {
+            $existing = TelemedicineRepository::findDraftByFingerprint($store, $appointment);
+        }
+
+        $intake = $this->buildBaseIntake($appointment, $channel, $existing);
+        $concern = trim((string) ($payload['concern'] ?? $payload['latestPatientConcern'] ?? ''));
+        $hasNewLesion = isset($payload['hasNewLesion']) ? parse_bool($payload['hasNewLesion']) : false;
+        $uploads = is_array($payload['uploads'] ?? null) ? array_values($payload['uploads']) : [];
+        $submittedAt = local_date('c');
+
+        if ($concern !== '') {
+            $intake['latestPatientConcern'] = $concern;
+        }
+
+        $preConsultation = $this->buildPreConsultationSummary(
+            is_array($intake['telemedicinePreConsultation'] ?? null)
+                ? $intake['telemedicinePreConsultation']
+                : [],
+            $concern,
+            $hasNewLesion,
+            $uploads,
+            $submittedAt
+        );
+        $intake['telemedicinePreConsultation'] = $preConsultation;
+        $intake['patientResponseAt'] = $submittedAt;
+
+        if (trim((string) ($intake['reviewStatus'] ?? '')) === 'awaiting_patient') {
+            $intake['reviewStatus'] = 'pending';
+            $intake['status'] = 'review_required';
+            $intake['reviewRequired'] = true;
+        }
+
+        $intake = $this->applyPhotoClinicalSignals($intake, $appointment);
+        $intake['encounterPlan'] = TelemedicineEncounterPlanner::build($intake);
+        if (isset($intake['reviewDecision'])) {
+            $intake['encounterPlan']['reviewDecision'] = (string) $intake['reviewDecision'];
+        }
+        if (isset($intake['reviewStatus'])) {
+            $intake['encounterPlan']['reviewStatus'] = (string) $intake['reviewStatus'];
+        }
+        if (isset($intake['reviewedBy'])) {
+            $intake['encounterPlan']['reviewedBy'] = (string) $intake['reviewedBy'];
+        }
+        if (isset($intake['reviewedAt'])) {
+            $intake['encounterPlan']['reviewedAt'] = (string) $intake['reviewedAt'];
+        }
+        if (!empty($intake['reviewNotes'])) {
+            $intake['encounterPlan']['reviewNotes'] = (string) $intake['reviewNotes'];
+        }
+
+        $saved = TelemedicineRepository::upsertIntake($store, $intake);
+        $store = $saved['store'];
+        $intake = $saved['intake'];
+
+        $appointment['telemedicinePreConsultation'] = $preConsultation;
+        if ($concern !== '') {
+            $appointment['latestPatientConcern'] = $concern;
+        }
+        $appointment = $this->applyIntakeToAppointment($appointment, $intake);
+        $store = TelemedicineRepository::replaceAppointment($store, $appointment);
+
+        audit_log_event('telemedicine.patient_preconsultation_submitted', [
+            'intakeId' => (int) ($intake['id'] ?? 0),
+            'appointmentId' => (int) ($appointment['id'] ?? 0),
+            'photoCount' => (int) ($preConsultation['photoCount'] ?? 0),
+            'hasNewLesion' => (bool) ($preConsultation['hasNewLesion'] ?? false),
+        ]);
+        if (class_exists('Metrics')) {
+            Metrics::increment('telemedicine_patient_preconsultations_total', [
+                'channel' => (string) ($intake['channel'] ?? 'unknown'),
+                'has_new_lesion' => ($preConsultation['hasNewLesion'] ?? false) ? 'yes' : 'no',
+            ]);
+        }
+
+        return [
+            'ok' => true,
+            'code' => 200,
+            'store' => $store,
+            'intake' => $intake,
+            'appointment' => $appointment,
+            'preConsultation' => $preConsultation,
+        ];
+    }
+
     private function buildBaseIntake(array $appointment, string $channel, ?array $existing): array
     {
         $base = is_array($existing) ? $existing : [];
@@ -385,6 +490,9 @@ final class TelemedicineIntakeService
             'linkedAppointmentId' => isset($appointment['id']) ? (int) $appointment['id'] : ((int) ($base['linkedAppointmentId'] ?? 0)),
             'paymentContext' => $base['paymentContext'] ?? [],
             'latestPatientConcern' => (string) ($base['latestPatientConcern'] ?? ''),
+            'telemedicinePreConsultation' => isset($base['telemedicinePreConsultation']) && is_array($base['telemedicinePreConsultation'])
+                ? $base['telemedicinePreConsultation']
+                : [],
             'draftFingerprint' => (string) ($base['draftFingerprint'] ?? TelemedicineRepository::draftFingerprint($appointment)),
             'createdAt' => (string) ($base['createdAt'] ?? local_date('c')),
             'updatedAt' => local_date('c'),
@@ -499,6 +607,81 @@ final class TelemedicineIntakeService
         }
 
         return array_keys($items);
+    }
+
+    private function buildPreConsultationSummary(
+        array $existing,
+        string $concern,
+        bool $hasNewLesion,
+        array $uploads,
+        string $submittedAt
+    ): array {
+        $photosById = [];
+        foreach (is_array($existing['photos'] ?? null) ? $existing['photos'] : [] as $photo) {
+            if (!is_array($photo)) {
+                continue;
+            }
+            $uploadId = (int) ($photo['uploadId'] ?? 0);
+            if ($uploadId <= 0) {
+                continue;
+            }
+            $photosById[$uploadId] = [
+                'uploadId' => $uploadId,
+                'originalName' => (string) ($photo['originalName'] ?? ''),
+                'mime' => (string) ($photo['mime'] ?? ''),
+                'photoRole' => (string) ($photo['photoRole'] ?? ''),
+                'photoRoleLabel' => (string) ($photo['photoRoleLabel'] ?? ''),
+                'privatePath' => (string) ($photo['privatePath'] ?? ''),
+                'previewUrl' => (string) ($photo['previewUrl'] ?? ''),
+                'createdAt' => (string) ($photo['createdAt'] ?? $submittedAt),
+            ];
+        }
+
+        foreach ($uploads as $upload) {
+            if (!is_array($upload)) {
+                continue;
+            }
+            $uploadId = (int) ($upload['id'] ?? 0);
+            if ($uploadId <= 0) {
+                continue;
+            }
+            $privatePath = trim((string) ($upload['privatePath'] ?? ''));
+            $photosById[$uploadId] = [
+                'uploadId' => $uploadId,
+                'originalName' => (string) ($upload['originalName'] ?? ''),
+                'mime' => (string) ($upload['mime'] ?? ''),
+                'photoRole' => (string) ($upload['photoRole'] ?? ''),
+                'photoRoleLabel' => (string) ($upload['photoRoleLabel'] ?? ''),
+                'privatePath' => $privatePath,
+                'previewUrl' => $privatePath !== ''
+                    ? '/api.php?resource=media-flow-private-asset&path=' . rawurlencode($privatePath)
+                    : '',
+                'createdAt' => (string) ($upload['createdAt'] ?? $submittedAt),
+            ];
+        }
+
+        $photos = array_values($photosById);
+        usort($photos, static function (array $left, array $right): int {
+            return strcmp((string) ($left['createdAt'] ?? ''), (string) ($right['createdAt'] ?? ''));
+        });
+
+        $mediaIds = array_values(array_filter(array_map(static function (array $photo): int {
+            return (int) ($photo['uploadId'] ?? 0);
+        }, $photos), static function (int $uploadId): bool {
+            return $uploadId > 0;
+        }));
+
+        return [
+            'status' => 'submitted',
+            'statusLabel' => 'Pre-consulta enviada',
+            'concern' => $concern,
+            'hasNewLesion' => $hasNewLesion,
+            'photoCount' => count($photos),
+            'mediaIds' => $mediaIds,
+            'photos' => $photos,
+            'submittedAt' => (string) ($existing['submittedAt'] ?? $submittedAt),
+            'updatedAt' => $submittedAt,
+        ];
     }
 
     private function emitAuditAndMetrics(string $event, array $intake): void

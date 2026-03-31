@@ -69,6 +69,86 @@
         };
     }
 
+    function renderBillingUnavailable() {
+        return `
+            <section class="portal-plan-card portal-billing-card portal-empty-state">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="portal-empty-icon" aria-hidden="true" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div class="portal-empty-content">
+                    <strong>Resumen no disponible</strong>
+                    <p>No pudimos cargar tu información de facturación. Por favor intenta más tarde.</p>
+                </div>
+            </section>
+        `;
+    }
+
+    function renderMembershipCard(membership) {
+        if (!membership || typeof membership !== 'object') {
+            return `
+                <section class="portal-plan-card portal-empty-state">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="portal-empty-icon" aria-hidden="true" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <div class="portal-empty-content">
+                        <strong>No tienes una membresía activa</strong>
+                        <p>Únete a Aurora Derm para acceder a descuentos exclusivos y prioridad de agendas.</p>
+                    </div>
+                    <div class="portal-cta-row" style="margin-top: 12px; width: 100%;">
+                        <a href="/es/membresia/" class="btn btn-outline" style="width:100%; justify-content:center;">Conocer planes</a>
+                    </div>
+                </section>
+            `;
+        }
+        
+        const isActive = membership.status === 'active';
+        const days = Number(membership.days_remaining) || 0;
+        const perks = Array.isArray(membership.perks) ? membership.perks : [];
+        
+        let headerStatus = '<span class="portal-status-chip portal-status-chip--idle">Inactiva</span>';
+        if (isActive) {
+            headerStatus = '<span class="portal-status-chip">Activa</span>';
+        }
+        
+        let renewAlert = '';
+        if (isActive && days <= 15) {
+            renewAlert = `
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--admin-border-subtle);">
+                    <p style="color: var(--admin-error); font-size: 0.9em; margin-bottom: 12px;">Tu membresía vence en ${days} días.</p>
+                    <div class="portal-cta-row" style="width:100%;">
+                        <a href="/es/membresia/?renovar=true" class="btn btn-primary" style="width:100%; justify-content:center;">Renovar plan</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        const perksHtml = perks.length > 0 
+            ? '<ul style="margin: 12px 0 0 16px; padding: 0; font-size: 0.9em; color: var(--admin-text-muted);">' + perks.map(p => `<li>${escapeHtml(p)}</li>`).join('') + '</ul>'
+            : '';
+
+        return `
+            <section class="portal-plan-card">
+                <div class="portal-plan-card__header" style="justify-content:space-between;">
+                    <strong style="color:var(--admin-text); font-size:1.1em;">⭐ Membresía Aurora</strong>
+                    ${headerStatus}
+                </div>
+                ${isActive ? `
+                    <p style="margin: 8px 0; font-size: 0.95em;">Válida hasta el <strong>${escapeHtml(membership.expires_at ? membership.expires_at.split(' ')[0] : 'Indefinido')}</strong></p>
+                    <div style="font-size:0.9em"><strong>Tus beneficios activos:</strong></div>
+                    ${perksHtml}
+                ` : `
+                    <p style="margin: 8px 0; font-size: 0.95em; color: var(--admin-text-muted);">Tu membresía ha expirado o ha sido suspendida.</p>
+                    <div class="portal-cta-row" style="margin-top: 12px; width: 100%;">
+                        <a href="/es/membresia/?renovar=true" class="btn btn-primary" style="width:100%; justify-content:center;">Reactiva tu plan</a>
+                    </div>
+                `}
+                ${renewAlert}
+            </section>
+        `;
+    }
+
     function renderSkeletonCard() {
         return `
             <section class="portal-card-next" data-portal-next-skeleton style="opacity:0.78;">
@@ -132,6 +212,18 @@
                     <div class="skeleton" style="width: 40%; height: 14px;"></div>
                     <div class="skeleton" style="width: 100%; height: 44px;"></div>
                     <div class="skeleton" style="width: 100%; height: 44px;"></div>
+                </div>
+            </section>
+        `;
+    }
+
+    function renderMembershipSkeleton() {
+        return `
+            <section class="portal-plan-card" style="opacity:0.8;">
+                <div style="display:grid; gap:12px; width:100%;">
+                    <div class="skeleton" style="width: 48%; height: 18px;"></div>
+                    <div class="skeleton" style="width: 80%; height: 14px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 44px; margin-top: 12px;"></div>
                 </div>
             </section>
         `;
@@ -581,12 +673,29 @@
         `;
     }
 
+    async function loadMembership(session, container) {
+        if (!container) return;
+        try {
+            const result = await requestJson('membership-status', String(session.token || ''));
+            if (result.ok && result.body && result.body.ok) {
+                container.innerHTML = renderMembershipCard(result.body.data);
+            } else {
+                container.innerHTML = renderMembershipCard(null);
+            }
+        } catch (error) {
+            console.error('[portal-dashboard] failed to load membership', error);
+            container.innerHTML = renderMembershipCard(null);
+        }
+    }
+
     async function hydrateDashboard() {
         const nextAppointmentContainer = document.getElementById('portal-next-appointment');
         const treatmentPlanContainer = document.getElementById('portal-treatment-plan');
         const evolutionContainer = document.getElementById('portal-evolution');
         const billingContainer = document.getElementById('portal-billing-summary');
         const actionsContainer = document.getElementById('portal-appointment-actions');
+        const membershipContainer = document.getElementById('portal-membership-status');
+
         if (!(nextAppointmentContainer instanceof HTMLElement)) {
             return;
         }
@@ -612,6 +721,10 @@
         }
         if (actionsContainer instanceof HTMLElement) {
             actionsContainer.innerHTML = renderActionSkeletons();
+        }
+        if (membershipContainer instanceof HTMLElement) {
+            membershipContainer.innerHTML = renderMembershipSkeleton();
+            loadMembership(session, membershipContainer);
         }
 
         try {

@@ -6726,6 +6726,25 @@ function buildSummaryCards(review) {
                     : 'Sin criterios de alarma dermatologica activos.',
             tone: redFlags.length > 0 ? 'danger' : 'success',
         },
+    ];
+
+    const activePackages = Array.isArray(review.session.activePackages) ? review.session.activePackages : [];
+    if (activePackages.length > 0) {
+        activePackages.forEach((pkg) => {
+            cards.push({
+                title: 'Paquete de sesiones',
+                value: pkg.remainingLabel,
+                meta: `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <span>${escapeHtml(pkg.packageName)} (${escapeHtml(pkg.progressLabel)})</span>
+                        ${pkg.remainingSessions > 0 ? `<button type="button" class="btn btn-sm" data-clinical-review-action="consume-package-session" data-package-id="${escapeHtml(pkg.packageId)}">Consumir Sesión</button>` : ''}
+                      </div>`,
+                tone: pkg.remainingSessions > 0 ? 'success' : 'warning',
+                isHtml: true
+            });
+        });
+    }
+
+    cards.push(...[
         {
             title: 'HCU-005',
             value: hcu005Status.label,
@@ -6832,10 +6851,16 @@ function buildSummaryCards(review) {
             ),
             meta: review.session.surface || 'Sin superficie',
         },
-    ];
+    ]);
 
     return cards
-        .map(({ title, value, meta, tone }) =>
+        .map(({ title, value, meta, tone, isHtml }) =>
+            isHtml ? 
+            `<article class="clinical-history-stat-card" data-tone="${tone || ''}">
+                <strong>${escapeHtml(title)}</strong>
+                <span>${escapeHtml(value)}</span>
+                <div style="font-size: 0.85em; margin-top: 4px;">${meta}</div>
+             </article>` :
             summaryStatCard(title, value, meta, tone)
         )
         .join('');
@@ -14055,6 +14080,31 @@ function bindClinicalHistoryEvents() {
                 window.OpenclawChat.mount('#openclaw-root-container');
             } else {
                 createToast('El copiloto OpenClaw IA no está disponible en este momento', 'error');
+            }
+            return;
+        }
+
+        if (action === 'consume-package-session') {
+            const packageId = actionTarget.dataset.packageId;
+            const review = currentReviewSource();
+            const patientId = currentReviewPatientRecordId(review);
+            const appointmentId = normalizeString(review.session.id);
+            if (!packageId || !patientId) return;
+            try {
+                const response = await fetch('/api.php?resource=package-consume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ patient_id: patientId, package_id: packageId, appointment_id: appointmentId })
+                });
+                const data = await response.json();
+                if (data.ok) {
+                    createToast('Sesión descontada con éxito', 'success');
+                    await refreshClinicalHistoryCurrentSession();
+                } else {
+                    createToast(data.error || 'Error al consumir sesión', 'error');
+                }
+            } catch(e) {
+               createToast('Error de red al consumir sesión', 'error');
             }
             return;
         }
