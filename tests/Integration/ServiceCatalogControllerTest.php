@@ -148,6 +148,51 @@ class ServiceCatalogControllerTest extends TestCase
         }
     }
 
+    public function testIndexIgnoresBookingOnlyRecordsInCanonicalCatalog(): void
+    {
+        $this->writeCatalog([
+            'version' => '2026.03-commercial-v1',
+            'timezone' => 'America/Guayaquil',
+            'services' => [
+                [
+                    'slug' => 'diagnostico-integral',
+                    'catalog_scope' => 'public_route',
+                    'category' => 'clinical',
+                    'subcategory' => 'core',
+                    'audience' => ['adults'],
+                    'hero' => 'Diagnóstico integral',
+                    'summary' => 'Consulta médica completa',
+                    'doctor_profile' => ['rosero'],
+                    'preparation' => 'Trae exámenes previos.',
+                ],
+                [
+                    'slug' => 'consulta',
+                    'catalog_scope' => 'booking_option',
+                    'runtime_service_id' => 'consulta',
+                    'name' => 'Consulta Dermatológica',
+                    'label_es' => 'Consulta Dermatológica',
+                    'duration' => '30 min',
+                    'duration_min' => 30,
+                    'base_price_usd' => 40,
+                    'price_from' => 40,
+                ],
+            ],
+        ]);
+
+        putenv('PIELARMONIA_SERVICES_CATALOG_FILE=' . $this->catalogPath);
+
+        try {
+            \ServiceCatalogController::index([]);
+            $this->fail('Expected TestingExitException');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(200, $e->status);
+            $this->assertTrue((bool) ($e->payload['ok'] ?? false));
+            $this->assertCount(1, $e->payload['data'] ?? []);
+            $this->assertSame('diagnostico-integral', (string) ($e->payload['data'][0]['slug'] ?? ''));
+            $this->assertSame('Trae exámenes previos.', (string) ($e->payload['data'][0]['preparation'] ?? ''));
+        }
+    }
+
     public function testIndexReturnsMissingSourceWhenCatalogDoesNotExist(): void
     {
         putenv('PIELARMONIA_SERVICES_CATALOG_FILE=' . $this->tempDir . '/missing.json');

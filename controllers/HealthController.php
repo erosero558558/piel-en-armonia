@@ -10,6 +10,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 require_once __DIR__ . '/../lib/openclaw/AIRouter.php';
 require_once __DIR__ . '/../lib/DoctorProfileStore.php';
 require_once __DIR__ . '/../lib/ClinicProfileStore.php';
+require_once __DIR__ . '/../lib/ServiceCatalog.php';
 require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
 
 class HealthController
@@ -378,69 +379,22 @@ class HealthController
      */
     private static function collectServiceCatalogSnapshot(): array
     {
-        $catalogPath = self::resolveServiceCatalogPath();
-        if ($catalogPath === '' || !is_file($catalogPath)) {
-            return [
-                'source' => 'missing',
-                'version' => 'missing',
-                'timezone' => 'America/Guayaquil',
-                'servicesCount' => 0,
-                'configured' => false,
-            ];
-        }
-
-        $raw = @file_get_contents($catalogPath);
-        if (!is_string($raw) || trim($raw) === '') {
-            return [
-                'source' => 'invalid',
-                'version' => 'invalid',
-                'timezone' => 'America/Guayaquil',
-                'servicesCount' => 0,
-                'configured' => false,
-            ];
-        }
-
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
-            return [
-                'source' => 'invalid',
-                'version' => 'invalid',
-                'timezone' => 'America/Guayaquil',
-                'servicesCount' => 0,
-                'configured' => false,
-            ];
-        }
-
-        $services = $decoded['services'] ?? [];
-        if (!is_array($services)) {
-            $services = [];
-        }
-
-        $version = (string) ($decoded['version'] ?? 'unknown');
-        if (trim($version) === '') {
-            $version = 'unknown';
-        }
-        $timezone = (string) ($decoded['timezone'] ?? 'America/Guayaquil');
-        if (trim($timezone) === '') {
-            $timezone = 'America/Guayaquil';
-        }
+        $catalog = load_service_catalog_payload();
+        $services = (array) ($catalog['services'] ?? []);
+        $source = (string) ($catalog['source'] ?? 'missing');
 
         return [
-            'source' => 'file',
-            'version' => $version,
-            'timezone' => $timezone,
+            'source' => $source,
+            'version' => (string) ($catalog['version'] ?? ($source === 'file' ? 'unknown' : $source)),
+            'timezone' => (string) ($catalog['timezone'] ?? 'America/Guayaquil'),
             'servicesCount' => count($services),
-            'configured' => true,
+            'configured' => $source === 'file',
         ];
     }
 
     private static function resolveServiceCatalogPath(): string
     {
-        $override = app_env('AURORADERM_SERVICES_CATALOG_FILE');
-        if (is_string($override) && trim($override) !== '') {
-            return trim($override);
-        }
-        return __DIR__ . '/../content/services.json';
+        return service_catalog_path();
     }
 
     /**

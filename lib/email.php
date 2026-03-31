@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/AppConfig.php';
+require_once __DIR__ . '/ServiceCatalog.php';
 
 /**
  * Email sending logic.
@@ -591,6 +592,11 @@ function build_preconsultation_notification_rows(array $payload): array
  */
 function get_service_preparation_instructions(string $service): string
 {
+    $catalogPreparation = service_catalog_preparation_for($service);
+    if ($catalogPreparation !== '') {
+        return $catalogPreparation;
+    }
+
     switch (strtolower(trim($service))) {
         case 'consulta':
             return 'Por favor, acuda con 10 min de anticipación. Evite maquillaje pesado o productos cubrientes para facilitar la valoración de la textura de su piel.';

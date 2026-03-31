@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/ServiceCatalog.php';
+
 class ServiceCatalogController
 {
     public static function index(array $context): void
@@ -81,64 +83,14 @@ class ServiceCatalogController
      */
     private static function loadCatalog(): array
     {
-        $path = self::resolveCatalogPath();
-        if ($path === '' || !is_file($path)) {
-            return [
-                'source' => 'missing',
-                'version' => 'missing',
-                'timezone' => 'America/Guayaquil',
-                'services' => [],
-            ];
-        }
-
-        $raw = file_get_contents($path);
-        if ($raw === false || trim($raw) === '') {
-            return [
-                'source' => 'invalid',
-                'version' => 'invalid',
-                'timezone' => 'America/Guayaquil',
-                'services' => [],
-            ];
-        }
-
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
-            return [
-                'source' => 'invalid',
-                'version' => 'invalid',
-                'timezone' => 'America/Guayaquil',
-                'services' => [],
-            ];
-        }
-
-        $services = $decoded['services'] ?? [];
-        if (!is_array($services)) {
-            $services = [];
-        }
+        $catalog = load_service_catalog_payload();
 
         return [
-            'source' => 'file',
-            'version' => is_string($decoded['version'] ?? null) ? (string) $decoded['version'] : 'unknown',
-            'timezone' => is_string($decoded['timezone'] ?? null) && trim((string) $decoded['timezone']) !== ''
-                ? (string) $decoded['timezone']
-                : 'America/Guayaquil',
-            'services' => $services,
+            'source' => (string) ($catalog['source'] ?? 'missing'),
+            'version' => (string) ($catalog['version'] ?? 'unknown'),
+            'timezone' => (string) ($catalog['timezone'] ?? 'America/Guayaquil'),
+            'services' => service_catalog_services('public_route'),
         ];
-    }
-
-    private static function resolveCatalogPath(): string
-    {
-        $defaultPath = __DIR__ . '/../content/services.json';
-        $override = app_env('AURORADERM_SERVICES_CATALOG_FILE');
-        if (
-            is_string($override) &&
-            trim($override) !== '' &&
-            defined('TESTING_ENV') &&
-            TESTING_ENV === true
-        ) {
-            return trim($override);
-        }
-        return $defaultPath;
     }
 
     /**
@@ -162,6 +114,7 @@ class ServiceCatalogController
 
             $normalized[] = [
                 'slug' => $slug,
+                'name' => is_string($item['name'] ?? null) ? trim((string) $item['name']) : '',
                 'category' => self::normalizeToken($item['category'] ?? ''),
                 'subcategory' => self::normalizeToken($item['subcategory'] ?? ''),
                 'audience' => $audience,
@@ -170,10 +123,16 @@ class ServiceCatalogController
                 'indications' => self::normalizeStringList($item['indications'] ?? []),
                 'contraindications' => self::normalizeStringList($item['contraindications'] ?? []),
                 'duration' => is_string($item['duration'] ?? null) ? trim((string) $item['duration']) : '',
+                'duration_min' => is_numeric($item['duration_min'] ?? null) ? (int) $item['duration_min'] : null,
+                'runtime_service_id' => self::normalizeToken($item['runtime_service_id'] ?? ($item['cta']['service_hint'] ?? '')),
+                'base_price_usd' => is_numeric($item['base_price_usd'] ?? null) ? (float) $item['base_price_usd'] : null,
                 'price_from' => is_numeric($item['price_from'] ?? null) ? (float) $item['price_from'] : null,
                 'iva' => is_numeric($item['iva'] ?? null) ? (float) $item['iva'] : null,
                 'doctor_profile' => $doctorProfile,
                 'faq' => self::normalizeStringList($item['faq'] ?? []),
+                'preparation' => is_string($item['preparation'] ?? null) ? trim((string) $item['preparation']) : '',
+                'main_contraindications' => self::normalizeStringList($item['main_contraindications'] ?? []),
+                'upsell_related_slug' => self::normalizeToken($item['upsell_related_slug'] ?? ''),
                 'cta' => is_array($item['cta'] ?? null) ? $item['cta'] : [],
             ];
         }

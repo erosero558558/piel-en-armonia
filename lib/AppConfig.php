@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/ServiceCatalog.php';
 
 /**
  * Centralized Application Configuration
@@ -57,6 +58,10 @@ class AppConfig
     public static function getServices(?string $tenantId = null): array
     {
         $vat = self::getVatRate($tenantId);
+        $catalogServices = service_catalog_booking_service_map($vat);
+        if ($catalogServices !== []) {
+            return $catalogServices;
+        }
 
         return [
             'consulta' => [

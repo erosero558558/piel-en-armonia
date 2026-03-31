@@ -34,6 +34,34 @@ final class PatientPortalControllerTest extends TestCase
         putenv('PIELARMONIA_SKIP_ENV_FILE=1');
         putenv('AURORADERM_PATIENT_PORTAL_JWT_SECRET=test-patient-portal-secret');
         putenv('AURORADERM_PATIENT_PORTAL_EXPOSE_OTP=1');
+        file_put_contents(
+            $this->tempDir . DIRECTORY_SEPARATOR . 'services-catalog.json',
+            json_encode([
+                'version' => '2026.03-test',
+                'timezone' => 'America/Guayaquil',
+                'services' => [
+                    [
+                        'slug' => 'consulta',
+                        'catalog_scope' => 'booking_option',
+                        'runtime_service_id' => 'consulta',
+                        'name' => 'Consulta Dermatológica',
+                        'category' => 'clinico',
+                        'service_type' => 'clinical',
+                        'duration' => '30 min',
+                        'duration_min' => 30,
+                        'base_price_usd' => 40,
+                        'price_from' => 40,
+                        'tax_rate' => 0,
+                        'iva' => 0,
+                        'final_price_rule' => 'base_plus_tax',
+                        'preparation' => 'Preparación centralizada desde catálogo para consulta.',
+                        'main_contraindications' => [],
+                        'upsell_related_slug' => 'diagnostico-integral',
+                    ],
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+        );
+        putenv('AURORADERM_SERVICES_CATALOG_FILE=' . $this->tempDir . DIRECTORY_SEPARATOR . 'services-catalog.json');
 
         if (!defined('TESTING_ENV')) {
             define('TESTING_ENV', true);
@@ -443,6 +471,7 @@ final class PatientPortalControllerTest extends TestCase
             'PIELARMONIA_SKIP_ENV_FILE',
             'AURORADERM_PATIENT_PORTAL_JWT_SECRET',
             'AURORADERM_PATIENT_PORTAL_EXPOSE_OTP',
+            'AURORADERM_SERVICES_CATALOG_FILE',
         ] as $key) {
             putenv($key);
         }
@@ -565,7 +594,7 @@ final class PatientPortalControllerTest extends TestCase
             (string) ($dashboard['payload']['data']['nextAppointment']['serviceName'] ?? '')
         );
         self::assertStringContainsString(
-            'Llega 10 minutos antes',
+            'Preparación centralizada desde catálogo',
             (string) ($dashboard['payload']['data']['nextAppointment']['preparation'] ?? '')
         );
         self::assertStringContainsString(

@@ -375,11 +375,15 @@ function loadCache() {
     const v4AssetsManifest = readJsonOptional(
         path.join('content', 'public-v4', 'assets-manifest.json')
     );
+    const commercialCatalog = readJsonOptional(
+        path.join('data', 'catalog', 'services.json')
+    );
     cache = {
         es: readJson(path.join('content', 'es.json')),
         en: readJson(path.join('content', 'en.json')),
         nav: readJson(path.join('content', 'navigation.json')),
         services: readJson(path.join('content', 'services.json')),
+        commercialCatalog,
         deferred: readJson(path.join('content', 'index.json')),
         v5Catalog,
         v5UiTokens,
@@ -612,11 +616,145 @@ export function getNavigation() {
     return loadCache().nav;
 }
 
+function getCommercialCatalog() {
+    const data = loadCache();
+    const catalog = data.commercialCatalog;
+    if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog)) {
+        return null;
+    }
+    return catalog;
+}
+
+function resolveCommercialScope(service) {
+    const scope = String(service?.catalog_scope || '').trim();
+    if (scope === 'public_route' || scope === 'booking_option') {
+        return scope;
+    }
+    if (
+        Object.prototype.hasOwnProperty.call(service || {}, 'label_es') ||
+        Object.prototype.hasOwnProperty.call(service || {}, 'service_type')
+    ) {
+        return 'booking_option';
+    }
+    return 'public_route';
+}
+
+function getCommercialCatalogServices(scope) {
+    const catalog = getCommercialCatalog();
+    const services = Array.isArray(catalog?.services) ? catalog.services : [];
+    if (!scope) {
+        return services;
+    }
+    return services.filter((service) => resolveCommercialScope(service) === scope);
+}
+
+function mergeCommercialRoute(entry, fallback) {
+    const basePrice = Number(
+        entry?.base_price_usd ?? fallback?.base_price_usd ?? entry?.price_from ?? fallback?.price_from ?? 0
+    );
+    const taxRate = Number(
+        entry?.tax_rate ?? entry?.iva ?? fallback?.tax_rate ?? fallback?.iva ?? 0
+    );
+
+    return {
+        ...(fallback || {}),
+        ...(entry || {}),
+        slug: String(entry?.slug || fallback?.slug || '').trim(),
+        name: String(entry?.name || fallback?.name || entry?.hero || fallback?.hero || '').trim(),
+        hero: String(entry?.hero || fallback?.hero || entry?.name || fallback?.name || '').trim(),
+        summary: String(entry?.summary || fallback?.summary || '').trim(),
+        audience: Array.isArray(entry?.audience) && entry.audience.length > 0 ? entry.audience : Array.isArray(fallback?.audience) ? fallback.audience : [],
+        doctor_profile:
+            Array.isArray(entry?.doctor_profile) && entry.doctor_profile.length > 0
+                ? entry.doctor_profile
+                : Array.isArray(fallback?.doctor_profile)
+                  ? fallback.doctor_profile
+                  : [],
+        indications:
+            Array.isArray(entry?.indications) && entry.indications.length > 0
+                ? entry.indications
+                : Array.isArray(fallback?.indications)
+                  ? fallback.indications
+                  : [],
+        contraindications:
+            Array.isArray(entry?.main_contraindications) &&
+            entry.main_contraindications.length > 0
+                ? entry.main_contraindications
+                : Array.isArray(entry?.contraindications) && entry.contraindications.length > 0
+                  ? entry.contraindications
+                  : Array.isArray(fallback?.contraindications)
+                    ? fallback.contraindications
+                    : [],
+        main_contraindications: Array.isArray(entry?.main_contraindications)
+            ? entry.main_contraindications
+            : [],
+        faq:
+            Array.isArray(entry?.faq) && entry.faq.length > 0
+                ? entry.faq
+                : Array.isArray(fallback?.faq)
+                  ? fallback.faq
+                  : [],
+        cta:
+            entry?.cta && typeof entry.cta === 'object' && !Array.isArray(entry.cta)
+                ? entry.cta
+                : fallback?.cta && typeof fallback.cta === 'object' && !Array.isArray(fallback.cta)
+                  ? fallback.cta
+                  : {},
+        duration: String(entry?.duration || fallback?.duration || '').trim(),
+        duration_min: Number(entry?.duration_min || fallback?.duration_min || 0),
+        runtime_service_id: String(
+            entry?.runtime_service_id ||
+                fallback?.runtime_service_id ||
+                entry?.booking_service_id ||
+                entry?.cta?.service_hint ||
+                ''
+        ).trim(),
+        base_price_usd: basePrice,
+        tax_rate: taxRate,
+        final_price_rule: String(
+            entry?.final_price_rule || fallback?.final_price_rule || 'base_plus_tax'
+        ).trim(),
+        price_label_short: String(
+            entry?.price_label_short || fallback?.price_label_short || ''
+        ).trim(),
+        price_disclaimer_es: String(
+            entry?.price_disclaimer_es || fallback?.price_disclaimer_es || ''
+        ).trim(),
+        price_disclaimer_en: String(
+            entry?.price_disclaimer_en || fallback?.price_disclaimer_en || ''
+        ).trim(),
+        price_from: Number(
+            entry?.price_from ?? fallback?.price_from ?? entry?.base_price_usd ?? 0
+        ),
+        iva: taxRate,
+        preparation: String(entry?.preparation || '').trim(),
+        upsell_related_slug: String(entry?.upsell_related_slug || '').trim(),
+    };
+}
+
 export function getServices() {
     const data = loadCache();
+    const commercialRoutes = getCommercialCatalogServices('public_route');
     const v5Services = Array.isArray(data.v5Catalog?.services)
         ? data.v5Catalog.services
         : [];
+    if (commercialRoutes.length > 0) {
+        const fallbackServices = v5Services.length > 0
+            ? v5Services
+            : Array.isArray(data.services?.services)
+              ? data.services.services
+              : [];
+        const fallbackMap = new Map(
+            fallbackServices.map((service) => [String(service?.slug || '').trim(), service])
+        );
+
+        return commercialRoutes.map((service) =>
+            mergeCommercialRoute(
+                service,
+                fallbackMap.get(String(service?.slug || '').trim()) || null
+            )
+        );
+    }
     if (v5Services.length > 0) {
         return v5Services;
     }
@@ -624,6 +762,40 @@ export function getServices() {
 }
 
 export function getBookingOptions() {
+    const commercialOptions = getCommercialCatalogServices('booking_option');
+    if (commercialOptions.length > 0) {
+        return commercialOptions.map((option) => {
+            const base = Number(option?.base_price_usd ?? option?.price_from ?? 0);
+            const taxRate = Number(option?.tax_rate ?? option?.iva ?? 0);
+
+            return {
+                id: String(option?.runtime_service_id || option?.slug || '').trim(),
+                label_es: String(
+                    option?.label_es || option?.name || option?.hero || option?.slug || ''
+                ).trim(),
+                label_en: String(
+                    option?.label_en || option?.name || option?.hero || option?.slug || ''
+                ).trim(),
+                base_price_usd: base,
+                tax_rate: taxRate,
+                duration_min: Number(option?.duration_min || 0),
+                service_type: String(
+                    option?.service_type || option?.category || 'clinical'
+                ).trim(),
+                final_price_rule: String(
+                    option?.final_price_rule || 'base_plus_tax'
+                ).trim(),
+                price_label_short: String(option?.price_label_short || '').trim(),
+                price_disclaimer_es: String(
+                    option?.price_disclaimer_es || ''
+                ).trim(),
+                price_disclaimer_en: String(
+                    option?.price_disclaimer_en || ''
+                ).trim(),
+            };
+        });
+    }
+
     const catalog = getV5Catalog();
     if (catalog && Array.isArray(catalog.booking_options)) {
         return catalog.booking_options;
