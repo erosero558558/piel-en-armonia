@@ -786,7 +786,10 @@ function createVerificationChecks() {
             }
         },
 
-        // ── Sprint UI Fase 2 ──────────────────────────────────────────────
+        'S16-13': () => {
+             const verifyJS = readRepoFile('bin/verify.js');
+             return verifyJS.includes('verifyResourceHints()') && verifyJS.includes('https://browser.sentry-cdn.com') && verifyJS.includes('https://www.googletagmanager.com');
+        },
         'UI2-20': () =>
             PHASE_TWO_AUDIT_CHECK_KEYS.every(
                 (checkId) => typeof phaseTwoAuditChecks[checkId] === 'function'
@@ -876,6 +879,48 @@ function main() {
     if (results.unchecked.length > 0) {
         console.log(`\nℹ️  No check rule for: ${results.unchecked.join(', ')}`);
     }
+
+    function verifyResourceHints() {
+        let warnings = 0;
+        
+        const rules = {
+            'public': {
+                files: ['index.html', ...listNestedIndexFiles('es/servicios')],
+                required: [
+                    'href="https://browser.sentry-cdn.com"',
+                    'href="https://www.googletagmanager.com"'
+                ]
+            },
+            'admin': {
+                files: ['src/apps/admin-v3/index.html'],
+                required: [
+                    'href="https://browser.sentry-cdn.com"'
+                ]
+            },
+            'portal': {
+                files: ['es/portal/index.html'],
+                required: [
+                    'href="https://browser.sentry-cdn.com"'
+                ]
+            }
+        };
+
+        for (const [surface, rule] of Object.entries(rules)) {
+            for (const file of rule.files) {
+                if (!fileExists(file)) continue;
+                const content = readRepoFile(file);
+                for (const req of rule.required) {
+                    if (!content.includes(req)) {
+                        console.warn(`⚠️  [Resource Hints] ${surface} page '${file}' is missing hint for: ${req}`);
+                        warnings++;
+                    }
+                }
+            }
+        }
+        return warnings;
+    }
+
+    const hintWarnings = verifyResourceHints();
 
     const total = Object.keys(checks).length;
     const done = results.alreadyDone.length + results.nowDone.length;

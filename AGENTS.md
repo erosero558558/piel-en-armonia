@@ -1216,7 +1216,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 5.3 Telemedicina real
 
-- [ ] **S5-15** `[XL]` Sala de videoconsulta — integrar Jitsi Meet embebido en `es/telemedicina/sala/index.html`. Link único por cita. Paciente entra desde el portal, doctor desde el admin. Sin instalación.
+- [x] **S5-15** `[XL]` Sala de videoconsulta — integrar Jitsi Meet embebido en `es/telemedicina/sala/index.html`. Link único por cita. Paciente entra desde el portal, doctor desde el admin. Sin instalación.
 - [ ] **S5-16** `[M]` Pre-consulta digital — `es/telemedicina/pre-consulta/index.html`: 10 min antes de la teleconsulta, el paciente completa: "¿Qué le preocupa hoy?", sube foto si tiene lesión nueva. El doctor la ve antes de entrar.
 - [ ] **S5-17** `[M]` Grabación de consenso — opción de grabar la teleconsulta con consentimiento explícito de ambas partes. Guardar en el caso con metadatos.
 - [x] **S5-18** `[L]` Triaje por fotos IA — `TelemedicineIntakeService`: el paciente sube 3 fotos (zona, primer plano, luz natural). IA pre-clasifica urgencia (1-5) y sugiere tipo de consulta. El doctor valida.
@@ -1825,8 +1825,8 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 16.3 Frontend de observabilidad
 
-- [ ] **S16-06** `[M]` Hardening de monitoring-loader.js — actualmente no tiene: versión del SDK fija (carga desde CDN sin hash), timeout/backoff si CDN falla, protección contra doble init (`window.__auroraSentryLoaded`), degradación limpia sin Sentry. Añadir: sri hash en el `<script>`, `window.__auroraSentryLoaded` guard, `setTimeout` de 5s para CDN con fallback a noop. Verificar con tests en `tests/mocks/` para 3 escenarios: no-config, cdn-fail, init-once. Verificable: `grep "__auroraSentryLoaded" js/monitoring-loader.js` → match.
-- [ ] **S16-13** `[S]` Contrato de resource hints de monitoreo — hoy hay tests de hints pero si se crea una página nueva, nadie valida que tenga los `<link rel=preconnect>` de Sentry/GA/Stripe según la superficie. Formalizar allowlist de hints requeridos por superficie (`public`, `admin`, `portal`) en `bin/verify.js`. Verificable: una página de servicio nueva que no tenga `dns-prefetch` de GA → warning en `npm run verify`.
+- [x] **S16-06** `[M]` Hardening de monitoring-loader.js — actualmente no tiene: versión del SDK fija (carga desde CDN sin hash), timeout/backoff si CDN falla, protección contra doble init (`window.__auroraSentryLoaded`), degradación limpia sin Sentry. Añadir: sri hash en el `<script>`, `window.__auroraSentryLoaded` guard, `setTimeout` de 5s para CDN con fallback a noop. Verificar con tests en `tests/mocks/` para 3 escenarios: no-config, cdn-fail, init-once. Verificable: `grep "__auroraSentryLoaded" js/monitoring-loader.js` → match.
+- [x] **S16-13** `[S]` Contrato de resource hints de monitoreo — hoy hay tests de hints pero si se crea una página nueva, nadie valida que tenga los `<link rel=preconnect>` de Sentry/GA/Stripe según la superficie. Formalizar allowlist de hints requeridos por superficie (`public`, `admin`, `portal`) en `bin/verify.js`. Verificable: una página de servicio nueva que no tenga `dns-prefetch` de GA → warning en `npm run verify`.
 
 #### 16.4 Logging y Papertrail
 

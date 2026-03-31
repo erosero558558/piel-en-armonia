@@ -110,6 +110,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://pielarmonia.com/es/portal/fotos/</loc>
+    <lastmod>2026-03-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://pielarmonia.com/es/portal/historial/</loc>
     <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
@@ -304,6 +310,12 @@
   <url>
     <loc>https://pielarmonia.com/es/telemedicina/</loc>
     <lastmod>2026-03-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/telemedicina/sala/</loc>
+    <lastmod>2026-03-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

@@ -8,6 +8,7 @@ require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 require_once __DIR__ . '/../lib/api_helpers.php';
 require_once __DIR__ . '/../lib/openclaw/PrescriptionPdfRenderer.php';
 require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
+require_once __DIR__ . '/../payment-lib.php';
 
 final class PatientPortalController
 {
@@ -83,6 +84,7 @@ final class PatientPortalController
                 'support' => [
                     'bookingUrl' => '/#citas',
                     'historyUrl' => '/es/portal/historial/',
+                    'photosUrl' => '/es/portal/fotos/',
                     'whatsappUrl' => self::buildSupportWhatsappUrl($patient, $nextAppointment),
                 ],
                 'generatedAt' => local_date('c'),
@@ -113,6 +115,34 @@ final class PatientPortalController
                 'authenticated' => true,
                 'patient' => $patient,
                 'consultations' => self::buildPortalHistory($store, $snapshot, $patient),
+                'generatedAt' => local_date('c'),
+            ],
+        ]);
+    }
+
+    public static function photos(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+
+        self::emit([
+            'ok' => true,
+            'data' => [
+                'authenticated' => true,
+                'patient' => $patient,
+                'gallery' => self::buildPortalPhotoGallery($store, $snapshot),
                 'generatedAt' => local_date('c'),
             ],
         ]);
@@ -176,6 +206,45 @@ final class PatientPortalController
         }
 
         json_response(['ok' => false, 'error' => 'Tipo de documento no soportado'], 400);
+    }
+
+    public static function photoFile(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        $photoId = trim((string) ($_GET['id'] ?? ''));
+        if ($photoId === '') {
+            json_response(['ok' => false, 'error' => 'id requerido'], 400);
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        $caseIds = self::collectPatientCaseIds($store, $snapshot);
+
+        $upload = self::findPortalVisiblePhotoUpload($store, $caseIds, $photoId);
+        if (!is_array($upload)) {
+            json_response(['ok' => false, 'error' => 'Foto no disponible para esta sesión'], 404);
+        }
+
+        $asset = self::resolvePortalPhotoAsset($upload);
+        if (($asset['path'] ?? '') === '') {
+            json_response(['ok' => false, 'error' => 'Foto no disponible para esta sesión'], 404);
+        }
+
+        self::emitBinaryResponse(
+            (string) file_get_contents((string) $asset['path']),
+            (string) ($asset['contentType'] ?? 'application/octet-stream'),
+            (string) ($asset['fileName'] ?? 'foto-clinica.jpg')
+        );
     }
 
     private static function findNextAppointment(array $store, array $snapshot): array
@@ -699,6 +768,95 @@ final class PatientPortalController
         }
 
         return $bestEvolution;
+    }
+
+    private static function buildPortalPhotoGallery(array $store, array $snapshot): array
+    {
+        $caseIds = self::collectPatientCaseIds($store, $snapshot);
+        $caseMap = [];
+        foreach ($caseIds as $caseId) {
+            $caseId = trim((string) $caseId);
+            if ($caseId !== '') {
+                $caseMap[$caseId] = true;
+            }
+        }
+
+        $groups = [];
+        $totalPhotos = 0;
+        $latestTimestamp = 0;
+        $latestCreatedAt = '';
+
+        foreach (($store['clinical_uploads'] ?? []) as $upload) {
+            if (!is_array($upload) || !self::portalPhotoBelongsToCaseMap($upload, $caseMap)) {
+                continue;
+            }
+
+            if (!self::isPortalVisiblePhoto($upload)) {
+                continue;
+            }
+
+            $normalized = self::normalizePortalPhotoItem($upload);
+            if ($normalized === null) {
+                continue;
+            }
+
+            $groupKey = strtolower(trim((string) ($normalized['bodyZone'] ?? 'general')));
+            if (!isset($groups[$groupKey])) {
+                $groups[$groupKey] = [
+                    'bodyZone' => (string) ($normalized['bodyZone'] ?? 'general'),
+                    'bodyZoneLabel' => (string) ($normalized['bodyZoneLabel'] ?? 'Seguimiento general'),
+                    'photoCount' => 0,
+                    'latestCreatedAt' => '',
+                    'latestCreatedAtLabel' => '',
+                    'items' => [],
+                    'sortTimestamp' => 0,
+                ];
+            }
+
+            $groups[$groupKey]['items'][] = $normalized;
+            $groups[$groupKey]['photoCount']++;
+            $itemTimestamp = (int) ($normalized['sortTimestamp'] ?? 0);
+            if ($itemTimestamp >= (int) ($groups[$groupKey]['sortTimestamp'] ?? 0)) {
+                $groups[$groupKey]['sortTimestamp'] = $itemTimestamp;
+                $groups[$groupKey]['latestCreatedAt'] = (string) ($normalized['createdAt'] ?? '');
+                $groups[$groupKey]['latestCreatedAtLabel'] = (string) ($normalized['createdAtLabel'] ?? '');
+            }
+
+            $totalPhotos++;
+            if ($itemTimestamp >= $latestTimestamp) {
+                $latestTimestamp = $itemTimestamp;
+                $latestCreatedAt = (string) ($normalized['createdAt'] ?? '');
+            }
+        }
+
+        foreach ($groups as &$group) {
+            usort($group['items'], static function (array $left, array $right): int {
+                return ((int) ($right['sortTimestamp'] ?? 0)) <=> ((int) ($left['sortTimestamp'] ?? 0));
+            });
+
+            $group['items'] = array_values(array_map(static function (array $item): array {
+                unset($item['sortTimestamp']);
+                return $item;
+            }, $group['items']));
+        }
+        unset($group);
+
+        usort($groups, static function (array $left, array $right): int {
+            return ((int) ($right['sortTimestamp'] ?? 0)) <=> ((int) ($left['sortTimestamp'] ?? 0));
+        });
+
+        $groups = array_values(array_map(static function (array $group): array {
+            unset($group['sortTimestamp']);
+            return $group;
+        }, $groups));
+
+        return [
+            'totalPhotos' => $totalPhotos,
+            'bodyZoneCount' => count($groups),
+            'latestCreatedAt' => $latestCreatedAt,
+            'latestCreatedAtLabel' => self::buildPortalDateTimeLabel($latestCreatedAt, ''),
+            'groups' => $groups,
+        ];
     }
 
     private static function collectPortalBillingOrders(array $store, array $snapshot): array
@@ -2229,6 +2387,246 @@ final class PatientPortalController
         }
 
         return ucwords(strtolower($value));
+    }
+
+    private static function portalPhotoBelongsToCaseMap(array $upload, array $caseMap): bool
+    {
+        $caseId = self::firstNonEmptyString(
+            (string) ($upload['patientCaseId'] ?? ''),
+            (string) ($upload['clinicalHistoryCaseId'] ?? ''),
+            (string) ($upload['caseId'] ?? '')
+        );
+
+        if ($caseId === '' || !isset($caseMap[$caseId])) {
+            return false;
+        }
+
+        return strtolower(trim((string) ($upload['kind'] ?? ''))) === 'case_photo';
+    }
+
+    private static function isPortalVisiblePhoto(array $upload): bool
+    {
+        $directFlags = [
+            $upload['visibleToPatient'] ?? null,
+            $upload['visible_to_patient'] ?? null,
+            $upload['patientVisible'] ?? null,
+            $upload['portalVisible'] ?? null,
+            $upload['portal_visible'] ?? null,
+            $upload['sharedWithPatient'] ?? null,
+            $upload['showInPortal'] ?? null,
+            $upload['patientPortalVisible'] ?? null,
+        ];
+
+        foreach ($directFlags as $flag) {
+            $normalized = self::normalizePortalVisibilityFlag($flag);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        foreach (['visibility', 'sharing', 'portal', 'patientPortal'] as $containerKey) {
+            $container = is_array($upload[$containerKey] ?? null) ? $upload[$containerKey] : [];
+            foreach (['patient', 'portal', 'visible', 'patientVisible', 'visibleToPatient'] as $nestedKey) {
+                $normalized = self::normalizePortalVisibilityFlag($container[$nestedKey] ?? null);
+                if ($normalized !== null) {
+                    return $normalized;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static function normalizePortalVisibilityFlag($value): ?bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return ((int) $value) === 1;
+        }
+
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($value));
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (in_array($normalized, ['1', 'true', 'yes', 'si', 'visible', 'shared', 'show'], true)) {
+            return true;
+        }
+
+        if (in_array($normalized, ['0', 'false', 'no', 'hidden', 'private', 'internal'], true)) {
+            return false;
+        }
+
+        return null;
+    }
+
+    private static function normalizePortalPhotoItem(array $upload): ?array
+    {
+        $id = trim((string) ($upload['id'] ?? ''));
+        if ($id === '') {
+            return null;
+        }
+
+        $createdAt = trim((string) ($upload['createdAt'] ?? $upload['updatedAt'] ?? ''));
+        $timestamp = self::recordTimestamp([
+            'createdAt' => $createdAt,
+            'updatedAt' => (string) ($upload['updatedAt'] ?? ''),
+        ]);
+        $bodyZone = trim((string) ($upload['bodyZone'] ?? $upload['body_zone'] ?? ''));
+        $bodyZoneLabel = self::humanizeValue($bodyZone, 'Seguimiento general');
+        $photoRole = trim((string) ($upload['photoRole'] ?? ''));
+        $photoRoleLabel = trim((string) ($upload['photoRoleLabel'] ?? self::humanizeValue($photoRole, '')));
+        $createdAtLabel = self::buildPortalDateTimeLabel(
+            $createdAt,
+            $timestamp > 0 ? self::buildDateLabel(date('Y-m-d', $timestamp)) : 'Sin fecha'
+        );
+
+        return [
+            'id' => $id,
+            'bodyZone' => $bodyZone !== '' ? $bodyZone : 'general',
+            'bodyZoneLabel' => $bodyZoneLabel,
+            'createdAt' => $createdAt,
+            'createdAtLabel' => $createdAtLabel,
+            'dateLabel' => $timestamp > 0 ? self::buildDateLabel(date('Y-m-d', $timestamp)) : '',
+            'timeLabel' => $timestamp > 0 ? self::buildTimeLabel(date('H:i', $timestamp)) : '',
+            'photoRole' => $photoRole,
+            'photoRoleLabel' => $photoRoleLabel,
+            'fileName' => trim((string) ($upload['originalName'] ?? ('foto-' . $id . '.jpg'))),
+            'imageUrl' => '/api.php?resource=patient-portal-photo-file&id=' . rawurlencode($id),
+            'alt' => trim($bodyZoneLabel . ($createdAtLabel !== '' ? ' · ' . $createdAtLabel : '')),
+            'sortTimestamp' => $timestamp,
+        ];
+    }
+
+    private static function findPortalVisiblePhotoUpload(array $store, array $caseIds, string $photoId): ?array
+    {
+        $caseMap = [];
+        foreach ($caseIds as $caseId) {
+            $caseId = trim((string) $caseId);
+            if ($caseId !== '') {
+                $caseMap[$caseId] = true;
+            }
+        }
+
+        foreach (($store['clinical_uploads'] ?? []) as $upload) {
+            if (!is_array($upload)) {
+                continue;
+            }
+
+            if (trim((string) ($upload['id'] ?? '')) !== $photoId) {
+                continue;
+            }
+
+            if (!self::portalPhotoBelongsToCaseMap($upload, $caseMap)) {
+                return null;
+            }
+
+            if (!self::isPortalVisiblePhoto($upload)) {
+                return null;
+            }
+
+            return $upload;
+        }
+
+        return null;
+    }
+
+    private static function resolvePortalPhotoAsset(array $upload): array
+    {
+        $path = self::resolvePortalPhotoDiskPath($upload);
+        if ($path === '' || !is_file($path)) {
+            return [];
+        }
+
+        $mime = self::safePortalMime((string) ($upload['mime'] ?? ''), $path);
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $fileName = trim((string) ($upload['originalName'] ?? ''));
+        if ($fileName === '') {
+            $fileName = 'foto-clinica' . ($extension !== '' ? '.' . strtolower($extension) : '.jpg');
+        }
+
+        return [
+            'path' => $path,
+            'contentType' => $mime,
+            'fileName' => $fileName,
+        ];
+    }
+
+    private static function resolvePortalPhotoDiskPath(array $upload): string
+    {
+        $privatePath = ltrim(str_replace(['\\', '//'], '/', trim((string) ($upload['privatePath'] ?? ''))), '/');
+        if ($privatePath !== '') {
+            if (str_starts_with($privatePath, 'clinical-media/')) {
+                return data_dir_path() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $privatePath);
+            }
+
+            return clinical_media_dir_path() . DIRECTORY_SEPARATOR . basename($privatePath);
+        }
+
+        $diskPath = trim((string) ($upload['diskPath'] ?? ''));
+        if ($diskPath !== '' && is_file($diskPath)) {
+            return $diskPath;
+        }
+
+        $legacyPublicPath = trim((string) ($upload['legacyPublicPath'] ?? ''));
+        if ($legacyPublicPath !== '' && function_exists('transfer_proof_upload_dir')) {
+            return rtrim(transfer_proof_upload_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($legacyPublicPath);
+        }
+
+        return '';
+    }
+
+    private static function safePortalMime(string $mime, string $path): string
+    {
+        $mime = trim($mime);
+        if ($mime !== '') {
+            return $mime;
+        }
+
+        if (function_exists('mime_content_type')) {
+            $detected = @mime_content_type($path);
+            if (is_string($detected) && trim($detected) !== '') {
+                return trim($detected);
+            }
+        }
+
+        return 'application/octet-stream';
+    }
+
+    private static function emitBinaryResponse(
+        string $bytes,
+        string $contentType,
+        string $fileName,
+        string $disposition = 'inline'
+    ): void {
+        if (defined('TESTING_ENV')) {
+            $payload = [
+                'ok' => true,
+                'format' => 'binary',
+                'filename' => $fileName,
+                'contentType' => $contentType,
+                'contentLength' => strlen($bytes),
+                'binary' => $bytes,
+            ];
+            $GLOBALS['__TEST_RESPONSE'] = ['payload' => $payload, 'status' => 200];
+            if (!defined('TESTING_FORCE_EXIT')) {
+                throw new TestingExitException($payload, 200);
+            }
+        }
+
+        header('Content-Type: ' . $contentType);
+        header('Content-Disposition: ' . $disposition . '; filename="' . $fileName . '"');
+        header('Content-Length: ' . strlen($bytes));
+        header('Cache-Control: private, max-age=3600');
+        echo $bytes;
+        exit;
     }
 
     private static function emit(array $result): void

@@ -1,19 +1,54 @@
 (function () {
-    // Avoid re-initialization
+    if (window.__auroraSentryLoaded) return;
+    window.__auroraSentryLoaded = true;
+
     window.Piel = window.Piel || {};
     if (window.Sentry || window.Piel.Monitoring) return;
 
     window.Piel.Monitoring = { initialized: false };
 
-    function loadScript(src, integrity, crossorigin) {
+    function ensureNoopFallback() {
+        if (!window.Sentry) {
+            window.Sentry = {
+                init: function () {},
+                captureException: function () {},
+                captureMessage: function () {},
+                withScope: function(cb) { cb({ setTag: () => {}, setExtra: () => {} }); }
+            };
+        }
+    }
+
+    function loadScriptWithTimeout(src, integrity, crossorigin, timeoutMs) {
         return new Promise((resolve, reject) => {
+            let handled = false;
+            const timer = setTimeout(() => {
+                if (!handled) {
+                    handled = true;
+                    ensureNoopFallback();
+                    reject(new Error('CDN Timeout'));
+                }
+            }, timeoutMs);
+
             const script = document.createElement('script');
             script.src = src;
             if (integrity) script.integrity = integrity;
             if (crossorigin) script.crossOrigin = crossorigin;
             script.async = true;
-            script.onload = resolve;
-            script.onerror = reject;
+            script.onload = () => {
+                if (!handled) {
+                    handled = true;
+                    clearTimeout(timer);
+                    resolve();
+                }
+            };
+            script.onerror = () => {
+                if (!handled) {
+                    handled = true;
+                    clearTimeout(timer);
+                    ensureNoopFallback();
+                    reject(new Error('CDN Error'));
+                }
+            };
             document.head.appendChild(script);
         });
     }
@@ -24,15 +59,15 @@
             .then((config) => {
                 const dsn = config.sentry_dsn_frontend || config.dsn;
                 if (!config || !dsn) {
-                    // Monitoring not configured or disabled
+                    ensureNoopFallback();
                     return;
                 }
 
-                // Load Sentry Browser SDK (v7.x)
-                return loadScript(
-                    'https://browser.sentry-cdn.com/7.x/bundle.min.js',
-                    null,
-                    'anonymous'
+                return loadScriptWithTimeout(
+                    'https://browser.sentry-cdn.com/7.114.0/bundle.min.js',
+                    'sha384-ZI11RF8XfI7ic0+HK1UnGkClkyjeQrHLUX+42WJHeu8+O94vBhb5Wivro/pn5lhG',
+                    'anonymous',
+                    5000
                 ).then(() => {
                     if (window.Sentry) {
                         const options = {

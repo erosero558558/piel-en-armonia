@@ -56,6 +56,10 @@ function buildRowActions(item, paymentStatus, phoneHref) {
         actions.push(buildActionLink(phoneHref, 'WhatsApp', item.name));
     }
 
+    if (item.service && String(item.service).toLowerCase().includes('telemedicina') || item.appointmentType === 'telemedicine') {
+        actions.push(`<a href="/es/telemedicina/sala/index.html?id=${id}" style="color:var(--form-accent);" target="_blank" rel="noopener">Entrar a Sala</a>`);
+    }
+
     if (TRANSFER_REVIEW_PAYMENT_STATUSES.has(paymentStatus)) {
         actions.push(buildActionButton('Aprobar', 'approve-transfer', id));
         actions.push(buildActionButton('Rechazar', 'reject-transfer', id));

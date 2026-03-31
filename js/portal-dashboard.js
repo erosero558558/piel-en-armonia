@@ -200,9 +200,14 @@
                 </div>
                 <div class="portal-cta-row">
                     ${
-                        whatsappUrl
-                            ? `<a class="btn btn-primary" data-portal-next-whatsapp href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`
+                        safeAppointment.appointmentType === 'telemedicine' && safeAppointment.id
+                            ? `<a class="btn btn-primary" data-portal-next-telemed href="/es/telemedicina/sala/index.html?id=${escapeHtml(safeAppointment.id)}">Entrar a Sala</a>`
                             : ''
+                    }
+                    ${
+                        whatsappUrl && safeAppointment.appointmentType !== 'telemedicine'
+                            ? `<a class="btn btn-primary" data-portal-next-whatsapp href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`
+                            : (whatsappUrl ? `<a class="btn btn-secondary" data-portal-next-whatsapp href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer">Ayuda</a>` : '')
                     }
                     ${
                         rescheduleUrl
