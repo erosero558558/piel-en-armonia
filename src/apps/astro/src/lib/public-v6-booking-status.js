@@ -1,3 +1,4 @@
+import { getWhatsappNumber } from './whatsapp-config.js';
 import { homePath, mapServiceHint } from './content.js';
 
 const BOOKING_STATUS_COPY = {
@@ -24,11 +25,11 @@ const BOOKING_STATUS_COPY = {
     firstConsultation: {
         es: {
             ctaHref:
-                'https://wa.me/593982453672?text=Hola%2C%20quiero%20coordinar%20mi%20primera%20consulta%20en%20Aurora%20Derm',
+                `https://wa.me/${getWhatsappNumber()}?text=Hola%2C%20quiero%20coordinar%20mi%20primera%20consulta%20en%20Aurora%20Derm`,
         },
         en: {
             ctaHref:
-                'https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20schedule%20my%20first%20consultation%20at%20Aurora%20Derm',
+                `https://wa.me/${getWhatsappNumber()}?text=Hello%2C%20I%20want%20to%20schedule%20my%20first%20consultation%20at%20Aurora%20Derm`,
         },
     },
 };

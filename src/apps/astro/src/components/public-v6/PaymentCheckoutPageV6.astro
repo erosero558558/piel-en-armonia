@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../lib/whatsapp-config.js';
 import '../../styles/public-v6/payment-checkout.css';
 
 import PageHeadV6 from './PageHeadV6.astro';
@@ -22,7 +23,7 @@ const breadcrumb = Array.isArray(page?.breadcrumb) ? page.breadcrumb : [];
 const sections = Array.isArray(page?.sections) ? page.sections : [];
 const hero = page?.hero && typeof page.hero === 'object' ? page.hero : {};
 const pageMenuItems = sections.map((item) => makeMenuItem(item?.label, item?.href)).filter(Boolean);
-const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%20con%20un%20checkout%20de%20Aurora%20Derm';
+const supportHref = `https://wa.me/${getWhatsappNumber()}?text=Hola%2C%20necesito%20ayuda%20con%20un%20checkout%20de%20Aurora%20Derm`;
 ---
 
 <PageHeadV6
@@ -432,7 +433,7 @@ const supportHref = 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%
         const confirmUrl = root.dataset.apiConfirm || '/api.php?resource=checkout-confirm';
         const submitUrl = root.dataset.apiSubmit || '/api.php?resource=checkout-submit';
         const proofUrl = root.dataset.apiProof || '/api.php?resource=checkout-transfer-proof';
-        const supportHref = root.dataset.supportHref || 'https://wa.me/593982453672';
+        const supportHref = root.dataset.supportHref || `https://wa.me/${getWhatsappNumber()}`;
 
         if (!(form instanceof HTMLFormElement) || !(methodInput instanceof HTMLInputElement)) {
             return;

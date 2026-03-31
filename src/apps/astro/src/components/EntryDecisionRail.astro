@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../lib/whatsapp-config.js';
 const { locale = 'es', variant = 'home', activeTarget = '' } = Astro.props;
 
 const copy = {
@@ -32,7 +33,7 @@ const copy = {
                         step: 'WhatsApp',
                         title: 'Cuando la friccion es administrativa',
                         body: 'Util para horarios, documentos, medios de pago o para saber si conviene una valoracion general antes de reservar.',
-                        href: 'https://wa.me/593982453672',
+                        href: `https://wa.me/${getWhatsappNumber()}`,
                         cta: 'Abrir WhatsApp',
                         tone: 'support',
                         target: 'whatsapp',
@@ -67,7 +68,7 @@ const copy = {
                         step: 'WhatsApp',
                         title: 'Cuando la friccion es administrativa',
                         body: 'Util para horarios, documentos, medios de pago o para saber si conviene una valoracion general antes de reservar.',
-                        href: 'https://wa.me/593982453672',
+                        href: `https://wa.me/${getWhatsappNumber()}`,
                         cta: 'Abrir WhatsApp',
                         tone: 'support',
                         target: 'whatsapp',
@@ -102,7 +103,7 @@ const copy = {
                         step: 'WhatsApp',
                         title: 'Cuando el bloqueo es horario, documentos o preparacion',
                         body: 'Usalo para dudas operativas antes de la videollamada o para confirmar que material conviene tener listo.',
-                        href: 'https://wa.me/593982453672',
+                        href: `https://wa.me/${getWhatsappNumber()}`,
                         cta: 'Abrir WhatsApp',
                         tone: 'support',
                         target: 'whatsapp',
@@ -142,7 +143,7 @@ const copy = {
                         step: 'WhatsApp',
                         title: 'When the friction is administrative',
                         body: 'Best for timing, documents, payment methods, or deciding whether general assessment should come first.',
-                        href: 'https://wa.me/593982453672',
+                        href: `https://wa.me/${getWhatsappNumber()}`,
                         cta: 'Open WhatsApp',
                         tone: 'support',
                         target: 'whatsapp',
@@ -177,7 +178,7 @@ const copy = {
                         step: 'WhatsApp',
                         title: 'When the friction is administrative',
                         body: 'Best for timing, documents, payment methods, or deciding whether general assessment should come first.',
-                        href: 'https://wa.me/593982453672',
+                        href: `https://wa.me/${getWhatsappNumber()}`,
                         cta: 'Open WhatsApp',
                         tone: 'support',
                         target: 'whatsapp',
@@ -212,7 +213,7 @@ const copy = {
                         step: 'WhatsApp',
                         title: 'When the blocker is timing, documents, or preparation',
                         body: 'Use it for operational questions before the video visit or to confirm what material should be ready in advance.',
-                        href: 'https://wa.me/593982453672',
+                        href: `https://wa.me/${getWhatsappNumber()}`,
                         cta: 'Open WhatsApp',
                         tone: 'support',
                         target: 'whatsapp',

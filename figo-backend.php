@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/lib/figo_utils.php';
+require_once __DIR__ . '/lib/ClinicConfig.php';
 
 apply_security_headers(false);
 
@@ -511,8 +512,6 @@ function figo_backend_ai_system_prompt(string $source = 'web'): string
         . "- Detección cáncer de piel: desde \$70 (IVA 0%)\n"
         . "- Dirección: Valparaíso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito\n"
         . "- Horario: L-V 9:00-18:00, Sáb 9:00-13:00\n"
-        . "- WhatsApp: +593 98 245 3672\n"
-        . "- Doctores: Dr. Javier Rosero (dermatólogo clínico), Dra. Carolina Narváez (estética/láser)\n"
         . "- Web: https://pielarmonia.com\n"
         . "Responde en español. Sé conciso (2-4 oraciones para temas generales, más detalle para temas de la clínica).";
 }
@@ -699,7 +698,7 @@ function figo_backend_ai_response(string $userMessage, array $contextMessages = 
 function figo_backend_ai_unavailable_message(): string
 {
     return 'Figo IA no esta disponible en este momento. '
-        . 'Para atencion inmediata, escribe a WhatsApp +593 98 245 3672.';
+        . 'Para atencion inmediata, escribe a WhatsApp +' . ClinicConfig::getWhatsappNumber() . '.';
 }
 
 function figo_backend_answer(string $userMessage, string $source = 'web'): string
@@ -769,7 +768,7 @@ function figo_backend_answer(string $userMessage, string $source = 'web'): strin
     ) {
         return "Puedo ayudarte solo con temas de Aurora Derm: servicios, precios, pagos, horarios y reservas.\n"
             . "Si quieres, te guio para agendar cita o elegir tratamiento.\n"
-            . "Atencion inmediata: WhatsApp +593 98 245 3672.";
+            . "Atencion inmediata: WhatsApp +" . ClinicConfig::getWhatsappNumber() . ".";
     }
 
     if (figo_backend_contains_any($normalized, [
@@ -787,7 +786,7 @@ function figo_backend_answer(string $userMessage, string $source = 'web'): strin
             . "3) Elige tarjeta, transferencia o efectivo.\n"
             . "4) Confirma y la cita queda registrada.\n\n"
             . "Si eliges transferencia, sube comprobante y numero de referencia.\n"
-            . "Soporte inmediato: WhatsApp +593 98 245 3672.";
+            . "Soporte inmediato: WhatsApp +" . ClinicConfig::getWhatsappNumber() . ".";
     }
 
     if (figo_backend_contains_any($normalized, [
@@ -802,7 +801,7 @@ function figo_backend_answer(string $userMessage, string $source = 'web'): strin
             . "2) Selecciona fecha y hora.\n"
             . "3) Completa tus datos.\n"
             . "4) Continua al pago y confirma.\n\n"
-            . "Tambien puedes reservar por WhatsApp: https://wa.me/593982453672";
+            . "Tambien puedes reservar por WhatsApp: https://wa.me/" . ClinicConfig::getWhatsappNumber();
     }
 
     if (figo_backend_contains_any($normalized, [
@@ -846,12 +845,12 @@ function figo_backend_answer(string $userMessage, string $source = 'web'): strin
         return "Estamos en Quito, Ecuador.\n"
             . "Dirección: Valparaíso 13-183 y Sodiro, Consultorio Dr. Celio Caiza.\n"
             . "Horario: Lunes a Viernes 09:00-18:00, Sábados 09:00-13:00.\n"
-            . "Teléfono/WhatsApp: +593 98 245 3672.";
+            . "Teléfono/WhatsApp: +" . ClinicConfig::getWhatsappNumber() . ".";
     }
 
     return "Gracias por escribirme. Soy Figo de Aurora Derm y estoy para ayudarte.\n"
         . "Puedo darte informacion sobre servicios dermatologicos, precios, citas, pagos, horarios y ubicacion.\n"
-        . "Si necesitas atencion directa: WhatsApp +593 98 245 3672.";
+        . "Si necesitas atencion directa: WhatsApp +" . ClinicConfig::getWhatsappNumber() . ".";
 }
 
 function figo_backend_compose_response(string $userMessage, array $messages = [], int $requestedMaxTokens = 0, ?float $requestedTemperature = null, string $source = 'web'): array

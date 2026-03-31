@@ -1,3 +1,4 @@
+import { getWhatsappNumber } from './whatsapp-config.js';
 const DEMO_STATE_VERSION = 'turnero-demo-state-v1';
 
 const BASE_STATE = Object.freeze({
@@ -59,7 +60,7 @@ const COPY = {
             viewDashboard: 'Ver Clinic Dashboard',
         },
         proposalHref:
-            'https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede',
+            `https://wa.me/${getWhatsappNumber()}?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede`,
         proof: {
             eyebrow: 'Tenant de referencia',
             title: 'Prueba operativa visible sobre un solo tenant',
@@ -159,7 +160,7 @@ const COPY = {
             viewDashboard: 'See Clinic Dashboard',
         },
         proposalHref:
-            'https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic',
+            `https://wa.me/${getWhatsappNumber()}?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic`,
         proof: {
             eyebrow: 'Reference tenant',
             title: 'Visible operating proof on a single tenant',

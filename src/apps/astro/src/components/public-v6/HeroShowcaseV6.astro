@@ -94,7 +94,7 @@ const buildIndicatorLabel = (slide, index) => {
                                     <span aria-hidden="true">{'>'}</span>
                                 </a>
                                 <div class="v6-hero__card-caption" aria-hidden="true">
-                                    {slide.category ? <p>{slide.category}</p> : null}
+                                    {slide.category ? <p><span class="glass-pill glass-pill--gold">{slide.category}</span></p> : null}
                                     <h2>{slide.title}</h2>
                                     <span>{String(index + 1).padStart(2, '0')} / {totalSlides}</span>
                                 </div>
@@ -104,7 +104,7 @@ const buildIndicatorLabel = (slide, index) => {
                 </div>
             </div>
 
-            <div class="v6-hero__band" aria-live="polite">
+            <div class="v6-hero__band lg-surface" aria-live="polite">
                 <div class="v6-hero__band-shell">
                     <button type="button" class="v6-hero__nav v6-hero__nav--prev" data-v6-prev>
                         <span aria-hidden="true">{'<'}</span>
@@ -127,7 +127,7 @@ const buildIndicatorLabel = (slide, index) => {
                                     {
                                         badges.map((badge, index) => (
                                             <div
-                                                class="v6-hero__trust-badge"
+                                                class="v6-hero__trust-badge glass-pill"
                                                 data-v6-hero-badge
                                                 data-v6-hero-badge-id={badge.id}
                                                 style={`--v6-hero-badge-delay: ${index * 90}ms;`}

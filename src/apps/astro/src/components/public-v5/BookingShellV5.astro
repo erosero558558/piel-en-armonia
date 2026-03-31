@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../lib/whatsapp-config.js';
 import {
     getDictionary,
     getLocalizedBookingOptions,
@@ -236,7 +237,7 @@ const evolutionOptions = [
                     {companionTelemedicineLabel}
                 </a>
                 <a
-                    href="https://wa.me/593982453672"
+                    href={`https://wa.me/${getWhatsappNumber()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="hero-stage__cta hero-stage__cta--secondary"

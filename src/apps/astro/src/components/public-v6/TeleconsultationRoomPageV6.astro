@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../lib/whatsapp-config.js';
 import '../../styles/public-v6/internal.css';
 import '../../styles/public-v6/teleconsultation-room.css';
 
@@ -481,7 +482,7 @@ const supportStatus = {
         const doctor = sanitizeText(rawDoctor, defaultDoctor);
         const patient = sanitizeText(rawPatient, defaultPatient);
         const jitsiBase = root.dataset.jitsiBase || 'https://meet.jit.si';
-        const whatsappBase = root.dataset.whatsappBase || 'https://wa.me/593982453672';
+        const whatsappBase = root.dataset.whatsappBase || `https://wa.me/${getWhatsappNumber()}`;
         const launchButton = root.querySelector('[data-tele-room-launch]');
         const openLink = root.querySelector('[data-tele-room-open]');
         const iframe = root.querySelector('[data-tele-room-iframe]');

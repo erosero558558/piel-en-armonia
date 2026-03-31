@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../lib/whatsapp-config.js';
 import {
     homePath,
     legalBasePath,
@@ -79,7 +80,7 @@ const legalLinks = [
                 </a>
                 <a
                     class="sony-btn sony-btn--ghost"
-                    href="https://wa.me/593982453672"
+                    href={`https://wa.me/${getWhatsappNumber()}`}
                     rel="noopener noreferrer"
                     target="_blank"
                     data-analytics-event="whatsapp_click"

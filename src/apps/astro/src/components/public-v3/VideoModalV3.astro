@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../lib/whatsapp-config.js';
 const { locale = 'es' } = Astro.props;
 ---
 
@@ -33,7 +34,7 @@ const { locale = 'es' } = Astro.props;
                 <span class="public-modal__pill">{locale === 'en' ? 'Recommended' : 'Recomendado'}</span>
             </a>
             <a
-                href="https://wa.me/593982453672?text=Hola%20doctor,%20solicito%20videoconsulta"
+                href={`https://wa.me/${getWhatsappNumber()}?text=Hola%20doctor,%20solicito%20videoconsulta`}
                 target="_blank"
                 rel="noopener noreferrer"
                 class="video-option"

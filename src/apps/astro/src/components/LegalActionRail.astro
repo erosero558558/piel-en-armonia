@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../lib/whatsapp-config.js';
 const { locale = 'es' } = Astro.props;
 
 const copy = {
@@ -28,7 +29,7 @@ const copy = {
                 step: 'Soporte',
                 title: 'Resolver una duda operativa por WhatsApp',
                 body: 'Sirve para aclarar tiempos, documentos o si debes pasar a una valoracion general antes de pagar.',
-                href: 'https://wa.me/593982453672',
+                href: `https://wa.me/${getWhatsappNumber()}`,
                 cta: 'Abrir WhatsApp',
                 external: true,
                 target: 'whatsapp',
@@ -61,7 +62,7 @@ const copy = {
                 step: 'Support',
                 title: 'Resolve an operational question on WhatsApp',
                 body: 'Best for timing, documents, or deciding whether a general assessment should happen before payment.',
-                href: 'https://wa.me/593982453672',
+                href: `https://wa.me/${getWhatsappNumber()}`,
                 cta: 'Open WhatsApp',
                 external: true,
                 target: 'whatsapp',

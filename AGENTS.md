@@ -1935,3 +1935,60 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S19-16** `[M]` Sentry aterrizado en runtime — `SENTRY_AUTH_TOKEN` y `SENTRY_ORG` siguen como `missing_env` en runtime. Configurar en CI Secrets + `monitoring-loader.js`. Verificable: `node bin/audit.js` → `sentry.configured: true`, sin `missing_env` en Sentry section.
 - [x] **S19-17** `[M]` Dead endpoints en routes.php — auditoría identificó rutas que apuntan a controllers inexistentes. Crear suite `tests/Unit/RoutesIntegrityTest.php` que para cada ruta registrada verifique que el controller::method existe. Verificable: 0 rutas huérfanas en PHPUnit.
 - [x] **S19-18** `[S]` Métricas de WhatsApp OpenClaw en dashboard — `GET /api.php?resource=whatsapp-openclaw-metrics` con `{conversations_total, holds_active, handoff_pending, outbox_failed, conversion_rate}`. Verificable: el endpoint devuelve JSON con todos los campos aunque sean 0.
+
+
+---
+
+### 🫧 Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
+
+> **Inspiración:** Apple WWDC 2025 — Liquid Glass design language.
+> Translucidez real, refracción de luz, capas de vidrio que respiran.
+> Este sprint transforma Aurora Derm en una experiencia visual de primer nivel mundial.
+> **Agente exclusivo:** Antigravity. Codex tiene prohibido tomar cualquier tarea `[UI]`.
+
+#### 20.1 Design System — Tokens y primitivas Liquid Glass
+
+- [x] **UI4-01** `[M]` `[UI]` Liquid Glass token layer — crear `src/apps/astro/src/styles/public-v6/liquid-glass.css` con las variables CSS del sistema: `--lg-blur: 24px`, `--lg-saturation: 160%`, `--lg-opacity-fill: 0.12`, `--lg-border-specular: rgba(255,255,255,0.28)`, `--lg-shadow-depth: 0 8px 32px rgba(3,8,18,0.36)`, `--lg-refraction-tint: rgba(199,163,109,0.08)`. Importar desde `index.css`. Verificable: `grep "lg-blur\|lg-saturation" src/apps/astro/src/styles/public-v6/liquid-glass.css` → match ≥6 variables.
+
+- [x] **UI4-02** `[M]` `[UI]` Glass surface mixin — `.lg-surface` con `backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturation))`, `background: rgba(255,255,255,var(--lg-opacity-fill))`, `border: 1px solid var(--lg-border-specular)`, `box-shadow: var(--lg-shadow-depth)`. Variantes: `.lg-surface--dark` (tint oscuro navy), `.lg-surface--gold` (tint gold aurora), `.lg-surface--deep` (blur 48px para modales). Verificable: `grep "lg-surface--deep\|lg-surface--gold" liquid-glass.css` → match.
+
+- [x] **UI4-03** `[S]` `[UI]` Specular highlight edge — `::before` pseudo-elemento con `background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 50%)`, `border-radius: inherit`, aplicado sobre `.lg-surface` para simular el brillo de borde que hace el vidrio tridimensional. La luz viene del ángulo superior izquierdo. Verificable: inspección visual — el borde superior-izquierdo de cada panel glass brilla 22% más.
+
+- [x] **UI4-04** `[S]` `[UI]` Depth shadow system — reemplazar todos los `box-shadow` genéricos del sitio por el sistema de profundidad Liquid Glass: `--shadow-z1` (elementos flotantes), `--shadow-z2` (cards), `--shadow-z3` (modales), `--shadow-z4` (overlays). Cada nivel incrementa blur y opacidad. Verificable: `grep "shadow-z1\|shadow-z2\|shadow-z3\|shadow-z4" liquid-glass.css` → match ≥4.
+
+#### 20.2 Componentes — Refactoría al sistema Glass
+
+- [x] **UI4-05** `[L]` `[UI]` Hero Liquid Glass — rediseñar `.v6-hero__band` como surface glass: `backdrop-filter blur(28px) saturate(180%)`, recuadros de tarjeta con `.lg-surface--dark`, el indicator bar reemplazado por línea gold translúcida. El "EMPIECE HOY" strip inferior: glass con tint gold sutil. Resultado: el hero se ve como la barra de navegación de iOS 18. Verificable: `grep "lg-surface\|backdrop-filter.*blur" home.css` en sección hero → ≥3 matches.
+
+- [x] **UI4-06** `[L]` `[UI]` Navigation bar glass — el `v6-header` actual usa un fondo sólido oscuro. Convertir a glass: `position: sticky`, `backdrop-filter: blur(20px) saturate(150%)`, `background: rgba(5,7,11,0.72)`, `border-bottom: 1px solid rgba(255,255,255,0.08)`. Al hacer scroll down >80px: añadir specular highlight. Transición `300ms ease`. Verificable: `grep "backdrop-filter.*blur.*header\|v6-header.*glass" tokens.css` o `components.css` → match.
+
+- [x] **UI4-07** `[M]` `[UI]` Card matrix glass — `.v6-corporate-matrix__card` ya está en dark glassmorphism. Refinar con: micro-animación al hover (`transform: translateY(-4px) scale(1.01)`), borde specular que se intensifica al hover (`border-color: rgba(199,163,109,0.36)`), sombra interna sutil `inset 0 1px 0 rgba(255,255,255,0.1)`, y refracción dorada en `.is-slot-1`. Verificable: `grep "inset.*rgba\|scale(1.01)" home.css` → match.
+
+- [ ] **UI4-08** `[M]` `[UI]` Modal y overlay glass — cualquier modal/overlay en `admin.html` y portal usa fondos sólidos. Migrar a: `background: rgba(3,8,18,0.72)`, `backdrop-filter: blur(16px)`, panel interior con `.lg-surface--deep`. Los botones primarios tendrán el glass gold tint. Verificable: `grep "lg-surface--deep\|backdrop-filter.*blur.*modal" aurora-clinical.css` → match.
+
+- [ ] **UI4-09** `[M]` `[UI]` Footer glass — el `v6-footer` tiene fondo uniforme. Añadir: capa glass sobre imagen de fondo sutil (gradiente de topografía en svg inline muy opaco 4%), `border-top: 1px solid rgba(255,255,255,0.06)`, links con hover que activan un micro-highlight glass. Verificable: `grep "v6-footer.*glass\|v6-footer.*backdrop" home.css` → match.
+
+#### 20.3 Animaciones — Fluid motion
+
+- [ ] **UI4-10** `[M]` `[UI]` Fluid scroll reveal — reemplazar las animaciones `opacity` planas actuales por un sistema físico: `cubic-bezier(0.34, 1.56, 0.64, 1)` (spring), elementos entran trasladados `+24px` en Y y `blur(8px)` → su posición final. Duración `480ms`. Stagger de `60ms` entre elementos hermanos. Verificable: `grep "0.34.*1.56.*0.64.*1\|cubic-bezier.*spring" js/aurora-scroll-reveal.js` → match.
+
+- [ ] **UI4-11** `[S]` `[UI]` Hover glass ripple — al hacer hover en cualquier `.lg-surface`, agregar efecto de "ondulación interna": pseudo `::after` circular que hace `transform: scale(0) → scale(2.5)`, `opacity: 0.06 → 0`, `background: radial-gradient(rgba(255,255,255,0.4))`. Duración `600ms ease-out`. Verificable: `grep "ripple\|scale.*2.5.*glass" liquid-glass.css` → match.
+
+- [ ] **UI4-12** `[M]` `[UI]` Page transition glass morphing — al navegar entre páginas, en lugar de flash blanco, implementar: overlay glass que hace `opacity 0→1→0` con `blur(0→8px→0)` en `200ms+200ms`. Aprovechar `aurora-nprogress.js` para sincronizar. El efecto es idéntico al "Sheet" de UIKit en iOS. Verificable: `grep "page-transition.*glass\|blur.*transition.*nav" js/aurora-nprogress.js` → match.
+
+#### 20.4 Superficie pública — Lavado de cara total
+
+- [ ] **UI4-13** `[L]` `[UI]` Home page glass sections — aplicar `.lg-surface` y variantes a todas las secciones de `es/index.html`: editorial cards, trust signals, CTA strip, news strip. El home debe sentirse como una app nativa iOS 18 visto en desktop. Sin usar `!important`. Verificable: `grep "lg-surface" es/index.html` → ≥8 matches.
+
+- [ ] **UI4-14** `[M]` `[UI]` Services page glass redesign — `es/servicios/*/index.html`: header de servicio con vidrio flotante sobre imagen de fondo (position relative + glass panel absolute), precio/duración en pill de glass gold. CTA "Agendar cita" con estado hover glass. Verificable: `grep "lg-surface\|glass-pill" es/servicios/diagnostico-integral/index.html` → match.
+
+- [ ] **UI4-15** `[M]` `[UI]` Blog article glass — `es/blog/*/index.html`: tabla de contenidos sticky como panel glass a la derecha, citas/callouts con glass dark tint, progress bar de lectura glass gold. Verificable: `grep "lg-surface.*toc\|glass.*callout" styles/aurora-blog.css` → match.
+
+#### 20.5 Portal del paciente — Experiencia premium
+
+- [ ] **UI4-16** `[L]` `[UI]` Portal dashboard glass — `es/portal/index.html`: cada card del dashboard (próxima cita, balance, documentos) con `.lg-surface--dark`, número/dato principal en tipografía grande (clamp 32→48px), borde gold al hover. El dashboard debe sentirse como una app financiera premium. Verificable: `grep "lg-surface--dark.*portal\|portal.*glass" es/portal/index.html` → match.
+
+- [ ] **UI4-17** `[M]` `[UI]` Timeline de historial glass — `es/portal/historial/`: eventos clínicos como stepper vertical, cada nodo con circle glass dorado, línea conectora translúcida, cards expandibles al clic con `height: 0 → auto` spring. Verificable: `grep "lg-surface.*timeline\|glass.*stepper" es/portal/historial/index.html` → match.
+
+- [ ] **UI4-18** `[M]` `[UI]` Kiosk glass skin — `kiosk.html`: la pantalla del kiosco en sala de espera debe tener: fondo de video/animación sutil de partículas en navy, panel central glass para registro de turno, contadores en glass pill. Pacientes que esperan ven algo premium, no una pantalla de admin. Verificable: `grep "lg-surface\|kiosk.*glass" kiosk.html` → match.
+

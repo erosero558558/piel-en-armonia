@@ -1,0 +1,236 @@
+/**
+ * Aurora Derm — Liquid Glass Design System
+ * UI4 Sprint — Inspirado en Apple WWDC 2025 Liquid Glass language
+ *
+ * Variables y primitivas del sistema.
+ * Importar desde index.css: @import './liquid-glass.css';
+ */
+
+/* ── UI4-01: Token Layer ──────────────────────────────────────────────────── */
+
+:root {
+    /* Blur y saturación */
+    --lg-blur:               24px;
+    --lg-blur-deep:          48px;
+    --lg-blur-light:         12px;
+    --lg-saturation:         160%;
+
+    /* Opacidades de fill */
+    --lg-opacity-fill:       0.10;
+    --lg-opacity-fill-dark:  0.08;
+    --lg-opacity-fill-deep:  0.72;
+
+    /* Bordes especulares */
+    --lg-border-specular:    rgba(255, 255, 255, 0.22);
+    --lg-border-gold:        rgba(199, 163, 109, 0.28);
+    --lg-border-subtle:      rgba(255, 255, 255, 0.08);
+
+    /* Sombras de profundidad */
+    --lg-shadow-z1:          0 2px 8px rgba(3, 8, 18, 0.18),
+                             0 1px 2px rgba(3, 8, 18, 0.12);
+    --lg-shadow-z2:          0 8px 24px rgba(3, 8, 18, 0.28),
+                             0 2px 6px rgba(3, 8, 18, 0.16);
+    --lg-shadow-z3:          0 16px 48px rgba(3, 8, 18, 0.38),
+                             0 4px 12px rgba(3, 8, 18, 0.22);
+    --lg-shadow-z4:          0 32px 80px rgba(3, 8, 18, 0.56),
+                             0 8px 24px rgba(3, 8, 18, 0.32);
+
+    /* Tints de refracción */
+    --lg-refraction-tint:    rgba(199, 163, 109, 0.06);
+    --lg-refraction-navy:    rgba(10, 20, 40, 0.06);
+    --lg-refraction-white:   rgba(255, 255, 255, 0.04);
+
+    /* Transiciones fluidas */
+    --lg-transition-fast:    180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    --lg-transition-base:    320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    --lg-transition-slow:    480ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    --lg-transition-linear:  260ms ease-out;
+}
+
+/* ── UI4-02: Glass Surface Primitivas ────────────────────────────────────── */
+
+/* Base glass: claro, para uso sobre fondos oscuros */
+.lg-surface {
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturation));
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturation));
+    background: rgba(255, 255, 255, var(--lg-opacity-fill));
+    border: 1px solid var(--lg-border-specular);
+    box-shadow: var(--lg-shadow-z2);
+    position: relative;
+    isolation: isolate;
+}
+
+/* UI4-03: Specular highlight edge — borde biselado superior-izquierdo */
+.lg-surface::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.06) 30%,
+        transparent 60%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Dark variant — navy sobre fondo oscuro */
+.lg-surface--dark {
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturation));
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturation));
+    background: rgba(8, 15, 28, var(--lg-opacity-fill-dark));
+    border: 1px solid var(--lg-border-subtle);
+    box-shadow:
+        var(--lg-shadow-z2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    position: relative;
+    isolation: isolate;
+}
+
+.lg-surface--dark::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.10) 0%,
+        rgba(255, 255, 255, 0.03) 30%,
+        transparent 55%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Gold variant — para CTAs y elementos de acento */
+.lg-surface--gold {
+    backdrop-filter: blur(var(--lg-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(180%);
+    background: rgba(199, 163, 109, 0.12);
+    border: 1px solid var(--lg-border-gold);
+    box-shadow:
+        var(--lg-shadow-z2),
+        0 0 0 1px rgba(199, 163, 109, 0.08) inset,
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    position: relative;
+    isolation: isolate;
+}
+
+.lg-surface--gold::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 230, 180, 0.16) 0%,
+        rgba(199, 163, 109, 0.06) 35%,
+        transparent 60%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Deep variant — para modales y overlays */
+.lg-surface--deep {
+    backdrop-filter: blur(var(--lg-blur-deep)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--lg-blur-deep)) saturate(200%);
+    background: rgba(5, 9, 18, var(--lg-opacity-fill-deep));
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: var(--lg-shadow-z4);
+    position: relative;
+    isolation: isolate;
+}
+
+/* ── UI4-04: Depth Shadow System ─────────────────────────────────────────── */
+
+.shadow-z1 { box-shadow: var(--lg-shadow-z1); }
+.shadow-z2 { box-shadow: var(--lg-shadow-z2); }
+.shadow-z3 { box-shadow: var(--lg-shadow-z3); }
+.shadow-z4 { box-shadow: var(--lg-shadow-z4); }
+
+/* ── UI4-11: Glass Hover Ripple ──────────────────────────────────────────── */
+
+.lg-surface::after,
+.lg-surface--dark::after,
+.lg-surface--gold::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+        circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+        rgba(255, 255, 255, 0.08),
+        transparent 70%
+    );
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 600ms ease-out, transform 600ms ease-out;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.lg-surface:hover::after,
+.lg-surface--dark:hover::after,
+.lg-surface--gold:hover::after {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ── Glass Pill — para badges y CTAs pequeños ────────────────────────────── */
+
+.glass-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 12px rgba(3, 8, 18, 0.24);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(244, 247, 251, 0.92);
+    transition: background var(--lg-transition-fast), border-color var(--lg-transition-fast);
+}
+
+.glass-pill--gold {
+    background: rgba(199, 163, 109, 0.14);
+    border-color: rgba(199, 163, 109, 0.32);
+    color: rgba(235, 200, 140, 0.96);
+}
+
+.glass-pill:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.glass-pill--gold:hover {
+    background: rgba(199, 163, 109, 0.22);
+    border-color: rgba(199, 163, 109, 0.48);
+}
+
+/* ── UI4-06: Navigation Bar Glass ────────────────────────────────────────── */
+
+.v6-header,
+[data-v6-header] {
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    background: rgba(5, 7, 11, 0.72) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 300ms ease, box-shadow 300ms ease, border-color 300ms ease;
+}
+
+.v6-header.is-scrolled,
+[data-v6-header].is-scrolled {
+    background: rgba(5, 7, 11, 0.88) !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06),
+                0 8px 32px rgba(3, 8, 18, 0.32);
+    border-bottom-color: rgba(199, 163, 109, 0.12);
+}

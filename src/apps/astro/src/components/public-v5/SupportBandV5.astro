@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../lib/whatsapp-config.js';
 const {
     eyebrow = '',
     title = '',
@@ -44,7 +45,7 @@ const telemedicineHref = locale === 'en' ? '/en/telemedicine/' : '/es/telemedici
             {locale === 'en' ? 'Open telemedicine' : 'Abrir telemedicina'}
         </a>
         <a
-            href="https://wa.me/593982453672"
+            href={`https://wa.me/${getWhatsappNumber()}`}
             target="_blank"
             rel="noopener noreferrer"
             class="hero-stage__cta hero-stage__cta--secondary"

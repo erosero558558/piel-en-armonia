@@ -13,7 +13,17 @@ const REPO_ROOT = path.resolve(
 
 function readJson(relativePath) {
     const filePath = path.join(REPO_ROOT, relativePath);
-    const payload = fs.readFileSync(filePath, 'utf8');
+    let payload = fs.readFileSync(filePath, 'utf8');
+
+    try {
+        const configPath = path.join(REPO_ROOT, 'data/clinic-config.json');
+        const clinicConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        const waNumber = clinicConfig.whatsapp.replace('+', '');
+        payload = payload.replace(/593982453672/g, waNumber);
+    } catch (err) {
+        // Fallback silently
+    }
+
     return JSON.parse(payload);
 }
 

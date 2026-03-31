@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../../../lib/whatsapp-config.js';
 import TeleconsultationRoomPageV6 from '../../../../components/public-v6/TeleconsultationRoomPageV6.astro';
 import PublicShellV6 from '../../../../layouts/PublicShellV6.astro';
 import { getV6NavigationModel } from '../../../../lib/public-v6.js';
@@ -165,7 +166,7 @@ const page = {
         placeholder:
             'Ejemplo: la lesion empeoro desde anoche, arde mas al lavar la zona o necesito mover la llamada 10 minutos.',
         ctaLabel: 'Escribir por WhatsApp clinico',
-        whatsappHref: 'https://wa.me/593982453672',
+        whatsappHref: `https://wa.me/${getWhatsappNumber()}`,
         statusNote: 'El resumen se prepara automaticamente para esta sala.',
         notesEyebrow: 'Cuando usar este chat',
         notesTitle: 'WhatsApp sirve para destrabar sin perder la cita',
@@ -203,7 +204,7 @@ const page = {
             'No pierda la cita por el navegador. Escríbanos y movemos la llamada o el seguimiento al canal mas estable para su caso.',
         statusCtaLabel: 'Continuar por WhatsApp',
         statusCtaHref:
-            'https://wa.me/593982453672?text=Hola%2C%20necesito%20apoyo%20con%20la%20sala%20de%20teleconsulta%20de%20Aurora%20Derm',
+            `https://wa.me/${getWhatsappNumber()}?text=Hola%2C%20necesito%20apoyo%20con%20la%20sala%20de%20teleconsulta%20de%20Aurora%20Derm`,
     },
     ui: {
         railTitle: 'Secciones',

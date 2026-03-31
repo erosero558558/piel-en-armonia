@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 10:11:41 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 10:19:49 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████░░░░░░░` **66%** completado (309/467)
+`█████████████░░░░░░░` **65%** completado (316/485)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -33,6 +33,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 17 | 12 | 0 | 100% |
 | ✅ Sprint 18 | 4 | 0 | 100% |
 | ✅ Sprint 19 | 18 | 0 | 100% |
+| ⏸ Sprint UI | 7 | 11 | 39% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -173,7 +174,7 @@ _Esperando que Sprint anterior esté completo. 14 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S13-11** `[S13]` → _Antigravity_ (expira en 42min)
+- **S13-11** `[S13]` → _Antigravity_ (expira en 34min)
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
@@ -223,6 +224,20 @@ _Sprint completado. 4/4 tareas._
 
 ## ✅ Sprint 19 — Notificaciones, WhatsApp Ops y Android TV
 _Sprint completado. 18/18 tareas._
+
+## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
+_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
+
+### 🟢 Disponibles (11)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **UI4-08** | `[UI4]` | M |
+| **UI4-09** | `[UI4]` | M |
+| **UI4-10** | `[UI4]` | M |
+| **UI4-11** | `[UI4]` | S |
+| **UI4-12** | `[UI4]` | M |
+| ... | | _+6 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

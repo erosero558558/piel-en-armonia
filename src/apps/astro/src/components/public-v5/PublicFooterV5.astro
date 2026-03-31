@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../lib/whatsapp-config.js';
 const {
     locale = 'es',
     footer = {},
@@ -70,7 +71,7 @@ const labels =
             <h3>{footer.careModesTitle}</h3>
             <a href={telemedicineHref}>{labels.telemedicine}</a>
             {compact ? null : <a href={bookingHref}>{labels.bookNow}</a>}
-            <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">{labels.whatsapp}</a>
+            <a href={`https://wa.me/${getWhatsappNumber()}`} target="_blank" rel="noopener noreferrer">{labels.whatsapp}</a>
         </div>
         <div>
             <h3>{footer.legalTitle}</h3>

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/validation.php';
+require_once __DIR__ . '/ClinicConfig.php';
 
 final class CheckoutOrderService
 {
-    private const SUPPORT_WHATSAPP_PHONE = '593982453672';
     private const BANK_NAME = 'Banco Pichincha';
     private const BANK_ACCOUNT = 'Cuenta de Ahorros: 2200160272';
     private const BANK_OWNER = 'Titular: Rosero Caiza Javier Alejandro';
@@ -25,8 +25,8 @@ final class CheckoutOrderService
             'publishableKey' => payment_stripe_publishable_key(),
             'bank' => self::bankData(),
             'support' => [
-                'whatsappPhone' => self::SUPPORT_WHATSAPP_PHONE,
-                'whatsappHref' => 'https://wa.me/' . self::SUPPORT_WHATSAPP_PHONE,
+                'whatsappPhone' => ClinicConfig::getWhatsappNumber(),
+                'whatsappHref' => 'https://wa.me/' . ClinicConfig::getWhatsappNumber(),
             ],
             'methods' => [
                 'card' => [
@@ -314,8 +314,8 @@ final class CheckoutOrderService
             'issuedAt' => $issuedAt,
             'bank' => self::bankData(),
             'support' => [
-                'whatsappPhone' => self::SUPPORT_WHATSAPP_PHONE,
-                'whatsappHref' => 'https://wa.me/' . self::SUPPORT_WHATSAPP_PHONE,
+                'whatsappPhone' => ClinicConfig::getWhatsappNumber(),
+                'whatsappHref' => 'https://wa.me/' . ClinicConfig::getWhatsappNumber(),
             ],
         ];
     }

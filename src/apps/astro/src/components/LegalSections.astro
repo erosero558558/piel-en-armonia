@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../lib/whatsapp-config.js';
 const { locale = 'es', page = {} } = Astro.props;
 const highlights = Array.isArray(page.highlights) ? page.highlights : [];
 const sections = Array.isArray(page.sections) ? page.sections : [];
@@ -58,7 +59,7 @@ const support =
         </a>
         <a
             class="sony-btn sony-btn--ghost"
-            href="https://wa.me/593982453672"
+            href={`https://wa.me/${getWhatsappNumber()}`}
             rel="noopener noreferrer"
             target="_blank"
         >

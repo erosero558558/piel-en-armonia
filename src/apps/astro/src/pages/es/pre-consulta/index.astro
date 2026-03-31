@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../../lib/whatsapp-config.js';
 import PublicShellV6 from '../../../layouts/PublicShellV6.astro';
 import PreConsultationPageV6 from '../../../components/public-v6/PreConsultationPageV6.astro';
 import { getV6NavigationModel } from '../../../lib/public-v6.js';
@@ -127,7 +128,7 @@ const page = {
             'Puede mandar el mismo contexto por WhatsApp. El equipo igual lo convierte en caso y decide si basta orientacion, teledermatologia o cita presencial.',
         ctaLabel: 'Escribir por WhatsApp',
         ctaHref:
-            'https://wa.me/593982453672?text=Hola%2C%20quiero%20enviar%20una%20preconsulta%20digital%20de%20Aurora%20Derm',
+            `https://wa.me/${getWhatsappNumber()}?text=Hola%2C%20quiero%20enviar%20una%20preconsulta%20digital%20de%20Aurora%20Derm`,
     },
 };
 

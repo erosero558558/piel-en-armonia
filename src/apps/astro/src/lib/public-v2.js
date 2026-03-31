@@ -1,3 +1,4 @@
+import { getWhatsappNumber } from './whatsapp-config.js';
 import {
     getDictionary,
     getLocalizedServiceBySlug,
@@ -578,7 +579,7 @@ export function getHomeV2Data(locale) {
                         locale === 'en'
                             ? 'WhatsApp guidance'
                             : 'Orientacion por WhatsApp',
-                    href: 'https://wa.me/593982453672',
+                    href: `https://wa.me/${getWhatsappNumber()}`,
                     target: 'whatsapp',
                 },
             },

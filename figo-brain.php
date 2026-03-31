@@ -6,6 +6,7 @@ declare(strict_types=1);
  * FigoBrain V3: The High-End Digital Concierge for Aurora Derm.
  * Professional, Safe, Empathetic, and Authoritative.
  */
+require_once __DIR__ . '/lib/ClinicConfig.php';
 
 class FigoBrain
 {
@@ -222,7 +223,7 @@ class FigoBrain
                 return "🚨 **IMPORTANTE: Mensaje de Seguridad**\n\n" .
                        "Si estás experimentando una emergencia médica, dolor insoportable, sangrado profuso o dificultad para respirar, por favor **acude inmediatamente a urgencias** o llama al 911.\n\n" .
                        "Soy una inteligencia artificial y no puedo brindar asistencia en emergencias vitales.\n\n" .
-                       "Si es una urgencia dermatológica menor, por favor contáctanos directo al WhatsApp: [+593 98 245 3672](https://wa.me/593982453672).";
+                       "Si es una urgencia dermatológica menor, por favor contáctanos directo al WhatsApp: [+593 98 245 3672](https://wa.me/" . ClinicConfig::getWhatsappNumber() . ").";
 
             case 'greeting':
                 return self::getGreeting();
@@ -236,13 +237,13 @@ class FigoBrain
             case 'escalation':
                 return "Siento mucho que estés pasando por esta situación. En Aurora Derm, tu satisfacción es absoluta prioridad. 🙏\n\n" .
                        "He marcado este tema como prioritario. Por favor, contacta directamente a nuestra **Gerencia de Atención al Paciente**:\n\n" .
-                       "👉 **[WhatsApp Directo de Soporte](https://wa.me/593982453672)**\n\n" .
+                       "👉 **[WhatsApp Directo de Soporte](https://wa.me/" . ClinicConfig::getWhatsappNumber() . ")**\n\n" .
                        "Un miembro humano de nuestro equipo resolverá esto de inmediato.";
 
             case 'handoff':
                 return "Entiendo que prefieres hablar con una persona. 👩‍💻\n\n" .
                        "Puedes chatear directamente con nuestro equipo humano por WhatsApp aquí:\n\n" .
-                       "👉 **[Abrir Chat de WhatsApp](https://wa.me/593982453672)**\n\n" .
+                       "👉 **[Abrir Chat de WhatsApp](https://wa.me/" . ClinicConfig::getWhatsappNumber() . ")**\n\n" .
                        "O si prefieres, déjanos tu número y te llamamos en breve.";
 
                 // --- Trust & Authority ---
@@ -368,7 +369,7 @@ class FigoBrain
 
             case 'contact':
                 return "Estamos a un mensaje de distancia. 📱\n\n" .
-                       "💬 **WhatsApp:** [+593 98 245 3672](https://wa.me/593982453672)\n" .
+                       "💬 **WhatsApp:** [+593 98 245 3672](https://wa.me/" . ClinicConfig::getWhatsappNumber() . ")\n" .
                        "📞 **Llamadas:** 098 245 3672\n" .
                        "📧 **Email:** info@pielarmonia.com\n\n" .
                        "Escríbenos, nos encantará atenderte.";
@@ -394,7 +395,7 @@ class FigoBrain
                 return "Entiendo. Para guiarte con la precisión que mereces, te sugiero:\n\n" .
                        "1. **[Explorar Servicios](https://pielarmonia.com/#servicios)**\n" .
                        "2. **[Ver Disponibilidad](https://pielarmonia.com/#citas)**\n" .
-                       "3. **[Contactar por WhatsApp](https://wa.me/593982453672)**\n\n" .
+                       "3. **[Contactar por WhatsApp](https://wa.me/" . ClinicConfig::getWhatsappNumber() . ")**\n\n" .
                        "¿Te gustaría información sobre precios o ubicación?";
         }
     }

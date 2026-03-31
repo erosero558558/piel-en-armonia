@@ -1,4 +1,5 @@
 ---
+import { getWhatsappNumber } from '../../lib/whatsapp-config.js';
 import BookingShellV5 from './BookingShellV5.astro';
 
 const {
@@ -68,7 +69,7 @@ const deck =
             {locale === 'en' ? 'Open telemedicine' : 'Abrir telemedicina'}
         </a>
         <a
-            href="https://wa.me/593982453672"
+            href={`https://wa.me/${getWhatsappNumber()}`}
             target="_blank"
             rel="noopener noreferrer"
             class="public-link-arrow"
