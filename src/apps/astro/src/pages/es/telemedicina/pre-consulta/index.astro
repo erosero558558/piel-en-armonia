@@ -1,0 +1,120 @@
+---
+import TelemedicinePreConsultationPageV6 from '../../../../components/public-v6/TelemedicinePreConsultationPageV6.astro';
+import PublicShellV6 from '../../../../layouts/PublicShellV6.astro';
+import { getV6NavigationModel } from '../../../../lib/public-v6.js';
+
+const locale = 'es';
+const pathname = '/es/telemedicina/pre-consulta/';
+const baseNavModel = getV6NavigationModel(locale, pathname);
+const navModel = {
+    ...baseNavModel,
+    header: {
+        ...(baseNavModel?.header || {}),
+        switchLabel: '',
+        switchHref: '',
+    },
+};
+
+const page = {
+    title: 'Pre-consulta de telemedicina | Aurora Derm',
+    description:
+        'Actualice lo que cambió antes de su teleconsulta, suba fotos nuevas y deje el contexto listo para que el médico lo vea antes de entrar a la sala.',
+    heading: 'Pre-consulta de telemedicina',
+    breadcrumb: [
+        { label: 'Inicio', href: '/es/' },
+        { label: 'Telemedicina', href: '/es/telemedicina/' },
+        { label: 'Pre-consulta', href: pathname },
+    ],
+    menuLabel: 'Secciones',
+    sections: [
+        { label: 'Resumen', href: '#v6-tele-pre-summary' },
+        { label: 'Formulario', href: '#v6-tele-pre-form' },
+    ],
+    hero: {
+        eyebrow: 'Diez minutos antes',
+        title: 'Deje la teleconsulta contextualizada antes de entrar a la sala.',
+        body:
+            'Esta pre-consulta sirve para contar qué cambió hoy, marcar si apareció una lesión nueva y subir fotos recientes antes de abrir video. El médico ve ese contexto primero y entra orientado.',
+        highlights: [
+            { label: 'Contexto', value: 'Antes de video' },
+            { label: 'Fotos nuevas', value: 'Hasta 3' },
+            { label: 'Destino', value: 'Médico + sala' },
+        ],
+        panelEyebrow: 'Lo útil de verdad',
+        panelTitle: 'Qué conviene dejar listo antes de guardar',
+        panelItems: [
+            'Qué cambió hoy frente a cuando reservó.',
+            'Si apareció algo nuevo o si la zona se ve distinta.',
+            'Una o dos fotos nuevas si ayudan a leer mejor el cambio.',
+        ],
+        panelCtaLabel: 'Ir a la pre-consulta',
+    },
+    summary: {
+        eyebrow: 'Contexto de la teleconsulta',
+        title: 'Validamos su cita y dejamos a mano la sala para el siguiente paso.',
+        body:
+            'Cuando esta pantalla carga bien, ya tenemos la teleconsulta correcta y podemos guardar la actualización clínica sin perder el enlace de entrada.',
+        statusEyebrow: 'Cita activa',
+        nextEyebrow: 'Después de guardar',
+        nextTitle: 'La sala queda a un toque.',
+        nextBody:
+            'Puede guardar la pre-consulta y seguir directo a la sala virtual sin repetir el contexto en otro canal.',
+        roomCtaLabel: 'Abrir sala de teleconsulta',
+    },
+    form: {
+        eyebrow: 'Actualización breve',
+        title: 'Cuente lo que cambió hoy antes de entrar al video.',
+        description:
+            'No pedimos rehacer la historia clínica. Solo la actualización que le ayudará al médico a entrar sabiendo qué cambió, si hay lesión nueva y si existen fotos recientes.',
+        photoHint:
+            'Adjunte hasta 3 fotos JPG, PNG o WEBP de máximo 5 MB cada una si ayudan a mostrar el cambio actual.',
+        footnote:
+            'Si no tiene fotos nuevas, basta con describir el cambio principal. Si sí las tiene, súbalas aquí para que queden visibles antes de la teleconsulta.',
+        submitLabel: 'Guardar pre-consulta',
+        secondaryCtaLabel: 'Necesito ayuda por WhatsApp',
+    },
+    response: {
+        eyebrow: 'Qué pasa al guardar',
+        title: 'El médico recibe la actualización antes de entrar.',
+        steps: [
+            {
+                title: '1. Se guarda la actualización',
+                copy:
+                    'La cita de telemedicina queda enriquecida con el motivo actualizado, la marca de lesión nueva y las fotos recientes.',
+            },
+            {
+                title: '2. El contexto entra al briefing clínico',
+                copy:
+                    'El tablero operativo destaca la teleconsulta como lista para revisar antes de abrir la sala.',
+            },
+            {
+                title: '3. La sala sigue disponible',
+                copy:
+                    'Después de guardar, puede entrar a la videollamada desde el mismo flujo sin perder el enlace de la cita.',
+            },
+        ],
+    },
+    support: {
+        eyebrow: 'Si necesita apoyo humano',
+        title: 'WhatsApp sigue siendo el plan B inmediato.',
+        description:
+            'Si el enlace no carga, si la sesión del portal venció o si necesita ayuda con las fotos, el equipo puede reubicarle rápido sin perder la teleconsulta.',
+        ctaLabel: 'Abrir WhatsApp clínico',
+        ctaHref:
+            'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%20con%20la%20pre-consulta%20de%20telemedicina%20de%20Aurora%20Derm',
+    },
+};
+---
+
+<PublicShellV6
+    title={page.title}
+    description={page.description}
+    locale={locale}
+    canonicalPath={pathname}
+    alternatePath=""
+    pathname={pathname}
+    navModel={navModel}
+    templateId="telemedicine_preconsultation_v6"
+>
+    <TelemedicinePreConsultationPageV6 page={page} locale={locale} navModel={navModel} />
+</PublicShellV6>
