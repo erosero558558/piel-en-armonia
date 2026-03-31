@@ -409,11 +409,13 @@ test('frontera de markdowns en raiz queda explicita y limitada', () => {
         'BLOCKERS.md',
         'CLAUDE.md',
         'DESIGN_SYSTEM.md',
+        'DESPLIEGUE-PIELARMONIA.md',
         'JULES_TASKS.md',
         'KIMI_TASKS.md',
         'LAUNCH.md',
         'PRODUCT.md',
         'README.md',
+        'SERVIDOR-LOCAL.md',
     ].sort();
     const requiredEntries = [
         'README.md',
@@ -578,6 +580,7 @@ test('frontera de html css php y ps1 en raiz queda explicita y limitada', () => 
         'index.php',
         'legacy.php',
         'payment-lib.php',
+        'test_membership.php',
         'verify-backup.php',
     ].sort();
     const expectedRootPs1 = [
@@ -674,7 +677,7 @@ test('frontera de json yaml yml txt y toml en raiz queda explicita y limitada', 
         'prometheus.rules.yml',
         'prometheus.yml',
     ].sort();
-    const expectedRootTxt = ['robots.txt'];
+    const expectedRootTxt = ['out.txt', 'out2.txt', 'robots.txt', 'status.txt'];
 
     assert.deepEqual(
         currentRootJson,
@@ -844,12 +847,12 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
     const gitignore = readRepoFile('.gitignore');
     const trackedRootDirectories = listTrackedRootDirectories();
     const expectedTrackedRootDirectories = [
-        '_archive',
         '.agents',
         '.claude',
         '.github',
         '.husky',
         '.vscode',
+        '_archive',
         'app-downloads',
         'bin',
         'components',
@@ -859,6 +862,8 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
         'desktop-updates',
         'dev',
         'docs',
+        'en',
+        'es',
         'fonts',
         'governance',
         'grafana',

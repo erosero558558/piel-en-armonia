@@ -1655,3 +1655,60 @@ body.portal-body {
         text-align: left;
     }
 }
+
+/* ==========================================================================
+   UI4-08 Liquid Glass Modals & Overlays (Portal)
+   Migrates modal/overlays to Liquid Glass transparent blur.
+   ========================================================================== */
+.modal-overlay {
+  background: rgba(3, 8, 18, 0.72) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.modal {
+  /* Emulates .lg-surface--deep */
+  background: rgba(5, 9, 18, 0.72) !important;
+  backdrop-filter: blur(48px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 32px 80px rgba(3, 8, 18, 0.56), 0 8px 24px rgba(3, 8, 18, 0.32) !important;
+}
+
+.modal-overlay .btn-primary {
+  background: rgba(199, 163, 109, 0.14) !important;
+  border: 1px solid rgba(199, 163, 109, 0.32) !important;
+  color: rgba(235, 200, 140, 0.96) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  box-shadow: 0 4px 12px rgba(3, 8, 18, 0.24) !important;
+}
+
+.modal-overlay .btn-primary:hover {
+  background: rgba(199, 163, 109, 0.22) !important;
+  border-color: rgba(199, 163, 109, 0.48) !important;
+}
+
+/* ==========================================================================
+   UI4-10 Liquid Glass Animations (Portal)
+   ========================================================================== */
+@keyframes auroraFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.lg-animate-fade-up {
+    opacity: 0;
+    animation: auroraFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.lg-delay-1 { animation-delay: 80ms; }
+.lg-delay-2 { animation-delay: 160ms; }
+.lg-delay-3 { animation-delay: 240ms; }
+.lg-delay-4 { animation-delay: 320ms; }
+.lg-delay-5 { animation-delay: 400ms; }

@@ -69,6 +69,24 @@ const AUDIT_STEPS = [
         command: 'node',
         args: ['bin/check-evidence-health.js', '--json'],
     },
+    {
+        // Carencia #1: claim expiry + orphan detection
+        id: 'claim_gc',
+        label: 'Claim GC',
+        command: 'node',
+        args: ['bin/claim-gc.js', '--json'],
+        // Non-blocking: exit 1 means there are stale claims, but doesn't halt the audit
+        optional: true,
+    },
+    {
+        // Carencia #2: task contract gate — M/L/XL must have Verificable:
+        id: 'task_contract',
+        label: 'Task Contracts',
+        command: 'node',
+        args: ['bin/verify-task-contract.js', '--json'],
+        // Optional until all REBORN tasks have Verificable: fields
+        optional: true,
+    },
 ];
 
 function formatCommand(step) {

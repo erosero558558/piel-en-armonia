@@ -1,4 +1,61 @@
-@import './tokens.css';
+@import '../../../../../../styles/reborn-tokens.css';
+@import '../../../../../../styles/reborn-typo.css';
 @import './primitives.css';
 @import './layout.css';
 @import './liquid-glass.css';
+
+/* ==========================================================================
+   UI4-10 Liquid Glass Animations
+   ========================================================================== */
+@keyframes auroraFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.lg-animate-fade-up {
+    opacity: 0;
+    animation: auroraFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.lg-delay-1 { animation-delay: 80ms; }
+.lg-delay-2 { animation-delay: 160ms; }
+.lg-delay-3 { animation-delay: 240ms; }
+.lg-delay-4 { animation-delay: 320ms; }
+.lg-delay-5 { animation-delay: 400ms; }
+
+/* Apply to main page sections */
+.v6-hero {
+    opacity: 0;
+    animation: auroraFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 50ms;
+}
+
+.v6-news-strip {
+    opacity: 0;
+    animation: auroraFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 150ms;
+}
+
+.v6-editorial {
+    opacity: 0;
+    animation: auroraFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 250ms;
+}
+
+.v6-trust-signals {
+    opacity: 0;
+    animation: auroraFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 350ms;
+}
+
+.v6-corporate-matrix {
+    opacity: 0;
+    animation: auroraFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 450ms;
+}

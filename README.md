@@ -132,9 +132,11 @@ Variables de entorno clave:
 ### Performance
 
 ```bash
-npm run benchmark:local  # Benchmark local reutilizable
-npm run qa:summary       # Semáforo unificado de QA (🟢 GREEN / 🔴 RED)
-npm run workspace:hygiene:doctor  # Doctor de higiene del workspace
+npm run benchmark:local            # Benchmark local reutilizable
+npm run qa:summary                 # Semáforo unificado de QA (🟢 GREEN / 🔴 RED)
+npm run workspace:hygiene:doctor   # Doctor de higiene del workspace
+npm run check:local:artifacts      # Dry-run de limpieza de artefactos efímeros
+npm run clean:local:artifacts      # Limpieza de artefactos locales efímeros
 ```
 
 ---
@@ -149,3 +151,39 @@ Documentada en [docs/ROOT_SURFACES.md](docs/ROOT_SURFACES.md). Cubre:
 - **dotfiles** (`.gitignore`, `.editorconfig`, `.prettierrc`, etc.) y **singletones especiales** (`Dockerfile`, `rollup.config.mjs`, etc.)
 - **directorios permitidos en raiz** (`bin/`, `controllers/`, `docs/`, `js/`, etc.)
 - Archivos archivados: `images/archive/root-legacy/**`, `styles/archive/public-legacy/**`
+
+---
+
+## workspace:hygiene:doctor — Contrato V5
+
+El doctor de higiene unifica todos los checks de workspace. Output JSON:
+
+```json
+{
+  "overall_state": "ok | fixable | attention | error",
+  "issues": [],
+  "remediation_plan": [],
+  "scope_context": {},
+  "strategy_context": {},
+  "lane_context": {},
+  "scope_counts": { "in_scope": 0, "out_of_scope": 0, "unknown_scope": 0, "mixed_lane": 0, "blocked_scope": 0, "outside_strategy": 0 },
+  "candidate_tasks": [],
+  "split_plan": []
+}
+```
+
+Flags principales:
+
+| Flag | Descripción |
+|------|-------------|
+| `--include-entries` | Modo expandido con detalle de entradas |
+| `--task-id <id>` | Filtrar por tarea específica |
+| `--scope-pattern <pat>` | Filtrar por patrón de scope |
+| `--show-candidates` | Mostrar tareas candidatas |
+
+Estado `attention` indica worktrees o artefactos que requieren revisión manual.
+Si `overall_state` es `fixable`, ejecutar el `next_command` indicado (ej: `git worktree prune`).
+
+El check `legacy_generated_root_deindexed` falla si hay archivos del root generado sin deindexar.
+Limpiar con `npm run legacy:generated-root:apply`.
+

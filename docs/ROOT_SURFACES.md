@@ -175,6 +175,7 @@ funcion de editor, git, hosting o tooling descubierto por nombre convencional.
 Lista aprobada actual:
 
 - `.editorconfig`
+- `.eslintignore`
 - `.gitattributes`
 - `.gitignore`
 - `.htaccess`
@@ -263,7 +264,7 @@ tooling del repo.
 
 Lista aprobada actual:
 
-- `_astro`
+- `_archive`
 - `.agents`
 - `.claude`
 - `.github`
@@ -276,17 +277,17 @@ Lista aprobada actual:
 - `controllers`
 - `data`
 - `desktop-updates`
+- `dev`
 - `docs`
-- `en`
-- `es`
 - `fonts`
+- `governance`
 - `grafana`
 - `images`
 - `js`
 - `k8s`
 - `lib`
+- `ninos`
 - `ops`
-- `release`
 - `scripts`
 - `servicios`
 - `src`

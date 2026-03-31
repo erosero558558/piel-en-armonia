@@ -1360,3 +1360,35 @@
         padding: 0 16px;
     }
 }
+
+/* ==========================================================================
+   UI4-09 Liquid Glass Footer
+   ========================================================================== */
+.v6-footer { /* v6-footer glass backdrop */
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    background-color: rgba(5, 8, 14, 0.72) !important;
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 Q 10 0, 20 20 T 40 20' fill='none' stroke='%23ffffff' stroke-width='0.5' stroke-opacity='0.04'/%3E%3C/svg%3E") !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+    position: relative;
+    z-index: 10;
+}
+
+.v6-footer a,
+.v6-footer__cols a,
+.v6-footer__policy a {
+    transition: background-color 220ms ease, color 220ms ease, box-shadow 220ms ease;
+    border-radius: 4px;
+}
+
+.v6-footer a:hover,
+.v6-footer a:focus-visible,
+.v6-footer__cols a:hover,
+.v6-footer__cols a:focus-visible,
+.v6-footer__policy a:hover,
+.v6-footer__policy a:focus-visible {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+    color: #fff;
+    text-decoration: none;
+}

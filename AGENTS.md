@@ -1459,9 +1459,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### RB-0 Tierra Arrasada y Nuevos Cimientos (Fundamentos Tech)
 
-- [ ] **RB-01** `[L]` `[UI]` Purga de CSS Legacy — eliminar todo rastro de `styles/main-aurora.css`, `base.css` antiguo y `tokens.css`. Entorno estéril.
-- [ ] **RB-02** `[M]` `[UI]` Sistema de Tokens Reborn — crear `styles/reborn-tokens.css`: Dark Mode OLED (fondo `#000000`), Dark Gray para cristal (`rgba(28, 28, 30, 0.65)` al estilo Apple), Blanco Tiza brillante y Acento "Aurora Gold" (`#d4af37`).
-- [ ] **RB-03** `[M]` `[UI]` Tipografía Monumental — crear `styles/reborn-typo.css` de alto contraste en escala clamp, copiando el enorme Display font de los sitios de presentación de Sony y Apple. Inter para legibilidad menor.
+- [x] **RB-01** `[L]` `[UI]` Purga de CSS Legacy — eliminar todo rastro de `styles/main-aurora.css`, `base.css` antiguo y `tokens.css`. Entorno estéril.
+- [x] **RB-02** `[M]` `[UI]` Sistema de Tokens Reborn — crear `styles/reborn-tokens.css`: Dark Mode OLED (fondo `#000000`), Dark Gray para cristal (`rgba(28, 28, 30, 0.65)` al estilo Apple), Blanco Tiza brillante y Acento "Aurora Gold" (`#d4af37`).
+- [x] **RB-03** `[M]` `[UI]` Tipografía Monumental — crear `styles/reborn-typo.css` de alto contraste en escala clamp, copiando el enorme Display font de los sitios de presentación de Sony y Apple. Inter para legibilidad menor.
 
 #### RB-1 Shell Inmersivo y Navegación "Invisible"
 
@@ -1995,9 +1995,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI4-07** `[M]` `[UI]` Card matrix glass — `.v6-corporate-matrix__card` ya está en dark glassmorphism. Refinar con: micro-animación al hover (`transform: translateY(-4px) scale(1.01)`), borde specular que se intensifica al hover (`border-color: rgba(199,163,109,0.36)`), sombra interna sutil `inset 0 1px 0 rgba(255,255,255,0.1)`, y refracción dorada en `.is-slot-1`. Verificable: `grep "inset.*rgba\|scale(1.01)" home.css` → match.
 
-- [ ] **UI4-08** `[M]` `[UI]` Modal y overlay glass — cualquier modal/overlay en `admin.html` y portal usa fondos sólidos. Migrar a: `background: rgba(3,8,18,0.72)`, `backdrop-filter: blur(16px)`, panel interior con `.lg-surface--deep`. Los botones primarios tendrán el glass gold tint. Verificable: `grep "lg-surface--deep\|backdrop-filter.*blur.*modal" aurora-clinical.css` → match.
+- [x] **UI4-08** `[M]` `[UI]` Modal y overlay glass — cualquier modal/overlay en `admin.html` y portal usa fondos sólidos. Migrar a: `background: rgba(3,8,18,0.72)`, `backdrop-filter: blur(16px)`, panel interior con `.lg-surface--deep`. Los botones primarios tendrán el glass gold tint. Verificable: `grep "lg-surface--deep\|backdrop-filter.*blur.*modal" aurora-clinical.css` → match.
 
-- [ ] **UI4-09** `[M]` `[UI]` Footer glass — el `v6-footer` tiene fondo uniforme. Añadir: capa glass sobre imagen de fondo sutil (gradiente de topografía en svg inline muy opaco 4%), `border-top: 1px solid rgba(255,255,255,0.06)`, links con hover que activan un micro-highlight glass. Verificable: `grep "v6-footer.*glass\|v6-footer.*backdrop" home.css` → match.
+- [x] **UI4-09** `[M]` `[UI]` Footer glass — el `v6-footer` tiene fondo uniforme. Añadir: capa glass sobre imagen de fondo sutil (gradiente de topografía en svg inline muy opaco 4%), `border-top: 1px solid rgba(255,255,255,0.06)`, links con hover que activan un micro-highlight glass. Verificable: `grep "v6-footer.*glass\|v6-footer.*backdrop" home.css` → match.
 
 #### 20.3 Animaciones — Fluid motion
 
