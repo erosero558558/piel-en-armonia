@@ -2371,3 +2371,88 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **UI5-22** `[S]` `[UI]` Modo oscuro consistente — auditar `admin.html`, `kiosk.html`, `queue-display.html`, portal y booking: background base `var(--rb-bg, #050810)` en todas. Verificable: `grep -r "background.*#fff\|background.*white" styles/aurora-admin.css styles/aurora-clinical.css` → 0 matches.
 
 ---
+
+## 30. Sprint 30 — Clínica de Verdad: Lo Que el Paciente Necesita
+
+> **Por qué existe este sprint:** en una consulta médica real, el médico registra signos vitales en cada visita, ordena laboratorios y espera resultados, refiere a especialistas y hace seguimiento de ese referido, y alerta a sus pacientes crónicos cuando no vuelven. Todo eso existe en el backend de Aurora Derm como estructura — pero no como funcionalidad operativa. Este sprint lo convierte en realidad.
+
+---
+
+### 30.1 Signos Vitales por Consulta
+
+> **Contexto clínico:** los signos vitales son el primer acto médico en cualquier consulta. Presión arterial, frecuencia cardíaca, temperatura, saturación de oxígeno, peso y escala de dolor. Sin ellos, la HCU-005 está incompleta y el sistema no puede detectar deterioro del paciente entre visitas. Ecuador exige su registro en la historia clínica oficial.
+
+- [ ] **S30-01** `[M]` `[codex_backend]` Modelo de signos vitales por visita — añadir en `normalizeIntake()` de `ClinicalHistorySessionRepository.php` el objeto `vitalSigns` con los campos obligatorios del MSP Ecuador: `bloodPressureSystolic` (int, mmHg), `bloodPressureDiastolic` (int, mmHg), `heartRate` (int, bpm), `respiratoryRate` (int, rpm), `temperatureCelsius` (float, °C), `spo2Percent` (int, %), `weightKg` (float), `heightCm` (float, opcional), `bmi` (float, calculado automático si peso y talla presentes), `glucometryMgDl` (int, opcional, en ayunas/postprandial), `painScale` (int 0-10, escala EVA). Todos los campos son `nullable` — solo se registran los que la enfermera toma. Los valores fuera de rango clínico típico generan un campo `vitalAlerts: string[]` calculado automáticamente. Verificable: `POST clinical-history-session` con `intake.vitalSigns.bloodPressureSystolic: 180` → respuesta incluye `vitalAlerts: ["Presión sistólica elevada"]`; `grep "vitalSigns\|bloodPressureSystolic" lib/clinical_history/ClinicalHistorySessionRepository.php` → match.
+
+- [ ] **S30-02** `[M]` `[codex_backend]` Endpoint de registro de signos vitales — `POST /api.php?resource=clinical-vitals` recibe: `session_id`, `case_id`, y el objeto `vital_signs` del modelo S30-01. La enfermera/recepcionista los registra ANTES de que el médico abra el caso (flujo admisión). Guardar en `intake.vitalSigns` de la sesión activa. Retornar `vital_alerts` si algún valor está fuera de rango. Verificable: `POST clinical-vitals` con `vital_signs.spo2Percent: 88` → `{ ok: true, vital_alerts: ["SpO2 baja — considerar oximetría de control"] }`.
+
+- [ ] **S30-03** `[M]` `[codex_backend]` Historial de signos vitales del paciente — `GET /api.php?resource=patient-vitals-history?case_id=X` retorna un array cronológico de todas las tomas de signos vitales del paciente ordenadas por fecha, con `session_id`, `appointment_date`, y los valores. Permite ver si la PA del paciente sube consistentemente entre visitas — el médico lo detecta sin calcularlo manualmente. Verificable: respuesta tiene `vitals: [{date, bloodPressureSystolic, bloodPressureDiastolic, heartRate, spo2Percent}]` con al menos los campos presentes en el historial.
+
+- [ ] **S30-04** `[S]` `[codex_backend]` Alertas automáticas de signos vitales críticos — al guardar vitales con `clinical-vitals`, si algún valor supera umbrales críticos (PA sistólica >180, SpO2 <90, FC >130 o <45, temperatura >39.5°C), agregar un evento `vital_alert_critical` en el log de sesión y devolver el alert en la respuesta de `openclaw-chat` la próxima vez que el médico abra el chat. OpenClaw debe mencionar proactivamente: "Nota: el paciente llegó con PA 190/110 — relevante para el diagnóstico." Verificable: `GET openclaw-patient?case_id=X` cuando el session activo tiene `vitalAlerts` → el campo `critical_vitals` aparece con los alerts en la respuesta.
+
+---
+
+### 30.2 Ingesta Real de Resultados de Laboratorio e Imagen
+
+> **Contexto clínico:** hoy las órdenes de laboratorio se crean (`create-lab-order`) y se emiten (`issue-lab-order`) pero los resultados (`resultStatus: not_received`) nunca entran al sistema. El médico recibe el PDF de resultados por WhatsApp o en papel, y lo archiva en su mente. El sistema no aprende. Aurora Derm no puede hacer seguimiento clínico sin resultados reales.
+
+- [ ] **S30-05** `[L]` `[codex_backend]` Endpoint de recepción de resultado de laboratorio — `POST /api.php?resource=receive-lab-result` con campos: `session_id`, `lab_order_id`, `result_date` (ISO), `lab_name` (string), `values` (array de `{test_name, value, unit, reference_range, status: 'normal'|'low'|'high'|'critical'}`), `summary` (string libre del médico), `pdf_url` (opcional). Actualiza `labOrder.resultStatus: 'received'`, persiste `result` en la orden, y lanza evento `lab_result_received`. Si algún valor tiene `status: 'critical'`, el evento se marca como `critical: true`. Verificable: `POST receive-lab-result` con un valor `creatinina: 9.2 mg/dL, status: critical` → `{ ok: true, critical_values: ["creatinina 9.2 — CRÍTICO"] }`; `labOrder.resultStatus === 'received'` en store.
+
+- [ ] **S30-06** `[M]` `[codex_backend]` Upload de PDF de resultado de laboratorio — `POST /api.php?resource=clinical-lab-pdf-upload` con `session_id`, `lab_order_id`, y el PDF en `multipart/form-data`. Guarda el archivo en `data/clinical-media/{case_id}/lab-results/` con nombre `{labOrderId}_{timestamp}.pdf`. Actualiza `labOrder.result.pdfUrl`. Retorna URL firmada de descarga. Sin esto, el médico tiene el PDF en papel pero no en la HCE. Verificable: upload de PDF → `{ ok: true, pdf_url: '/api.php?resource=clinical-lab-pdf&id=...' }`; archivo existe en `data/clinical-media/`.
+
+- [ ] **S30-07** `[M]` `[codex_backend]` Alerta de resultados críticos de laboratorio al médico — cuando `receive-lab-result` registra un valor `status: critical`, enviar WhatsApp al médico propietario del caso: "⚠️ Resultado crítico en caso [nombre paciente]: [test] = [valor]. Revisar urgente." El mensaje incluye link al admin. Verificable: `php bin/test-lab-alert.php` → WhatsApp generado con los datos del caso y el valor crítico; `grep "critical.*lab\|lab.*critical" bin/notify-lab-critical.php` → match.
+
+- [ ] **S30-08** `[M]` `[codex_backend]` Cron de laboratorios pendientes — `bin/check-pending-labs.php`: recorre todos los casos abiertos con `labOrders` en estado `issued` y `resultStatus: not_received` donde la fecha de emisión fue hace más de 5 días. Para cada uno, envía un recordatorio por WhatsApp al paciente: "Sus resultados de [lab_name] ya deberían estar listos. Por favor visítenos para revisarlos." Registra el envío para no duplicar. Verificable: `php bin/check-pending-labs.php --dry` → lista correcta de casos con labs pendientes vencidos.
+
+- [ ] **S30-09** `[M]` `[codex_backend]` Endpoint de recepción de resultado de imagen — `POST /api.php?resource=receive-imaging-result` con: `session_id`, `imaging_order_id`, `result_date`, `radiologist_name`, `modality` (eco/rx/ct/rm), `report_text` (informe del radiólogo en texto plano), `impression` (impresión diagnóstica), `pdf_url` (opcional). Actualiza `imagingOrder.resultStatus: 'received'`. Verificable: `POST receive-imaging-result` con `impression: "Quiste sebáceo 2cm en región dorsal"` → store actualizado con `resultStatus: received` e `impression` guardada.
+
+---
+
+### 30.3 Seguimiento Proactivo del Paciente Crónico
+
+> **Contexto clínico:** en Ecuador, un paciente con hipertensión o diabetes debería volver cada 3 meses. Si no vuelve, el médico no lo sabe — no hay sistema que le avise. El paciente se deteriora en silencio. Este es el punto donde la tecnología salva vidas reales.
+
+- [ ] **S30-10** `[M]` `[codex_backend]` Modelo de enfermedades crónicas activas — en la HCE del paciente, añadir `chronicConditions: [{cie10Code, cie10Label, diagnosedAt, controlFrequencyDays, lastControlDate, nextControlDue, status: 'controlled'|'uncontrolled'|'lost_to_followup'}]`. Al guardar un diagnóstico de condición crónica (HTA: I10, DM2: E11.9, EPOC: J44.9, hipotiroidismo: E03.9, entre otros), el sistema pregunta automáticamente: "¿Desea agregar este diagnóstico a las condiciones crónicas del paciente con seguimiento cada X días?" Verificable: `POST openclaw-save-diagnosis` con `cie10_code: I10` → respuesta incluye `chronic_condition_detected: true, suggested_followup_days: 90`.
+
+- [ ] **S30-11** `[L]` `[codex_backend]` Cron de pacientes crónicos vencidos de control — `bin/check-chronic-followup.php`: recorre todos los pacientes con `chronicConditions` donde `nextControlDue` ya pasó y el paciente no tiene cita futura. Genera un reporte en `data/follow-up-alerts.json` y envía WhatsApp al paciente: "Estimado/a [nombre]: su control de [condición] estaba programado para [fecha]. Lo esperamos en Aurora Derm para continuar su seguimiento. Llame al [teléfono] o agende en [link]." Verificable: `php bin/check-chronic-followup.php --dry` → lista de pacientes con condición, fecha vencida, y mensaje generado.
+
+- [ ] **S30-12** `[M]` `[codex_backend]` Panel de pacientes crónicos para el médico — `GET /api.php?resource=chronic-panel` retorna: lista de pacientes con condiciones crónicas activas, estado de control (al día / vencido / nunca controló), fecha del último control, días de atraso si aplica. Ordenado por urgencia (más atrasado primero). Solo accesible con rol médico. Verificable: respuesta tiene `patients: [{case_id, name, conditions, last_control, days_overdue, status}]`; `days_overdue` > 0 para los que están atrasados.
+
+- [ ] **S30-13** `[M]` `[codex_backend]` Indicador de adherencia a tratamiento — al emitir una receta, calcular cuántas unidades prescribe y cuándo debería terminarse. En la siguiente visita, comparar la fecha prevista con la real. Si el paciente vino mucho antes → posible efecto adverso. Si vino mucho después → posible no adherencia. Guardar `adherence_score: 'on_time'|'early'|'late'|'unknown'` por episodio. Verificable: `GET patient-ltv?case_id=X` → incluye `medication_adherence` con el historial de adherencia.
+
+---
+
+### 30.4 Interconsultas con Cierre Real
+
+> **Contexto clínico:** cuando un médico general refiere a un especialista, ese referido queda en el limbo. En Aurora Derm, `issue-interconsultation` emite el documento — pero `receive-interconsult-report` que ya existe en el backend nunca se llama porque no hay endpoint accesible ni flujo para que el médico reciba la respuesta del especialista.
+
+- [ ] **S30-14** `[M]` `[codex_backend]` Endpoint para recibir reporte de interconsulta — `POST /api.php?resource=receive-interconsult-report` (ruta ya existe internamente pero no está expuesta en `routes.php`). Payload: `session_id`, `interconsult_id`, `specialist_name`, `specialist_specialty`, `report_date`, `findings` (texto), `recommendations` (texto), `new_diagnoses` (array de CIE-10), `follow_up_required` (bool). Al recibirse, el estado de la interconsulta pasa a `report_received` y se dispara una notificación al médico que la emitió. Verificable: `POST receive-interconsult-report` → `interconsultation.status === 'report_received'`; ruta registrada en `routes.php`.
+
+- [ ] **S30-15** `[S]` `[codex_backend]` Cron de interconsultas sin respuesta — `bin/check-pending-interconsults.php`: interconsultas en estado `issued` con más de 30 días sin `report_received` → generar reporte en `data/interconsult-alerts.json` y enviar WhatsApp al médico emisor: "La interconsulta enviada a [especialista] para [nombre paciente] lleva 30 días sin respuesta. ¿Desea hacer seguimiento?" Verificable: `php bin/check-pending-interconsults.php --dry` → lista correcta de interconsultas vencidas.
+
+---
+
+### 30.5 Seguridad Clínica Específica
+
+> **Contexto clínico:** hay dos responsabilidades que no están cubiertas y que en medicina tienen consecuencias legales — verificar si el paciente está embarazada antes de prescribir teratógenos, y registrar el consentimiento específico para procedimientos (no solo el consentimiento general de datos).
+
+- [ ] **S30-16** `[M]` `[codex_backend]` Check de teratogenicidad en prescripción — en `openclaw-check-interactions`, añadir un segundo check: si el paciente **es mujer en edad fértil** (18-50 años) y `intake.datosPaciente.embarazo` es `null` (desconocido), y la prescripción incluye medicamentos de categoría X o D (isotretinoína, metotrexato, warfarina, litio, valproato, tetraciclinais), devolver `teratogenicity_warning: true` con mensaje: "Este medicamento es teratogénico. Confirme que la paciente no está embarazada antes de prescribirlo." No bloquear — solo requerir confirmación explícita. Verificable: `POST openclaw-check-interactions` con paciente femenina edad-fértil + isotretinoína → `{ teratogenicity_warning: true, drugs_at_risk: ["isotretinoína"] }`.
+
+- [ ] **S30-17** `[M]` `[codex_backend]` Consentimiento específico por procedimiento — hoy el sistema tiene consentimiento general de tratamiento de datos. Añadir `procedure_consents: [{procedure_name, risks_explained, patient_confirmed, signed_at, doctor_id}]` en el draft. Antes de registrar en la HCE un procedimiento como "electrocoagulación", "crioterapia", "aplicación de toxina botulínica" o "peelings profundos", verificar que existe un `procedure_consent` firmado para ese procedimiento específico en la sesión actual. Sin consentimiento: la API devuelve `consent_required: true`. Verificable: `POST clinical-episode-action` con `action: complete_procedure` y `procedure: crioterapia` sin consent → `{ ok: false, consent_required: true, procedure: "crioterapia" }`.
+
+- [ ] **S30-18** `[M]` `[codex_backend]` Registro de reacciones adversas a medicamentos — nuevo endpoint `POST /api.php?resource=adverse-reaction-report` con: `case_id`, `drug_name`, `reaction_description`, `severity: mild|moderate|severe|life_threatening`, `onset_date`, `action_taken: continued|dose_reduced|stopped|emergency`. Guardar en `data/adverse-reactions.jsonl`. Al registrar `severe` o `life_threatening`: notificar al médico propietario de la clínica por WhatsApp. Los datos se usan en S10 para mejorar las alertas de OpenClaw. Verificable: `POST adverse-reaction-report` con `severity: severe` → `{ ok: true, alert_sent: true }`; entrada en `data/adverse-reactions.jsonl`.
+
+---
+
+### 30.6 Continuidad Clínica entre Visitas
+
+> **Contexto clínico:** cuando un paciente llega a su tercera consulta, el médico necesita saber: ¿qué estaba tomando la última vez? ¿Cómo evolucionó la lesión vs las fotos anteriores? ¿Se cumplió el plan? Sin esto, cada consulta empieza de cero, y el médico redescubre al paciente.
+
+- [ ] **S30-19** `[M]` `[codex_backend]` Resumen automático entre-visitas para OpenClaw — al abrir un nuevo chat de OpenClaw para un caso que ya tiene visitas previas, el sistema debe inyectar automáticamente en el contexto: último diagnóstico CIE-10, medicamentos activos con fecha de inicio, última nota de evolución, resultado de labs pendientes o recientes, y si hay condición crónica: estado del control. Esta información ya está en el store — solo hay que extraerla y estructurarla para el prompt de OpenClaw. Verificable: `GET openclaw-patient?case_id=X` cuando el paciente tiene historial → respuesta incluye `inter_visit_summary: { last_diagnosis, active_medications, last_evolution_date, pending_labs }`.
+
+- [ ] **S30-20** `[M]` `[codex_backend]` Comparación fotográfica automática entre visitas — cuando el médico abre el caso de un paciente y hay fotos clínicas de visitas anteriores, `GET clinical-photos?case_id=X` debe retornar las fotos ordenadas por visita, con `session_date` y la nota de evolución de esa sesión. El médico necesita ver: foto de enero vs foto de marzo, con el diagnóstico de cada una. No es un carrusel — es evidencia clínica de progresión. Verificable: `GET clinical-photos?case_id=X` → array de `{session_date, evolution_note_excerpt, photos: [{url, type}]}` ordenado cronológicamente.
+
+- [ ] **S30-21** `[S]` `[codex_backend]` Persistencia de medicación crónica entre visitas — cuando un médico emite una receta con medicamentos marcados como `chronic: true` (ej: antihipertensivo, hipoglucemiante, hormona tiroidea), ese medicamento debe aparecer automáticamente en `intake.medicacionActual` de la próxima sesión del paciente. Sin esto, el médico pregunta "¿qué está tomando?" en cada visita aunque ya lo haya prescrito él mismo. Verificable: emitir receta con `medications[0].chronic: true` → en la siguiente sesión del mismo caso, `intake.medicacion_actual` incluye ese medicamento con `source: prescription_chronic`.
+
+---
+
