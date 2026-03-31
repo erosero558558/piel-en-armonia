@@ -871,16 +871,19 @@ public function  buildAdminPayload(array $store, array $session, array $draft): 
     public function buildClinicalRecordPayload(array $store, array $session, array $draft): array
     {
         require_once __DIR__ . '/../memberships/MembershipService.php';
-        $membershipSvc = new MembershipService();
-        $pid = trim((string)($session['caseId'] ?? $session['patient']['id'] ?? ''));
-        $membershipStatus = false;
-        if ($pid !== '') {
-            $status = $membershipSvc->getStatus($pid);
-            $membershipStatus = $status !== null;
-        }
+        $membership = $this->resolveMembershipForSession($store, $session);
+        $membershipSnapshot = MembershipService::buildStatusSnapshot($membership);
 
         $session = ClinicalHistoryRepository::adminSession($session);
-        $session['membership_status'] = $membershipStatus;
+        $session['membership_status'] = $membershipSnapshot['active'];
+        $session['membership_plan'] = $membershipSnapshot['plan'];
+        $session['membership_discount_percent'] = $membershipSnapshot['discount_percent'];
+        $session['membership_badge_label'] = $membershipSnapshot['badge_label'];
+        $session['membership_closure_discount'] = $this->buildMembershipClosureDiscount(
+            $store,
+            $session,
+            $membershipSnapshot
+        );
         
         $draft = $this->synchronizeDraftClinicalState(
             ClinicalHistoryRepository::adminDraft($draft),
@@ -4066,6 +4069,196 @@ public function  recordPendingAiLifecycleEvent(
 
         $eventSave = ClinicalHistoryRepository::upsertEvent($store, $event);
         return $eventSave['store'];
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function resolveMembershipForSession(array $store, array $session): ?array
+    {
+        require_once __DIR__ . '/../memberships/MembershipService.php';
+
+        $membershipSvc = new MembershipService();
+        $caseId = trim((string) ($session['caseId'] ?? ''));
+        $appointmentId = isset($session['appointmentId']) ? (int) $session['appointmentId'] : 0;
+        $patientIdFromCase = '';
+        $patientIdFromAppointment = '';
+
+        foreach (($store['patient_cases'] ?? []) as $case) {
+            if (
+                is_array($case) &&
+                trim((string) ($case['id'] ?? '')) === $caseId
+            ) {
+                $patientIdFromCase = trim((string) ($case['patientId'] ?? ''));
+                break;
+            }
+        }
+
+        foreach (($store['appointments'] ?? []) as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $matchesAppointmentId = $appointmentId > 0
+                && (int) ($appointment['id'] ?? 0) === $appointmentId;
+            $matchesCaseId = $caseId !== ''
+                && trim((string) ($appointment['patientCaseId'] ?? '')) === $caseId;
+
+            if ($matchesAppointmentId || $matchesCaseId) {
+                $patientIdFromAppointment = trim((string) ($appointment['patientId'] ?? ''));
+                if ($patientIdFromAppointment !== '') {
+                    break;
+                }
+            }
+        }
+
+        $candidates = array_values(array_unique(array_filter([
+            trim((string) ($session['patient']['id'] ?? '')),
+            $patientIdFromCase,
+            $patientIdFromAppointment,
+            trim((string) ($session['caseId'] ?? '')),
+            trim((string) ($session['patient']['email'] ?? '')) !== ''
+                ? 'email:' . strtolower(trim((string) ($session['patient']['email'] ?? '')))
+                : '',
+            trim((string) ($session['patient']['phone'] ?? '')) !== ''
+                ? 'wa:' . trim((string) ($session['patient']['phone'] ?? ''))
+                : '',
+        ])));
+
+        foreach ($candidates as $candidate) {
+            $membership = $membershipSvc->getStatus((string) $candidate);
+            if ($membership !== null) {
+                return $membership;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array{active:bool,plan:string,discount_percent:int,badge_label:string} $membershipSnapshot
+     * @return array<string,mixed>
+     */
+    private function buildMembershipClosureDiscount(
+        array $store,
+        array $session,
+        array $membershipSnapshot
+    ): array {
+        if (($membershipSnapshot['active'] ?? false) !== true) {
+            return [
+                'eligible' => false,
+                'plan' => '',
+                'discount_percent' => 0,
+                'base_amount_cents' => 0,
+                'discount_amount_cents' => 0,
+                'final_amount_cents' => 0,
+                'base_amount_label' => '',
+                'discount_amount_label' => '',
+                'final_amount_label' => '',
+            ];
+        }
+
+        $appointment = $this->findLatestEncounterAppointment($store, $session);
+        $baseAmountCents = $this->resolveMembershipBaseAmountCents($appointment);
+        $pricing = MembershipService::applyPlanDiscount(
+            $baseAmountCents,
+            (string) ($membershipSnapshot['plan'] ?? '')
+        );
+
+        return [
+            'eligible' => true,
+            'plan' => (string) ($membershipSnapshot['plan'] ?? ''),
+            'discount_percent' => (int) ($pricing['discount_percent'] ?? 0),
+            'base_amount_cents' => (int) ($pricing['base_amount_cents'] ?? 0),
+            'discount_amount_cents' => (int) ($pricing['discount_amount_cents'] ?? 0),
+            'final_amount_cents' => (int) ($pricing['final_amount_cents'] ?? 0),
+            'base_amount_label' => $this->formatUsdCents((int) ($pricing['base_amount_cents'] ?? 0)),
+            'discount_amount_label' => $this->formatUsdCents((int) ($pricing['discount_amount_cents'] ?? 0)),
+            'final_amount_label' => $this->formatUsdCents((int) ($pricing['final_amount_cents'] ?? 0)),
+            'appointment_id' => isset($appointment['id']) ? (int) $appointment['id'] : 0,
+            'service' => trim((string) ($appointment['service'] ?? '')),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function findLatestEncounterAppointment(array $store, array $session): array
+    {
+        $appointments = isset($store['appointments']) && is_array($store['appointments'])
+            ? $store['appointments']
+            : [];
+        $caseId = trim((string) ($session['caseId'] ?? ''));
+        $patientId = trim((string) ($session['patient']['id'] ?? ''));
+        $best = [];
+        $bestScore = '';
+
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $appointmentCaseId = trim((string) ($appointment['patientCaseId'] ?? ''));
+            $appointmentPatientId = trim((string) ($appointment['patientId'] ?? ''));
+            if (
+                ($caseId !== '' && $appointmentCaseId === $caseId) ||
+                ($patientId !== '' && $appointmentPatientId === $patientId)
+            ) {
+                $score = implode('|', [
+                    trim((string) ($appointment['date'] ?? '')),
+                    trim((string) ($appointment['time'] ?? '')),
+                    trim((string) ($appointment['dateBooked'] ?? '')),
+                    (string) ($appointment['id'] ?? ''),
+                ]);
+                if ($best === [] || strcmp($bestScore, $score) < 0) {
+                    $best = $appointment;
+                    $bestScore = $score;
+                }
+            }
+        }
+
+        return $best;
+    }
+
+    private function resolveMembershipBaseAmountCents(array $appointment): int
+    {
+        if ($appointment === []) {
+            return 0;
+        }
+
+        require_once __DIR__ . '/../../payment-lib.php';
+
+        $service = trim((string) ($appointment['service'] ?? ''));
+        if ($service !== '') {
+            $expectedAmountCents = payment_expected_amount_cents(
+                $service,
+                trim((string) ($appointment['date'] ?? '')) ?: null,
+                trim((string) ($appointment['time'] ?? '')) ?: null,
+                trim((string) ($appointment['tenantId'] ?? '')) ?: null
+            );
+            if ($expectedAmountCents > 0) {
+                return $expectedAmountCents;
+            }
+        }
+
+        return $this->parseUsdAmountCents((string) ($appointment['price'] ?? ''));
+    }
+
+    private function parseUsdAmountCents(string $value): int
+    {
+        $normalized = preg_replace('/[^0-9.,]/', '', trim($value));
+        if (!is_string($normalized) || $normalized === '') {
+            return 0;
+        }
+
+        $normalized = str_replace(',', '.', $normalized);
+        $amount = (float) $normalized;
+        return $amount > 0 ? (int) round($amount * 100) : 0;
+    }
+
+    private function formatUsdCents(int $amountCents): string
+    {
+        return '$' . number_format(max(0, $amountCents) / 100, 2);
     }
 
 public function  publicAiPayload(array $aiResult): array

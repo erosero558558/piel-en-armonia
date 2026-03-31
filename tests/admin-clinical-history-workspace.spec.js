@@ -841,6 +841,7 @@ function buildClinicalRecordPayload({
     accessAudit = [],
     archiveReadiness = {},
     recordsGovernance = {},
+    sessionOverrides = {},
 }) {
     const normalizedHcu001Status = legalReadiness.hcu001Status || {
         status: 'complete',
@@ -1204,6 +1205,7 @@ function buildClinicalRecordPayload({
             createdAt: '2026-03-15T08:45:00-05:00',
             updatedAt: '2026-03-15T09:04:00-05:00',
             lastMessageAt: '2026-03-15T09:03:00-05:00',
+            ...sessionOverrides,
         },
         draft: {
             sessionId,
@@ -5177,4 +5179,130 @@ test('historial de certificados en admin muestra folios y se refresca al emitir 
         diagnosis_text: 'Rosacea inflamatoria',
         cie10_code: 'L71.9',
     });
+});
+
+test('muestra badge de miembro y beneficio de cierre en la ficha clinica', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-member-001',
+        caseId: 'case-member-001',
+        patientName: 'Lucia Miembro',
+        clinicianSummary:
+            'Seguimiento dermatologico con beneficio activo de membresia.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica puede cerrarse con el beneficio de membresia aplicado.',
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                    label: 'Datos minimos clinicos',
+                    message: 'No hay faltantes visibles para este episodio.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        sessionOverrides: {
+            membership_status: true,
+            membership_plan: 'gold',
+            membership_discount_percent: 20,
+            membership_badge_label: '⭐ Miembro',
+            membership_closure_discount: {
+                eligible: true,
+                plan: 'gold',
+                discount_percent: 20,
+                base_amount_cents: 4000,
+                discount_amount_cents: 800,
+                final_amount_cents: 3200,
+                base_amount_label: '$40.00',
+                discount_amount_label: '$8.00',
+                final_amount_label: '$32.00',
+                appointment_id: 451,
+                service: 'consulta',
+            },
+        },
+    });
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-member-001',
+                        caseId: 'case-member-001',
+                        patientName: 'Lucia Miembro',
+                        summary:
+                            'Caso con membresia activa y prioridad de cierre.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: false,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'El caso admite prioridad y descuento de membresia.',
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({ route, resource, method, fulfillJson }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.locator('a[href="#clinical-history"]').click();
+    await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+
+    await expect(page.locator('#clinicalHistorySummaryGrid')).toContainText(
+        '⭐ Miembro'
+    );
+    await expect(page.locator('#clinicalHistorySummaryGrid')).toContainText(
+        'Plan GOLD'
+    );
+    await expect(page.locator('#clinicalHistorySummaryGrid')).toContainText(
+        'Descuento 20% al cierre'
+    );
+    await expect(page.locator('#clinicalHistorySummaryGrid')).toContainText(
+        'Cierre $32.00'
+    );
 });

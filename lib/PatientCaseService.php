@@ -642,14 +642,16 @@ final class PatientCaseService
             $pid = trim((string)($case['patientId'] ?? ''));
             if ($pid !== '') {
                 $status = $membershipSvc->getStatus($pid);
-                $case['membership_status'] = $status !== null;
-                $case['membership_plan'] = $status !== null ? $status['plan'] : null;
-                if ($status !== null) {
-                    $case['priority_booking'] = true;
-                }
+                $membership = MembershipService::buildStatusSnapshot($status);
+                $case['membership_status'] = $membership['active'];
+                $case['membership_plan'] = $membership['active'] ? $membership['plan'] : null;
+                $case['membership_discount_percent'] = $membership['discount_percent'];
+                $case['priority_booking'] = $membership['active'];
             } else {
                 $case['membership_status'] = false;
                 $case['membership_plan'] = null;
+                $case['membership_discount_percent'] = 0;
+                $case['priority_booking'] = false;
             }
         }
         unset($case);
@@ -1105,6 +1107,7 @@ final class PatientCaseService
             'alerts' => $this->buildQueueTicketAlerts($ticket, $case, $approvals),
             'membership_status' => (bool)($case['membership_status'] ?? false),
             'membership_plan' => (string)($case['membership_plan'] ?? ''),
+            'membership_discount_percent' => (int)($case['membership_discount_percent'] ?? 0),
         ];
 
         return $ticket;

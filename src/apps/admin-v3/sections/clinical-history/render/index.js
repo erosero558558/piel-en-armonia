@@ -998,6 +998,11 @@ function emptyReview() {
             transcript: [],
             pendingAi: {},
             metadata: {},
+            membership_status: false,
+            membership_plan: '',
+            membership_discount_percent: 0,
+            membership_badge_label: '',
+            membership_closure_discount: {},
             createdAt: '',
             updatedAt: '',
             lastMessageAt: '',
@@ -4489,9 +4494,44 @@ function normalizeReviewQueueItem(item) {
         hcu024Label: normalizeString(source.hcu024Label),
         hcu024Summary: normalizeString(source.hcu024Summary),
         approvalBlockedReasons: normalizeList(source.approvalBlockedReasons),
+        membership_status: source.membership_status === true,
+        membership_plan: normalizeString(source.membership_plan),
+        membership_discount_percent: Math.max(
+            0,
+            normalizeNumber(source.membership_discount_percent)
+        ),
         summary: normalizeString(source.summary),
         createdAt: normalizeString(source.createdAt),
         updatedAt: normalizeString(source.updatedAt),
+    };
+}
+
+function normalizeMembershipClosureDiscount(discount) {
+    const source = discount && typeof discount === 'object' ? discount : {};
+    return {
+        eligible: source.eligible === true,
+        plan: normalizeString(source.plan),
+        discount_percent: Math.max(
+            0,
+            normalizeNumber(source.discount_percent)
+        ),
+        base_amount_cents: Math.max(
+            0,
+            normalizeNumber(source.base_amount_cents)
+        ),
+        discount_amount_cents: Math.max(
+            0,
+            normalizeNumber(source.discount_amount_cents)
+        ),
+        final_amount_cents: Math.max(
+            0,
+            normalizeNumber(source.final_amount_cents)
+        ),
+        base_amount_label: normalizeString(source.base_amount_label),
+        discount_amount_label: normalizeString(source.discount_amount_label),
+        final_amount_label: normalizeString(source.final_amount_label),
+        appointment_id: normalizeNullableInt(source.appointment_id),
+        service: normalizeString(source.service),
     };
 }
 
@@ -4523,6 +4563,18 @@ function normalizeReviewPayload(payload) {
             sessionSource.metadata && typeof sessionSource.metadata === 'object'
                 ? sessionSource.metadata
                 : {},
+        membership_status: sessionSource.membership_status === true,
+        membership_plan: normalizeString(sessionSource.membership_plan),
+        membership_discount_percent: Math.max(
+            0,
+            normalizeNumber(sessionSource.membership_discount_percent)
+        ),
+        membership_badge_label: normalizeString(
+            sessionSource.membership_badge_label
+        ),
+        membership_closure_discount: normalizeMembershipClosureDiscount(
+            sessionSource.membership_closure_discount
+        ),
         createdAt: normalizeString(sessionSource.createdAt),
         updatedAt: normalizeString(sessionSource.updatedAt),
         lastMessageAt: normalizeString(sessionSource.lastMessageAt),
@@ -6648,6 +6700,27 @@ function buildSummaryCards(review) {
     const patient = review.session.patient;
     const draft = review.draft;
     const readiness = normalizeLegalReadiness(review.legalReadiness);
+    const membershipActive = review.session.membership_status === true;
+    const membershipPlan = normalizeString(review.session.membership_plan);
+    const membershipDiscountPercent = normalizeNumber(
+        review.session.membership_discount_percent
+    );
+    const closureDiscount =
+        review.session.membership_closure_discount &&
+        typeof review.session.membership_closure_discount === 'object'
+            ? review.session.membership_closure_discount
+            : {};
+    const membershipMeta = [
+        membershipPlan ? `Plan ${membershipPlan.toUpperCase()}` : '',
+        membershipDiscountPercent > 0
+            ? `Descuento ${membershipDiscountPercent}% al cierre`
+            : '',
+        normalizeString(closureDiscount.final_amount_label)
+            ? `Cierre ${normalizeString(closureDiscount.final_amount_label)}`
+            : '',
+    ]
+        .filter(Boolean)
+        .join(' • ');
     const admission = normalizeAdmission001(
         review.patientRecord?.admission001 || draft.admission001,
         patient,
@@ -6691,6 +6764,14 @@ function buildSummaryCards(review) {
                 admission.residence.phone ||
                 patient.phone ||
                 'Sin contacto documentado',
+        },
+        {
+            title: 'Membresía',
+            value: membershipActive ? '⭐ Miembro' : 'Sin plan',
+            meta: membershipActive
+                ? membershipMeta || 'Beneficio activo para el cierre clínico.'
+                : 'Sin beneficio activo registrado para este paciente.',
+            tone: membershipActive ? 'success' : 'neutral',
         },
         {
             title: 'HCU-001',

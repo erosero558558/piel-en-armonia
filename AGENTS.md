@@ -1863,7 +1863,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 17.3 Membresía con enforcement real
 
-- [ ] **S17-06** `[M]` Enforcement de membresía activa — `es/membresia/index.html` existe. Falta: en backend, verificar `membership_status` en `PatientCaseController`: si paciente es miembro → flag `priority_booking: true` en respuesta. En admin → badge "⭐ Miembro" visible en ficha. Descuento automático según plan en cierre de consulta. Verificable: `GET /api.php?resource=patient-cases` → campo `membership_status` present.
+- [x] **S17-06** `[M]` Enforcement de membresía activa — `es/membresia/index.html` existe. Falta: en backend, verificar `membership_status` en `PatientCaseController`: si paciente es miembro → flag `priority_booking: true` en respuesta. En admin → badge "⭐ Miembro" visible en ficha. Descuento automático según plan en cierre de consulta. Verificable: `GET /api.php?resource=patient-cases` → campo `membership_status` present.
 - [ ] **S17-07** `[M]` Estado y renovación de membresía — en `es/portal/index.html`: card "Mi Plan" con estado (Activo / Vence en X días / Vencido), perks activos y CTA "Renovar". Si vence en <30 días → banner de renovación en portal y en admin cuando médico ve al paciente. Backend: `GET /api.php?resource=membership-status?patient_id=X` → `{status, expires_at, days_remaining, perks[]}`. Verificable: un miembro con plan vencido ve estado "Vencido" en portal.
 
 #### 17.4 Paquetes con control de sesiones

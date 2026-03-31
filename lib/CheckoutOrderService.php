@@ -748,13 +748,11 @@ final class CheckoutOrderService
         }
 
         if ($membership !== null && isset($membership['status']) && $membership['status'] === 'active') {
-            // Plan discount, default 15%
-            $discountPercent = 15;
-            if (isset($membership['plan']) && strtolower($membership['plan']) === 'gold') {
-                $discountPercent = 20;
-            }
-            $discountMultiplier = 1 - ($discountPercent / 100);
-            return (int) round($amountCents * $discountMultiplier);
+            $pricing = MembershipService::applyPlanDiscount(
+                $amountCents,
+                (string) ($membership['plan'] ?? '')
+            );
+            return (int) ($pricing['final_amount_cents'] ?? $amountCents);
         }
 
         return $amountCents;
