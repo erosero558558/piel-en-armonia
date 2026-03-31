@@ -61,8 +61,8 @@ function normalizeAdminQueueTicket(ticket, index = 0) {
             source.patientInitials.trim()
                 ? source.patientInitials.trim()
                 : 'PA',
-        queueType: String(source.queueType || 'appointment').trim() ||
-            'appointment',
+        queueType:
+            String(source.queueType || 'appointment').trim() || 'appointment',
         priorityClass:
             String(source.priorityClass || 'appointment').trim() ||
             'appointment',
@@ -401,8 +401,9 @@ function buildAdminHealthPayload(overrides = {}) {
 
 function buildAdminMonitoringConfigPayload(overrides = {}) {
     return {
-        ok: true,
-        data: {},
+        sentry_dsn_frontend: '',
+        ga_measurement_id: '',
+        clarity_id: '',
         ...overrides,
     };
 }
