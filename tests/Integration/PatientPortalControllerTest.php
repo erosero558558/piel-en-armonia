@@ -740,6 +740,37 @@ final class PatientPortalControllerTest extends TestCase
         self::assertCount(2, is_array($second['events'] ?? null) ? $second['events'] : []);
         self::assertSame('Consulta Dermatológica', (string) ($second['events'][0]['label'] ?? ''));
         self::assertSame('Receta lista', (string) ($second['events'][1]['label'] ?? ''));
+
+        $export = $history['payload']['data']['export'] ?? null;
+        self::assertIsArray($export);
+        self::assertSame(true, (bool) ($export['available'] ?? false));
+        self::assertSame('Exportar mi historia completa', (string) ($export['ctaLabel'] ?? ''));
+        self::assertStringContainsString(
+            'patient-portal-document&type=history&id=pt_lucia_001',
+            (string) ($export['downloadUrl'] ?? '')
+        );
+        self::assertSame('historia-clinica-lucia-portal.pdf', (string) ($export['fileName'] ?? ''));
+    }
+
+    public function testHistoryExportPdfIsAvailableForAuthenticatedPatient(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+        $_GET['type'] = 'history';
+        $_GET['id'] = 'pt_lucia_001';
+
+        $document = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::document(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $document['status']);
+        self::assertTrue((bool) ($document['payload']['ok'] ?? false));
+        self::assertSame('pdf', (string) ($document['payload']['format'] ?? ''));
+        self::assertSame('application/pdf', (string) ($document['payload']['contentType'] ?? ''));
+        self::assertSame('historia-clinica-lucia-portal.pdf', (string) ($document['payload']['filename'] ?? ''));
+        self::assertStringStartsWith('%PDF-', (string) ($document['payload']['binary'] ?? ''));
     }
 
     public function testPrescriptionReturnsLatestIssuedDocumentWithVerificationMetadata(): void

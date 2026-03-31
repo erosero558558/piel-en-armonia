@@ -167,6 +167,46 @@
         `;
     }
 
+    function renderHistoryExportAction(exportItem) {
+        const safeItem =
+            exportItem && typeof exportItem === 'object' ? exportItem : {};
+        const downloadUrl = String(safeItem.downloadUrl || '').trim();
+        if (!downloadUrl) {
+            return '';
+        }
+
+        const label =
+            String(safeItem.ctaLabel || '').trim() || 'Exportar mi historia completa';
+        const fileName =
+            String(safeItem.fileName || '').trim() || 'historia-clinica-portal.pdf';
+
+        return `
+            <a
+                class="portal-history-export-link"
+                data-portal-history-export-link
+                href="${escapeHtml(downloadUrl)}"
+                download="${escapeHtml(fileName)}"
+            >${escapeHtml(label)}</a>
+        `;
+    }
+
+    function hydrateHistoryExport(exportItem) {
+        const container = document.querySelector('[data-portal-history-actions]');
+        if (!(container instanceof HTMLElement)) {
+            return;
+        }
+
+        const markup = renderHistoryExportAction(exportItem);
+        if (!markup) {
+            container.hidden = true;
+            container.innerHTML = '';
+            return;
+        }
+
+        container.hidden = false;
+        container.innerHTML = markup;
+    }
+
     function renderErrorState() {
         return `
             <section class="portal-support-card portal-history-empty">
@@ -350,7 +390,7 @@
 
     async function handleDocumentClick(event) {
         const trigger = event.target instanceof Element
-            ? event.target.closest('[data-portal-document-link]')
+            ? event.target.closest('[data-portal-document-link], [data-portal-history-export-link]')
             : null;
         if (!(trigger instanceof HTMLAnchorElement)) {
             return;
@@ -433,8 +473,11 @@
             const patient =
                 data.patient && typeof data.patient === 'object' ? data.patient : {};
             const consultations = Array.isArray(data.consultations) ? data.consultations : [];
+            const exportInfo =
+                data.export && typeof data.export === 'object' ? data.export : null;
 
             updatePatient(patient);
+            hydrateHistoryExport(exportInfo);
 
             if (consultations.length === 0) {
                 container.innerHTML = renderEmptyState();
@@ -447,6 +490,7 @@
                 </div>
             `;
         } catch (_error) {
+            hydrateHistoryExport(null);
             container.innerHTML = renderErrorState();
         }
     }

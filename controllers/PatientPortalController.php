@@ -112,13 +112,15 @@ final class PatientPortalController
         $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
         $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
         $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+        $consultations = self::buildPortalHistory($store, $snapshot, $patient);
 
         self::emit([
             'ok' => true,
             'data' => [
                 'authenticated' => true,
                 'patient' => $patient,
-                'consultations' => self::buildPortalHistory($store, $snapshot, $patient),
+                'consultations' => $consultations,
+                'export' => self::buildHistoryExportSummary($snapshot, $patient, $consultations),
                 'generatedAt' => local_date('c'),
             ],
         ]);
@@ -473,7 +475,19 @@ final class PatientPortalController
 
         $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
         $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        $portalPatient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
         $caseIds = self::collectPatientCaseIds($store, $snapshot);
+
+        if ($type === 'history') {
+            $expectedDocumentId = self::buildHistoryExportId($snapshot, $portalPatient);
+            if ($expectedDocumentId === '' || $documentId !== $expectedDocumentId) {
+                json_response(['ok' => false, 'error' => 'Documento no disponible para esta sesión'], 404);
+            }
+
+            $pdfBytes = self::generateHistoryExportPdfBytes($store, $snapshot, $portalPatient);
+            self::emitPdfResponse($pdfBytes, self::buildHistoryExportFileName($portalPatient, $snapshot));
+            return;
+        }
 
         if ($type === 'prescription') {
             $prescription = self::findPrescriptionById($store, $documentId);
@@ -1871,6 +1885,77 @@ final class PatientPortalController
         );
     }
 
+    private static function buildHistoryExportSummary(array $snapshot, array $patient, array $consultations): array
+    {
+        $exportId = self::buildHistoryExportId($snapshot, $patient);
+        $consultationCount = count($consultations);
+
+        return [
+            'available' => true,
+            'ctaLabel' => 'Exportar mi historia completa',
+            'description' => $consultationCount > 0
+                ? 'Descarga un PDF con tus consultas, eventos clínicos y documentos visibles del portal.'
+                : 'Descarga un PDF con tu historial visible del portal, incluso si todavía no hay atenciones registradas.',
+            'downloadUrl' => '/api.php?resource=patient-portal-document&type=history&id=' . rawurlencode($exportId),
+            'fileName' => self::buildHistoryExportFileName($patient, $snapshot),
+            'consultationCount' => $consultationCount,
+        ];
+    }
+
+    private static function buildHistoryExportId(array $snapshot, array $patient): string
+    {
+        $raw = self::firstNonEmptyString(
+            (string) ($snapshot['patientId'] ?? ''),
+            (string) ($patient['patientId'] ?? ''),
+            (string) ($snapshot['patientCaseId'] ?? ''),
+            'portal-history'
+        );
+
+        return self::slugifyPortalFileToken($raw, 'portal-history');
+    }
+
+    private static function buildHistoryExportFileName(array $patient, array $snapshot): string
+    {
+        $suffix = self::slugifyPortalFileToken(
+            self::firstNonEmptyString(
+                self::buildPatientDisplayName($patient),
+                (string) ($snapshot['patientId'] ?? ''),
+                (string) ($patient['patientId'] ?? ''),
+                'portal'
+            ),
+            'portal'
+        );
+
+        return 'historia-clinica-' . $suffix . '.pdf';
+    }
+
+    private static function slugifyPortalFileToken(string $value, string $fallback): string
+    {
+        $value = strtolower(trim($value));
+        $slug = preg_replace('/[^a-z0-9_-]+/', '-', $value);
+        $slug = trim((string) $slug, '-_');
+
+        return $slug !== '' ? $slug : $fallback;
+    }
+
+    private static function resolvePortalPatientProfile(array $store, array $snapshot, array $patient): array
+    {
+        $resolved = [];
+        $caseIds = self::collectPatientCaseIds($store, $snapshot);
+
+        foreach ($caseIds as $caseId) {
+            $candidate = self::resolveCasePatient($store, $caseId);
+            if ($candidate !== []) {
+                $resolved = $candidate;
+                break;
+            }
+        }
+
+        $merged = array_merge($resolved, $patient);
+        $merged['name'] = self::buildPatientDisplayName($merged);
+        return $merged;
+    }
+
     private static function buildTreatmentPlanTasks(
         array $carePlan,
         ?array $prescription,
@@ -3259,6 +3344,247 @@ final class PatientPortalController
         }
 
         return self::buildFallbackPdf($html);
+    }
+
+    private static function generateHistoryExportPdfBytes(array $store, array $snapshot, array $patient): string
+    {
+        $resolvedPatient = self::resolvePortalPatientProfile($store, $snapshot, $patient);
+        $consultations = self::buildPortalHistory($store, $snapshot, $resolvedPatient);
+        $html = self::buildHistoryExportHtml($resolvedPatient, $snapshot, $consultations);
+
+        $autoloadPath = __DIR__ . '/../vendor/autoload.php';
+        if (file_exists($autoloadPath)) {
+            require_once $autoloadPath;
+        }
+
+        $dompdfPath = __DIR__ . '/../vendor/dompdf/dompdf/src/Dompdf.php';
+        if (file_exists($dompdfPath)) {
+            require_once $dompdfPath;
+        }
+
+        if (class_exists(\Dompdf\Dompdf::class)) {
+            try {
+                $dompdf = new \Dompdf\Dompdf([
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled' => true,
+                ]);
+                $dompdf->loadHtml($html, 'UTF-8');
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+                return $dompdf->output();
+            } catch (\Throwable $error) {
+                // Ignore dompdf errors and use the text fallback below.
+            }
+        }
+
+        return self::buildFallbackPdf($html);
+    }
+
+    private static function buildHistoryExportHtml(array $patient, array $snapshot, array $consultations): string
+    {
+        $clinicProfile = read_clinic_profile();
+        $clinicName = self::escapeHtml(self::firstNonEmptyString(
+            (string) ($clinicProfile['clinicName'] ?? ''),
+            'Aurora Derm'
+        ));
+        $patientName = self::escapeHtml(self::buildPatientDisplayName($patient));
+        $patientDocument = self::escapeHtml(self::firstNonEmptyString(
+            (string) ($patient['ci'] ?? ''),
+            (string) ($patient['cedula'] ?? ''),
+            (string) ($patient['identification'] ?? ''),
+            (string) ($patient['documentNumber'] ?? '')
+        ));
+        $patientPhone = self::escapeHtml(self::firstNonEmptyString(
+            (string) ($patient['phone'] ?? ''),
+            (string) ($snapshot['phone'] ?? '')
+        ));
+        $patientId = self::escapeHtml(self::firstNonEmptyString(
+            (string) ($snapshot['patientId'] ?? ''),
+            (string) ($patient['patientId'] ?? '')
+        ));
+        $generatedAtLabel = self::escapeHtml(self::buildPortalDateTimeLabel((string) local_date('c'), 'Generado ahora'));
+        $consultationCount = count($consultations);
+
+        $consultationBlocks = '';
+        foreach ($consultations as $consultation) {
+            if (!is_array($consultation)) {
+                continue;
+            }
+
+            $consultationBlocks .= self::buildHistoryExportConsultationHtml($consultation);
+        }
+
+        if ($consultationBlocks === '') {
+            $consultationBlocks = '
+            <div class="section">
+                <strong>Sin atenciones visibles</strong>
+                <p>Al momento de exportar todavía no existen consultas visibles dentro del portal del paciente.</p>
+            </div>';
+        }
+
+        return '
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="utf-8">
+            <title>Historia clínica exportada</title>
+            <style>
+                body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111827; }
+                .header { border-bottom: 2px solid #248a65; padding-bottom: 16px; margin-bottom: 24px; }
+                .header h1 { margin: 0 0 6px; font-size: 24px; }
+                .header p { margin: 0; color: #475569; font-size: 13px; }
+                .hero { margin-bottom: 18px; }
+                .hero span { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #ecfdf5; color: #166534; font-size: 12px; font-weight: bold; letter-spacing: 0.03em; text-transform: uppercase; }
+                .meta, .section { border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px; margin-bottom: 16px; background: #f8fafc; }
+                .meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+                .meta-grid div strong, .section strong { display: block; margin-bottom: 6px; font-size: 12px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; }
+                .section p { margin: 0 0 10px; line-height: 1.65; }
+                .section p:last-child { margin-bottom: 0; }
+                .muted { color: #64748b; }
+                .footer { margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>' . $clinicName . '</h1>
+                <p>Exportación de historia clínica visible en el portal del paciente.</p>
+            </div>
+            <div class="hero">
+                <span>Historia clínica propia</span>
+            </div>
+            <div class="meta">
+                <div class="meta-grid">
+                    <div>
+                        <strong>Paciente</strong>
+                        <span>' . $patientName . '</span>
+                    </div>
+                    <div>
+                        <strong>Consultas incluidas</strong>
+                        <span>' . self::escapeHtml((string) $consultationCount) . '</span>
+                    </div>
+                    ' . ($patientDocument !== '' ? '
+                    <div>
+                        <strong>Documento</strong>
+                        <span>' . $patientDocument . '</span>
+                    </div>' : '') . '
+                    ' . ($patientPhone !== '' ? '
+                    <div>
+                        <strong>Teléfono</strong>
+                        <span>' . $patientPhone . '</span>
+                    </div>' : '') . '
+                    ' . ($patientId !== '' ? '
+                    <div>
+                        <strong>ID de paciente</strong>
+                        <span>' . $patientId . '</span>
+                    </div>' : '') . '
+                    <div>
+                        <strong>Generado</strong>
+                        <span>' . $generatedAtLabel . '</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <strong>Alcance del documento</strong>
+                <p>Este PDF consolida las consultas, eventos clínicos y estados documentales visibles para el paciente dentro del portal de Aurora Derm.</p>
+            </div>
+            ' . $consultationBlocks . '
+            <div class="footer">Documento generado automáticamente desde el portal del paciente Aurora Derm.</div>
+        </body>
+        </html>';
+    }
+
+    private static function buildHistoryExportConsultationHtml(array $consultation): string
+    {
+        $serviceName = self::escapeHtml(self::firstNonEmptyString(
+            (string) ($consultation['serviceName'] ?? ''),
+            'Atención Aurora Derm'
+        ));
+        $statusLabel = self::escapeHtml(self::firstNonEmptyString(
+            (string) ($consultation['statusLabel'] ?? ''),
+            'Consulta registrada'
+        ));
+        $dateLabel = self::escapeHtml(self::firstNonEmptyString(
+            (string) ($consultation['dateLabel'] ?? ''),
+            'Fecha por confirmar'
+        ));
+        $timeLabel = self::escapeHtml(trim((string) ($consultation['timeLabel'] ?? '')));
+        $doctorName = self::escapeHtml(self::firstNonEmptyString(
+            (string) ($consultation['doctorName'] ?? ''),
+            'Equipo clínico Aurora Derm'
+        ));
+        $appointmentTypeLabel = self::escapeHtml(trim((string) ($consultation['appointmentTypeLabel'] ?? '')));
+        $locationLabel = self::escapeHtml(trim((string) ($consultation['locationLabel'] ?? '')));
+
+        $metaParts = array_values(array_filter([
+            $statusLabel,
+            $dateLabel,
+            $timeLabel,
+            $doctorName,
+            $appointmentTypeLabel,
+            $locationLabel,
+        ], static fn ($value): bool => trim((string) $value) !== ''));
+
+        $eventLines = '';
+        foreach (($consultation['events'] ?? []) as $event) {
+            if (!is_array($event)) {
+                continue;
+            }
+
+            $label = self::escapeHtml(trim((string) ($event['label'] ?? '')));
+            if ($label === '') {
+                continue;
+            }
+
+            $meta = self::escapeHtml(trim((string) ($event['meta'] ?? '')));
+            $eventLines .= '<p><strong>' . $label . '</strong>' . ($meta !== '' ? ' — ' . $meta : '') . '</p>';
+        }
+
+        if ($eventLines === '') {
+            $eventLines = '<p class="muted">No hay eventos adicionales visibles para esta consulta.</p>';
+        }
+
+        $documentLines = '';
+        foreach (($consultation['documents'] ?? []) as $document) {
+            if (!is_array($document)) {
+                continue;
+            }
+
+            $title = self::escapeHtml(self::firstNonEmptyString(
+                (string) ($document['title'] ?? ''),
+                'Documento clínico'
+            ));
+            $status = self::escapeHtml(self::firstNonEmptyString(
+                (string) ($document['statusLabel'] ?? ''),
+                'Sin estado'
+            ));
+            $description = self::escapeHtml(trim((string) ($document['description'] ?? '')));
+            $issuedAt = self::escapeHtml(trim((string) ($document['issuedAtLabel'] ?? '')));
+
+            $line = '<p><strong>' . $title . '</strong> — ' . $status;
+            if ($issuedAt !== '') {
+                $line .= ' · ' . $issuedAt;
+            }
+            $line .= '</p>';
+            if ($description !== '') {
+                $line .= '<p class="muted">' . $description . '</p>';
+            }
+
+            $documentLines .= $line;
+        }
+
+        if ($documentLines === '') {
+            $documentLines = '<p class="muted">No hay documentos visibles para esta consulta.</p>';
+        }
+
+        return '
+        <div class="section">
+            <strong>' . $serviceName . '</strong>
+            <p>' . self::escapeHtml(implode(' · ', $metaParts)) . '</p>
+            <p><strong>Eventos clínicos</strong></p>
+            ' . $eventLines . '
+            <p><strong>Documentos visibles</strong></p>
+            ' . $documentLines . '
+        </div>';
     }
 
     private static function buildConsentHtml(array $consentSnapshot, array $patient): string
