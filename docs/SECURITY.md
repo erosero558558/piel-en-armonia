@@ -63,6 +63,21 @@ Toda entrada de usuario se valida y sanitiza antes de ser procesada (`lib/valida
 
 La API pública está protegida contra abusos mediante límites de velocidad por IP (Ver `docs/API.md` y `lib/ratelimit.php`).
 
+### 6. Roles clínicos en OpenClaw
+
+Los endpoints clínicos de OpenClaw no deben depender solo de "usuario autenticado".
+
+- `doctor`: puede usar scopes de escritura clínica (`openclaw-save-diagnosis`, `openclaw-save-evolution`) y emitir documentos (`openclaw-prescription`, `openclaw-certificate`).
+- `receptionist`: puede entrar a scopes de asistencia/lectura, pero no emitir recetas ni certificados.
+- `legacy admin`: por compatibilidad se trata como `doctor` salvo override explícito.
+
+Configuración recomendada:
+
+- Definir `AURORADERM_OPENCLAW_DOCTOR_EMAILS` con la lista explícita de médicos autorizados.
+- Opcionalmente fijar `AURORADERM_PRIMARY_DOCTOR_EMAIL` si hay un único médico principal.
+- Usar `AURORADERM_LEGACY_ADMIN_CLINICAL_ROLE=receptionist` solo si el login legacy quedó delegado a personal no médico.
+- Mantener `AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false` si no existe un mapeo de roles externo confiable.
+
 ## Respuesta a Incidentes de Seguridad
 
 Si descubres una vulnerabilidad, por favor sigue estos pasos:
@@ -78,5 +93,6 @@ Si descubres una vulnerabilidad, por favor sigue estos pasos:
 - [ ] `AURORADERM_REQUIRE_DATA_ENCRYPTION=true` en producción si el entorno no publica `APP_ENV=production`.
 - [ ] `health-diagnostics` confirma `storeEncryptionStatus` y `storeEncryptionCompliant=true`.
 - [ ] `AURORADERM_ADMIN_PASSWORD` es fuerte y única.
+- [ ] `AURORADERM_OPENCLAW_DOCTOR_EMAILS` refleja solo médicos autorizados a emitir receta/certificado.
 - [ ] Dependencias (`npm audit`) verificadas sin vulnerabilidades críticas.
 - [ ] Permisos de archivos en servidor (`chmod`) son restrictivos (especialmente `data/`).

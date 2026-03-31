@@ -14,7 +14,8 @@ require_once __DIR__ . '/../lib/email.php';
  *   - js/openclaw-chat.js  (interfaz de consulta embebida en admin)
  *   - openapi-openclaw.yaml (Custom GPT Actions de ChatGPT)
  *
- * Todos los endpoints requieren sesión de médico autenticado (admin).
+ * Todos los endpoints requieren una sesión clínica autenticada.
+ * Los endpoints de escritura documental (receta/certificado) quedan restringidos a doctor.
  * El contexto del paciente viene del store de Flow OS.
  */
 final class OpenclawController
@@ -28,7 +29,7 @@ final class OpenclawController
      */
     public static function patient(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('assistant');
 
         $patientId = trim((string) ($_GET['patient_id'] ?? ''));
         $caseId    = trim((string) ($_GET['case_id'] ?? ''));
@@ -133,7 +134,7 @@ final class OpenclawController
      */
     public static function cie10Suggest(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('assistant');
 
         $q = strtolower(trim((string) ($_GET['q'] ?? '')));
         if (strlen($q) < 2) {
@@ -213,7 +214,7 @@ final class OpenclawController
      */
     public static function protocol(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('assistant');
 
         $code = strtoupper(trim((string) ($_GET['code'] ?? '')));
         if ($code === '') {
@@ -241,7 +242,7 @@ final class OpenclawController
      */
     public static function chat(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('assistant');
 
         $payload = require_json_body();
 
@@ -278,7 +279,7 @@ final class OpenclawController
 
     public static function saveDiagnosis(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('clinical_write');
         $payload = require_json_body();
 
         $caseId      = trim((string) ($payload['case_id'] ?? ''));
@@ -308,7 +309,7 @@ final class OpenclawController
 
     public static function saveEvolution(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('clinical_write');
         $payload = require_json_body();
 
         $caseId = trim((string) ($payload['case_id'] ?? ''));
@@ -344,7 +345,7 @@ final class OpenclawController
 
     public static function savePrescription(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('prescription');
         $payload = require_json_body();
 
         $caseId      = trim((string) ($payload['case_id'] ?? ''));
@@ -481,6 +482,8 @@ final class OpenclawController
 
     public static function getPrescriptionPdf(array $context): void
     {
+        self::requireAuth('prescription');
+
         $rxId = trim((string) ($_GET['id'] ?? ''));
         if ($rxId === '') {
             json_response(['ok' => false, 'error' => 'id requerido'], 400);
@@ -509,7 +512,7 @@ final class OpenclawController
 
     public static function generateCertificate(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('certificate');
         $payload = require_json_body();
 
         $caseId = trim((string) ($payload['case_id'] ?? ''));
@@ -566,7 +569,7 @@ final class OpenclawController
 
     public static function getCertificatePdf(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('certificate');
 
         $certId = trim((string) ($_GET['id'] ?? ''));
         if ($certId === '') {
@@ -609,7 +612,7 @@ final class OpenclawController
 
     public static function checkInteractions(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('assistant');
         $payload = require_json_body();
 
         $caseId = trim((string) ($payload['case_id'] ?? $payload['caseId'] ?? ''));
@@ -698,7 +701,7 @@ final class OpenclawController
 
     public static function summarizeSession(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('assistant');
         $payload     = require_json_body();
         $chatSummary = trim((string) ($payload['chat_summary'] ?? ''));
         $caseId      = trim((string) ($payload['case_id'] ?? ''));
@@ -769,15 +772,20 @@ final class OpenclawController
 
     public static function routerStatus(array $context): void
     {
-        self::requireAuth();
+        self::requireAuth('assistant');
         $router = new OpenclawAIRouter();
         json_response(['ok' => true, 'router' => $router->getStatus()]);
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
 
-    private static function requireAuth(): void
+    private static function requireAuth(string $scope = 'assistant'): void
     {
+        if (function_exists('require_openclaw_scope')) {
+            require_openclaw_scope($scope);
+            return;
+        }
+
         require_admin_auth();
     }
 
