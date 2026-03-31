@@ -51,6 +51,11 @@ const CLINICAL_HISTORY_WORKSPACE_OPTIONS = Object.freeze([
         label: 'Evolución Visual',
         metaLabel: () => 'Comparación fotográfica',
     },
+    {
+        workspace: 'h002',
+        label: '📋 H002 — MSP',
+        metaLabel: () => 'Obligatorio (Ecuador)',
+    },
 ]);
 const CLINICAL_HISTORY_SEX_CHOICES = Object.freeze([
     { value: '', label: 'Sin dato' },
@@ -11619,6 +11624,46 @@ function buildDraftForm(review, draft, saving) {
     `;
 }
 
+function buildClinicalH002FormFields(draft, disabled) {
+    const h002 = draft?.h002 || {};
+    return `
+        <div class="clinical-history-form-grid">
+            ${buildClinicalHistorySection(
+                'Datos Clínicos',
+                'Motivo de consulta y enfermedad actual.',
+                buildClinicalHistoryInlineGrid([
+                    textareaField('motivo_consulta', 'Motivo de consulta', h002.motivo_consulta, { rows: 3, placeholder: 'Causa de la consulta...', disabled }),
+                    textareaField('enfermedad_actual', 'Enfermedad actual (Anamnesis)', h002.enfermedad_actual, { rows: 4, placeholder: 'Desarrollo de los síntomas...', disabled })
+                ])
+            )}
+            ${buildClinicalHistorySection(
+                'Antecedentes',
+                'Registro patológico, quirúrgico y familiar.',
+                buildClinicalHistoryInlineGrid([
+                    textareaField('antecedentes_personales', 'Antecedentes Personales', h002.antecedentes_personales, { rows: 3, disabled }),
+                    textareaField('antecedentes_familiares', 'Antecedentes Familiares', h002.antecedentes_familiares, { rows: 3, disabled })
+                ])
+            )}
+            ${buildClinicalHistorySection(
+                'Examen y Evaluación',
+                'Revisión por sistemas y examen físico segmentario.',
+                buildClinicalHistoryInlineGrid([
+                    textareaField('revision_sistemas', 'Revisión por Sistemas', h002.revision_sistemas, { rows: 3, disabled }),
+                    textareaField('examen_fisico', 'Examen Físico', h002.examen_fisico, { rows: 3, disabled })
+                ])
+            )}
+            ${buildClinicalHistorySection(
+                'Plan de Manejo',
+                'Terapéutica clínica indicada.',
+                buildClinicalHistoryInlineGrid([
+                    textareaField('plan_tratamiento', 'Plan de Tratamiento', h002.plan_tratamiento, { rows: 4, disabled }),
+                    textareaField('indicaciones_seguimiento', 'Indicaciones de Seguimiento', h002.indicaciones_seguimiento, { rows: 3, disabled })
+                ])
+            )}
+        </div>
+    `;
+}
+
 function syncDraftStatusMeta() {
     const state = getState();
     const slice = getClinicalHistorySlice(state);
@@ -13928,9 +13973,12 @@ function syncWorkspaceVisibility(activeWorkspace) {
         'clinicalCompareWorkbench'
     );
 
+    const h002Workbench = document.getElementById('clinicalH002Workbench');
+
     const isMediaFlow = activeWorkspace === 'media-flow';
     const isCompare = activeWorkspace === 'compare';
-    const isReview = !isMediaFlow && !isCompare;
+    const isH002 = activeWorkspace === 'h002';
+    const isReview = !isMediaFlow && !isCompare && !isH002;
 
     if (reviewWorkbench instanceof HTMLElement) {
         reviewWorkbench.hidden = !isReview;
@@ -13943,6 +13991,9 @@ function syncWorkspaceVisibility(activeWorkspace) {
     }
     if (compareWorkbench instanceof HTMLElement) {
         compareWorkbench.hidden = !isCompare;
+    }
+    if (h002Workbench instanceof HTMLElement) {
+        h002Workbench.hidden = !isH002;
     }
 }
 
@@ -14390,6 +14441,47 @@ function bindClinicalHistoryEvents() {
         }
     });
 
+        const formH002Btn = document.getElementById('clinicalH002SaveBtn');
+        if (formH002Btn) {
+            formH002Btn.onclick = async () => {
+                const form = document.getElementById('clinicalH002Form');
+                if (!form) return;
+                const sessionId = getClinicalHistorySlice().selectedSessionId;
+                if (!sessionId) return;
+                
+                const data = {
+                    motivo_consulta: form.elements.namedItem('motivo_consulta')?.value || '',
+                    enfermedad_actual: form.elements.namedItem('enfermedad_actual')?.value || '',
+                    antecedentes_personales: form.elements.namedItem('antecedentes_personales')?.value || '',
+                    antecedentes_familiares: form.elements.namedItem('antecedentes_familiares')?.value || '',
+                    revision_sistemas: form.elements.namedItem('revision_sistemas')?.value || '',
+                    examen_fisico: form.elements.namedItem('examen_fisico')?.value || '',
+                    diagnostico_cie10: document.getElementById('h002DiagnosisCode')?.value || '',
+                    diagnostico_label: document.getElementById('h002DiagnosisLabel')?.value || '',
+                    plan_tratamiento: form.elements.namedItem('plan_tratamiento')?.value || '',
+                    indicaciones_seguimiento: form.elements.namedItem('indicaciones_seguimiento')?.value || ''
+                };
+                
+                setButtonDisabled('clinicalH002SaveBtn', true);
+                try {
+                    await apiRequest('clinical-record', {
+                        method: 'PATCH',
+                        body: {
+                            sessionId: sessionId,
+                            draftPatch: { formType: 'H002', data }
+                        }
+                    });
+                    const msg = document.createElement('div');
+                    msg.textContent = 'Guardado';
+                    msg.style = 'color: var(--color-emerald-500); font-size: 13px; font-weight: 500; margin-left: auto; margin-right: 16px; align-self: center;';
+                    formH002Btn.parentNode.insertBefore(msg, formH002Btn);
+                    setTimeout(()=>msg.remove(), 2000);
+                } finally {
+                    setButtonDisabled('clinicalH002SaveBtn', false);
+                }
+            };
+        }
+
     root.dataset.bound = 'true';
 }
 
@@ -14491,6 +14583,11 @@ export function renderClinicalHistorySection() {
     setHtml(
         '#clinicalHistoryDocuments',
         buildCertificateHistoryList(review, certificateHistory)
+    );
+
+    setHtml(
+        '#clinicalH002Form',
+        buildClinicalH002FormFields(draft, slice.saving)
     );
 
     syncFollowUpInput();

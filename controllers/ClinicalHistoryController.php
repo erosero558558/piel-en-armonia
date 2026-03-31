@@ -970,6 +970,22 @@ final class ClinicalHistoryController
                 'lab_order_id' => $labOrderId,
                 'critical_values' => $criticalValues,
             ]);
+
+            require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
+            $session = \ClinicalHistorySessionRepository::findSessionBySessionId(read_store(), $sessionId);
+            $localCaseId = $session['caseId'] ?? '';
+            
+            if ($localCaseId !== '') {
+                foreach ($criticalValues as $tempCv) {
+                    $parts = explode(':', $tempCv, 2);
+                    $argTest = escapeshellarg(trim($parts[0]));
+                    $argValue = escapeshellarg(trim($parts[1] ?? ''));
+                    if ($argTest !== '' && $argTest !== "''") {
+                        $cmd = 'php ' . realpath(__DIR__ . '/../bin/notify-lab-critical.php') . ' --case_id=' . escapeshellarg($localCaseId) . ' --test=' . $argTest . ' --value=' . $argValue . ' > /dev/null 2>&1 &';
+                        @exec($cmd);
+                    }
+                }
+            }
         }
 
         json_response([
@@ -1113,5 +1129,127 @@ final class ClinicalHistoryController
             ];
 
         json_response($payload, 409);
+    }
+
+    /**
+     * S30-06: Upload de PDF de resultado de laboratorio
+     * POST clinical-lab-pdf-upload
+     * Payload (multipart/form-data): session_id, lab_order_id, pdf
+     */
+    public static function uploadClinicalLabPdf(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $sessionId = trim((string) ($_POST['session_id'] ?? ''));
+        $labOrderId = trim((string) ($_POST['lab_order_id'] ?? ''));
+
+        if ($sessionId === '' || $labOrderId === '') {
+            json_response(['ok' => false, 'error' => 'session_id y lab_order_id son requeridos'], 400);
+        }
+
+        if (!isset($_FILES['pdf']) || (int) ($_FILES['pdf']['error']) !== UPLOAD_ERR_OK) {
+            json_response(['ok' => false, 'error' => 'No se recibio un archivo PDF valido'], 400);
+        }
+
+        $file = $_FILES['pdf'];
+        $tmpName = trim((string) ($file['tmp_name'] ?? ''));
+        $size = (int) ($file['size'] ?? 0);
+
+        if ($size > 10485760) {
+            json_response(['ok' => false, 'error' => 'El PDF debe pesar maximo 10 MB.'], 400);
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = $finfo ? (string) finfo_file($finfo, $tmpName) : '';
+        if ($finfo) {
+            finfo_close($finfo);
+        }
+
+        if ($mime !== 'application/pdf') {
+            json_response(['ok' => false, 'error' => 'El archivo debe ser un PDF válido (application/pdf).'], 400);
+        }
+
+        if (!ensure_clinical_media_dir()) {
+            json_response(['ok' => false, 'error' => 'Error preparando almacenamiento.'], 500);
+        }
+
+        // Recuperar session_id -> case_id de store memory
+        $lockResult = with_store_lock(static function () use ($sessionId, $labOrderId, $tmpName, $size, $mime): array {
+            $store = read_store();
+            require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
+            $session = \ClinicalHistorySessionRepository::findSessionBySessionId($store, $sessionId);
+            if ($session === null) {
+                return ['ok' => false, 'code' => 404, 'error' => 'Sesión clínica no encontrada'];
+            }
+
+            $caseId = $session['caseId'] ?? '';
+            $patientSlug = preg_replace('/[^a-zA-Z0-9_-]/', '', $caseId);
+            $fullTargetDir = clinical_media_dir_path() . DIRECTORY_SEPARATOR . $patientSlug . DIRECTORY_SEPARATOR . 'lab-results';
+            
+            if (!is_dir($fullTargetDir)) {
+                @mkdir($fullTargetDir, 0750, true);
+            }
+
+            $timestamp = time();
+            $safeOrderId = preg_replace('/[^a-zA-Z0-9_-]/', '', $labOrderId);
+            $filename = $safeOrderId . '_' . $timestamp . '.pdf';
+            $targetDiskPath = $fullTargetDir . DIRECTORY_SEPARATOR . $filename;
+
+            if (is_uploaded_file($tmpName)) {
+                if (!@move_uploaded_file($tmpName, $targetDiskPath)) {
+                    return ['ok' => false, 'code' => 500, 'error' => 'Error guardando PDF físico.'];
+                }
+            } else {
+                return ['ok' => false, 'code' => 400, 'error' => 'Archivo PDF inválido.'];
+            }
+            @chmod($targetDiskPath, 0640);
+
+            $privatePath = 'clinical-media/' . $patientSlug . '/lab-results/' . $filename;
+            $pdfUrl = '/api.php?resource=media-flow-private-asset&type=clinical_media&path=' . urlencode($privatePath);
+
+            // Actualizar order result en el draft de esta sesion
+            $drafts = $store['clinical_history_drafts'] ?? [];
+            $updated = false;
+            foreach ($drafts as &$draft) {
+                if (trim((string) ($draft['sessionId'] ?? '')) !== $sessionId) continue;
+                $labOrders = $draft['labOrders'] ?? [];
+                foreach ($labOrders as &$order) {
+                    if (trim((string) ($order['labOrderId'] ?? '')) !== $labOrderId) continue;
+                    if (!isset($order['result']) || !is_array($order['result'])) {
+                        $order['result'] = [];
+                    }
+                    $order['result']['pdfUrl'] = $pdfUrl;
+                    $updated = true;
+                    break;
+                }
+                unset($order);
+                $draft['labOrders'] = $labOrders;
+                $draft['updatedAt'] = gmdate('c');
+                break;
+            }
+            unset($draft);
+
+            if ($updated) {
+                $store['clinical_history_drafts'] = array_values($drafts);
+                write_store($store, false);
+            }
+
+            return ['ok' => true, 'pdfUrl' => $pdfUrl];
+        });
+
+        if (($lockResult['ok'] ?? false) !== true || (isset($lockResult['result']) && ($lockResult['result']['ok'] ?? false) !== true)) {
+            $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : $lockResult;
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'Error desconocido de subida PDF')
+            ], (int) ($result['code'] ?? 500));
+        }
+
+        json_response([
+            'ok' => true,
+            'pdf_url' => $lockResult['result']['pdfUrl'] ?? ''
+        ]);
     }
 }

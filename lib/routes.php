@@ -96,6 +96,7 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'clinical-vitals', [ClinicalHistoryController::class, 'saveVitals']);              // S30-02: signos vitales
     $router->add('GET', 'patient-vitals-history', [ClinicalHistoryController::class, 'vitalsHistory']);     // S30-03: historial de vitales
     $router->add('POST', 'receive-lab-result', [ClinicalHistoryController::class, 'receiveLabResult']);     // S30-05: ingesta de resultados lab
+    $router->add('POST', 'clinical-lab-pdf-upload', [ClinicalHistoryController::class, 'uploadClinicalLabPdf']); // S30-06: upload PDF lab
     $router->add('POST', 'receive-imaging-result', [ClinicalHistoryController::class, 'receiveImagingResult']); // S30-09: resultado de imagen
     $router->add('POST', 'receive-interconsult-report', [ClinicalHistoryController::class, 'receiveInterconsultReport']); // S30-14: report expuesto
     $router->add('GET', 'media-flow-queue', [CaseMediaFlowController::class, 'queue']);

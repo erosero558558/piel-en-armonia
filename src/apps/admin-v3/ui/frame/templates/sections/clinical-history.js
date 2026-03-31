@@ -170,6 +170,37 @@ export function renderClinicalHistorySection() {
             </div>
 
             <div
+                id="clinicalH002Workbench"
+                class="clinical-h002-workbench"
+                hidden
+            >
+                <article class="sony-panel clinical-history-draft-panel">
+                    <header class="section-header">
+                        <div>
+                            <h3>Formulario MSP H002</h3>
+                            <p>Consulta externa regida por el Ministerio de Salud (Ecuador).</p>
+                        </div>
+                    </header>
+                    <div class="clinical-history-cie10-toolbar" style="padding: 16px; border-bottom: 1px solid var(--admin-border); display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="h002DiagnosisCode" name="h002DiagnosisCode" class="input" placeholder="CIE-10 (ej. L400)" style="width: 120px;" autocomplete="off" />
+                        <input type="text" id="h002DiagnosisLabel" name="h002DiagnosisLabel" class="input" placeholder="Diagnóstico" style="flex: 1;" autocomplete="off" />
+                        <button type="button" class="btn" style="background: rgba(106, 126, 150, 0.1); border: 1px solid var(--color-aurora-500); display: flex; align-items: center; gap: 4px;" onclick="window.cie10Search && window.cie10Search.open()">
+                            🔍 CIE-10
+                        </button>
+                    </div>
+                    <form
+                        id="clinicalH002Form"
+                        class="clinical-history-form"
+                    ></form>
+                    <div style="padding: 16px; border-top: 1px solid var(--admin-border); display: flex; justify-content: flex-end; gap: 8px;">
+                        <button type="button" id="clinicalH002SaveBtn" class="btn btn-primary">
+                            Guardar Formulario H002
+                        </button>
+                    </div>
+                </article>
+            </div>
+
+            <div
                 id="clinicalHistoryWorkbench"
                 class="clinical-history-workbench"
             >
@@ -339,6 +370,11 @@ export function renderClinicalHistorySection() {
                                 const labelEl = document.getElementById('diagnosisLabel') || document.querySelector('[name="diagnosisLabel"]') || document.querySelector('[name="hcu005_diagnostic_impression"]');
                                 if (codeEl) codeEl.value = item.code;
                                 if (labelEl) labelEl.value = item.label;
+
+                                const codeH002 = document.getElementById('h002DiagnosisCode') || document.querySelector('[name="h002DiagnosisCode"]');
+                                const labelH002 = document.getElementById('h002DiagnosisLabel') || document.querySelector('[name="h002DiagnosisLabel"]');
+                                if (codeH002) codeH002.value = item.code;
+                                if (labelH002) labelH002.value = item.label;
                             }
                         });
                         document.body.addEventListener('click', (e) => {

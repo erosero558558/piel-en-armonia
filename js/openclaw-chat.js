@@ -207,6 +207,12 @@ Contexto del paciente se te dará como sistema de contexto.`,
       ${ctx.allergies.map(a => `<div class="oc-context-item">${a}</div>`).join('')}
     </div>` : ''}
 
+    ${ctx.vitalAlertCritical && ctx.vitalAlerts && ctx.vitalAlerts.length ? `
+    <div class="oc-context-section" style="border-left: 3px solid var(--oc-red); background: rgba(239, 68, 68, 0.1);">
+      <div class="oc-context-section-title" style="color: var(--oc-red);">🛑 Signos Vitales Críticos — Admisión</div>
+      ${ctx.vitalAlerts.map(a => `<div class="oc-context-item" style="color: var(--oc-text);">${a}</div>`).join('')}
+    </div>` : ''}
+
     ${ctx.lastVisitSummary ? `
     <div class="oc-context-section">
       <div class="oc-context-section-title">Última visita — resumen IA</div>
