@@ -5178,3 +5178,184 @@ test('historial de certificados en admin muestra folios y se refresca al emitir 
         cie10_code: 'L71.9',
     });
 });
+
+test('aplica una gift card desde el cierre clinico usando la cita activa', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-gift-001',
+        caseId: 'case-gift-001',
+        patientName: 'Marta Gift',
+        clinicianSummary:
+            'Consulta presencial lista para cierre con saldo cubierto por gift card.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La nota ya esta lista y la cita admite aplicar la gift card reservada.',
+            checklist: [],
+            blockingReasons: [],
+        },
+        approval: {
+            status: 'pending',
+            approvedBy: '',
+            approvedAt: '',
+        },
+    });
+    baseRecord.encounter = {
+        ...baseRecord.encounter,
+        appointmentId: 451,
+        appointment: {
+            id: 451,
+            service: 'consulta',
+            date: '2026-04-02',
+            time: '10:00',
+            price: 40,
+            paymentMethod: 'cash',
+            paymentStatus: 'pending_cash',
+            giftCardCode: 'AUR-GIFT-AB12CD34',
+            giftCardStatus: 'active',
+            giftCardBalanceCents: 10000,
+            giftCardValidatedAt: '2026-03-31T09:00:00-05:00',
+            giftCardAppliedAt: '',
+            giftCardAppliedAmountCents: 0,
+        },
+    };
+
+    const redeemedRecord = {
+        ...baseRecord,
+        encounter: {
+            ...baseRecord.encounter,
+            appointment: {
+                ...baseRecord.encounter.appointment,
+                paymentMethod: 'gift_card',
+                paymentStatus: 'paid',
+                giftCardAppliedAt: '2026-03-31T10:15:00-05:00',
+                giftCardAppliedAmountCents: 4000,
+                giftCardBalanceCents: 6000,
+                giftCardRedemptionReference:
+                    'clinical_close:chs-gift-001',
+            },
+        },
+    };
+
+    const redeemPayloads = [];
+    let recordFetches = 0;
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    recordsGovernance: {
+                        pendingCopyRequests: 0,
+                        overdueCopyRequests: 0,
+                        disclosures: 0,
+                        archiveEligible: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-gift-001',
+                        caseId: 'case-gift-001',
+                        patientName: 'Marta Gift',
+                        summary:
+                            'Caso listo para cierre con gift card prevalidada desde booking.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'La nota puede cerrarse y aplicar la gift card del encuentro.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                recordFetches += 1;
+                await fulfillJson(route, {
+                    ok: true,
+                    data: recordFetches > 1 ? redeemedRecord : baseRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'gift-card-redeem' && method === 'POST') {
+                redeemPayloads.push(payload);
+                await fulfillJson(route, {
+                    ok: true,
+                    data: {
+                        amountCents: 4000,
+                        giftCard: {
+                            code: 'AUR-GIFT-AB12CD34',
+                            balance_cents: 6000,
+                            balanceLabel: '$60.00',
+                        },
+                        appointment: redeemedRecord.encounter.appointment,
+                    },
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.locator('a[href="#clinical-history"]').click();
+
+    await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+
+    await expect(
+        page.locator('#clinicalHistoryGiftCardBtn')
+    ).toBeVisible();
+    await page.locator('#clinicalHistoryGiftCardBtn').click();
+
+    await expect
+        .poll(() => redeemPayloads.length)
+        .toBe(1);
+    expect(redeemPayloads[0]).toMatchObject({
+        code: 'AUR-GIFT-AB12CD34',
+        appointmentId: 451,
+        sessionId: 'chs-gift-001',
+        caseId: 'case-gift-001',
+    });
+    await expect
+        .poll(() => recordFetches)
+        .toBeGreaterThan(1);
+});

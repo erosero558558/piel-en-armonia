@@ -412,6 +412,39 @@ const evolutionOptions = [
             </div>
 
             <div class="form-group">
+                <label for="bookingGiftCardCode">
+                    {
+                        locale === 'en'
+                            ? 'Do you have a gift card?'
+                            : '¿Tienes gift card?'
+                    }
+                </label>
+                <input
+                    type="text"
+                    id="bookingGiftCardCode"
+                    name="giftCardCode"
+                    inputmode="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder={locale === 'en' ? 'Example: AUR-GIFT-AB12CD34' : 'Ejemplo: AUR-GIFT-AB12CD34'}
+                />
+                <small class="form-help">
+                    {
+                        locale === 'en'
+                            ? 'We validate it in real time and link it to your appointment before payment.'
+                            : 'La validamos en tiempo real y la dejamos asociada a tu cita antes del pago.'
+                    }
+                </small>
+                <div
+                    id="bookingGiftCardFeedback"
+                    class="booking-inline-feedback is-hidden"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                ></div>
+            </div>
+
+            <div class="form-group">
                 <label for="appointmentReason" data-i18n="label_reason">{dict.label_reason}</label>
                 <textarea
                     id="appointmentReason"
@@ -511,4 +544,3 @@ const evolutionOptions = [
         </form>
     </div>
 </div>
-

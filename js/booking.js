@@ -25,6 +25,7 @@ import {
     uploadTransferProof,
     loadAvailabilityData,
     getBookedSlots,
+    validateGiftCard,
 } from './data.js';
 import { getCaptchaToken } from './captcha.js';
 
@@ -82,6 +83,7 @@ function stripTransientAppointmentFields(appointment) {
     const payload = { ...appointment };
     delete payload.casePhotoFiles;
     delete payload.casePhotoUploads;
+    delete payload.giftCardValidation;
     return payload;
 }
 
@@ -348,6 +350,7 @@ function getBookingUiDeps() {
     return {
         loadAvailabilityData,
         getBookedSlots,
+        validateGiftCard,
         updateAvailableTimes,
         getDefaultTimeSlots,
         showToast,

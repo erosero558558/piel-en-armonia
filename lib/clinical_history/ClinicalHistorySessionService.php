@@ -1006,6 +1006,7 @@ public function  buildClinicalRecordPayload(array $store, array $session, array 
 
         $caseMediaAssets = [];
         $caseId = (string) ($session['caseId'] ?? '');
+        $encounterAppointment = $this->findEncounterAppointment($store, $session, $draft);
         if ($caseId !== '') {
             foreach (($store['clinical_uploads'] ?? []) as $upload) {
                 if (is_array($upload) && (string) ($upload['patientCaseId'] ?? '') === $caseId) {
@@ -1058,6 +1059,9 @@ public function  buildClinicalRecordPayload(array $store, array $session, array 
                 'surface' => (string) ($session['surface'] ?? ''),
                 'startedAt' => (string) ($session['createdAt'] ?? ''),
                 'updatedAt' => (string) ($draft['updatedAt'] ?? $session['updatedAt'] ?? ''),
+                'appointment' => $encounterAppointment !== null
+                    ? $this->buildEncounterAppointmentSummary($encounterAppointment)
+                    : [],
             ],
             'liveNote' => [
                 'summary' => $this->buildLiveNoteSummary($draft),
@@ -1107,6 +1111,62 @@ public function  buildClinicalRecordPayload(array $store, array $session, array 
                 'approvalStatus' => (string) ($approval['status'] ?? 'pending'),
             ],
             'caseMediaAssets' => $caseMediaAssets,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $store
+     * @param array<string,mixed> $session
+     * @param array<string,mixed> $draft
+     * @return array<string,mixed>|null
+     */
+    private function findEncounterAppointment(array $store, array $session, array $draft): ?array
+    {
+        $appointmentId = ClinicalHistoryRepository::nullablePositiveInt(
+            $draft['appointmentId'] ?? $session['appointmentId'] ?? null
+        );
+        if ($appointmentId === null) {
+            return null;
+        }
+
+        $appointments = isset($store['appointments']) && is_array($store['appointments'])
+            ? $store['appointments']
+            : [];
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+            if ((int) ($appointment['id'] ?? 0) === $appointmentId) {
+                return $appointment;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string,mixed> $appointment
+     * @return array<string,mixed>
+     */
+    private function buildEncounterAppointmentSummary(array $appointment): array
+    {
+        return [
+            'id' => (int) ($appointment['id'] ?? 0),
+            'service' => (string) ($appointment['service'] ?? ''),
+            'date' => (string) ($appointment['date'] ?? ''),
+            'time' => (string) ($appointment['time'] ?? ''),
+            'price' => $appointment['price'] ?? null,
+            'paymentMethod' => (string) ($appointment['paymentMethod'] ?? ''),
+            'paymentStatus' => (string) ($appointment['paymentStatus'] ?? ''),
+            'giftCardCode' => (string) ($appointment['giftCardCode'] ?? ''),
+            'giftCardStatus' => (string) ($appointment['giftCardStatus'] ?? ''),
+            'giftCardRecipientName' => (string) ($appointment['giftCardRecipientName'] ?? ''),
+            'giftCardBalanceCents' => (int) ($appointment['giftCardBalanceCents'] ?? 0),
+            'giftCardValidatedAt' => (string) ($appointment['giftCardValidatedAt'] ?? ''),
+            'giftCardAppliedAt' => (string) ($appointment['giftCardAppliedAt'] ?? ''),
+            'giftCardAppliedAmountCents' => (int) ($appointment['giftCardAppliedAmountCents'] ?? 0),
+            'giftCardRedemptionReference' => (string) ($appointment['giftCardRedemptionReference'] ?? ''),
+            'giftCardRedeemedBy' => (string) ($appointment['giftCardRedeemedBy'] ?? ''),
         ];
     }
 

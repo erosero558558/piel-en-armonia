@@ -5039,6 +5039,18 @@ function currentReviewPatientRecordId(review = currentReviewSource()) {
     );
 }
 
+function currentReviewAppointmentSource(review = currentReviewSource()) {
+    const source = review?.encounter?.appointment;
+    return source && typeof source === 'object' ? source : {};
+}
+
+function formatUsdCents(amountCents) {
+    const safeAmount = Number.isFinite(Number(amountCents))
+        ? Math.max(0, Number(amountCents))
+        : 0;
+    return `$${(safeAmount / 100).toFixed(2)}`;
+}
+
 function truncateText(value, limit = 120) {
     const text = normalizeString(value);
     if (text.length <= limit) {
@@ -13620,6 +13632,118 @@ function buildReviewPatch(mode, question) {
     };
 }
 
+async function applyGiftCardToCurrentEncounter() {
+    const review = currentReviewSource();
+    const sessionId = normalizeString(review.session.sessionId);
+    const caseId = currentReviewCaseId(review);
+    const appointment = currentReviewAppointmentSource(review);
+    const appointmentId =
+        normalizeNullableInt(
+            review?.encounter?.appointmentId ||
+                review?.session?.appointmentId ||
+                appointment.id
+        ) || null;
+
+    if (!sessionId || appointmentId === null) {
+        createToast(
+            'Selecciona un caso clinico con cita asociada antes de aplicar una gift card.',
+            'warning'
+        );
+        return null;
+    }
+
+    if (normalizeString(appointment.giftCardAppliedAt)) {
+        createToast(
+            'Esta cita ya tiene una gift card aplicada.',
+            'warning'
+        );
+        return null;
+    }
+
+    let code = normalizeString(appointment.giftCardCode).toUpperCase();
+    if (!code) {
+        code = normalizeString(
+            window.prompt(
+                'Ingresa el codigo de gift card a aplicar en el cierre de consulta:',
+                ''
+            )
+        ).toUpperCase();
+    }
+
+    if (!code) {
+        createToast(
+            'Debes ingresar un codigo de gift card para continuar.',
+            'warning'
+        );
+        return null;
+    }
+
+    setClinicalHistoryState({
+        saving: true,
+        error: '',
+    });
+    syncDraftStatusMeta();
+
+    try {
+        const response = await apiRequest('gift-card-redeem', {
+            method: 'POST',
+            body: {
+                code,
+                caseId,
+                sessionId,
+                appointmentId,
+                actor: 'clinical_admin',
+                reference: `clinical_close:${sessionId}`,
+            },
+        });
+        const amountCents = normalizeNumber(response?.data?.amountCents);
+        const giftCardData =
+            response?.data?.giftCard && typeof response.data.giftCard === 'object'
+                ? response.data.giftCard
+                : {};
+        const balanceLabel = normalizeString(
+            giftCardData.balanceLabel ||
+                formatUsdCents(giftCardData.balance_cents || 0)
+        );
+
+        await refreshClinicalHistoryCurrentSession();
+        try {
+            await refreshAdminData();
+        } catch (_error) {
+            // Keep the clinical workspace usable even if the dashboard snapshot lags.
+        }
+        setClinicalHistoryState({
+            saving: false,
+            error: '',
+        });
+        syncDraftStatusMeta();
+        renderAdminChrome(getState());
+        renderDashboard(getState());
+
+        createToast(
+            `Gift card ${code} aplicada por ${formatUsdCents(
+                amountCents
+            )}. Saldo restante ${balanceLabel || formatUsdCents(0)}.`,
+            'success'
+        );
+        return response?.data || null;
+    } catch (error) {
+        setClinicalHistoryState({
+            saving: false,
+            error:
+                error?.message ||
+                'No se pudo aplicar la gift card a la cita actual.',
+        });
+        syncDraftStatusMeta();
+        createToast(
+            error?.message ||
+                'No se pudo aplicar la gift card a la cita actual.',
+            'error'
+        );
+        return null;
+    }
+}
+
 async function saveClinicalHistoryReview(mode, question) {
     const review = currentReviewSource();
     const sessionId = normalizeString(review.session.sessionId);
@@ -14071,6 +14195,11 @@ function bindClinicalHistoryEvents() {
             } else {
                 createToast('Módulo de certificados no cargado', 'error');
             }
+            return;
+        }
+
+        if (action === 'apply-gift-card') {
+            await applyGiftCardToCurrentEncounter();
             return;
         }
 

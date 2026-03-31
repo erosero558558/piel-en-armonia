@@ -686,6 +686,31 @@
         }
     }
 
+    async function validateGiftCard(code, options = {}) {
+        const normalizedCode = String(code || '')
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9-]/g, '');
+        if (!normalizedCode) {
+            throw makeApiError(
+                getLang() === 'es'
+                    ? 'Ingresa un codigo de gift card valido.'
+                    : 'Enter a valid gift card code.',
+                400,
+                false,
+                'gift_card_code_required'
+            );
+        }
+
+        const payload = await apiRequest('gift-card-validate', {
+            query: { code: normalizedCode },
+            dedupe: true,
+            silentSlowNotice: options.silentSlowNotice !== false,
+        });
+
+        return payload && payload.data ? payload.data : {};
+    }
+
     async function createCallbackRecord(callback) {
         try {
             await apiRequest('callbacks', {
@@ -729,6 +754,7 @@
         loadAvailabilityData,
         getBookedSlots,
         createAppointmentRecord,
+        validateGiftCard,
         createCallbackRecord,
         createReviewRecord,
     };

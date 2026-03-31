@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 12:12:05 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 12:42:49 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **54%** completado (244/449)
+`███████████░░░░░░░░░` **55%** completado (245/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -30,7 +30,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 14 | 2 | 12 | 14% |
 | ⏸ Sprint 15 | 1 | 12 | 8% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
-| ⏸ Sprint 17 | 1 | 11 | 8% |
+| ⏸ Sprint 17 | 2 | 10 | 17% |
 | ⏸ Sprint 18 | 0 | 4 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -238,7 +238,7 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 _Sprint completado. 13/13 tareas._
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
-_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 10 tareas pendientes._
 
 ### 🟢 Disponibles (10)
 
@@ -250,10 +250,6 @@ _Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 | **S17-06** | `[S17]` | M |
 | **S17-07** | `[S17]` | M |
 | ... | | _+5 más_ |
-
-### 🔒 En progreso — NO tomar
-
-- **S17-02** `[S17]` → _unknown-agent_ (expira en 238min)
 
 ## ⏸ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
 _Esperando que Sprint anterior esté completo. 4 tareas pendientes._

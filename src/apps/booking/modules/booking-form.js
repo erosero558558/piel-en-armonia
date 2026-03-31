@@ -9,6 +9,7 @@ const formEngagementState = {
     abandonedTracked: false,
     lastStep: '',
 };
+const GIFT_CARD_VALIDATION_DEBOUNCE_MS = 320;
 
 function getLang() {
     return deps && typeof deps.getCurrentLang === 'function'
@@ -32,6 +33,56 @@ function getBookingElement(primaryId, legacyId) {
         document.getElementById(primaryId) ||
         (legacyId ? document.getElementById(legacyId) : null)
     );
+}
+
+function getGiftCardFeedbackEl() {
+    return document.getElementById('bookingGiftCardFeedback');
+}
+
+function getGiftCardInput(form) {
+    return form ? form.querySelector('input[name="giftCardCode"]') : null;
+}
+
+function normalizeGiftCardCode(rawValue) {
+    return String(rawValue || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9-]/g, '');
+}
+
+function formatUsdCents(amountCents) {
+    const safeAmount = Number.isFinite(Number(amountCents))
+        ? Math.max(0, Number(amountCents))
+        : 0;
+    return `$${(safeAmount / 100).toFixed(2)}`;
+}
+
+function setGiftCardFeedback(message, type = 'info') {
+    const feedback = getGiftCardFeedbackEl();
+    if (!feedback) return;
+
+    const normalizedType =
+        type === 'error' || type === 'success' ? type : 'info';
+    feedback.textContent = String(message || '').trim();
+    feedback.className = `booking-inline-feedback booking-inline-feedback--${normalizedType}`;
+    feedback.setAttribute(
+        'role',
+        normalizedType === 'error' ? 'alert' : 'status'
+    );
+    feedback.setAttribute(
+        'aria-live',
+        normalizedType === 'error' ? 'assertive' : 'polite'
+    );
+    feedback.classList.toggle('is-hidden', feedback.textContent === '');
+}
+
+function clearGiftCardFeedback() {
+    const feedback = getGiftCardFeedbackEl();
+    if (!feedback) return;
+    feedback.textContent = '';
+    feedback.className = 'booking-inline-feedback is-hidden';
+    feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
 }
 
 function setBookingFeedback(message, type = 'info') {
@@ -423,6 +474,174 @@ export function init(inputDeps) {
     formEngagementState.submitted = false;
     formEngagementState.abandonedTracked = false;
     formEngagementState.lastStep = '';
+    let giftCardValidationTimer = 0;
+    let giftCardValidationRequestId = 0;
+    const giftCardValidationState = {
+        code: '',
+        valid: false,
+        giftCard: null,
+        error: '',
+    };
+
+    const resetGiftCardValidationState = () => {
+        giftCardValidationState.code = '';
+        giftCardValidationState.valid = false;
+        giftCardValidationState.giftCard = null;
+        giftCardValidationState.error = '';
+    };
+
+    const giftCardInput = getGiftCardInput(appointmentForm);
+
+    async function validateGiftCardCode(rawCode, options = {}) {
+        const normalizedCode = normalizeGiftCardCode(rawCode);
+        if (!giftCardInput) {
+            return {
+                valid: false,
+                code: '',
+                giftCard: null,
+                error: '',
+            };
+        }
+
+        if (normalizedCode === '') {
+            giftCardInput.value = '';
+            giftCardInput.setCustomValidity('');
+            resetGiftCardValidationState();
+            clearGiftCardFeedback();
+            return {
+                valid: false,
+                code: '',
+                giftCard: null,
+                error: '',
+            };
+        }
+
+        if (
+            giftCardValidationState.valid &&
+            giftCardValidationState.code === normalizedCode &&
+            giftCardValidationState.giftCard
+        ) {
+            giftCardInput.value = normalizedCode;
+            giftCardInput.setCustomValidity('');
+            return {
+                valid: true,
+                code: normalizedCode,
+                giftCard: giftCardValidationState.giftCard,
+                error: '',
+            };
+        }
+
+        if (!deps || typeof deps.validateGiftCard !== 'function') {
+            throw new Error(
+                t(
+                    'La validacion de gift card no esta disponible en este momento.',
+                    'Gift card validation is not available right now.'
+                )
+            );
+        }
+
+        const requestId = ++giftCardValidationRequestId;
+        giftCardInput.value = normalizedCode;
+        giftCardInput.setCustomValidity('');
+        setGiftCardFeedback(
+            t(
+                'Validando gift card en tiempo real...',
+                'Validating gift card in real time...'
+            ),
+            'info'
+        );
+
+        try {
+            const data = await deps.validateGiftCard(normalizedCode, {
+                silentSlowNotice: true,
+            });
+            if (requestId !== giftCardValidationRequestId) {
+                return {
+                    valid: giftCardValidationState.valid,
+                    code: giftCardValidationState.code,
+                    giftCard: giftCardValidationState.giftCard,
+                    error: giftCardValidationState.error,
+                };
+            }
+
+            const giftCard =
+                data && typeof data === 'object' && data.giftCard
+                    ? data.giftCard
+                    : data;
+            const balanceCents = Number(
+                giftCard && typeof giftCard === 'object'
+                    ? giftCard.balance_cents
+                    : 0
+            );
+            const safeGiftCard =
+                giftCard && typeof giftCard === 'object' ? giftCard : null;
+
+            if (!safeGiftCard || normalizeGiftCardCode(safeGiftCard.code) !== normalizedCode) {
+                throw new Error(
+                    t(
+                        'La gift card no esta disponible para esta cita.',
+                        'This gift card is not available for this appointment.'
+                    )
+                );
+            }
+
+            giftCardValidationState.code = normalizedCode;
+            giftCardValidationState.valid = true;
+            giftCardValidationState.giftCard = safeGiftCard;
+            giftCardValidationState.error = '';
+            giftCardInput.setCustomValidity('');
+            setGiftCardFeedback(
+                t(
+                    `Gift card valida. Saldo disponible ${formatUsdCents(balanceCents)}.`,
+                    `Gift card valid. Available balance ${formatUsdCents(balanceCents)}.`
+                ),
+                'success'
+            );
+            trackFormStep('gift_card_validated', {
+                gift_card: 'yes',
+            });
+
+            return {
+                valid: true,
+                code: normalizedCode,
+                giftCard: safeGiftCard,
+                error: '',
+            };
+        } catch (error) {
+            if (requestId !== giftCardValidationRequestId) {
+                return {
+                    valid: giftCardValidationState.valid,
+                    code: giftCardValidationState.code,
+                    giftCard: giftCardValidationState.giftCard,
+                    error: giftCardValidationState.error,
+                };
+            }
+
+            const message =
+                (error && error.message) ||
+                t(
+                    'La gift card no esta disponible o ya no tiene saldo.',
+                    'The gift card is unavailable or has no remaining balance.'
+                );
+            giftCardValidationState.code = normalizedCode;
+            giftCardValidationState.valid = false;
+            giftCardValidationState.giftCard = null;
+            giftCardValidationState.error = message;
+            giftCardInput.setCustomValidity(message);
+            setGiftCardFeedback(message, 'error');
+
+            if (options.userTriggered === true) {
+                markFieldErrorState(giftCardInput);
+            }
+
+            return {
+                valid: false,
+                code: normalizedCode,
+                giftCard: null,
+                error: message,
+            };
+        }
+    }
 
     async function updateAvailableTimes() {
         try {
@@ -657,6 +876,44 @@ export function init(inputDeps) {
             }
         });
     }
+    if (giftCardInput) {
+        const scheduleGiftCardValidation = () => {
+            clearTimeout(giftCardValidationTimer);
+            const normalizedCode = normalizeGiftCardCode(giftCardInput.value);
+
+            if (normalizedCode === '') {
+                giftCardInput.setCustomValidity('');
+                resetGiftCardValidationState();
+                clearGiftCardFeedback();
+                return;
+            }
+
+            if (
+                giftCardValidationState.code &&
+                giftCardValidationState.code !== normalizedCode
+            ) {
+                giftCardValidationState.valid = false;
+                giftCardValidationState.giftCard = null;
+                giftCardValidationState.error = '';
+            }
+
+            giftCardValidationTimer = window.setTimeout(() => {
+                void validateGiftCardCode(normalizedCode);
+            }, GIFT_CARD_VALIDATION_DEBOUNCE_MS);
+        };
+
+        giftCardInput.addEventListener('input', () => {
+            giftCardInput.value = normalizeGiftCardCode(giftCardInput.value);
+            giftCardInput.setCustomValidity('');
+            scheduleGiftCardValidation();
+        });
+        giftCardInput.addEventListener('blur', () => {
+            clearTimeout(giftCardValidationTimer);
+            void validateGiftCardCode(giftCardInput.value, {
+                userTriggered: true,
+            });
+        });
+    }
     ensureReschedulePolicyHint(appointmentForm);
     bindInlineErrorReset(appointmentForm);
 
@@ -736,6 +993,31 @@ export function init(inputDeps) {
                 throw error;
             }
 
+            const normalizedGiftCardCode = normalizeGiftCardCode(
+                formData.get('giftCardCode')
+            );
+            let validatedGiftCard = null;
+            if (normalizedGiftCardCode !== '') {
+                const giftCardResult = await validateGiftCardCode(
+                    normalizedGiftCardCode,
+                    {
+                        userTriggered: true,
+                    }
+                );
+                if (!giftCardResult.valid || !giftCardResult.giftCard) {
+                    const error = new Error(
+                        giftCardResult.error ||
+                            t(
+                                'La gift card no esta disponible para esta cita.',
+                                'The gift card is not available for this appointment.'
+                            )
+                    );
+                    error.fieldName = 'giftCardCode';
+                    throw error;
+                }
+                validatedGiftCard = giftCardResult.giftCard;
+            }
+
             const appointment = {
                 service: formData.get('service'),
                 doctor: formData.get('doctor'),
@@ -752,6 +1034,19 @@ export function init(inputDeps) {
                 casePhotoUploads: [],
                 checkoutEntry: 'booking_form',
                 price: totalEl.textContent,
+                giftCardCode: normalizedGiftCardCode,
+                giftCardStatus: validatedGiftCard
+                    ? String(validatedGiftCard.status || 'active')
+                    : '',
+                giftCardRecipientName: validatedGiftCard
+                    ? String(validatedGiftCard.recipient_name || '')
+                    : '',
+                giftCardBalanceCents: validatedGiftCard
+                    ? Number(validatedGiftCard.balance_cents || 0)
+                    : 0,
+                giftCardValidatedAt: validatedGiftCard
+                    ? new Date().toISOString()
+                    : '',
             };
 
             trackFormStep('form_submitted', {}, { once: false });

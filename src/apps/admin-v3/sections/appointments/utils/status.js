@@ -9,6 +9,7 @@ const PAYMENT_METHOD_LABELS = Object.freeze({
     transfer: 'Transferencia',
     cash: 'Consultorio',
     card: 'Tarjeta',
+    gift_card: 'Gift card',
     gateway: 'Pasarela',
 });
 

@@ -121,6 +121,12 @@ export async function createAppointmentRecord(appointment, options = {}) {
     );
 }
 
+export async function validateGiftCard(code, options = {}) {
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.validateGiftCard(code, options)
+    );
+}
+
 export async function createCallbackRecord(callback) {
     return withDeferredModule(loadDataEngine, (engine) =>
         engine.createCallbackRecord(callback)

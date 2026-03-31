@@ -122,26 +122,216 @@ final class GiftCardControllerTest extends TestCase
         $this->assertNull($service->validate($fullRedeem['store'], $code));
     }
 
+    public function testGiftCardValidateEndpointReturnsRemainingBalance(): void
+    {
+        $service = new \GiftCardService();
+        $issue = $service->issue(
+            \read_store(),
+            12500,
+            'Aurora Demo',
+            'paciente@example.com',
+            [
+                'recipient_name' => 'Paciente Demo',
+                'sender_name' => 'Aurora Demo',
+            ]
+        );
+        \write_store($issue['store'], false);
+
+        $code = (string) ($issue['giftCard']['code'] ?? '');
+        $response = $this->invokeEndpoint('gift-card-validate', 'GET', [], [
+            'code' => $code,
+        ]);
+
+        $this->assertSame(200, $response['status']);
+        $this->assertTrue((bool) ($response['payload']['ok'] ?? false));
+        $this->assertSame($code, (string) ($response['payload']['data']['code'] ?? ''));
+        $this->assertSame(12500, (int) ($response['payload']['data']['balance_cents'] ?? 0));
+        $this->assertSame('$125.00', (string) ($response['payload']['data']['balanceLabel'] ?? ''));
+    }
+
+    public function testGiftCardRedeemEndpointMarksAppointmentAsPaidWithGiftCard(): void
+    {
+        $service = new \GiftCardService();
+        $issue = $service->issue(
+            \read_store(),
+            10000,
+            'Aurora Demo',
+            'paciente@example.com',
+            [
+                'recipient_name' => 'Paciente Demo',
+                'sender_name' => 'Aurora Demo',
+            ]
+        );
+        \write_store($issue['store'], false);
+        $code = (string) ($issue['giftCard']['code'] ?? '');
+
+        $store = \read_store();
+        $store['appointments'][] = \normalize_appointment([
+            'id' => 451,
+            'service' => 'consulta',
+            'doctor' => 'rosero',
+            'date' => '2026-04-02',
+            'time' => '10:00',
+            'name' => 'Paciente Demo',
+            'email' => 'paciente@example.com',
+            'phone' => '0991234567',
+            'privacyConsent' => true,
+            'status' => 'confirmed',
+            'paymentMethod' => 'cash',
+            'paymentStatus' => 'pending_cash',
+        ]);
+        \write_store($store, false);
+
+        $response = $this->invokeEndpoint('gift-card-redeem', 'POST', [
+            'code' => $code,
+            'appointmentId' => 451,
+            'sessionId' => 'chs-gift-001',
+            'caseId' => 'case-gift-001',
+            'actor' => 'Dra. Aurora Demo',
+        ]);
+
+        $this->assertSame(200, $response['status']);
+        $this->assertTrue((bool) ($response['payload']['ok'] ?? false));
+        $this->assertSame(4000, (int) ($response['payload']['data']['amountCents'] ?? 0));
+        $this->assertSame('gift_card', (string) ($response['payload']['data']['appointment']['paymentMethod'] ?? ''));
+        $this->assertSame('paid', (string) ($response['payload']['data']['appointment']['paymentStatus'] ?? ''));
+
+        $updatedStore = \read_store();
+        $updatedAppointment = $updatedStore['appointments'][0] ?? [];
+        $this->assertSame('gift_card', (string) ($updatedAppointment['paymentMethod'] ?? ''));
+        $this->assertSame('paid', (string) ($updatedAppointment['paymentStatus'] ?? ''));
+        $this->assertSame($code, (string) ($updatedAppointment['giftCardCode'] ?? ''));
+        $this->assertSame(4000, (int) ($updatedAppointment['giftCardAppliedAmountCents'] ?? 0));
+        $this->assertSame(6000, (int) ($updatedAppointment['giftCardBalanceCents'] ?? 0));
+    }
+
+    public function testGiftCardRedeemEndpointPreventsConcurrentDoubleUse(): void
+    {
+        $service = new \GiftCardService();
+        $issue = $service->issue(
+            \read_store(),
+            4000,
+            'Aurora Demo',
+            'paciente@example.com',
+            [
+                'recipient_name' => 'Paciente Demo',
+                'sender_name' => 'Aurora Demo',
+            ]
+        );
+        \write_store($issue['store'], false);
+        $code = (string) ($issue['giftCard']['code'] ?? '');
+
+        $store = \read_store();
+        $store['appointments'][] = \normalize_appointment([
+            'id' => 777,
+            'service' => 'consulta',
+            'doctor' => 'rosero',
+            'date' => '2026-04-03',
+            'time' => '09:00',
+            'name' => 'Paciente Doble',
+            'email' => 'doble@example.com',
+            'phone' => '0992223344',
+            'privacyConsent' => true,
+            'status' => 'confirmed',
+            'paymentMethod' => 'cash',
+            'paymentStatus' => 'pending_cash',
+        ]);
+        \write_store($store, false);
+
+        $payload = [
+            'code' => $code,
+            'appointmentId' => 777,
+            'sessionId' => 'chs-gift-concurrent',
+            'caseId' => 'case-gift-concurrent',
+            'actor' => 'Dra. Aurora Demo',
+        ];
+
+        $processA = $this->startEndpointProcess('gift-card-redeem', 'POST', $payload);
+        $processB = $this->startEndpointProcess('gift-card-redeem', 'POST', $payload);
+
+        $resultA = $this->finishEndpointProcess($processA);
+        $resultB = $this->finishEndpointProcess($processB);
+
+        $statuses = [$resultA['status'], $resultB['status']];
+        sort($statuses);
+        $this->assertSame([200, 409], $statuses);
+
+        $updatedStore = \read_store();
+        $updatedGiftCard = $updatedStore['gift_cards'][$code] ?? [];
+        $updatedAppointment = $updatedStore['appointments'][0] ?? [];
+        $this->assertSame('redeemed', (string) ($updatedGiftCard['status'] ?? ''));
+        $this->assertSame(0, (int) ($updatedGiftCard['balance_cents'] ?? -1));
+        $this->assertSame('gift_card', (string) ($updatedAppointment['paymentMethod'] ?? ''));
+        $this->assertSame('paid', (string) ($updatedAppointment['paymentStatus'] ?? ''));
+    }
+
+    /**
+     * @param array<string,mixed> $body
+     * @param array<string,mixed> $query
+     * @param array<string,mixed> $body
+     * @return array{status:int,payload:array<string,mixed>,stdout:string,stderr:string}
+     */
+    private function invokeEndpoint(
+        string $resource,
+        string $method,
+        array $body = [],
+        array $query = []
+    ): array
+    {
+        $handle = $this->startEndpointProcess($resource, $method, $body, $query);
+        return $this->finishEndpointProcess($handle);
+    }
+
     /**
      * @param array<string,mixed> $body
      * @return array{status:int,payload:array<string,mixed>,stdout:string,stderr:string}
      */
     private function invokeIssueEndpoint(array $body): array
     {
-        $runner = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'gift_card_issue_runner_' . bin2hex(random_bytes(5)) . '.php';
-        $script = <<<'PHP'
+        return $this->invokeEndpoint('gift-card-issue', 'POST', $body);
+    }
+
+    /**
+     * @param array<string,mixed> $body
+     * @param array<string,mixed> $query
+     * @return array{process:resource,pipes:array<int,resource>,runner:string}
+     */
+    private function startEndpointProcess(
+        string $resource,
+        string $method,
+        array $body = [],
+        array $query = []
+    ): array {
+        $sessionId = 'gift-card-test-' . bin2hex(random_bytes(6));
+        $csrfToken = 'csrf-' . bin2hex(random_bytes(6));
+        $runner = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'gift_card_api_runner_' . bin2hex(random_bytes(5)) . '.php';
+        $script = sprintf(<<<'PHP'
 <?php
-$_SERVER['REQUEST_METHOD'] = 'POST';
+$_SERVER['HTTP_X_CSRF_TOKEN'] = '%s';
+session_id('%s');
+session_start();
+$_SESSION['admin_logged_in'] = true;
+$_SESSION['csrf_token'] = '%s';
+session_write_close();
+session_id('%s');
+$_SERVER['REQUEST_METHOD'] = $argv[1];
 $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 $_SERVER['HTTP_HOST'] = '127.0.0.1:8011';
-$_GET['resource'] = 'gift-card-issue';
-$GLOBALS['__TEST_JSON_BODY'] = $argv[1];
+$query = json_decode($argv[2], true);
+$_GET = is_array($query) ? $query : [];
+$_GET['resource'] = $argv[3];
+$GLOBALS['__TEST_JSON_BODY'] = $argv[4] ?? '';
 register_shutdown_function(static function (): void {
     $code = http_response_code();
     file_put_contents('php://stderr', 'HTTP_CODE:' . ($code ?: 200));
 });
 require 'api.php';
-PHP;
+PHP,
+            $csrfToken,
+            $sessionId,
+            $csrfToken,
+            $sessionId
+        );
         file_put_contents($runner, $script);
 
         $env = array_merge($_ENV, [
@@ -152,7 +342,14 @@ PHP;
         ]);
 
         $process = proc_open(
-            [PHP_BINARY, $runner, json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
+            [
+                PHP_BINARY,
+                $runner,
+                strtoupper($method),
+                json_encode($query, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                $resource,
+                json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ],
             [
                 1 => ['pipe', 'w'],
                 2 => ['pipe', 'w'],
@@ -164,15 +361,28 @@ PHP;
 
         if (!is_resource($process)) {
             @unlink($runner);
-            $this->fail('No se pudo ejecutar api.php para gift-card-issue.');
+            $this->fail('No se pudo ejecutar api.php para GiftCardController.');
         }
 
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        proc_close($process);
-        @unlink($runner);
+        return [
+            'process' => $process,
+            'pipes' => $pipes,
+            'runner' => $runner,
+        ];
+    }
+
+    /**
+     * @param array{process:resource,pipes:array<int,resource>,runner:string} $handle
+     * @return array{status:int,payload:array<string,mixed>,stdout:string,stderr:string}
+     */
+    private function finishEndpointProcess(array $handle): array
+    {
+        $stdout = stream_get_contents($handle['pipes'][1]);
+        $stderr = stream_get_contents($handle['pipes'][2]);
+        fclose($handle['pipes'][1]);
+        fclose($handle['pipes'][2]);
+        proc_close($handle['process']);
+        @unlink($handle['runner']);
 
         $status = 200;
         if (preg_match('/HTTP_CODE:(\d+)/', $stderr, $matches) === 1) {

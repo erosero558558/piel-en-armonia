@@ -42,6 +42,7 @@ function get_payment_method_label(string $method): string
         'cash' => 'Efectivo (en consultorio)',
         'card' => 'Tarjeta de credito/debito',
         'transfer' => 'Transferencia bancaria',
+        'gift_card' => 'Gift card',
         'unpaid' => 'Pendiente'
     ];
     return $labels[$method] ?? $method;
@@ -125,7 +126,7 @@ function normalize_appointment(array $appointment): array
 {
     $service = sanitize_xss((string) ($appointment['service'] ?? ''));
     $paymentMethod = strtolower(trim((string) ($appointment['paymentMethod'] ?? 'unpaid')));
-    if (!in_array($paymentMethod, ['card', 'transfer', 'cash', 'unpaid'], true)) {
+    if (!in_array($paymentMethod, ['card', 'transfer', 'cash', 'gift_card', 'unpaid'], true)) {
         $paymentMethod = 'unpaid';
     }
 
@@ -165,6 +166,43 @@ function normalize_appointment(array $appointment): array
         $checkinToken = 'CHK-' . strtoupper(bin2hex(random_bytes(12)));
     }
 
+    $giftCardCode = strtoupper(trim((string) ($appointment['giftCardCode'] ?? '')));
+    $giftCardCode = preg_replace('/[^A-Z0-9\-]/', '', $giftCardCode);
+    if (!is_string($giftCardCode)) {
+        $giftCardCode = '';
+    }
+    $giftCardCode = truncate_field($giftCardCode, 40);
+    $giftCardStatus = truncate_field(
+        strtolower(trim((string) ($appointment['giftCardStatus'] ?? ''))),
+        40
+    );
+    $giftCardValidatedAt = truncate_field(
+        trim((string) ($appointment['giftCardValidatedAt'] ?? '')),
+        30
+    );
+    $giftCardAppliedAt = truncate_field(
+        trim((string) ($appointment['giftCardAppliedAt'] ?? '')),
+        30
+    );
+    $giftCardRecipientName = truncate_field(
+        sanitize_xss(trim((string) ($appointment['giftCardRecipientName'] ?? ''))),
+        150
+    );
+    $giftCardRedemptionReference = truncate_field(
+        trim((string) ($appointment['giftCardRedemptionReference'] ?? '')),
+        120
+    );
+    $giftCardRedeemedBy = truncate_field(
+        sanitize_xss(trim((string) ($appointment['giftCardRedeemedBy'] ?? ''))),
+        120
+    );
+    $giftCardBalanceCents = isset($appointment['giftCardBalanceCents'])
+        ? max(0, (int) $appointment['giftCardBalanceCents'])
+        : 0;
+    $giftCardAppliedAmountCents = isset($appointment['giftCardAppliedAmountCents'])
+        ? max(0, (int) $appointment['giftCardAppliedAmountCents'])
+        : 0;
+
     return LeadOpsService::applyLeadOrigin([
         'id' => isset($appointment['id']) ? (int) $appointment['id'] : (int) round(microtime(true) * 1000),
         'tenantId' => isset($appointment['tenantId']) && is_string($appointment['tenantId']) && trim($appointment['tenantId']) !== ''
@@ -196,6 +234,15 @@ function normalize_appointment(array $appointment): array
         'paymentProvider' => truncate_field(trim((string) ($appointment['paymentProvider'] ?? '')), 50),
         'paymentIntentId' => truncate_field(trim((string) ($appointment['paymentIntentId'] ?? '')), 100),
         'paymentPaidAt' => truncate_field(trim((string) ($appointment['paymentPaidAt'] ?? '')), 30),
+        'giftCardCode' => $giftCardCode,
+        'giftCardStatus' => $giftCardStatus,
+        'giftCardValidatedAt' => $giftCardValidatedAt,
+        'giftCardAppliedAt' => $giftCardAppliedAt,
+        'giftCardRecipientName' => $giftCardRecipientName,
+        'giftCardRedemptionReference' => $giftCardRedemptionReference,
+        'giftCardRedeemedBy' => $giftCardRedeemedBy,
+        'giftCardBalanceCents' => $giftCardBalanceCents,
+        'giftCardAppliedAmountCents' => $giftCardAppliedAmountCents,
         'transferReference' => truncate_field(trim((string) ($appointment['transferReference'] ?? '')), 100),
         'transferProofPath' => truncate_field(trim((string) ($appointment['transferProofPath'] ?? '')), 300),
         'transferProofUrl' => truncate_field(trim((string) ($appointment['transferProofUrl'] ?? '')), 300),

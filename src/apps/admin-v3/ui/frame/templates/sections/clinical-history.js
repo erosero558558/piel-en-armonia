@@ -292,6 +292,14 @@ export function renderClinicalHistorySection() {
                         </button>
                         <button
                             type="button"
+                            id="clinicalHistoryGiftCardBtn"
+                            data-clinical-review-action="apply-gift-card"
+                            style="border-color: var(--color-emerald-500, #34c759); background: rgba(52, 199, 89, 0.08);"
+                        >
+                            💳 Aplicar gift card
+                        </button>
+                        <button
+                            type="button"
                             id="clinicalHistorySendFollowUpBtn"
                             data-clinical-review-action="send-follow-up"
                         >
