@@ -507,6 +507,9 @@ export function buildClinicalHistoryActions(input) {
         const telemedicineReviewQueueCount = Number(
             telemedicineMeta?.summary?.reviewQueueCount || 0
         );
+        const telemedicineBriefingQueueCount = Number(
+            telemedicineMeta?.summary?.briefingQueueCount || 0
+        );
         const telemedicineHighUrgencyCount = Number(
             telemedicineMeta?.summary?.intakes?.photoAiHighUrgencyCount || 0
         );
@@ -527,6 +530,16 @@ export function buildClinicalHistoryActions(input) {
                             ? `${telemedicineHighUrgencyCount} intake(s) telemedicina con urgencia IA 4-5 esperan validacion medico-legal`
                             : `${telemedicineReviewQueueCount} intake(s) telemedicina pendientes de validacion medico-legal`
                         : `${telemedicineReviewQueueCount} intake(s) telemedicina pausados por gate clinico`
+                )
+            );
+        } else if (telemedicineBriefingQueueCount > 0) {
+            actions.push(
+                clinicalActionItem(
+                    'context-open-clinical-history',
+                    'Abrir frente clinico',
+                    clinicalReady
+                        ? `${telemedicineBriefingQueueCount} teleconsulta(s) tienen pre-consulta nueva antes de entrar`
+                        : `${telemedicineBriefingQueueCount} teleconsulta(s) con pre-consulta quedaron pausadas por gate clinico`
                 )
             );
         } else if (pendingApprovals > 0 || activeHelpRequests > 0) {

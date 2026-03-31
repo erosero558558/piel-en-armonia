@@ -10,17 +10,24 @@
     async function initRoom() {
         const urlParams = new URLSearchParams(window.location.search);
         const appointmentId = urlParams.get('id');
+        const tokenParam = urlParams.get('token');
 
-        if (!appointmentId) {
+        if (!appointmentId && !tokenParam) {
             handleError('Cita no especificada. Por favor retorna a tu portal o al admin.');
             return;
         }
 
         const session = readSession();
         const token = session ? session.token : null;
+        const resourceParams = new URLSearchParams();
+        if (tokenParam) {
+            resourceParams.set('token', tokenParam);
+        } else if (appointmentId) {
+            resourceParams.set('id', appointmentId);
+        }
 
         try {
-            const response = await fetch(`/api.php?resource=telemedicine-room-token&id=${appointmentId}`, {
+            const response = await fetch(`/api.php?resource=telemedicine-room-token&${resourceParams.toString()}`, {
                 headers: {
                     Accept: 'application/json',
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -91,7 +98,7 @@
         
         api.addEventListener('videoConferenceLeft', () => {
             if (role === 'participant') {
-                window.location.href = '/es/portal/index.html';
+                window.location.href = '/es/portal/';
             } else {
                 window.location.href = '/admin.html';
             }

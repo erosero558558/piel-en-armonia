@@ -190,6 +190,7 @@ class AdminDataController
         if (isset($store['telemedicineMeta']) && is_array($store['telemedicineMeta'])) {
             $store['telemedicineMeta'] = array_merge($store['telemedicineMeta'], [
                 'reviewQueue' => [],
+                'briefingQueue' => [],
             ]);
         }
 

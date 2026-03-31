@@ -1893,7 +1893,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 18.2 Soporte en contexto
 
-- [ ] **S18-11** `[M]` Knowledge base contextual en admin/operator — hoy hay páginas de FAQ externas. Falta: panel de ayuda in-app en `admin.html` y `operator.html`. Botón "?" en header que abre sidebar con artículos filtrados según la pantalla activa. Artículos en JSON `data/kb/articles.json`. Motor de búsqueda simple (filtro por keyword). Sin esto el operador sale del sistema para buscar ayuda y se pierde el contexto. Verificable: en pantalla de "Turnos" → artículos sobre turnos aparecen primero.
+- [x] **S18-11** `[M]` Knowledge base contextual en admin/operator — hoy hay páginas de FAQ externas. Falta: panel de ayuda in-app en `admin.html` y `operator.html`. Botón "?" en header que abre sidebar con artículos filtrados según la pantalla activa. Artículos en JSON `data/kb/articles.json`. Motor de búsqueda simple (filtro por keyword). Sin esto el operador sale del sistema para buscar ayuda y se pierde el contexto. Verificable: en pantalla de "Turnos" → artículos sobre turnos aparecen primero.
 - [ ] **S18-12** `[M]` Clinic profile live preview — antes de publicar cambios de branding o configuración de una clínica, poder ver cómo queda en cada superficie (admin, operator, kiosk, display). Botón "Vista previa" en el panel de configuración de clínica que abre un iframe con los parámetros de la clínica sin guardar. Sin esto, un error de branding llega directo a los pacientes. Verificable: cambiar logo en config → preview muestra el nuevo logo antes de guardar.
 
 ---

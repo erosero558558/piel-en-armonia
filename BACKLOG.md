@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:29:07 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 5:41:45 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **56%** completado (260/467)
+`███████████░░░░░░░░░` **56%** completado (262/467)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -31,7 +31,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 15 | 3 | 10 | 23% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
 | ⏸ Sprint 17 | 8 | 4 | 67% |
-| ⏸ Sprint 18 | 2 | 2 | 50% |
+| ⏸ Sprint 18 | 3 | 1 | 75% |
 | ⏸ Sprint 19 | 0 | 18 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -153,10 +153,6 @@ _Esperando que Sprint anterior esté completo. 19 tareas pendientes._
 | **S9-12** | `[S9]` | S |
 | ... | | _+14 más_ |
 
-### 🔒 En progreso — NO tomar
-
-- **S9-11** `[S9]` → _codex_ (expira en 221min)
-
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
 
@@ -252,13 +248,12 @@ _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 | **S17-17** | `[S17]` | M |
 
 ## ⏸ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
-_Esperando que Sprint anterior esté completo. 2 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 
-### 🟢 Disponibles (2)
+### 🟢 Disponibles (1)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S18-11** | `[S18]` | M |
 | **S18-12** | `[S18]` | M |
 
 ## ⏸ Sprint 19 — Notificaciones, WhatsApp Ops y Android TV

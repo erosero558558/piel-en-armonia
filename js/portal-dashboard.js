@@ -267,6 +267,23 @@
             appointment && typeof appointment === 'object' ? appointment : {};
         const rescheduleUrl = String(safeAppointment.rescheduleUrl || '').trim();
         const whatsappUrl = String(safeAppointment.whatsappUrl || '').trim();
+        const roomUrl = String(
+            safeAppointment.roomUrl ||
+                (safeAppointment.id
+                    ? `/es/telemedicina/sala/index.html?id=${safeAppointment.id}`
+                    : '')
+        ).trim();
+        const preConsultationUrl = String(
+            safeAppointment.preConsultationUrl || ''
+        ).trim();
+        const telemedicinePreConsultation =
+            safeAppointment.telemedicinePreConsultation &&
+            typeof safeAppointment.telemedicinePreConsultation === 'object'
+                ? safeAppointment.telemedicinePreConsultation
+                : null;
+        const preConsultationStatusLabel = String(
+            telemedicinePreConsultation?.statusLabel || ''
+        ).trim();
 
         return `
             <section class="portal-card-next" data-portal-next-appointment-card>
@@ -289,11 +306,24 @@
                 <div class="portal-appointment-prep">
                     <span class="portal-inline-label">Preparación requerida</span>
                     <p data-portal-next-preparation>${escapeHtml(safeAppointment.preparation || 'Te avisaremos si hace falta una preparación adicional.')}</p>
+                    ${
+                        safeAppointment.appointmentType === 'telemedicine' &&
+                        preConsultationStatusLabel
+                            ? `<p class="portal-inline-status" data-portal-next-preconsultation-status>${escapeHtml(preConsultationStatusLabel)}</p>`
+                            : ''
+                    }
                 </div>
                 <div class="portal-cta-row">
                     ${
-                        safeAppointment.appointmentType === 'telemedicine' && safeAppointment.id
-                            ? `<a class="btn btn-primary" data-portal-next-telemed href="/es/telemedicina/sala/index.html?id=${escapeHtml(safeAppointment.id)}">Entrar a Sala</a>`
+                        safeAppointment.appointmentType === 'telemedicine' &&
+                        preConsultationUrl
+                            ? `<a class="btn btn-primary" data-portal-next-preconsultation href="${escapeHtml(preConsultationUrl)}">${escapeHtml(preConsultationStatusLabel ? 'Actualizar pre-consulta' : 'Hacer pre-consulta')}</a>`
+                            : ''
+                    }
+                    ${
+                        safeAppointment.appointmentType === 'telemedicine' &&
+                        roomUrl
+                            ? `<a class="btn btn-secondary" data-portal-next-room href="${escapeHtml(roomUrl)}">Entrar a Sala</a>`
                             : ''
                     }
                     ${

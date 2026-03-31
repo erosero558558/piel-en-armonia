@@ -944,11 +944,19 @@ export function setFlowMetrics(state) {
     const telemedicineReviewQueueCount = Number(
         telemedicineMeta?.summary?.reviewQueueCount || 0
     );
+    const telemedicineBriefingQueueCount = Number(
+        telemedicineMeta?.summary?.briefingQueueCount || 0
+    );
     const patientCasesOpen = Number(patientFlowMeta?.casesOpen || 0);
     const journeyPreview = normalizeJourneyPreview(patientFlowMeta);
     if (telemedicineReviewQueueCount > 0) {
         blockedClinicalSignals.push(
             `${telemedicineReviewQueueCount} intake(s) telemedicina`
+        );
+    }
+    if (telemedicineBriefingQueueCount > 0) {
+        blockedClinicalSignals.push(
+            `${telemedicineBriefingQueueCount} pre-consulta(s) telemedicina`
         );
     }
     if (patientCasesOpen > 0) {

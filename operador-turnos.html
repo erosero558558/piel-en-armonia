@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="/styles/base.css">
 <link rel="stylesheet" href="/styles/components.css">
 <link rel="stylesheet" href="/styles/aurora-operator.css">
+<link rel="stylesheet" href="/styles/aurora-kb.css">
 </head>
     <body
         class="admin-v3-mode queue-operator-body"
@@ -289,6 +290,9 @@
                 </div>
 
                 <div class="queue-operator-topbar__actions">
+                    <button type="button" class="queue-operator-secondary-btn aurora-kb-trigger" title="Ayuda e instrucciones" style="padding: 8px; border-radius: 50%; width: 40px; border: none;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </button>
                     <button
                         type="button"
                         class="queue-operator-secondary-btn is-hidden"
@@ -796,5 +800,21 @@
             src="js/queue-operator.js?v=queue-operator-20260320-mainpublish1"
             type="module"
         ></script>
+
+        <!-- KB Panel UI -->
+        <div id="aurora-kb-overlay" class="aurora-kb-overlay"></div>
+        <aside id="aurora-kb-sidebar" class="aurora-kb-sidebar">
+            <div class="aurora-kb-header">
+                <h3>Centro de Ayuda</h3>
+                <button type="button" id="aurora-kb-close" class="aurora-kb-close" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="aurora-kb-search-container">
+                <input type="text" id="aurora-kb-search" placeholder="Buscar ayuda o instrucciones...">
+            </div>
+            <div id="aurora-kb-results" class="aurora-kb-results">
+                <!-- Data hydrated by knowledge-base.js -->
+            </div>
+        </aside>
+        <script src="/js/knowledge-base.js"></script>
     </body>
 </html>

@@ -533,10 +533,10 @@
     margin-top: 0;
     padding: 92px 0 108px;
     background:
-        radial-gradient(circle at 14% 30%, rgba(199, 163, 109, 0.16), transparent 32%),
-        radial-gradient(circle at 76% 48%, rgba(146, 165, 187, 0.18), transparent 38%),
-        linear-gradient(180deg, #edf1f5 0%, #f4f7f9 100%);
-    color: var(--v6-color-ink);
+        radial-gradient(circle at 14% 30%, rgba(199, 163, 109, 0.12), transparent 32%),
+        radial-gradient(circle at 76% 48%, rgba(146, 165, 187, 0.10), transparent 38%),
+        linear-gradient(180deg, #0b1120 0%, #0f1828 100%);
+    color: #f4f7fb;
 }
 
 .v6-editorial__head {
@@ -550,7 +550,7 @@
     text-transform: uppercase;
     letter-spacing: 0.14em;
     font-size: 12px;
-    color: rgba(111, 127, 146, 0.9);
+    color: rgba(199, 163, 109, 0.78);
 }
 
 .v6-editorial__head h2 {
@@ -565,7 +565,7 @@
 .v6-editorial__head p:last-child {
     margin: 0;
     max-width: 1040px;
-    color: rgba(18, 24, 35, 0.7);
+    color: rgba(219, 227, 237, 0.72);
     font-size: 19px;
     line-height: 1.5;
 }
@@ -583,11 +583,12 @@
 .v6-editorial__card {
     border-radius: 20px;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.9);
-    color: var(--v6-color-ink);
-    border: 1px solid rgba(202, 210, 220, 0.92);
-    box-shadow: var(--v6-shadow-soft);
+    background: rgba(20, 30, 48, 0.72);
+    color: #f4f7fb;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 48px rgba(3, 8, 18, 0.32);
     transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease;
+    backdrop-filter: blur(12px);
 }
 
 .v6-editorial__card:hover {
@@ -681,7 +682,7 @@
 }
 
 .v6-editorial__meta p:nth-of-type(2) {
-    color: rgba(18, 24, 35, 0.68);
+    color: rgba(219, 227, 237, 0.72);
     font-size: 16px;
     line-height: 1.5;
 }
@@ -753,9 +754,9 @@
 .v6-corporate-matrix {
     padding: 92px 0 106px;
     background:
-        radial-gradient(circle at 18% 18%, rgba(199, 163, 109, 0.14), transparent 30%),
-        radial-gradient(circle at 78% 24%, rgba(146, 165, 187, 0.16), transparent 34%),
-        linear-gradient(180deg, rgba(230, 236, 242, 0.92) 0%, rgba(243, 246, 249, 0.98) 100%);
+        radial-gradient(circle at 18% 18%, rgba(199, 163, 109, 0.12), transparent 30%),
+        radial-gradient(circle at 78% 24%, rgba(146, 165, 187, 0.10), transparent 34%),
+        linear-gradient(180deg, #080f1c 0%, #0d1726 100%);
 }
 
 .v6-corporate-matrix__head {
@@ -770,7 +771,7 @@
 }
 
 .v6-corporate-matrix__head p:first-child {
-    color: rgba(111, 127, 146, 0.9);
+    color: rgba(199, 163, 109, 0.78);
     text-transform: uppercase;
     letter-spacing: 0.14em;
     font-size: 12px;
@@ -779,7 +780,7 @@
 
 .v6-corporate-matrix__head h2 {
     margin-top: 10px;
-    color: var(--v6-color-ink);
+    color: #f4f7fb;
     font-family: var(--v6-font-display);
     font-size: clamp(44px, 4vw, 64px);
     line-height: 1.04;
@@ -790,7 +791,7 @@
 .v6-corporate-matrix__head p:last-child {
     margin-top: 12px;
     max-width: 1040px;
-    color: rgba(18, 24, 35, 0.7);
+    color: rgba(219, 227, 237, 0.72);
     font-size: 18px;
     line-height: 1.5;
 }
@@ -809,17 +810,19 @@
     grid-template-rows: auto 1fr;
     border-radius: 20px;
     overflow: hidden;
-    border: 1px solid rgba(202, 210, 220, 0.92);
-    background: rgba(255, 255, 255, 0.94);
-    color: var(--v6-color-ink);
-    box-shadow: 0 16px 30px rgba(10, 18, 28, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 28, 44, 0.72);
+    color: #f4f7fb;
+    box-shadow: 0 16px 30px rgba(3, 8, 18, 0.28);
     transition: transform 180ms ease, box-shadow 180ms ease;
+    backdrop-filter: blur(12px);
 }
 
 .v6-corporate-matrix__card:hover,
 .v6-corporate-matrix__card:focus-visible {
     transform: translateY(-3px);
-    box-shadow: 0 18px 34px rgba(10, 18, 28, 0.14);
+    box-shadow: 0 22px 44px rgba(3, 8, 18, 0.44);
+    border-color: rgba(199, 163, 109, 0.22);
 }
 
 .v6-corporate-matrix__card figure {
@@ -846,7 +849,7 @@
 }
 
 .v6-corporate-matrix__number {
-    color: rgba(111, 127, 146, 0.7);
+    color: rgba(199, 163, 109, 0.6);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.18em;
@@ -872,11 +875,11 @@
     font-size: 26px;
     line-height: 1.12;
     letter-spacing: -0.02em;
-    color: var(--v6-color-ink);
+    color: #f4f7fb;
 }
 
 .v6-corporate-matrix__meta p:last-of-type {
-    color: rgba(18, 24, 35, 0.68);
+    color: rgba(219, 227, 237, 0.68);
     font-size: 16px;
     line-height: 1.5;
 }
@@ -885,7 +888,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    color: var(--v6-color-moss);
+    color: rgba(199, 163, 109, 0.88);
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;

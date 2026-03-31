@@ -66,6 +66,8 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'telemedicine-ops-diagnostics', [TelemedicinePolicyController::class, 'diagnostics']);
     $router->add('GET', 'telemedicine-rollout-readiness', [TelemedicinePolicyController::class, 'readiness']);
     $router->add('POST', 'telemedicine-policy-simulate', [TelemedicinePolicyController::class, 'simulate']);
+    $router->add('GET', 'telemedicine-preconsultation', [TelemedicinePublicController::class, 'preConsultation']);
+    $router->add('POST', 'telemedicine-preconsultation', [TelemedicinePublicController::class, 'submitPreConsultation']);
     $router->add('GET', 'telemedicine-room-token', [TelemedicineRoomController::class, 'token']);
     $router->add('GET', 'clinical-history-session', [ClinicalHistoryController::class, 'sessionGet']);
     $router->add('POST', 'clinical-history-session', [ClinicalHistoryController::class, 'sessionPost']);

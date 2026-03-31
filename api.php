@@ -29,6 +29,7 @@ require_once __DIR__ . '/controllers/ClinicProfileController.php';
 require_once __DIR__ . '/controllers/PatientCaseController.php';
 require_once __DIR__ . '/controllers/TelemedicineAdminController.php';
 require_once __DIR__ . '/controllers/TelemedicinePolicyController.php';
+require_once __DIR__ . '/controllers/TelemedicinePublicController.php';
 require_once __DIR__ . '/controllers/TelemedicineRoomController.php';
 require_once __DIR__ . '/controllers/AppointmentController.php';
 require_once __DIR__ . '/controllers/CallbackController.php';

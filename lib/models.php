@@ -216,6 +216,11 @@ function normalize_appointment(array $appointment): array
         'telemedicineEncounterPlan' => isset($appointment['telemedicineEncounterPlan']) && is_array($appointment['telemedicineEncounterPlan'])
             ? $appointment['telemedicineEncounterPlan']
             : [],
+        'telemedicinePreConsultation' => isset($appointment['telemedicinePreConsultation']) && is_array($appointment['telemedicinePreConsultation'])
+            ? $appointment['telemedicinePreConsultation']
+            : [],
+        'latestPatientConcern' => truncate_field(trim((string) ($appointment['latestPatientConcern'] ?? '')), 1000),
+        'patientResponseAt' => truncate_field(trim((string) ($appointment['patientResponseAt'] ?? '')), 30),
         'clinicalMediaIds' => array_values(array_filter(array_map('intval', is_array($appointment['clinicalMediaIds'] ?? null) ? $appointment['clinicalMediaIds'] : []), static function (int $id): bool {
             return $id > 0;
         })),

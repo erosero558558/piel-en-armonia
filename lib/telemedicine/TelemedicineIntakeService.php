@@ -386,6 +386,28 @@ final class TelemedicineIntakeService
         );
         $intake['telemedicinePreConsultation'] = $preConsultation;
         $intake['patientResponseAt'] = $submittedAt;
+        $intake['clinicalMediaIds'] = $this->mergeClinicalMediaIds(
+            is_array($intake['clinicalMediaIds'] ?? null) ? $intake['clinicalMediaIds'] : [],
+            is_array($preConsultation['mediaIds'] ?? null) ? $preConsultation['mediaIds'] : []
+        );
+
+        $appointment['clinicalMediaIds'] = $this->mergeClinicalMediaIds(
+            is_array($appointment['clinicalMediaIds'] ?? null) ? $appointment['clinicalMediaIds'] : [],
+            is_array($preConsultation['mediaIds'] ?? null) ? $preConsultation['mediaIds'] : []
+        );
+        $appointment['casePhotoCount'] = (int) ($preConsultation['photoCount'] ?? 0);
+        $appointment['casePhotoRoles'] = array_values(array_filter(array_map(static function (array $photo): string {
+            return trim((string) ($photo['photoRole'] ?? ''));
+        }, is_array($preConsultation['photos'] ?? null) ? $preConsultation['photos'] : [])));
+        $appointment['casePhotoNames'] = array_values(array_filter(array_map(static function (array $photo): string {
+            return trim((string) ($photo['originalName'] ?? ''));
+        }, is_array($preConsultation['photos'] ?? null) ? $preConsultation['photos'] : [])));
+        $appointment['casePhotoPaths'] = array_values(array_filter(array_map(static function (array $photo): string {
+            return trim((string) ($photo['privatePath'] ?? ''));
+        }, is_array($preConsultation['photos'] ?? null) ? $preConsultation['photos'] : [])));
+        $appointment['casePhotoUrls'] = array_values(array_filter(array_map(static function (array $photo): string {
+            return trim((string) ($photo['previewUrl'] ?? ''));
+        }, is_array($preConsultation['photos'] ?? null) ? $preConsultation['photos'] : [])));
 
         if (trim((string) ($intake['reviewStatus'] ?? '')) === 'awaiting_patient') {
             $intake['reviewStatus'] = 'pending';
@@ -607,6 +629,21 @@ final class TelemedicineIntakeService
         }
 
         return array_keys($items);
+    }
+
+    private function mergeClinicalMediaIds(array $existing, array $incoming): array
+    {
+        $ids = [];
+        foreach ([$existing, $incoming] as $group) {
+            foreach ($group as $value) {
+                $id = (int) $value;
+                if ($id > 0) {
+                    $ids[$id] = true;
+                }
+            }
+        }
+
+        return array_keys($ids);
     }
 
     private function buildPreConsultationSummary(

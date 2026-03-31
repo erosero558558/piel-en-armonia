@@ -117,6 +117,7 @@ final class TelemedicineOpsSnapshot
         $storageCounts = self::initializeCounters(self::STORAGE_MODE_KEYS);
 
         $reviewQueue = [];
+        $briefingQueue = [];
         $linkedAppointmentsCount = 0;
         $danglingAppointmentLinksCount = 0;
         $unlinkedIntakesCount = 0;
@@ -198,6 +199,8 @@ final class TelemedicineOpsSnapshot
             $needsReview = self::intakeNeedsReviewQueue($intake, $suitability, $status, $reviewState);
             if ($needsReview) {
                 $reviewQueue[] = self::buildReviewQueueRow($intake);
+            } elseif (self::intakeNeedsBriefingQueue($intake, $status)) {
+                $briefingQueue[] = self::buildBriefingQueueRow($intake);
             }
         }
 
@@ -239,6 +242,10 @@ final class TelemedicineOpsSnapshot
             return strcmp((string) ($left['updatedAt'] ?? ''), (string) ($right['updatedAt'] ?? ''));
         });
 
+        usort($briefingQueue, static function (array $left, array $right): int {
+            return strcmp((string) ($right['submittedAt'] ?? ''), (string) ($left['submittedAt'] ?? ''));
+        });
+
         $snapshot = [
             'configured' => true,
             'intakes' => [
@@ -271,6 +278,10 @@ final class TelemedicineOpsSnapshot
             'reviewQueue' => [
                 'count' => count($reviewQueue),
                 'items' => array_values($reviewQueue),
+            ],
+            'briefingQueue' => [
+                'count' => count($briefingQueue),
+                'items' => array_values($briefingQueue),
             ],
             'latestActivityAt' => $latestActivityAt,
         ];
@@ -325,6 +336,7 @@ final class TelemedicineOpsSnapshot
             'media' => $snapshot['media'] ?? [],
             'integrity' => $snapshot['integrity'] ?? [],
             'reviewQueueCount' => (int) ($snapshot['reviewQueue']['count'] ?? 0),
+            'briefingQueueCount' => (int) ($snapshot['briefingQueue']['count'] ?? 0),
             'latestActivityAt' => (string) ($snapshot['latestActivityAt'] ?? ''),
             'policy' => $policy,
             'diagnostics' => [
@@ -348,6 +360,7 @@ final class TelemedicineOpsSnapshot
         return [
             'summary' => self::forHealth($snapshot),
             'reviewQueue' => $snapshot['reviewQueue']['items'] ?? [],
+            'briefingQueue' => $snapshot['briefingQueue']['items'] ?? [],
             'diagnostics' => isset($snapshot['diagnostics']) && is_array($snapshot['diagnostics'])
                 ? $snapshot['diagnostics']
                 : [],
@@ -411,6 +424,8 @@ final class TelemedicineOpsSnapshot
 
         $lines[] = '# TYPE auroraderm_telemedicine_review_queue_total gauge';
         $lines[] = 'auroraderm_telemedicine_review_queue_total ' . (int) ($snapshot['reviewQueue']['count'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_briefing_queue_total gauge';
+        $lines[] = 'auroraderm_telemedicine_briefing_queue_total ' . (int) ($snapshot['briefingQueue']['count'] ?? 0);
         $lines[] = '# TYPE auroraderm_telemedicine_unlinked_intakes_total gauge';
         $lines[] = 'auroraderm_telemedicine_unlinked_intakes_total ' . (int) ($integrity['unlinkedIntakesCount'] ?? 0);
         $lines[] = '# TYPE auroraderm_telemedicine_dangling_appointment_links_total gauge';
@@ -466,6 +481,9 @@ final class TelemedicineOpsSnapshot
         $photoAiTriage = isset($intake['photoAiTriage']) && is_array($intake['photoAiTriage'])
             ? $intake['photoAiTriage']
             : [];
+        $preConsultation = isset($intake['telemedicinePreConsultation']) && is_array($intake['telemedicinePreConsultation'])
+            ? $intake['telemedicinePreConsultation']
+            : [];
 
         return [
             'intakeId' => (int) ($intake['id'] ?? 0),
@@ -481,6 +499,7 @@ final class TelemedicineOpsSnapshot
             'patientName' => (string) ($patient['name'] ?? ''),
             'patientEmail' => (string) ($patient['email'] ?? ''),
             'patientPhone' => (string) ($patient['phone'] ?? ''),
+            'latestPatientConcern' => (string) ($intake['latestPatientConcern'] ?? ''),
             'clinicalMediaCount' => count(is_array($intake['clinicalMediaIds'] ?? null) ? $intake['clinicalMediaIds'] : []),
             'photoTriageStatus' => (string) ($photoTriage['status'] ?? 'missing'),
             'photoTriageRoles' => array_values(is_array($photoTriage['roles'] ?? null) ? $photoTriage['roles'] : []),
@@ -498,8 +517,40 @@ final class TelemedicineOpsSnapshot
             'reviewNotes' => (string) ($intake['reviewNotes'] ?? ''),
             'reviewedBy' => (string) ($intake['reviewedBy'] ?? ''),
             'reviewedAt' => (string) ($intake['reviewedAt'] ?? ''),
+            'preConsultation' => $preConsultation,
             'createdAt' => (string) ($intake['createdAt'] ?? ''),
             'updatedAt' => (string) ($intake['updatedAt'] ?? ''),
+        ];
+    }
+
+    private static function buildBriefingQueueRow(array $intake): array
+    {
+        $patient = isset($intake['patient']) && is_array($intake['patient'])
+            ? $intake['patient']
+            : [];
+        $preConsultation = isset($intake['telemedicinePreConsultation']) && is_array($intake['telemedicinePreConsultation'])
+            ? $intake['telemedicinePreConsultation']
+            : [];
+
+        return [
+            'intakeId' => (int) ($intake['id'] ?? 0),
+            'appointmentId' => (int) ($intake['linkedAppointmentId'] ?? 0),
+            'patientName' => (string) ($patient['name'] ?? ''),
+            'patientPhone' => (string) ($patient['phone'] ?? ''),
+            'requestedDoctor' => (string) ($intake['requestedDoctor'] ?? ''),
+            'requestedDate' => (string) ($intake['requestedDate'] ?? ''),
+            'requestedTime' => (string) ($intake['requestedTime'] ?? ''),
+            'channel' => (string) ($intake['channel'] ?? ''),
+            'status' => (string) ($intake['status'] ?? ''),
+            'latestPatientConcern' => (string) ($intake['latestPatientConcern'] ?? ''),
+            'preConsultation' => $preConsultation,
+            'concern' => (string) ($preConsultation['concern'] ?? $intake['latestPatientConcern'] ?? ''),
+            'photoCount' => (int) ($preConsultation['photoCount'] ?? 0),
+            'hasNewLesion' => (bool) ($preConsultation['hasNewLesion'] ?? false),
+            'submittedAt' => (string) ($preConsultation['updatedAt'] ?? $preConsultation['submittedAt'] ?? ''),
+            'roomUrl' => (int) ($intake['linkedAppointmentId'] ?? 0) > 0
+                ? '/es/telemedicina/sala/index.html?id=' . (int) $intake['linkedAppointmentId']
+                : '',
         ];
     }
 
@@ -517,6 +568,18 @@ final class TelemedicineOpsSnapshot
             || $suitability === 'unsuitable'
             || $status === 'review_required'
             || $status === 'unsuitable';
+    }
+
+    private static function intakeNeedsBriefingQueue(array $intake, string $status): bool
+    {
+        $linkedAppointmentId = (int) ($intake['linkedAppointmentId'] ?? 0);
+        $preConsultation = isset($intake['telemedicinePreConsultation']) && is_array($intake['telemedicinePreConsultation'])
+            ? $intake['telemedicinePreConsultation']
+            : [];
+
+        return $linkedAppointmentId > 0
+            && (string) ($preConsultation['status'] ?? '') === 'submitted'
+            && !in_array($status, ['cancelled', 'unsuitable'], true);
     }
 
     private static function initializeCounters(array $keys): array

@@ -3644,12 +3644,14 @@ final class PatientPortalController
     {
         $serviceId = trim((string) ($appointment['service'] ?? ''));
         $tenantId = trim((string) ($appointment['tenantId'] ?? ''));
+        $serviceConfig = $serviceId !== '' ? get_service_config($serviceId, $tenantId !== '' ? $tenantId : null) : null;
+        $typeKey = self::resolveAppointmentTypeKey($appointment, $serviceConfig);
+        $rescheduleToken = trim((string) ($appointment['rescheduleToken'] ?? ''));
         // Prefer explicit serviceName if already resolved (e.g. by normalize_appointment or fixture).
         $explicitServiceName = trim((string) ($appointment['serviceName'] ?? ''));
         if ($explicitServiceName !== '') {
             $serviceName = $explicitServiceName;
         } else {
-            $serviceConfig = $serviceId !== '' ? get_service_config($serviceId, $tenantId !== '' ? $tenantId : null) : null;
             $serviceName = is_array($serviceConfig)
                 ? trim((string) ($serviceConfig['name'] ?? ''))
                 : self::humanizeValue($serviceId, 'Consulta Aurora Derm');
@@ -3669,13 +3671,22 @@ final class PatientPortalController
                 (string) ($appointment['doctorRequested'] ?? ''),
                 (string) ($appointment['doctor'] ?? '')
             ),
-            'appointmentType' => self::resolveAppointmentTypeKey($appointment, $serviceConfig),
+            'appointmentType' => $typeKey,
             'appointmentTypeLabel' => self::resolveAppointmentTypeLabel($appointment, $serviceConfig),
             'locationLabel' => self::resolveLocationLabel($appointment, $serviceConfig),
             'serviceId' => $serviceId,
             'serviceName' => $serviceName,
             'preparation' => self::resolvePreparationRequired($appointment, $serviceConfig),
-            'rescheduleUrl' => self::buildRescheduleUrl((string) ($appointment['rescheduleToken'] ?? '')),
+            'rescheduleUrl' => self::buildRescheduleUrl($rescheduleToken),
+            'roomUrl' => $typeKey === 'telemedicine'
+                ? self::buildTelemedicineRoomUrl((int) ($appointment['id'] ?? 0), $rescheduleToken)
+                : '',
+            'preConsultationUrl' => $typeKey === 'telemedicine'
+                ? self::buildTelemedicinePreConsultationUrl((int) ($appointment['id'] ?? 0), $rescheduleToken)
+                : '',
+            'telemedicinePreConsultation' => isset($appointment['telemedicinePreConsultation']) && is_array($appointment['telemedicinePreConsultation'])
+                ? $appointment['telemedicinePreConsultation']
+                : [],
             'whatsappUrl' => self::buildSupportWhatsappUrl($patient, $appointment),
         ];
     }
@@ -3707,6 +3718,30 @@ final class PatientPortalController
         }
 
         return 'https://wa.me/' . $digits . '?text=' . rawurlencode(implode(' ', $parts));
+    }
+
+    private static function buildTelemedicineRoomUrl(int $appointmentId, string $token): string
+    {
+        if ($token !== '') {
+            return '/es/telemedicina/sala/index.html?token=' . rawurlencode($token);
+        }
+        if ($appointmentId > 0) {
+            return '/es/telemedicina/sala/index.html?id=' . rawurlencode((string) $appointmentId);
+        }
+
+        return '/es/telemedicina/sala/index.html';
+    }
+
+    private static function buildTelemedicinePreConsultationUrl(int $appointmentId, string $token): string
+    {
+        if ($token !== '') {
+            return '/es/telemedicina/pre-consulta/?token=' . rawurlencode($token);
+        }
+        if ($appointmentId > 0) {
+            return '/es/telemedicina/pre-consulta/?id=' . rawurlencode((string) $appointmentId);
+        }
+
+        return '/es/telemedicina/pre-consulta/';
     }
 
     private static function resolveAppointmentTypeKey(array $appointment, ?array $serviceConfig): string
