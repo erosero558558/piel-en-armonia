@@ -2372,6 +2372,41 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ---
 
+## 30. Sprint 30 — Emergencias de Auditoría Frontend (2026-03-31)
+
+> **Origen:** Auditoría visual en vivo con browser agent. Se identificaron 3 bloqueadores críticos
+> que harían fallar cualquier demo comercial frente a Nimbo o CloudMedical.
+> **Prioridad:** Estas tareas van ANTES que cualquier feature nueva.
+> Las tareas S30-01 a S30-03 son CRITICAL (rompen demos). S30-04 a S30-08 son HIGH.
+
+#### 30.1 CRITICAL — Bloqueadores de demo
+
+- [ ] **S30-01** `[M]` `[codex_frontend]` 🚨 Booking form vacío — la lista de servicios no se renderiza — `es/agendar/` muestra "¿Qué tipo de cita necesita?" pero sin opciones. El problema es que `agendar.js` carga los servicios desde `data/services.json` o `clinic-profile.json` pero falla silenciosamente: o el JSON no existe, o el fetch falla en local, o el DOM target selector no coincide. Diagnóstico: abrir `es/agendar/agendar.js`, encontrar la función que inyecta los servicios, agregar un fallback con servicios hardcodeados si el fetch falla, y asegurarse que el selector DOM sea correcto. También aplicar las mismas clases CSS del design system (glassmorphism, fondo OLED). Verificable: `GET /es/agendar/` muestra mínimo 3 opciones de servicio clicables (Consulta Dermatológica, Teledermatología, Procedimiento Estético); Lighthouse score ≥ 85; sin errores en consola.
+
+- [ ] **S30-02** `[M]` `[codex_frontend]` 🚨 Kiosco expone logs internos de gobernanza — `kiosco-turnos.html` muestra texto de sistema ("Kiosk surface recovery", "Bloqueado · 1/4 superficies listas", "Gate blocked · 27", scores y manifests) en lugar de la UI de pacientes. Este texto proviene de un sistema de inicialización que falla y cae en modo "recovery display". Solución: (1) encontrar el script de inicialización que genera estos logs (probablemente un `boot.js` o `kiosco-init.js`), (2) hacer que los mensajes de debug/recovery nunca sean visibles para el paciente — solo en `localStorage` o `console.log`, (3) asegurarse que la UI de "¿Tiene cita?" siempre se muestra incluso si el sistema de gobernanza no está 100% listo. La UI de fallback debe tener: título "Aurora Derm · Kiosco", dos botones grandes "Tengo cita" y "Registrarme", branding. Verificable: `GET /kiosco-turnos.html` → 0 textos de sistema visibles para el usuario; los 2 botones de acción son el foco principal.
+
+- [ ] **S30-03** `[M]` `[codex_frontend]` 🚨 Sala TV y Operador exponen logs de gobernanza — mismo problema que S30-02 pero en `sala-turnos.html` y `operador-turnos.html`. La sala TV muestra texto de "Fleet readiness", scores, "Decision hold-package-standardization" en lugar de la pantalla de turnos para pacientes. Solución idéntica: separar los logs de gobernanza de la UI pública. La sala TV debe mostrar: reloj grande (ya funciona), turno en pantalla ("Turno #12 — Sala 1"), y lista de siguientes turnos. Si no hay turnos activos, mostrar pantalla de bienvenida con logo Aurora Derm. Verificable: `GET /sala-turnos.html` → único texto visible son el reloj, turnos, y branding. `GET /operador-turnos.html` → botón "Llamar siguiente" es el elemento más prominente.
+
+#### 30.2 HIGH — Gaps de UX en demo
+
+- [ ] **S30-04** `[M]` `[codex_frontend]` Booking form sin CSS del design system — `es/agendar/` tiene fondo blanco, tipografía del sistema, sin glassmorphism. El formulario debe compartir el mismo lenguaje visual que el landing page: fondo `#050810` o gradiente oscuro, cards de servicio con borde glass (`rgba(255,255,255,0.08)`), tipografía Inter, colores Aurora primarios. Verificar que `styles/tokens.css` y `styles/base.css` están linkeadas en `es/agendar/index.html`. Verificable: `grep "tokens.css\|base.css" es/agendar/index.html` → match; página carga con fondo oscuro; los servicios tienen aspecto de card glassmorphism.
+
+- [ ] **S30-05** `[S]` `[codex_frontend]` Cards de servicio con precio y duración en el booking — actualmente el Paso 1 solo muestra el nombre del servicio. CloudMedical muestra precio y duración en cada card para ayudar al paciente a elegir. Añadir a cada opción de servicio: nombre, precio (si está en `clinic-profile.json`), duración estimada (ej. "45 min"), y un ícono de la especialidad. Layout: grid 2 columnas en desktop, 1 en móvil. Verificable: cada card de servicio muestra al menos nombre y duración; `grep "duracion\|duration\|precio\|price" es/agendar/agendar.js` → match.
+
+- [ ] **S30-06** `[S]` `[codex_frontend]` Foto y bio del médico en Paso 2 del booking — el Paso 2 "Seleccionar médico" debe mostrar foto de perfil (si existe en `clinic-profile.json`), nombre, especialidades y un badge "Disponible hoy". Esto reduce abandono del formulario. Si no hay foto, mostrar avatar con iniciales. Verificable: `GET /es/agendar/` → avanzar al paso 2 → médico aparece con avatar y nombre; sin errores de consola.
+
+- [ ] **S30-07** `[S]` `[codex_frontend]` Trust badges en la web pública — la auditoría reveló que no hay credenciales ni social proof en el hero. Añadir debajo del CTA principal: "✓ MSP Ecuador", "✓ Datos cifrados", "✓ Sin papelería", "✓ Historial fotográfico". Formato: fila de pills/chips pequeños con ícono de check dorado. Posición: entre el CTA y las cards de servicios. Verificable: `grep "MSP\|cifrado\|historial fotogr" es/index.html` → match; los badges son visibles sin scroll en desktop.
+
+- [ ] **S30-08** `[M]` `[codex_frontend]` Foto de la doctora en el hero de la web pública — la auditoría reveló que el hero no tiene elemento humano. Añadir una columna derecha al hero con una imagen representativa (puede ser un placeholder elegante con gradiente morado/índigo y un avatar médico SVG). Esto convierte el CTR del CTA principal en 2-3x según benchmarks médicos. Formato: imagen circular con glow effect `box-shadow: 0 0 40px rgba(99,102,241,0.3)`. Verificable: el hero tiene 2 columnas en desktop (copy + imagen); la imagen ocupa la columna derecha con al menos 280px de ancho.
+
+#### 30.3 Gobernanza del sprint
+
+- [ ] **S30-09** `[S]` `[codex_transversal]` Smoke test `sprint30-smoke.test.js` — verifica: (1) `GET /es/agendar/` → response 200 + body contiene al menos 1 elemento con clase relacionada al servicio; (2) `GET /kiosco-turnos.html` → body NO contiene "Gate blocked" NI "surface recovery" NI "Bloqueado ·"; (3) `GET /sala-turnos.html` → body NO contiene "Fleet readiness" NI "Score"; (4) `GET /es/index.html` → cuerpo contiene "MSP\|cifrado"; (5) `es/agendar/index.html` contiene link a `tokens.css`. Verificable: `node --test tests-node/sprint30-smoke.test.js` → `pass 5 / fail 0`.
+
+- [ ] **S30-10** `[S]` `[codex_transversal]` Actualizar gov:audit con sprint30 smoke test — añadir en `bin/audit.js` el step `{ id: 'sprint30_smoke', cmd: 'node --test tests-node/sprint30-smoke.test.js', optional: false }`. Verificable: `npm run gov:audit:json --silent | jq '.steps[] | select(.id=="sprint30_smoke")'` → existe.
+
+---
+
 ## 30. Sprint 30 — Clínica de Verdad: Lo Que el Paciente Necesita
 
 > **Por qué existe este sprint:** en una consulta médica real, el médico registra signos vitales en cada visita, ordena laboratorios y espera resultados, refiere a especialistas y hace seguimiento de ese referido, y alerta a sus pacientes crónicos cuando no vuelven. Todo eso existe en el backend de Aurora Derm como estructura — pero no como funcionalidad operativa. Este sprint lo convierte en realidad.
