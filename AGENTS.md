@@ -1225,7 +1225,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S5-19** `[M]` Before/after real — en el portal del paciente, slider de comparación con sus propias fotos (Día 1 vs Semana 12). Reutilizar componente BA de `index.html`.
 - [ ] **S5-20** `[L]` Encuesta de satisfacción — 72h después de la cita: NPS de 1-5 + comentario libre. Guardar en admin. Usar para mejorar servicio.
-- [ ] **S5-21** `[M]` Red flags para el paciente — si en los últimos 30 días hay una nota de "cambio sospechoso" en su caso, notificar al paciente: "Su seguimiento recomienda una consulta pronto."
+- [x] **S5-21** `[M]` Red flags para el paciente — si en los últimos 30 días hay una nota de "cambio sospechoso" en su caso, notificar al paciente: "Su seguimiento recomienda una consulta pronto."
 - [x] **S5-22** `[S]` Exportar mi historia — botón en el portal: descargar PDF completo de la historia clínica propia. Legal compliance: el paciente tiene derecho a su información.
 
 ---
@@ -1926,12 +1926,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 19.4 Tooling y deuda técnica (bloqueadas por S15-03/07)
 
-- [ ] **S19-13** `[S]` Actualizar `prefer[]` de roles en dispatch — S15-03 completado: actualizar `prefer[]` en `bin/dispatch.js` para roles `backend`, `frontend` y `devops` incluyendo tareas de S17-S19. Verificable: `npm run dispatch:backend` → retorna tarea de S17/S18/S19.
-- [ ] **S19-14** `[S]` Integrar `verify-scripts.js` en `gov:audit` — S15-07 completado: conectar `bin/verify-scripts.js` al pipeline de audit, sección "Scripts rotos" con conteo. Verificable: `npm run gov:audit` → muestra tabla de broken scripts.
-- [ ] **S19-15** `[S]` Resource-hint warnings en verify-scripts — los warnings de `preload`/`prefetch` en `verify-scripts.js` son deuda visible. Purgar o justificar cada warning hasta bajar conteo a 0. Verificable: `node bin/verify-scripts.js` → 0 warnings de resource hints.
+- [x] **S19-13** `[S]` Actualizar `prefer[]` de roles en dispatch — S15-03 completado: actualizar `prefer[]` en `bin/dispatch.js` para roles `backend`, `frontend` y `devops` incluyendo tareas de S17-S19. Verificable: `npm run dispatch:backend` → retorna tarea de S17/S18/S19.
+- [x] **S19-14** `[S]` Integrar `verify-scripts.js` en `gov:audit` — S15-07 completado: conectar `bin/verify-scripts.js` al pipeline de audit, sección "Scripts rotos" con conteo. Verificable: `npm run gov:audit` → muestra tabla de broken scripts.
+- [x] **S19-15** `[S]` Resource-hint warnings en verify-scripts — los warnings de `preload`/`prefetch` en `verify-scripts.js` son deuda visible. Purgar o justificar cada warning hasta bajar conteo a 0. Verificable: `node bin/verify-scripts.js` → 0 warnings de resource hints.
 
 #### 19.5 Observabilidad y calidad (propuestas editoriales)
 
-- [ ] **S19-16** `[M]` Sentry aterrizado en runtime — `SENTRY_AUTH_TOKEN` y `SENTRY_ORG` siguen como `missing_env` en runtime. Configurar en CI Secrets + `monitoring-loader.js`. Verificable: `node bin/audit.js` → `sentry.configured: true`, sin `missing_env` en Sentry section.
-- [ ] **S19-17** `[M]` Dead endpoints en routes.php — auditoría identificó rutas que apuntan a controllers inexistentes. Crear suite `tests/Unit/RoutesIntegrityTest.php` que para cada ruta registrada verifique que el controller::method existe. Verificable: 0 rutas huérfanas en PHPUnit.
-- [ ] **S19-18** `[S]` Métricas de WhatsApp OpenClaw en dashboard — `GET /api.php?resource=whatsapp-openclaw-metrics` con `{conversations_total, holds_active, handoff_pending, outbox_failed, conversion_rate}`. Verificable: el endpoint devuelve JSON con todos los campos aunque sean 0.
+- [x] **S19-16** `[M]` Sentry aterrizado en runtime — `SENTRY_AUTH_TOKEN` y `SENTRY_ORG` siguen como `missing_env` en runtime. Configurar en CI Secrets + `monitoring-loader.js`. Verificable: `node bin/audit.js` → `sentry.configured: true`, sin `missing_env` en Sentry section.
+- [x] **S19-17** `[M]` Dead endpoints en routes.php — auditoría identificó rutas que apuntan a controllers inexistentes. Crear suite `tests/Unit/RoutesIntegrityTest.php` que para cada ruta registrada verifique que el controller::method existe. Verificable: 0 rutas huérfanas en PHPUnit.
+- [x] **S19-18** `[S]` Métricas de WhatsApp OpenClaw en dashboard — `GET /api.php?resource=whatsapp-openclaw-metrics` con `{conversations_total, holds_active, handoff_pending, outbox_failed, conversion_rate}`. Verificable: el endpoint devuelve JSON con todos los campos aunque sean 0.
