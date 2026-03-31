@@ -261,6 +261,12 @@
                 icon: 'docs',
             },
             {
+                href: String(safeSupport.photosUrl || '/es/portal/fotos/').trim() || '/es/portal/fotos/',
+                label: 'Mis fotos',
+                copy: 'Sigue tu evolución por zona y fecha con las imágenes visibles para tu portal.',
+                icon: 'photos',
+            },
+            {
                 href: String(safeSupport.whatsappUrl || '').trim(),
                 label: 'Soporte por WhatsApp',
                 copy: 'Habla con recepción si necesitas mover tu horario o confirmar indicaciones.',
@@ -281,6 +287,8 @@
                 const icon =
                     item.icon === 'whatsapp'
                         ? 'W'
+                        : item.icon === 'photos'
+                            ? 'F'
                         : item.icon === 'calendar'
                             ? 'A'
                             : 'H';
@@ -666,6 +674,7 @@
                 actionsContainer.innerHTML = renderSupportActions({
                     bookingUrl: '/#citas',
                     historyUrl: '/es/portal/historial/',
+                    photosUrl: '/es/portal/fotos/',
                     whatsappUrl: 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%20con%20mi%20portal%20de%20Aurora%20Derm.',
                 });
             }

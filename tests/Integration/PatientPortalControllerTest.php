@@ -43,6 +43,18 @@ final class PatientPortalControllerTest extends TestCase
         require_once __DIR__ . '/../../controllers/PatientPortalController.php';
 
         \ensure_data_file();
+        $clinicalMediaDir = $this->tempDir . DIRECTORY_SEPARATOR . 'clinical-media';
+        if (!is_dir($clinicalMediaDir)) {
+            mkdir($clinicalMediaDir, 0777, true);
+        }
+        $pngFixture = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0WQAAAAASUVORK5CYII='
+        );
+        file_put_contents($clinicalMediaDir . DIRECTORY_SEPARATOR . 'portal-visible-face-1.png', $pngFixture);
+        file_put_contents($clinicalMediaDir . DIRECTORY_SEPARATOR . 'portal-visible-face-2.png', $pngFixture);
+        file_put_contents($clinicalMediaDir . DIRECTORY_SEPARATOR . 'portal-visible-neck-1.png', $pngFixture);
+        file_put_contents($clinicalMediaDir . DIRECTORY_SEPARATOR . 'portal-hidden-face.png', $pngFixture);
+
         $store = \read_store();
         $store['appointments'][] = \normalize_appointment([
             'id' => 101,
@@ -249,6 +261,52 @@ final class PatientPortalControllerTest extends TestCase
             'kind' => 'case_photo',
             'bodyZone' => 'rostro',
             'createdAt' => '2026-03-19T08:05:00-05:00',
+        ];
+        $store['clinical_uploads'][] = [
+            'id' => 50101,
+            'patientCaseId' => 'pc_lucia_001',
+            'kind' => 'case_photo',
+            'bodyZone' => 'rostro',
+            'privatePath' => 'clinical-media/portal-visible-face-1.png',
+            'originalName' => 'rostro-control-1.png',
+            'mime' => 'image/png',
+            'createdAt' => '2026-03-29T08:05:00-05:00',
+            'visibleToPatient' => true,
+        ];
+        $store['clinical_uploads'][] = [
+            'id' => 50102,
+            'patientCaseId' => 'pc_lucia_001',
+            'kind' => 'case_photo',
+            'bodyZone' => 'cuello',
+            'privatePath' => 'clinical-media/portal-visible-neck-1.png',
+            'originalName' => 'cuello-contexto.png',
+            'mime' => 'image/png',
+            'createdAt' => '2026-03-25T07:10:00-05:00',
+            'patientVisible' => true,
+            'photoRole' => 'contexto',
+            'photoRoleLabel' => 'Contexto',
+        ];
+        $store['clinical_uploads'][] = [
+            'id' => 50103,
+            'patientCaseId' => 'pc_lucia_001',
+            'kind' => 'case_photo',
+            'bodyZone' => 'rostro',
+            'privatePath' => 'clinical-media/portal-visible-face-2.png',
+            'originalName' => 'rostro-control-2.png',
+            'mime' => 'image/png',
+            'createdAt' => '2026-03-21T07:45:00-05:00',
+            'portalVisible' => 'true',
+        ];
+        $store['clinical_uploads'][] = [
+            'id' => 50104,
+            'patientCaseId' => 'pc_lucia_001',
+            'kind' => 'case_photo',
+            'bodyZone' => 'rostro',
+            'privatePath' => 'clinical-media/portal-hidden-face.png',
+            'originalName' => 'rostro-interno.png',
+            'mime' => 'image/png',
+            'createdAt' => '2026-03-28T09:30:00-05:00',
+            'visibleToPatient' => false,
         ];
         $store['checkout_orders'] = [
             [
@@ -619,6 +677,89 @@ final class PatientPortalControllerTest extends TestCase
         self::assertStringContainsString(
             'Documento no disponible',
             (string) ($document['payload']['error'] ?? '')
+        );
+    }
+
+    public function testPhotosReturnsOnlyPortalVisiblePhotosGroupedByZone(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+
+        $photos = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::photos(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $photos['status']);
+        self::assertTrue((bool) ($photos['payload']['ok'] ?? false));
+
+        $gallery = $photos['payload']['data']['gallery'] ?? null;
+        self::assertIsArray($gallery);
+        self::assertSame(3, (int) ($gallery['totalPhotos'] ?? 0));
+        self::assertSame(2, (int) ($gallery['bodyZoneCount'] ?? 0));
+
+        $groups = $gallery['groups'] ?? null;
+        self::assertIsArray($groups);
+        self::assertCount(2, $groups);
+
+        self::assertSame('Rostro', (string) ($groups[0]['bodyZoneLabel'] ?? ''));
+        self::assertSame(2, (int) ($groups[0]['photoCount'] ?? 0));
+        self::assertSame('50101', (string) ($groups[0]['items'][0]['id'] ?? ''));
+        self::assertSame('50103', (string) ($groups[0]['items'][1]['id'] ?? ''));
+        self::assertStringContainsString(
+            'patient-portal-photo-file&id=50101',
+            (string) ($groups[0]['items'][0]['imageUrl'] ?? '')
+        );
+        self::assertSame('Cuello', (string) ($groups[1]['bodyZoneLabel'] ?? ''));
+        self::assertSame('Contexto', (string) ($groups[1]['items'][0]['photoRoleLabel'] ?? ''));
+
+        $allIds = [];
+        foreach ($groups as $group) {
+            foreach (($group['items'] ?? []) as $item) {
+                $allIds[] = (string) ($item['id'] ?? '');
+            }
+        }
+
+        self::assertNotContains('50104', $allIds);
+    }
+
+    public function testPhotoFileReturnsBinaryForOwnedVisiblePhoto(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+        $_GET['id'] = '50101';
+
+        $photo = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::photoFile(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $photo['status']);
+        self::assertTrue((bool) ($photo['payload']['ok'] ?? false));
+        self::assertSame('binary', (string) ($photo['payload']['format'] ?? ''));
+        self::assertSame('image/png', (string) ($photo['payload']['contentType'] ?? ''));
+        self::assertStringStartsWith("\x89PNG", (string) ($photo['payload']['binary'] ?? ''));
+    }
+
+    public function testPhotoFileRejectsHiddenPortalPhoto(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+        $_GET['id'] = '50104';
+
+        $photo = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::photoFile(['store' => \read_store()]);
+        });
+
+        self::assertSame(404, $photo['status']);
+        self::assertFalse((bool) ($photo['payload']['ok'] ?? true));
+        self::assertStringContainsString(
+            'Foto no disponible',
+            (string) ($photo['payload']['error'] ?? '')
         );
     }
 

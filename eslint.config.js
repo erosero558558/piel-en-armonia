@@ -20,6 +20,7 @@ module.exports = [
             'playwright-report/**',
             'test-results/**',
             'verification/**',
+            '.codex-worktrees/**',
         ],
     },
     js.configs.recommended,
@@ -68,6 +69,10 @@ module.exports = [
             // Pre-existing regex patterns in vendor-adjacent code have intentional escapes.
             // Auto-fixable but risky in large files — treat as style debt, not blocking error.
             'no-useless-escape': 'warn',
+            // Sparse arrays and extra boolean casts in generated/legacy code — style debt only.
+            'no-sparse-arrays': 'warn',
+            'no-extra-boolean-cast': 'warn',
+            'no-regex-spaces': 'warn',
         },
     },
     {

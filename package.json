@@ -12,6 +12,7 @@
     "gov:status": "node bin/claim.js status && node bin/report.js",
     "gov:dispatch": "node bin/dispatch.js --role fullstack",
     "gov:gate": "node bin/gate.js",
+    "perf:baseline": "node bin/gen-performance-baseline.js",
     "gov:conflict": "node bin/conflict.js",
     "build": "node bin/sync-backlog.js && node bin/lint-php-syntax.js",
     "audit": "node bin/audit.js",

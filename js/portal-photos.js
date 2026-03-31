@@ -4,6 +4,24 @@
     const portalShell = window.AuroraPatientPortalShell || null;
     const blobUrls = [];
 
+    if (!document.getElementById('portal-skeleton-css')) {
+        const style = document.createElement('style');
+        style.id = 'portal-skeleton-css';
+        style.textContent = `
+            .skeleton {
+                background: linear-gradient(90deg, rgba(148, 163, 184, 0.12) 25%, rgba(248, 250, 252, 0.24) 50%, rgba(148, 163, 184, 0.12) 75%);
+                background-size: 200% 100%;
+                animation: aurora-portal-shimmer 1.4s infinite linear;
+                border-radius: 16px;
+            }
+            @keyframes aurora-portal-shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     function escapeHtml(value) {
         return String(value ?? '')
             .replaceAll('&', '&amp;')
