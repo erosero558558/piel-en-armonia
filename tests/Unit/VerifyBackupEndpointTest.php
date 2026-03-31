@@ -18,8 +18,8 @@ class VerifyBackupEndpointTest extends TestCase
         $this->tempStorage = $this->tempData . '/offsite-receiver';
         @mkdir($this->tempStorage, 0777, true);
 
-        $this->originalToken = getenv('AURORADERM_BACKUP_RECEIVER_TOKEN') ?: 'test-token-receiver';
-        putenv('AURORADERM_BACKUP_RECEIVER_TOKEN=' . $this->originalToken);
+        $this->originalToken = getenv('AURORADERM_BACKUP_VERIFY_TOKEN') ?: 'test-verify-token';
+        putenv('AURORADERM_BACKUP_VERIFY_TOKEN=' . $this->originalToken);
         putenv('AURORADERM_DATA_DIR=' . $this->tempData);
         putenv('AURORADERM_BACKUP_RECEIVER_ENCRYPTION_KEY=' . str_repeat('k', 32));
     }
@@ -78,7 +78,7 @@ PHP;
         $fullEnv['REQUEST_METHOD'] = 'GET';
         // Mock AURORADERM_DATA_DIR directly in proc_open
         $fullEnv['AURORADERM_DATA_DIR'] = $this->tempData;
-        $fullEnv['AURORADERM_BACKUP_RECEIVER_TOKEN'] = $this->originalToken;
+        $fullEnv['AURORADERM_BACKUP_VERIFY_TOKEN'] = $this->originalToken;
         $fullEnv['AURORADERM_SKIP_ENV_FILE'] = '1';
 
         $process = proc_open(
@@ -133,6 +133,30 @@ PHP;
 
         $this->assertEquals(403, $response['status']);
         $this->assertEquals('No autorizado', $response['payload']['error'] ?? '');
+    }
+
+    public function testAuthWithCronOrDiagnosticsReturns403(): void
+    {
+        // Must reject other tokens explicitly since separation of concerns requires VERIFY_TOKEN only.
+        $this->invokeEndpoint([
+            'AURORADERM_CRON_SECRET' => 'valid-cron',
+            'AURORADERM_DIAGNOSTICS_ACCESS_TOKEN' => 'valid-diag',
+        ]);
+
+        $cronResponse = $this->invokeEndpoint([
+            'AURORADERM_CRON_SECRET' => 'valid-cron',
+            'AURORADERM_DIAGNOSTICS_ACCESS_TOKEN' => 'valid-diag',
+            'HTTP_AUTHORIZATION' => 'Bearer valid-cron' // Trying to use CRON
+        ]);
+
+        $diagResponse = $this->invokeEndpoint([
+            'AURORADERM_CRON_SECRET' => 'valid-cron',
+            'AURORADERM_DIAGNOSTICS_ACCESS_TOKEN' => 'valid-diag',
+            'HTTP_AUTHORIZATION' => 'Bearer valid-diag' // Trying to use DIAG
+        ]);
+
+        $this->assertEquals(403, $cronResponse['status']);
+        $this->assertEquals(403, $diagResponse['status']);
     }
 
     public function testPathTraversalReturns400(): void

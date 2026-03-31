@@ -282,6 +282,7 @@
 // putenv('AURORADERM_BACKUP_LOCAL_REPLICA=true');
 // Receiver remoto (cuando este servidor actua como destino offsite)
 // putenv('AURORADERM_BACKUP_RECEIVER_TOKEN=token_largo_rotado');
+// putenv('AURORADERM_BACKUP_VERIFY_TOKEN=token_solo_lectura_verificacion');
 // Limite de subida en MB para backup-receiver.php (default 50)
 // putenv('AURORADERM_BACKUP_RECEIVER_MAX_MB=50');
 // Requerir checksum SHA-256 por header X-Backup-SHA256 (default true)

@@ -49,10 +49,7 @@ function verify_backup_authorized(): bool
     }
 
     $expectedTokens = [
-        app_env('AURORADERM_BACKUP_RECEIVER_TOKEN'),
-        app_env('AURORADERM_BACKUP_OFFSITE_TOKEN'),
-        app_env('AURORADERM_BACKUP_WEBHOOK_TOKEN'),
-        app_env('AURORADERM_CRON_SECRET')
+        app_env('AURORADERM_BACKUP_VERIFY_TOKEN')
     ];
 
     foreach ($expectedTokens as $expectedToken) {
