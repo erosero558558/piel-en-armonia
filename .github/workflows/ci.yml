@@ -162,6 +162,14 @@ jobs:
             - name: Install Composer Dependencies
               if: steps.changes.outputs.psalm == 'true'
               run: composer install --prefer-dist --no-progress
+            - name: Assert Psalm binary is available
+              if: steps.changes.outputs.psalm == 'true'
+              shell: bash
+              run: |
+                  if [[ ! -x vendor/bin/psalm ]]; then
+                      echo "::error::Instala Psalm: composer require --dev vimeo/psalm"
+                      exit 1
+                  fi
             - name: Run Psalm Static Analysis
               if: steps.changes.outputs.psalm == 'true'
               run: php -d max_execution_time=0 ./vendor/bin/psalm --no-cache
