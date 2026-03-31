@@ -2085,7 +2085,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 20.5 Portal del paciente — Experiencia premium
 
-- [ ] **UI4-16** `[L]` `[UI]` Portal dashboard glass — `es/portal/index.html`: cada card del dashboard (próxima cita, balance, documentos) con `.lg-surface--dark`, número/dato principal en tipografía grande (clamp 32→48px), borde gold al hover. El dashboard debe sentirse como una app financiera premium. Verificable: `grep "lg-surface--dark.*portal\|portal.*glass" es/portal/index.html` → match.
+- [x] **UI4-16** `[L]` `[UI]` Portal dashboard glass — `es/portal/index.html`: cada card del dashboard (próxima cita, balance, documentos) con `.lg-surface--dark`, número/dato principal en tipografía grande (clamp 32→48px), borde gold al hover. El dashboard debe sentirse como una app financiera premium. Verificable: `grep "lg-surface--dark.*portal\|portal.*glass" es/portal/index.html` → match.
 
 - [ ] **UI4-17** `[M]` `[UI]` Timeline de historial glass — `es/portal/historial/`: eventos clínicos como stepper vertical, cada nodo con circle glass dorado, línea conectora translúcida, cards expandibles al clic con `height: 0 → auto` spring. Verificable: `grep "lg-surface.*timeline\|glass.*stepper" es/portal/historial/index.html` → match.
 

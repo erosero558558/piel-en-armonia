@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 4:38:08 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 4:53:34 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████░░░░░░░` **65%** completado (362/554)
+`█████████████░░░░░░░` **66%** completado (363/554)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 14 | 54 | 21% |
+| ⏸ Sprint UI | 15 | 53 | 22% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -229,22 +229,22 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 54 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 53 tareas pendientes._
 
-### 🟢 Disponibles (53)
+### 🟢 Disponibles (52)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **UI4-16** | `[UI4]` | L |
 | **UI4-17** | `[UI4]` | M |
 | **UI4-18** | `[UI4]` | M |
 | **S24-01** | `[S24]` | M |
 | **S24-02** | `[S24]` | M |
-| ... | | _+48 más_ |
+| **S24-03** | `[S24]` | M |
+| ... | | _+47 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **UI4-15** `[UI4]` → _Antigravity_ (expira en 228min)
+- **UI4-16** `[UI4]` → _Antigravity_ (expira en 478min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
