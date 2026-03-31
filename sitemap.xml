@@ -8,43 +8,61 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/es\gift-cards\</loc>
+    <loc>https://pielarmonia.com/es/gift-cards/</loc>
     <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/es\membresia\</loc>
+    <loc>https://pielarmonia.com/es/membresia/</loc>
     <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/es\paquetes\</loc>
+    <loc>https://pielarmonia.com/es/paquetes/</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/portal/historial/</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/portal/</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/portal/login/</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/promociones/</loc>
     <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/es\promociones\</loc>
+    <loc>https://pielarmonia.com/es/referidos/</loc>
     <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/es\referidos\</loc>
+    <loc>https://pielarmonia.com/es/software/turnero-clinicas/precios/</loc>
     <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/es\software\turnero-clinicas\precios\</loc>
-    <lastmod>2026-03-30</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://pielarmonia.com/en\</loc>
+    <loc>https://pielarmonia.com/en/</loc>
     <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

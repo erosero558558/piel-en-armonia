@@ -44,6 +44,9 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'patient-portal-auth-start', [PatientPortalController::class, 'start']);
     $router->add('POST', 'patient-portal-auth-complete', [PatientPortalController::class, 'complete']);
     $router->add('GET', 'patient-portal-auth-status', [PatientPortalController::class, 'status']);
+    $router->add('GET', 'patient-portal-dashboard', [PatientPortalController::class, 'dashboard']);
+    $router->add('GET', 'patient-portal-history', [PatientPortalController::class, 'history']);
+    $router->add('GET', 'patient-portal-document', [PatientPortalController::class, 'document']);
     $router->add('GET', 'patient-cases', [PatientCaseController::class, 'index']);
     $router->add('POST', 'patient-cases', [PatientCaseController::class, 'store']);
     $router->add('GET', 'patient-search', [PatientCaseController::class, 'search']);

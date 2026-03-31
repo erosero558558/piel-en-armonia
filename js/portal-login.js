@@ -181,9 +181,8 @@
 
             portalSession.write(session);
             setStatus('Sesion lista. Te estamos llevando a tu portal.', 'success');
-            window.setTimeout(() => {
-                window.location.assign('/es/portal/');
-            }, 250);
+            window.location.replace('/es/portal/');
+            return;
         } catch (_error) {
             setStatus('No pudimos validar el codigo en este momento.', 'error');
         } finally {

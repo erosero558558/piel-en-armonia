@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 6:49:18 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 10:53:00 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **48%** completado (217/449)
+`██████████░░░░░░░░░░` **49%** completado (218/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -22,7 +22,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint 8 | 8 | 9 | 47% |
-| ⏸ Sprint 9 | 1 | 26 | 4% |
+| ⏸ Sprint 9 | 2 | 25 | 7% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 3 | 23 | 12% |
 | ⏸ Sprint 13 | 4 | 17 | 19% |
@@ -149,9 +149,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 | ... | | _+4 más_ |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
-_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
-### 🟢 Disponibles (26)
+### 🟢 Disponibles (25)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -159,8 +159,8 @@ _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 | **S9-02** | `[S9]` | M |
 | **S9-03** | `[S9]` | L |
 | **S9-04** | `[S9]` | M |
-| **S9-05** | `[S9]` | M |
-| ... | | _+21 más_ |
+| **S9-06** | `[S9]` | M |
+| ... | | _+20 más_ |
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
@@ -179,7 +179,7 @@ _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
 ## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
 _Esperando que Sprint anterior esté completo. 23 tareas pendientes._
 
-### 🟢 Disponibles (23)
+### 🟢 Disponibles (22)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -188,7 +188,11 @@ _Esperando que Sprint anterior esté completo. 23 tareas pendientes._
 | **S12-04** | `[S12]` | M |
 | **S12-05** | `[S12]` | M |
 | **S12-06** | `[S12]` | M |
-| ... | | _+18 más_ |
+| ... | | _+17 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S12-20** `[S12]` → _Antigravity implementing CRO scorecard UI and API_ (expira en 9min)
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Esperando que Sprint anterior esté completo. 17 tareas pendientes._
@@ -207,9 +211,11 @@ _Esperando que Sprint anterior esté completo. 17 tareas pendientes._
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 
-### 🔒 En progreso — NO tomar
+### 🟢 Disponibles (1)
 
-- **UI3-20** `[UI3]` → _codex_ (expira en 36min)
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **UI3-20** | `[UI3]` | M |
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._

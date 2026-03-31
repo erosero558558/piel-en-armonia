@@ -64,6 +64,31 @@ test.describe('Patient portal login page', () => {
             });
         });
 
+        await page.route('**/api.php?resource=patient-portal-dashboard', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    ok: true,
+                    data: {
+                        authenticated: true,
+                        patient: {
+                            patientId: 'pt_lucia_001',
+                            name: 'Lucia Portal',
+                        },
+                        nextAppointment: null,
+                        treatmentPlan: null,
+                        billing: null,
+                        support: {
+                            bookingUrl: '/#citas',
+                            historyUrl: '/es/portal/historial/',
+                            whatsappUrl: 'https://wa.me/593982453672?text=hola',
+                        },
+                    },
+                }),
+            });
+        });
+
         await page.goto('/es/portal/login/');
 
         await expect(page.locator('h1')).toContainText('Ingresa sin contraseñas');
