@@ -1218,7 +1218,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S5-15** `[XL]` Sala de videoconsulta — integrar Jitsi Meet embebido en `es/telemedicina/sala/index.html`. Link único por cita. Paciente entra desde el portal, doctor desde el admin. Sin instalación.
 - [x] **S5-16** `[M]` Pre-consulta digital — `es/telemedicina/pre-consulta/index.html`: 10 min antes de la teleconsulta, el paciente completa: "¿Qué le preocupa hoy?", sube foto si tiene lesión nueva. El doctor la ve antes de entrar.
-- [ ] **S5-17** `[M]` Grabación de consenso — opción de grabar la teleconsulta con consentimiento explícito de ambas partes. Guardar en el caso con metadatos.
+- [x] **S5-17** `[M]` Grabación de consenso — opción de grabar la teleconsulta con consentimiento explícito de ambas partes. Guardar en el caso con metadatos.
 - [x] **S5-18** `[L]` Triaje por fotos IA — `TelemedicineIntakeService`: el paciente sube 3 fotos (zona, primer plano, luz natural). IA pre-clasifica urgencia (1-5) y sugiere tipo de consulta. El doctor valida.
 
 #### 5.4 Experiencia clínica premium
@@ -1919,10 +1919,10 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 19.3 Android TV — Release y runtime
 
-- [ ] **S19-09** `[M]` Contrato de release para Android TV — formalizar build release, firma, checksum y ruta publicada para `TurneroSalaTV.apk`. Entregable: `docs/TURNERO_ANDROID_RELEASE.md` + script/workflow reproducible. Verificable: una release genera APK + metadata sin pasos implícitos o manuales.
-- [ ] **S19-10** `[M]` Heartbeat y health de turnero-sala-tv-android — contrato de heartbeat con `{device_id, version, last_seen_at, surface_url, status}`. Endpoint: `POST /api.php?resource=tv-heartbeat`. Un dispositivo TV aparece como online/offline por TTL. Verificable: TV sin conexión por >5min → `status=offline` en panel.
-- [ ] **S19-11** `[S]` Offline diagnostics UX en Android TV — cuando falle WebView/red, mostrar pantalla clara con último intento, próximo reintento, host, estado de red. La app nunca queda en "pantalla en blanco". Verificable: sin red → pantalla de diagnóstico, con reconexión automática al recuperar conectividad.
-- [ ] **S19-12** `[M]` Remote config para Android TV — mover `BASE_URL`, `SURFACE_PATH` y flags operativos a un JSON remoto versionado. Sin recompilar, staging/prod se pueden cambiar. Verificable: cambiar `BASE_URL` en `GET /api.php?resource=tv-config` → TV aplica sin reinstalar APK.
+- [x] **S19-09** `[M]` Contrato de release para Android TV — formalizar build release, firma, checksum y ruta publicada para `TurneroSalaTV.apk`. Entregable: `docs/TURNERO_ANDROID_RELEASE.md` + script/workflow reproducible. Verificable: una release genera APK + metadata sin pasos implícitos o manuales.
+- [x] **S19-10** `[M]` Heartbeat y health de turnero-sala-tv-android — contrato de heartbeat con `{device_id, version, last_seen_at, surface_url, status}`. Endpoint: `POST /api.php?resource=tv-heartbeat`. Un dispositivo TV aparece como online/offline por TTL. Verificable: TV sin conexión por >5min → `status=offline` en panel.
+- [x] **S19-11** `[S]` Offline diagnostics UX en Android TV — cuando falle WebView/red, mostrar pantalla clara con último intento, próximo reintento, host, estado de red. La app nunca queda en "pantalla en blanco". Verificable: sin red → pantalla de diagnóstico, con reconexión automática al recuperar conectividad.
+- [x] **S19-12** `[M]` Remote config para Android TV — mover `BASE_URL`, `SURFACE_PATH` y flags operativos a un JSON remoto versionado. Sin recompilar, staging/prod se pueden cambiar. Verificable: cambiar `BASE_URL` en `GET /api.php?resource=tv-config` → TV aplica sin reinstalar APK.
 
 #### 19.4 Tooling y deuda técnica (bloqueadas por S15-03/07)
 
