@@ -29,10 +29,4 @@
             <directory suffix=".php">lib</directory>
         </include>
     </source>
-    <coverage>
-        <report>
-            <clover outputFile="coverage.xml"/>
-            <text outputFile="php://stdout" showUncoveredFiles="false"/>
-        </report>
-    </coverage>
 </phpunit>
