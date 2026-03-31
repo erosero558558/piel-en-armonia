@@ -63,6 +63,12 @@ const AUDIT_STEPS = [
         command: 'node',
         args: ['bin/verify-scripts.js', '--json'],
     },
+    {
+        id: 'evidence_health',
+        label: 'Evidence Health',
+        command: 'node',
+        args: ['bin/check-evidence-health.js', '--json'],
+    },
 ];
 
 function formatCommand(step) {
@@ -186,6 +192,25 @@ function formatAuditText(report) {
             }
         } else {
             lines.push('   \u26AA governance/broken-scripts.json no existe a\u00FAn');
+        }
+    } catch (e) {}
+
+    try {
+        const { existsSync, readFileSync } = require('fs');
+        const evPath = require('path').resolve(__dirname, '../governance/evidence-health.json');
+        lines.push('');
+        lines.push('🛡️  Evidence Health');
+        if (existsSync(evPath)) {
+            const ev = JSON.parse(readFileSync(evPath, 'utf8'));
+            const c = ev.counts;
+            lines.push(`   - missing_refs: ${c.missing_refs}`);
+            lines.push(`   - missing_expected_file: ${c.missing_expected_file}`);
+            lines.push(`   - noncanonical_ref: ${c.noncanonical_ref}`);
+            const recon = c.reconstructed_evidence;
+            const reconStatus = recon > 25 ? '🔴 ERROR' : recon > 10 ? '🟡 WARNING' : '🟢 OK';
+            lines.push(`   - reconstructed_evidence: ${recon} (${reconStatus})`);
+        } else {
+            lines.push('   ⚪ governance/evidence-health.json no existe aún');
         }
     } catch (e) {}
 
