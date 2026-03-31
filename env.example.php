@@ -193,6 +193,13 @@
 // Perfil recomendado para una sola cuenta operativa autorizada:
 // putenv('AURORADERM_ADMIN_EMAIL=tu_correo_windows@outlook.com');
 // putenv('AURORADERM_OPERATOR_AUTH_ALLOWLIST=tu_correo_windows@outlook.com');
+// Roles clinicos de OpenClaw:
+// - `AURORADERM_OPENCLAW_DOCTOR_EMAILS` define quienes pueden emitir receta/certificado.
+// - Si no se configura y hay exactamente 1 correo en allowlist, ese correo se asume doctor.
+// - `AURORADERM_LEGACY_ADMIN_CLINICAL_ROLE` controla el rol del login legacy (default: doctor).
+// putenv('AURORADERM_OPENCLAW_DOCTOR_EMAILS=doctor@auroraderm.com,medico2@auroraderm.com');
+// putenv('AURORADERM_PRIMARY_DOCTOR_EMAIL=doctor@auroraderm.com');
+// putenv('AURORADERM_LEGACY_ADMIN_CLINICAL_ROLE=doctor');
 // Mantener en false para exigir allowlist explicita aun cuando el broker autentique correctamente.
 // putenv('AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false');
 // Solo activa `true` si quieres abrir el admin a cualquier identidad verificada por el broker remoto.

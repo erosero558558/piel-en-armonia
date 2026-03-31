@@ -739,9 +739,127 @@ function admin_agent_has_editorial_access(): bool
 
 function admin_agent_capabilities_payload(): array
 {
+    $clinicalRole = operator_auth_clinical_role();
+
     return [
         'adminAgent' => admin_agent_has_editorial_access(),
+        'openclawDoctor' => $clinicalRole === 'doctor',
+        'openclawReceptionist' => $clinicalRole === 'receptionist',
+        'openclawClinicalWrite' => openclaw_role_has_scope('clinical_write', $clinicalRole),
+        'openclawPrescription' => openclaw_role_has_scope('prescription', $clinicalRole),
+        'openclawCertificate' => openclaw_role_has_scope('certificate', $clinicalRole),
     ];
+}
+
+function operator_auth_openclaw_doctor_emails(): array
+{
+    $emails = [];
+    $sources = [
+        app_env('AURORADERM_OPENCLAW_DOCTOR_EMAILS'),
+        app_env('AURORADERM_PRIMARY_DOCTOR_EMAIL'),
+        app_env('AURORADERM_ADMIN_EMAIL'),
+    ];
+
+    foreach ($sources as $raw) {
+        if (!is_string($raw) || trim($raw) === '') {
+            continue;
+        }
+
+        foreach (preg_split('/[\s,;]+/', $raw) ?: [] as $item) {
+            $email = operator_auth_normalize_email((string) $item);
+            if ($email !== '') {
+                $emails[] = $email;
+            }
+        }
+    }
+
+    if ($emails !== []) {
+        return array_values(array_unique($emails));
+    }
+
+    $allowlist = operator_auth_allowed_emails();
+    if (count($allowlist) === 1) {
+        return [$allowlist[0]];
+    }
+
+    return [];
+}
+
+function operator_auth_legacy_admin_clinical_role(): string
+{
+    $raw = strtolower(trim((string) app_env('AURORADERM_LEGACY_ADMIN_CLINICAL_ROLE', 'doctor')));
+    return $raw === 'receptionist' ? 'receptionist' : 'doctor';
+}
+
+function operator_auth_clinical_role(?array $identity = null): string
+{
+    if (legacy_admin_is_authenticated()) {
+        return operator_auth_legacy_admin_clinical_role();
+    }
+
+    $identity = is_array($identity) ? $identity : operator_auth_current_identity(false);
+    if (!is_array($identity)) {
+        return 'anonymous';
+    }
+
+    $email = operator_auth_normalize_email((string) ($identity['email'] ?? ''));
+    if ($email === '') {
+        return 'anonymous';
+    }
+
+    if (in_array($email, operator_auth_openclaw_doctor_emails(), true)) {
+        return 'doctor';
+    }
+
+    return 'receptionist';
+}
+
+function openclaw_scope_allowed_roles(string $scope): array
+{
+    return match (strtolower(trim($scope))) {
+        'assistant', 'read' => ['doctor', 'receptionist'],
+        'clinical_write', 'prescription', 'certificate' => ['doctor'],
+        default => ['doctor'],
+    };
+}
+
+function openclaw_role_has_scope(string $scope, ?string $role = null): bool
+{
+    $role = is_string($role) ? strtolower(trim($role)) : operator_auth_clinical_role();
+    if ($role === '') {
+        $role = 'anonymous';
+    }
+
+    return in_array($role, openclaw_scope_allowed_roles($scope), true);
+}
+
+function require_openclaw_scope(string $scope): void
+{
+    require_admin_auth();
+
+    $role = operator_auth_clinical_role();
+    $allowedRoles = openclaw_scope_allowed_roles($scope);
+    if (in_array($role, $allowedRoles, true)) {
+        return;
+    }
+
+    if (function_exists('audit_log_event')) {
+        audit_log_event('openclaw.access_denied', [
+            'scope' => strtolower(trim($scope)),
+            'role' => $role,
+            'requiredRoles' => $allowedRoles,
+            'resource' => trim((string) ($_GET['resource'] ?? '')),
+            'requestMethod' => trim((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')),
+        ]);
+    }
+
+    json_response([
+        'ok' => false,
+        'error' => 'No autorizado para este recurso clinico',
+        'code' => 'clinical_role_forbidden',
+        'role' => $role,
+        'required_roles' => $allowedRoles,
+    ], 403);
 }
 
 function operator_auth_challenge_dir(): string
@@ -1026,6 +1144,7 @@ function operator_auth_authenticated_payload(array $operator, string $status = '
             'email' => (string) ($operator['email'] ?? ''),
             'profileId' => (string) ($operator['profileId'] ?? ''),
             'accountId' => (string) ($operator['accountId'] ?? ''),
+            'clinicalRole' => operator_auth_clinical_role($operator),
             'source' => (string) ($operator['source'] ?? operator_auth_mode()),
             'authenticatedAt' => (string) ($operator['authenticatedAt'] ?? ''),
             'expiresAt' => (string) ($operator['expiresAt'] ?? ''),
