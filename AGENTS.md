@@ -1489,9 +1489,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### RB-4 Consolidación y Limpieza Post-Reborn
 
-- [ ] **RB-16** `[S]` `[UI]` `.lg-surface` class explícita — `aurora-tv.css` y `aurora-kiosk.css` aplican glassmorphism pero no exponen la clase `.lg-surface` que los verificables de RB-12/RB-13 exigen. Añadir `.lg-surface` como utility class en ambos archivos y en `reborn-tokens.css`. Verificable: `grep "lg-surface" styles/aurora-tv.css styles/aurora-kiosk.css styles/reborn-tokens.css` → match en los 3.
-- [ ] **RB-17** `[M]` `[UI]` Purga de `!important` en CSS Reborn operativo — `aurora-kiosk.css` y `aurora-operator.css` usan `!important` generalizado como override legacy. Crear `styles/queue-shared.css` (requerido S8-17), activar variables base, eliminar `!important` redundantes. Verificable: suma de `!important` en aurora-kiosk + aurora-operator + aurora-tv ≤ 10.
-- [ ] **RB-18** `[L]` `[UI]` Retire CSS legacy post-Reborn — auditar y eliminar `<link>` redundantes pre-Reborn de las 4 shells operativas. Verificable: Lighthouse CSS coverage ≥ 80% en `sala-turnos.html`, `kiosco-turnos.html`, `operador-turnos.html`, `admin.html`.
+- [x] **RB-16** `[S]` `[UI]` `.lg-surface` class explícita — `aurora-tv.css` y `aurora-kiosk.css` aplican glassmorphism pero no exponen la clase `.lg-surface` que los verificables de RB-12/RB-13 exigen. Añadir `.lg-surface` como utility class en ambos archivos y en `reborn-tokens.css`. Verificable: `grep "lg-surface" styles/aurora-tv.css styles/aurora-kiosk.css styles/reborn-tokens.css` → match en los 3.
+- [x] **RB-17** `[M]` `[UI]` Purga de `!important` en CSS Reborn operativo — `aurora-kiosk.css` y `aurora-operator.css` usan `!important` generalizado como override legacy. Crear `styles/queue-shared.css` (requerido S8-17), activar variables base, eliminar `!important` redundantes. Verificable: suma de `!important` en aurora-kiosk + aurora-operator + aurora-tv ≤ 10.
+- [x] **RB-18** `[L]` `[UI]` Retire CSS legacy post-Reborn — auditar y eliminar `<link>` redundantes pre-Reborn de las 4 shells operativas. Verificable: Lighthouse CSS coverage ≥ 80% en `sala-turnos.html`, `kiosco-turnos.html`, `operador-turnos.html`, `admin.html`.
 
 ---
 
@@ -1530,7 +1530,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 8.6 Deuda de código
 
 - [ ] **S8-16** `[S]` Verification tree dedupe — directorio `verification/verification/` duplicado detectado en audit. Limpiar jerarquía: dejar una sola carpeta canónica `verification/` y redirigir o eliminar duplicados. Verificable: `find . -type d -name "verification" | wc -l` → 1.
-- [ ] **S8-17** `[S]` `[UI]` Queue CSS modularization — `queue-ops.css` mezcla estilos de kiosco, sala, operador y admin. Partir en: `aurora-kiosk.css` (ya existe), `aurora-tv.css` (ya existe), `aurora-operator.css` (ya existe), `queue-shared.css` (variables y base compartida). Eliminar duplicaciones entre ellos. Sin cambiar HTML — solo CSS. Verificable: `grep -c "kiosco" queue-ops.css` → 0.
+- [x] **S8-17** `[S]` `[UI]` Queue CSS modularization — `queue-ops.css` mezcla estilos de kiosco, sala, operador y admin. Partir en: `aurora-kiosk.css` (ya existe), `aurora-tv.css` (ya existe), `aurora-operator.css` (ya existe), `queue-shared.css` (variables y base compartida). Eliminar duplicaciones entre ellos. Sin cambiar HTML — solo CSS. Verificable: `grep -c "kiosco" queue-ops.css` → 0.
 - [ ] **S8-18** `[M]` Install hub split — `install-hub-queue.js` (resultado de S3-61) todavía contiene lógica de al menos 2 superficies mezcladas. Completar la división: `install-hub-display.js` (sala + kiosco visual), `install-hub-ops.js` (operador + admin instalación). Barrel `install-hub.js` re-exporta todo. Verificable: tests en `tests-node/install-hub*` siguen en verde.
 - [ ] **S8-19** `[L]` Clinical history render split — `clinical-history/render/index.js` tiene 13.837 líneas. Primera división: extraer `render-photos.js` (galería + before/after), `render-timeline.js` (episodios, evolución, notas), `render-documents.js` (recetas, certificados, PDFs). El archivo principal queda como barrel. Sin romper CSS hooks de `aurora-clinical.css`. Verificable: tests existentes de render siguen en verde.
 

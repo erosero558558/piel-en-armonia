@@ -274,3 +274,10 @@ body.queue-display-body .display-next-list li.display-empty {
     transition-duration: 0.01ms; 
   } 
 }
+/* Explicit Reborn surface utility (RB-16) */
+.lg-surface {
+    background: var(--reborn-surface-glass) !important;
+    backdrop-filter: blur(28px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
