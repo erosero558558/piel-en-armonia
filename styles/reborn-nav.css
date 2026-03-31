@@ -23,13 +23,16 @@
     right: 0;
     z-index: 1000;
     
-    /* Aesthetic Glassmorphism */
+    /* Aesthetic Glassmorphism (Liquid Reborn) */
     border-radius: 999px;
-    background: rgba(18, 18, 22, 0.70);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--reborn-surface-glass);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
     border: 1px solid var(--reborn-color-border);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 24px rgba(3, 8, 18, 0.4);
+    
+    /* Liquid Glass Ripple on Hover context */
+    overflow: hidden;
 }
 
 .reborn-navbar-pill__logo {

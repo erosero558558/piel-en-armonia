@@ -1471,8 +1471,8 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### RB-2 Interacción de Diagnóstico (ChatGPT-like UI)
 
-- [ ] **RB-07** `[L]` `[UI]` Rediseño OpenClaw UI — SOLO la interfaz visual del chat en `admin.html`. NO tocar `OpenclawController.php` ni ningún archivo PHP. Lista plana de mensajes sin burbujas, input píldora fijo en bottom. Verificable: `grep "openclaw.*pill\|chat-flat\|RB-07" styles/aurora-clinical.css` → match; `git diff HEAD -- controllers/` → 0 cambios en controllers.
-- [ ] **RB-08** `[M]` `[UI]` Micro-animaciones AI — cursor blink CSS `@keyframes blink 1s step-end infinite`, selector CIE-10 con `backdrop-filter` y `opacity 0→1` al hover. Verificable: `grep "blink\|CIE.*glass\|RB-08" styles/aurora-clinical.css` → match ≥2.
+- [x] **RB-07** `[L]` `[UI]` Rediseño OpenClaw UI — SOLO la interfaz visual del chat en `admin.html`. NO tocar `OpenclawController.php` ni ningún archivo PHP. Lista plana de mensajes sin burbujas, input píldora fijo en bottom. Verificable: `grep "openclaw.*pill\|chat-flat\|RB-07" styles/aurora-clinical.css` → match; `git diff HEAD -- controllers/` → 0 cambios en controllers.
+- [x] **RB-08** `[M]` `[UI]` Micro-animaciones AI — cursor blink CSS `@keyframes blink 1s step-end infinite`, selector CIE-10 con `backdrop-filter` y `opacity 0→1` al hover. Verificable: `grep "blink\|CIE.*glass\|RB-08" styles/aurora-clinical.css` → match ≥2.
 
 #### RB-3 Experiencia Clínica Seamless (Book & Patient Portal)
 
