@@ -389,6 +389,46 @@ function createTaskCheckDefinitions(context) {
         },
       },
     ],
+    'S13-02': [
+      {
+        name: 'Sitemap automation and critical public routes are present',
+        evaluate: () => {
+          const generator = fileIncludes(
+            'bin/gen-sitemap.js',
+            [
+              'const SITEMAP_FILE = path.join(ROOT, \'sitemap.xml\');',
+              'const LEGACY_CONTRACT_ROUTES = [',
+              'collectCatalogRoutes(routes);',
+              "collectJsonRoutes('content/public-v6/es/software.json', routes);",
+              'const BASE_URL = \'https://pielarmonia.com\';',
+            ],
+            'bin/gen-sitemap.js combina rutas de contrato, catalogo y contenido con base https://pielarmonia.com'
+          );
+          const sync = fileIncludes(
+            'bin/sync-backlog.js',
+            ['gen-sitemap.js', 'Auto-regenerar sitemap.xml después de cada sync'],
+            'bin/sync-backlog.js regenera sitemap.xml automáticamente'
+          );
+          const sitemap = fileIncludes(
+            'sitemap.xml',
+            [
+              'https://pielarmonia.com/es/paquetes/',
+              'https://pielarmonia.com/es/agendar/',
+              'https://pielarmonia.com/es/portal/',
+              'https://pielarmonia.com/es/software/turnero-clinicas/precios/',
+              'https://pielarmonia.com/en/services/depilacion-laser/',
+            ],
+            'sitemap.xml incluye paquetes y rutas públicas recientes de booking, portal, pricing y servicio SEO canónico'
+          );
+
+          if (generator.ok && sync.ok && sitemap.ok) {
+            return pass(`${generator.detail}; ${sync.detail}; ${sitemap.detail}`);
+          }
+
+          return fail([generator.detail, sync.detail, sitemap.detail].filter(Boolean).join(' | '));
+        },
+      },
+    ],
   };
 }
 

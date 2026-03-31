@@ -60,3 +60,14 @@ test('S3-45 gate checks verify shared map wiring and test coverage evidence', ()
   assert.match(wiringResult.detail, /bin\/gate\.js/);
   assert.match(wiringResult.detail, /gate-task-checks\.test\.js/);
 });
+
+test('S13-02 gate check verifies sitemap automation and current public routes', () => {
+  const result = taskChecks['S13-02'][0].evaluate();
+
+  assert.equal(result.ok, true);
+  assert.match(result.detail, /bin\/gen-sitemap\.js/);
+  assert.match(result.detail, /bin\/sync-backlog\.js/);
+  assert.match(result.detail, /sitemap\.xml/);
+  assert.match(result.detail, /paquetes/);
+  assert.match(result.detail, /SEO canónico/);
+});
