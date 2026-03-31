@@ -1,108 +1,94 @@
 #!/usr/bin/env node
-/**
- * bin/gen-sitemap.js — S13-16: Generador automático de sitemap.xml
- *
- * Recorre es/[**]/index.html y genera sitemap.xml con lastmod real
- * (fecha del último commit de git para ese archivo).
- *
- * npm run gen:sitemap
- */
 
-const { execSync, spawnSync } = require('child_process');
-const { writeFileSync, readdirSync, statSync, existsSync } = require('fs');
-const { resolve, relative } = require('path');
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
 
-const ROOT        = resolve(__dirname, '..');
-const DOMAIN      = 'https://pielarmonia.com';
-const OUTPUT_FILE = resolve(ROOT, 'sitemap.xml');
-const CHANGEFREQS = {
-  default:  'monthly',
-  servicios: 'weekly',
-  blog:     'weekly',
-  index:    'daily',
-};
+const ROOT = path.resolve(__dirname, '..');
+const SITEMAP_FILE = path.join(ROOT, 'sitemap.xml');
+const BASE_URL = 'https://aurora-derm.com';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function gitLastmod(absPath) {
-  try {
-    const rel = relative(ROOT, absPath);
-    const out = spawnSync('git', ['log', '-1', '--format=%cI', '--', rel], {
-      cwd: ROOT, encoding: 'utf8'
-    });
-    const date = (out.stdout || '').trim().split('T')[0];
-    return date || new Date().toISOString().split('T')[0];
-  } catch {
-    return new Date().toISOString().split('T')[0];
-  }
-}
-
-function getPriority(urlPath) {
-  if (urlPath === '/' || urlPath === '/es/')  return '1.0';
-  if (urlPath.includes('/servicios/'))         return '0.9';
-  if (urlPath.includes('/blog/'))              return '0.8';
-  if (urlPath.includes('/agendar/') || urlPath.includes('/primera-consulta/')) return '0.9';
-  if (urlPath.includes('/paquetes/') || urlPath.includes('/precios/'))         return '0.8';
-  if (urlPath.includes('/portal/'))            return '0.6';
-  return '0.7';
-}
-
-function getChangefreq(urlPath) {
-  if (urlPath.includes('/servicios/') || urlPath.includes('/blog/')) return 'weekly';
-  if (urlPath === '/' || urlPath === '/es/')  return 'daily';
-  return 'monthly';
-}
-
-// ── Walk directories ──────────────────────────────────────────────────────────
-
-const EXCLUDE = ['node_modules', '_archive', '.git', 'archive', 'worktrees'];
-const urls    = [];
-
-function walk(dir, depth = 0) {
-  if (depth > 6) return;
-  let entries;
-  try { entries = readdirSync(dir); } catch { return; }
-  for (const entry of entries) {
-    if (EXCLUDE.some(ex => entry.startsWith(ex) || entry.startsWith('.'))) continue;
-    const abs = resolve(dir, entry);
-    let stat;
-    try { stat = statSync(abs); } catch { continue; }
-    if (stat.isDirectory()) {
-      walk(abs, depth + 1);
-    } else if (entry === 'index.html') {
-      const urlPath = '/' + relative(ROOT, abs).replace(/index\.html$/, '');
-      if (!urlPath.includes('worktree') && !urlPath.includes('_codex')) {
-        urls.push({ abs, urlPath });
-      }
+function getGitLastMod(filePath) {
+    try {
+        const cmd = `git log -1 --format=%cI -- "${filePath}"`;
+        const result = execSync(cmd, { cwd: ROOT, encoding: 'utf8' }).trim();
+        // Return YYYY-MM-DD format as required by sitemaps
+        if (result) {
+            return result.split('T')[0];
+        }
+    } catch (e) {
+        // ignore
     }
-  }
+    // Fallback to today
+    return new Date().toISOString().split('T')[0];
 }
 
-// Root index.html
-if (existsSync(resolve(ROOT, 'index.html'))) {
-  urls.push({ abs: resolve(ROOT, 'index.html'), urlPath: '/' });
+function scanHtmlFiles(dir, fileList = []) {
+    if (!fs.existsSync(dir)) return fileList;
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+        if (file === 'node_modules' || file === '.git') continue;
+        const fullPath = path.join(dir, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+            scanHtmlFiles(fullPath, fileList);
+        } else if (file === 'index.html') {
+            fileList.push(fullPath);
+        }
+    }
+    return fileList;
 }
-// Recurse es/ and en/
-walk(resolve(ROOT, 'es'));
-walk(resolve(ROOT, 'en'));
 
-// ── Generate XML ──────────────────────────────────────────────────────────────
+function generate() {
+    // Collect all index.html paths in root, es/ and en/
+    const pages = [];
+    
+    // Add root index.html
+    const rootIndex = path.join(ROOT, 'index.html');
+    if (fs.existsSync(rootIndex)) {
+        pages.push(rootIndex);
+    }
+    
+    // Add everything in es/ and en/
+    scanHtmlFiles(path.join(ROOT, 'es'), pages);
+    scanHtmlFiles(path.join(ROOT, 'en'), pages);
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n`;
+    xml += `        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n`;
+    
+    for (const page of pages) {
+        const relPath = path.relative(ROOT, page).replace(/\\/g, '/');
+        
+        let urlPath = relPath.replace('index.html', '');
+        if (!urlPath.startsWith('/')) {
+            urlPath = '/' + urlPath;
+        }
+        
+        const loc = `${BASE_URL}${urlPath}`;
+        const lastmod = getGitLastMod(relPath);
+        
+        let priority = '0.7';
+        if (urlPath === '/' || urlPath === '/es/' || urlPath === '/en/') priority = '1.0';
+        else if (urlPath.includes('/servicios/')) priority = '0.9';
+        else if (urlPath.includes('/blog/')) priority = '0.8';
+        else if (urlPath.includes('/portal/')) priority = '0.6';
+        
+        // Let's use weekly/monthly logic
+        let freq = 'monthly';
+        if (priority === '1.0') freq = 'daily';
+        else if (priority === '0.9' || priority === '0.8') freq = 'weekly';
 
-const entries = urls.map(({ abs, urlPath }) => {
-  const loc       = DOMAIN + urlPath;
-  const lastmod   = gitLastmod(abs);
-  const priority  = getPriority(urlPath);
-  const changefreq = getChangefreq(urlPath);
-  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
-});
+        xml += `  <url>\n`;
+        xml += `    <loc>${loc}</loc>\n`;
+        xml += `    <lastmod>${lastmod}</lastmod>\n`;
+        xml += `    <changefreq>${freq}</changefreq>\n`;
+        xml += `    <priority>${priority}</priority>\n`;
+        xml += `  </url>\n`;
+    }
+    
+    xml += `</urlset>\n`;
+    fs.writeFileSync(SITEMAP_FILE, xml, 'utf8');
+    console.log(`Generated sitemap.xml with ${pages.length} URLs`);
+}
 
-const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${entries.join('\n')}
-</urlset>`;
-
-writeFileSync(OUTPUT_FILE, xml, 'utf8');
-console.log(`✅ gen:sitemap — ${entries.length} URLs generadas en sitemap.xml`);
-console.log(`   Dominio: ${DOMAIN}`);
-console.log(`   Output:  sitemap.xml`);
+generate();

@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 11:47:15 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 11:51:29 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████░░░░░░░` **67%** completado (325/485)
+`█████████████░░░░░░░` **67%** completado (326/485)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -22,7 +22,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
-| ⏸ Sprint 8 | 9 | 8 | 53% |
+| ⏸ Sprint 8 | 10 | 7 | 59% |
 | ⏸ Sprint 9 | 9 | 18 | 33% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
@@ -107,9 +107,9 @@ _Sprint completado. 20/20 tareas._
 _Sprint completado. 0/0 tareas._
 
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
-_Esperando que Sprint anterior esté completo. 8 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 7 tareas pendientes._
 
-### 🟢 Disponibles (8)
+### 🟢 Disponibles (7)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -118,7 +118,7 @@ _Esperando que Sprint anterior esté completo. 8 tareas pendientes._
 | **S8-13** | `[S8]` | M |
 | **S8-14** | `[S8]` | M |
 | **S8-16** | `[S8]` | S |
-| ... | | _+3 más_ |
+| ... | | _+2 más_ |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
 _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
