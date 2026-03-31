@@ -1226,7 +1226,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S5-19** `[M]` Before/after real — en el portal del paciente, slider de comparación con sus propias fotos (Día 1 vs Semana 12). Reutilizar componente BA de `index.html`.
 - [ ] **S5-20** `[L]` Encuesta de satisfacción — 72h después de la cita: NPS de 1-5 + comentario libre. Guardar en admin. Usar para mejorar servicio.
 - [ ] **S5-21** `[M]` Red flags para el paciente — si en los últimos 30 días hay una nota de "cambio sospechoso" en su caso, notificar al paciente: "Su seguimiento recomienda una consulta pronto."
-- [ ] **S5-22** `[S]` Exportar mi historia — botón en el portal: descargar PDF completo de la historia clínica propia. Legal compliance: el paciente tiene derecho a su información.
+- [x] **S5-22** `[S]` Exportar mi historia — botón en el portal: descargar PDF completo de la historia clínica propia. Legal compliance: el paciente tiene derecho a su información.
 
 ---
 
@@ -1914,8 +1914,8 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S19-04** `[M]` Ops console para WhatsApp OpenClaw — vista operativa `whatsapp-openclaw-ops`: muestra conversations, drafts, outbox, holds y human_followup agrupados. Verificable: una conversación con hold activo aparece en el panel con su `conversationId`.
 - [x] **S19-05** `[M]` Retry y dead-letter para outbox WhatsApp — formalizar estados `queued|sent|failed|requeued`, campos `retryCount`, `lastError`, y acción admin `requeue_outbox`. Verificable: un mensaje fallido puede reencolarse (`status=requeued`) sin duplicar mensajes ya enviados.
 - [x] **S19-06** `[M]` Dashboard de slot holds WhatsApp — listar holds `active|expired|released|consumed` por doctor/fecha con TTL visible y acción de liberación manual con motivo. Verificable: un hold expirado ya no figura como `active` después de `expireSlotHolds()`.
-- [ ] **S19-07** `[M]` Cola de handoff humano desde WhatsApp — cuando `intent=handoff_clinical` o FAQ no resuelve, crear item operativo con `{conversationId, phone, reason, latestDraftSummary, sla_due_at}`. Verificable: pregunta clínica sin resolución → registro trazable fuera del chat.
-- [ ] **S19-08** `[M]` Funnel de booking por WhatsApp OpenClaw — generar artifact `data/funnel/whatsapp-openclaw-latest.json` con etapas: `inbound → availability_lookup → hold_created → checkout_ready → appointment_created → handoff`. Verificable: el artifact existe aunque alguna etapa esté en 0.
+- [x] **S19-07** `[M]` Cola de handoff humano desde WhatsApp — cuando `intent=handoff_clinical` o FAQ no resuelve, crear item operativo con `{conversationId, phone, reason, latestDraftSummary, sla_due_at}`. Verificable: pregunta clínica sin resolución → registro trazable fuera del chat.
+- [x] **S19-08** `[M]` Funnel de booking por WhatsApp OpenClaw — generar artifact `data/funnel/whatsapp-openclaw-latest.json` con etapas: `inbound → availability_lookup → hold_created → checkout_ready → appointment_created → handoff`. Verificable: el artifact existe aunque alguna etapa esté en 0.
 
 #### 19.3 Android TV — Release y runtime
 
