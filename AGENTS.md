@@ -1703,7 +1703,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
 - [x] **S13-04** `[M]` Security headers en nginx — `nginx-pielarmonia.conf` no tiene `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Sin estos headers, la clínica es vulnerable a clickjacking y XSS reflejado. Verificable: `curl -I https://aurora-derm.com | grep -i "x-frame"` → match.
 - [x] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
-- [ ] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
+- [x] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
 
 #### 13.2 `tele-head-links.html` — regresión silenciosa detectada
 
@@ -2006,6 +2006,34 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 22.4 Calidad — pruebas de producto directas
 
 - [ ] **S22-09** `[M]` `codex_transversal` QA pack comercial y de referidos — agregar integración y Playwright para `referral-link`, `referral-stats`, `membership-status`, `active-promotions`, `gift-card-validate/issue/redeem`, `/es/referidos/`, `/es/gift-cards/`, `/es/promociones/`, `/es/membresia/`, `/es/paquetes/` y `/es/portal/referidos/`. Las pruebas de analytics ya no cuentan como cobertura suficiente. Verificable: existen tests directos de endpoints y surfaces, no solo de funnel/events.
+
+
+### 🧭 Sprint 23 — Credibilidad de Compra, Cohesión Comercial y Truth-in-Sales
+
+> **Criterio de inclusión:** cerrar las dudas de compra que hoy genera Flow OS desde fuera: pricing incoherente, CTAs a superficies internas, proof sin procedencia, readiness comercial exagerado y mezcla de marca entre producto y clínica de referencia.
+> **No reemplaza:** `S6-14`, `S6-15`, `S6-17`, `S6-22`, `S6-24` ni `S9-20`; les añade honestidad comercial, fuente canónica y gates para no sobreprometer.
+
+#### 23.1 Fuente comercial y coherencia de oferta
+
+- [ ] **S23-01** `[L]` `codex_transversal` Fuente única de verdad comercial — crear `data/flow-os/commercial-config.json` con `commercial_mode`, `active_offer`, `cta_targets`, `trial_enabled`, `pricing_mode` y `allowed_public_claims`. Landing, precios, onboarding y CTA deben leer de la misma fuente. Verificable: no coexisten `piloto único` y `Free/Starter/Pro/Enterprise` salvo que `pricing_mode=hybrid`.
+- [ ] **S23-07** `[M]` `codex_transversal` Honestidad del onboarding comercial — revisar y corregir claims como `Digitaliza tus servicios en menos de 10 minutos` y CTAs tipo `Empieza gratis` para que reflejen el modo comercial activo real. Si hoy el modelo no es self-serve, debe decir `Solicitar activación` o equivalente. Verificable: onboarding, pricing y landing no prometen autoalta que el producto no cumple.
+
+#### 23.2 Integridad pública y narrativa de marca
+
+- [ ] **S23-02** `[M]` `codex_frontend` Integridad de CTAs públicas — eliminar links públicos a `/admin.html#queue` y `/admin.html#settings` en Flow OS. Reemplazar por rutas buyer-safe: propuesta, demo guiada, onboarding válido o waitlist. Verificable: `rg "/admin.html#" es/software/turnero-clinicas app-downloads es/ | wc -l` → `0` en superficies comerciales.
+- [ ] **S23-05** `[M]` `codex_frontend` Arquitectura de marca Flow OS vs Aurora Derm — corregir `og:site_name`, footer, copy y encabezados para que Flow OS sea el producto y Aurora Derm quede como `tenant de referencia`, no como identidad mezclada. Verificable: las páginas B2B tienen jerarquía consistente de marca en meta tags, header, hero y footer.
+
+#### 23.3 Proof, readiness y truth gate comercial
+
+- [ ] **S23-03** `[M]` `codex_transversal` Ledger de proof comercial — crear `data/flow-os/proof-ledger.json` con `claim_id`, `value`, `source`, `tenant`, `captured_at`, `fresh_until` y `status=live|stale|demo`. Las cards de proof y métricas públicas deben salir de ahí, no de JSON inline opaco. Verificable: cada cifra pública visible tiene `captured_at` y `status`.
+- [ ] **S23-04** `[M]` `codex_transversal` Gate de venta según readiness — si el semáforo operativo sigue `RED`, las páginas comerciales deben degradar promesa a `demo controlada`, `propuesta exploratoria` o `waitlist`, no `piloto listo`, `SLA`, `empieza ya` ni `instalación inmediata`. Verificable: un check comercial falla si `PRODUCT_OPERATIONAL_STATUS=RED` y la web pública sigue prometiendo despliegue activo.
+- [ ] **S23-06** `[M]` `codex_frontend` Badges públicos de readiness por módulo — cada surface o módulo visible para compra debe llevar estado público real: `Disponible ahora`, `Piloto guiado`, `En validación` o `No publicado`. Debe consumir readiness real y artefactos publicados, especialmente desktop, kiosk y sala TV. Verificable: `kiosk` y `sala_tv` no aparecen como listos cuando el repo no publica artefactos reales.
+- [ ] **S23-10** `[M]` `codex_transversal` Commercial truth gate — crear un check tipo `bin/check-commercial-truth.js` o equivalente que falle por claims sin source, CTAs a rutas internas, pricing incoherente, SLA o promesas no habilitadas y badges de readiness sin soporte real. Verificable: el gate detecta drift comercial antes de publicar.
+
+#### 23.4 Compra B2B y alcance de implementación
+
+- [ ] **S23-08** `[M]` `codex_transversal` Buyer pack B2B de seguridad y operación — crear un paquete comercial técnico corto con auth, backups, audit trail, IA con aprobación humana, soporte, límites del producto y prerequisitos de implementación. Esto es B2B, no página legal de paciente. Verificable: existe una surface o pack enlazable desde Flow OS que responde a objeciones de comprador serio.
+- [ ] **S23-09** `[M]` `codex_backend_ops` Scope y migración de implementación — definir una hoja de implantación del piloto: qué datos se migran, qué no, duración real, qué debe entregar la clínica, fallback de día 1 y qué queda fuera del alcance. Verificable: existe un checklist de implementación y un buyer no tiene que inferir el esfuerzo por su cuenta.
 
 
 ---
