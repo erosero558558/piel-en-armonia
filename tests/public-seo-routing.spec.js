@@ -622,6 +622,11 @@ test.describe('Public SEO files', () => {
         expect(robots).toContain('Disallow: /admin.html');
         expect(robots).toContain('Disallow: /data/');
         expect(robots).toContain('Disallow: /tools/');
+        expect(robots).toContain('Disallow: /lib/');
+        expect(robots).toContain('Disallow: /templates/');
+        expect(robots).toContain('Disallow: /backup/');
+        expect(robots).toContain('Disallow: /bin/');
+        expect(robots).toContain('Disallow: /store/');
         expect(robots).not.toContain('Disallow: /es/');
         expect(robots).not.toContain('Disallow: /en/');
     });

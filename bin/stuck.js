@@ -323,8 +323,10 @@ function clearBlocker(taskId) {
 
   const stuck = loadStuck();
   if (!stuck[taskId]) {
-    console.error(`Not found: ${taskId}`);
-    process.exit(1);
+    updateBlockersMarkdown(stuck, taskId);
+    const commit = autoCommit(taskId, '', 'clear');
+    console.log(`✅ ${taskId} removed from BLOCKERS.md (manual entry).`);
+    process.exit(0);
   }
 
   ensureBlockersFile();
