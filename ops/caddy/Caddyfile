@@ -8,7 +8,11 @@ http://www.pielarmonia.com {
 	redir https://pielarmonia.com{uri} permanent
 }
 
-http://pielarmonia.com, http://127.0.0.1, http://localhost {
+http://www.aurora-derm.com {
+	redir https://aurora-derm.com{uri} permanent
+}
+
+http://pielarmonia.com, http://aurora-derm.com, http://127.0.0.1, http://localhost {
 	root * {$PIELARMONIA_WORKSPACE_ROOT:C:/dev/pielarmonia-workspace}
 	encode zstd gzip
 
@@ -17,7 +21,7 @@ http://pielarmonia.com, http://127.0.0.1, http://localhost {
 		format console
 	}
 
-	@publicHost host pielarmonia.com www.pielarmonia.com
+	@publicHost host pielarmonia.com www.pielarmonia.com aurora-derm.com www.aurora-derm.com
 	header {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
@@ -25,7 +29,7 @@ http://pielarmonia.com, http://127.0.0.1, http://localhost {
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		Cross-Origin-Opener-Policy "same-origin-allow-popups"
 		Cross-Origin-Resource-Policy "same-site"
-		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://images.unsplash.com https://www.google-analytics.com https://*.stripe.com https://cloudflareinsights.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://cloudflareinsights.com https://browser.sentry-cdn.com https://*.ingest.sentry.io https://sentry.io; worker-src 'self' blob:; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://images.unsplash.com https://www.google-analytics.com https://*.stripe.com https://cloudflareinsights.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://cloudflareinsights.com https://browser.sentry-cdn.com https://*.ingest.sentry.io https://sentry.io https://wa.me https://api.whatsapp.com; worker-src 'self' blob:; form-action 'self' https://aurora-derm.com https://pielarmonia.com"
 		X-XSS-Protection "1; mode=block"
 	}
 	header @publicHost Strict-Transport-Security "max-age=31536000; includeSubDomains"

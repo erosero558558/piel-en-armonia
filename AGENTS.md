@@ -1287,7 +1287,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S7-01** `[M]` Auditar y eliminar `legacy_password` de `lib/auth.php` — `grep -n 'legacy_password\|legacy_fallback'` devuelve 6 líneas activas (136, 146, 148, 172, 175, 1456). La función `internal_console_legacy_fallback_payload()` expone un mecanismo de autenticación alternativo sin rate-limit ni logging. Mapear: ¿quién llama a `internal_console_auth_fallbacks_payload()`? Si nadie en producción lo necesita ya, envolver en `if (app_env('INTERNAL_LEGACY_AUTH') === 'true')` para que esté desactivado por default. Documentar en SECURITY.md.
 - [ ] **S7-02** `[S]` Hardening `k8s/secret.yaml.example` — el archivo tiene `AURORADERM_ADMIN_PASSWORD: "change-me"` y `sk_live_...` como placeholders. Un developer podría deployar con valores por defecto. Agregar un script `ops/check-secrets.sh` que lea el secret real (via `kubectl get secret`) y falle si encuentra cualquier valor `change-me` o `...`. Incluirlo en el runbook de deploy.
-- [ ] **S7-03** `[M]` CSP `ops/caddy/Caddyfile` — el Content-Security-Policy en Caddy no incluye dominios de aurora-derm (solo pielarmonia.com). `grep 'aurora' ops/caddy/Caddyfile` devuelve 0 resultados. Añadir los dominios de Aurora Derm al CSP, al `@publicHost` y al bloque de headers. Verificar que el CSP no bloquea ningún asset del admin ni de OpenClaw. Herramienta: CSP Evaluator (csp-evaluator.withgoogle.com).
+- [x] **S7-03** `[M]` CSP `ops/caddy/Caddyfile` — el Content-Security-Policy en Caddy no incluye dominios de aurora-derm (solo pielarmonia.com). `grep 'aurora' ops/caddy/Caddyfile` devuelve 0 resultados. Añadir los dominios de Aurora Derm al CSP, al `@publicHost` y al bloque de headers. Verificar que el CSP no bloquea ningún asset del admin ni de OpenClaw. Herramienta: CSP Evaluator (csp-evaluator.withgoogle.com).
 - [ ] **S7-04** `[S]` Rate limiting en endpoints sensibles — `api.php` no tiene rate limiting por IP en rutas de auth. Agregar middleware en `lib/ApiKernel.php` o en el bloque Caddy: limitar `/api.php?resource=admin-login` a 5 intentos/minuto por IP. Usar header `X-RateLimit-*` en respuesta. Documentar en SECURITY.md.
 - [ ] **S7-05** `[S]` Auditar permisos por rol en endpoints OpenClaw — `OpenclawController` tiene `requireAuth()` pero no verifica el rol del usuario autenticado. Un recepcionista autenticado puede ejecutar `openclaw-chat`, `openclaw-prescription`, `openclaw-certificate`. Definir en `lib/auth.php` qué rol puede acceder a qué endpoint clínico. Mínimo: separar `doctor` de `receptionist` para endpoints de prescripción y certificado.
 
@@ -1297,7 +1297,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S7-07** `[M]` Prometheus scraping real — `docker-compose.monitoring.yml` tiene Prometheus configurado, pero `prometheus.docker.yml` apunta a pielarmonia. Verificar que las métricas de Aurora Derm (`/api.php?resource=queue-state`) están en los targets de Prometheus. Crear al menos 1 regla de alerta en `prometheus.rules.yml` para: `queue_size > 20` y `api_error_rate_5m > 5%`. Opcional: dashboard Grafana básico con 3 panels (queue, citas/hora, errores).
 - [ ] **S7-08** `[S]` Backup y restore automatizado — no hay ninguna tarea que valide backup del store JSON. El store principal en `data/store.json` (y derivados) es el único estado del sistema. Crear `ops/backup.sh`: copiar a `data/backups/YYYY-MM-DD-HH.json.gz`, mantener últimos 7 días, rotar automáticamente. Agregar a cron o como script que el operador ejecuta vía `npm run backup`. Documentar el proceso de restore en `docs/RUNBOOK.md`.
 - [ ] **S7-09** `[S]` k8s readiness/liveness probes — `k8s/deployment.yaml` no tiene `readinessProbe` ni `livenessProbe`. Kubernetes no puede detectar pods zombies. Agregar ambos apuntando a `/api.php?resource=health`. `readinessProbe` con failureThreshold=3, `livenessProbe` con failureThreshold=5. Verificar que el `health` endpoint responde en <200ms bajo carga.
-- [ ] **S7-10** `[M]` Incident response playbook — no existe un runbook de "¿qué hago cuando el sistema falla en producción?". Crear `docs/INCIDENT.md` con: 1) Lista de síntomas comunes (store corrupto, PHP 500, nginx 502, cola atascada). 2) Comandos exactos de diagnóstico. 3) Procedimiento de rollback. 4) Contactos de escalación. Tiempo objetivo de resolución por severidad: P1=15min, P2=1h, P3=4h.
+- [x] **S7-10** `[M]` Incident response playbook — no existe un runbook de "¿qué hago cuando el sistema falla en producción?". Crear `docs/INCIDENT.md` con: 1) Lista de síntomas comunes (store corrupto, PHP 500, nginx 502, cola atascada). 2) Comandos exactos de diagnóstico. 3) Procedimiento de rollback. 4) Contactos de escalación. Tiempo objetivo de resolución por severidad: P1=15min, P2=1h, P3=4h.
 
 #### 7.3 Dead code y superficie no usada
 
@@ -1448,6 +1448,37 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### UI2-G Robustez del Sistema UI
 
 - [x] **UI2-20** `[S]` `[UI]` Extender `bin/verify.js` con checks de Fase 2 — añadir verificaciones automáticas para los gaps críticos encontrados: (1) `es/servicios/*/index.html` todos importan `aurora-service.css` — count debe ser ≥20; (2) `sala-turnos.html` tiene `aria-live`; (3) `styles/base.css` tiene `prefers-reduced-motion`; (4) `manifest.json` tiene `shortcuts`; (5) `es/portal/index.html` tiene `fetch(` (datos reales). Esto convierte cada follow-up del audit en una verificación automática que detecta regresiones en el futuro.
+
+---
+
+### 🚀 Sprint UI — Fase 3: REBORN (Clinical Tech Engine)
+
+> **Arquitecto:** SIMIO (Antigravity/Gemini) · **Otros agentes: NO TOCAR**
+> **Filosofía:** "Clinical Tech Reborn" — la inmersión cinemática y minimalista de Apple/ChatGPT fusionada con el rigor visual de una clínica dermatológica élite.
+> **Regla dura:** Cero heredado. Reinicio absoluto. La instrucción es CALCAR y COPIAR exactamente los patrones visuales, espaciados y animaciones de Apple, Google, TCL y ChatGPT. Prohibido inventar componentes "a medias" o experimentar, debe ser una calca muy parecida a esos referentes dorados. ¡Bajo auditoría estricta!
+
+#### RB-0 Tierra Arrasada y Nuevos Cimientos (Fundamentos Tech)
+
+- [ ] **RB-01** `[L]` `[UI]` Purga de CSS Legacy — eliminar todo rastro de `styles/main-aurora.css`, `base.css` antiguo y `tokens.css`. Entorno estéril.
+- [ ] **RB-02** `[M]` `[UI]` Sistema de Tokens Reborn — crear `styles/reborn-tokens.css`: Dark Mode OLED (fondo `#000000`), Dark Gray para cristal (`rgba(28, 28, 30, 0.65)` al estilo Apple), Blanco Tiza brillante y Acento "Aurora Gold" (`#d4af37`).
+- [ ] **RB-03** `[M]` `[UI]` Tipografía Monumental — crear `styles/reborn-typo.css` de alto contraste en escala clamp, copiando el enorme Display font de los sitios de presentación de Sony y Apple. Inter para legibilidad menor.
+
+#### RB-1 Shell Inmersivo y Navegación "Invisible"
+
+- [ ] **RB-04** `[L]` `[UI]` Navbar Glassmorphism Píldora — clónico a ChatGPT/Dynamic Island. Píldora superior translúcida ultra fina flotante, y no una barra de extremo a extremo. Contiene: logo chico, hamburguesa simple y CTA primario miniatura que reacciona con blur.
+- [ ] **RB-05** `[XL]` `[UI]` Hero Screen Cinemático — exacto al first-paint de Apple. Video de fondo muy sutil o imagen dermatológica anamórfica súper HD difuminándose a negro intenso. Único texto central gigantesco: "La ciencia detrás de tu piel". `[Agendar ahora]` ghost button.
+- [ ] **RB-06** `[XL]` `[UI]` Layout Bento Grid — copiar el grid asimétrico del sistema iOS/SonyHub. Modos y servicios (Láser, Botox) en cajas rounded (`border-radius: 24px`), fondo oscuro difuso (`rgba(28,28,30)`), bordes 1px sub-visibles con iconografía y micro-clips.
+
+#### RB-2 Interacción de Diagnóstico (ChatGPT-like UI)
+
+- [ ] **RB-07** `[L]` `[UI]` Rediseño completo OpenClaw UI — calca de ChatGPT interactivo. Eliminar chat antiguo de burbujas tipo iMessage. Usar lista plana sin bordes en los mensajes. Input inferior fijo tipo píldora.
+- [ ] **RB-08** `[M]` `[UI]` Micro-animaciones AI — incluir el token cursor generator de ChatGPT. Mostrar los protocolos CIE-10 propuestos como selectores de glassmorphism sobre los que al pasar se revela info.
+
+#### RB-3 Experiencia Clínica Seamless (Book & Patient Portal)
+
+- [ ] **RB-09** `[L]` `[UI]` App-like Booking Flow — flow de agendamiento como los onboarding de apps de salud premium de Google/Typeform, pantallas deslizándose sobre otras fundiendo el fondo, inputs masivos que enfocan de a un solo dato a la vez y quitan la interfaz fea web habitual.
+- [ ] **RB-10** `[XL]` `[UI]` Patient Dashboard Minimalista — dashboard como el hub inmersivo de iCloud Apple. "Hola, [Paciente]" muy grande. Card brillando con el recordatorio o receta al centro y fotos clínicas sin UI de marco que compita con ellas.
+- [ ] **RB-11** `[L]` `[UI]` Slider OLED fluído — componente Antes/Después usando una línea de corte láser y scroll hiper liso a 60fps sin control tosco, copiando las demostraciones de TV OLED en sus webs.
 
 ---
 

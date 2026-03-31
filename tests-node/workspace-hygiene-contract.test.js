@@ -405,25 +405,15 @@ test('frontera de markdowns en raiz queda explicita y limitada', () => {
         .sort();
     const expectedRootMarkdown = [
         'AGENTS.md',
-        'CALENDAR-CUTOVER.md',
-        'CHANGES_SUMMARY.md',
-        'CHECKLIST-PRUEBAS-PRODUCCION.md',
+        'BACKLOG.md',
+        'BLOCKERS.md',
         'CLAUDE.md',
-        'CONTRIBUTING.md',
-        'DESPLIEGUE-PIELARMONIA.md',
-        'DUAL_CODEX_RUNBOOK.md',
-        'ESTADO_PRODUCTO_OPERATIVO.md',
-        'GITHUB-ACTIONS-DEPLOY.md',
+        'DESIGN_SYSTEM.md',
         'JULES_TASKS.md',
         'KIMI_TASKS.md',
-        'PLAN_ESTABILIDAD_14DIAS.md',
-        'PLAN_MAESTRO_2026_STATUS.md',
-        'PLAN_MAESTRO_CODEX_2026.md',
-        'PLAN_MAESTRO_OPERATIVO_2026.md',
+        'LAUNCH.md',
+        'PRODUCT.md',
         'README.md',
-        'SECURITY_AUDIT.md',
-        'SERVIDOR-LOCAL.md',
-        'TRI_LANE_RUNTIME_RUNBOOK.md',
     ].sort();
     const requiredEntries = [
         'README.md',
@@ -548,6 +538,9 @@ test('frontera de html css php y ps1 en raiz queda explicita y limitada', () => 
         .filter((entry) => entry.endsWith('.ps1'))
         .sort();
     const expectedRootHtml = [
+        '404.html',
+        '500.html',
+        'admin-openclaw-setup.html',
         'admin.html',
         'index.html',
         'kiosco-turnos.html',
@@ -672,6 +665,7 @@ test('frontera de json yaml yml txt y toml en raiz queda explicita y limitada', 
         'AGENT_HANDOFFS.yaml',
         'AGENT_JOBS.yaml',
         'AGENT_SIGNALS.yaml',
+        'openapi-openclaw.yaml',
     ].sort();
     const expectedRootYml = [
         'docker-compose.monitoring.yml',
@@ -750,6 +744,7 @@ test('frontera de dotfiles y singletones especiales en raiz queda explicita y li
         .sort();
     const expectedRootDotfiles = [
         '.editorconfig',
+        '.eslintignore',
         '.gitattributes',
         '.gitignore',
         '.htaccess',
@@ -849,6 +844,7 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
     const gitignore = readRepoFile('.gitignore');
     const trackedRootDirectories = listTrackedRootDirectories();
     const expectedTrackedRootDirectories = [
+        '_archive',
         '.agents',
         '.claude',
         '.github',
@@ -861,15 +857,17 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
         'controllers',
         'data',
         'desktop-updates',
+        'dev',
         'docs',
         'fonts',
+        'governance',
         'grafana',
         'images',
         'js',
         'k8s',
         'lib',
+        'ninos',
         'ops',
-        'release',
         'scripts',
         'servicios',
         'src',

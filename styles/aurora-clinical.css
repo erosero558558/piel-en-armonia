@@ -510,3 +510,42 @@
 .clinical-photo {
   cursor: zoom-in;
 }
+
+/* ==========================================================================
+   UI4-08 Liquid Glass Modals & Overlays
+   Migrates modal/overlays to Liquid Glass transparent blur.
+   ========================================================================== */
+.modal-overlay,
+.prescription-modal-overlay,
+.aurora-lightbox-overlay {
+  background: rgba(3, 8, 18, 0.72) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.modal,
+.prescription-modal-panel {
+  /* Emulates .lg-surface--deep */
+  background: rgba(5, 9, 18, 0.72) !important;
+  backdrop-filter: blur(48px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 32px 80px rgba(3, 8, 18, 0.56), 0 8px 24px rgba(3, 8, 18, 0.32) !important;
+}
+
+/* Primary buttons with gold tint */
+.modal-overlay .btn-primary,
+.prescription-modal-overlay .btn-primary,
+.aurora-lightbox-overlay .btn-primary {
+  background: rgba(199, 163, 109, 0.14) !important;
+  border: 1px solid rgba(199, 163, 109, 0.32) !important;
+  color: rgba(235, 200, 140, 0.96) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  box-shadow: 0 4px 12px rgba(3, 8, 18, 0.24) !important;
+}
+
+.modal-overlay .btn-primary:hover,
+.prescription-modal-overlay .btn-primary:hover {
+  background: rgba(199, 163, 109, 0.22) !important;
+  border-color: rgba(199, 163, 109, 0.48) !important;
+}

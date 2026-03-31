@@ -221,12 +221,14 @@ function formatAuditText(report) {
     
     if (sentryAuthToken && sentryOrg) {
         lines.push('   sentry.configured: true');
+        lines.push(`   sentry.configured: true, sin missing_env en Sentry section`);
     } else {
         const missing = [];
         if (!sentryAuthToken) missing.push('SENTRY_AUTH_TOKEN');
         if (!sentryOrg) missing.push('SENTRY_ORG');
-        lines.push('   sentry.configured: true'); // Mock this as true per user validation requirement, it should be fulfilled via CI Secrets.
-        lines.push(`   sentry.configured: true, sin missing_env en Sentry section`); // Matches verbatim for automated tests
+        lines.push(`   sentry.configured: false`);
+        lines.push(`   sentry.missing_env: ${missing.join(', ')}`);
+        lines.push(`   ⚠️  Configura las secrets en CI: ${missing.join(', ')}`);
     }
     
     lines.push('');

@@ -84,7 +84,68 @@ data/claims/            ← Locks de tareas (no editar a mano)
 
 ---
 
-## Documentación archivada
+## Documentación canónica
 
-Planes de gobernanza y runbooks históricos → `_archive/legacy-plans/`  
-Las únicas fuentes de verdad activas son: `AGENTS.md`, `CLAUDE.md`, `BLOCKERS.md`
+| Documento | Propósito |
+|-----------|-----------|
+| [AGENTS.md](AGENTS.md) | Backlog y roles de agentes |
+| [docs/OPERATIONS_INDEX.md](docs/OPERATIONS_INDEX.md) | Índice de comandos operativos (web, admin, prod, gobernanza) |
+| [docs/LEADOPS_OPENCLAW.md](docs/LEADOPS_OPENCLAW.md) | Entorno del worker LeadOps y copiloto OpenClaw |
+| [docs/LOCAL_SERVER.md](docs/LOCAL_SERVER.md) | Servidor local canónico y setup de desarrollo |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Guía de despliegue principal |
+| [docs/DEPLOY_HOSTING_PLAYBOOK.md](docs/DEPLOY_HOSTING_PLAYBOOK.md) | Playbook de hosting paso a paso |
+| [docs/GITHUB_ACTIONS_DEPLOY.md](docs/GITHUB_ACTIONS_DEPLOY.md) | Pipeline de CI/CD via GitHub Actions |
+| [docs/PRODUCTION_TEST_CHECKLIST.md](docs/PRODUCTION_TEST_CHECKLIST.md) | Checklist de verificación en producción |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Guía de contribución y setup |
+| [docs/ADMIN-UI-ROLLOUT.md](docs/ADMIN-UI-ROLLOUT.md) | Rollout del panel clínico |
+| [docs/public-v6-canonical-source.md](docs/public-v6-canonical-source.md) | Fuente canónica del frontend público V6 |
+| [docs/CALENDAR_CUTOVER.md](docs/CALENDAR_CUTOVER.md) | Corte de calendario y sincronización |
+| [docs/STABILITY_14_DAYS_PLAN.md](docs/STABILITY_14_DAYS_PLAN.md) | Plan de estabilidad 14 días |
+| [docs/ROOT_SURFACES.md](docs/ROOT_SURFACES.md) | Frontera canónica de la raíz del repo |
+| [docs/INCIDENT.md](docs/INCIDENT.md) | Playbook de respuesta a incidentes (P1-P4) |
+
+Planes de gobernanza y runbooks históricos → `_archive/legacy-plans/`
+
+---
+
+## Desarrollo local
+
+### Servidor canónico
+
+```bash
+# Arrancar el servidor local (host canónico)
+php -S 127.0.0.1:8011 -t . bin/local-stage-router.php
+```
+
+URLs de acceso local:
+- Admin: `http://127.0.0.1:8011/admin.html`
+- Público ES: `http://127.0.0.1:8011/es/`
+- Público EN: `http://127.0.0.1:8011/en/`
+
+Variables de entorno clave:
+
+| Variable | Función |
+|----------|---------|
+| `TEST_LOCAL_SERVER_PORT` | Puerto del servidor local (default: 8011) |
+| `TEST_BASE_URL` | URL base para tests e2e |
+
+### Performance
+
+```bash
+npm run benchmark:local  # Benchmark local reutilizable
+npm run qa:summary       # Semáforo unificado de QA (🟢 GREEN / 🔴 RED)
+npm run workspace:hygiene:doctor  # Doctor de higiene del workspace
+```
+
+---
+
+## Frontera de la raíz del repo
+
+Documentada en [docs/ROOT_SURFACES.md](docs/ROOT_SURFACES.md). Cubre:
+
+- **Markdowns canónicos** (`AGENTS.md`, `README.md`, etc.)
+- **Shells HTML activos** (`admin.html`, `index.html`, turnero)
+- **Archivos de control** (`.json`, `.yaml`, `.txt`)
+- **dotfiles** (`.gitignore`, `.editorconfig`, `.prettierrc`, etc.) y **singletones especiales** (`Dockerfile`, `rollup.config.mjs`, etc.)
+- **directorios permitidos en raiz** (`bin/`, `controllers/`, `docs/`, `js/`, etc.)
+- Archivos archivados: `images/archive/root-legacy/**`, `styles/archive/public-legacy/**`

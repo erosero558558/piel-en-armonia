@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 10:27:56 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 10:40:28 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████░░░░░░░` **65%** completado (316/485)
+`█████████████░░░░░░░` **66%** completado (319/485)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -18,14 +18,15 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 4 | 26 | 0 | 100% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
 | ⏸ Sprint 6 | 10 | 15 | 40% |
-| ⏸ Sprint 7 | 8 | 29 | 22% |
+| ⏸ Sprint 7 | 10 | 27 | 27% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
+| ⏸ Sprint UI | 0 | 0 | 0% |
 | ⏸ Sprint 8 | 9 | 8 | 53% |
 | ⏸ Sprint 9 | 9 | 18 | 33% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
-| ⏸ Sprint 13 | 7 | 14 | 33% |
+| ⏸ Sprint 13 | 8 | 13 | 38% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
 | ⏸ Sprint 14 | 3 | 11 | 21% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
@@ -83,24 +84,27 @@ _Esperando que Sprint anterior esté completo. 15 tareas pendientes._
 - **S6-24** `[S6]` — necesita: S6-23 primero
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 29 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 27 tareas pendientes._
 
-### 🟢 Disponibles (29)
+### 🟢 Disponibles (27)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S7-02** | `[S7]` | S |
-| **S7-03** | `[S7]` | M |
 | **S7-04** | `[S7]` | S |
 | **S7-05** | `[S7]` | S |
 | **S7-07** | `[S7]` | M |
-| ... | | _+24 más_ |
+| **S7-08** | `[S7]` | S |
+| ... | | _+22 más_ |
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._
 
 ## ✅ Sprint UI — Fase 2: Follow-ups del Audit
 _Sprint completado. 20/20 tareas._
+
+## ✅ Sprint UI — Fase 3: REBORN (Clinical Tech Engine)
+_Sprint completado. 0/0 tareas._
 
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
 _Esperando que Sprint anterior esté completo. 8 tareas pendientes._
@@ -159,9 +163,9 @@ _Esperando que Sprint anterior esté completo. 22 tareas pendientes._
 | ... | | _+17 más_ |
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Esperando que Sprint anterior esté completo. 14 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 
-### 🟢 Disponibles (14)
+### 🟢 Disponibles (13)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -170,7 +174,7 @@ _Esperando que Sprint anterior esté completo. 14 tareas pendientes._
 | **S13-04** | `[S13]` | M |
 | **S13-06** | `[S13]` | M |
 | **S13-09** | `[S13]` | L |
-| ... | | _+9 más_ |
+| ... | | _+8 más_ |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
