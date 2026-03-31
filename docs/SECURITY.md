@@ -63,6 +63,13 @@ Toda entrada de usuario se valida y sanitiza antes de ser procesada (`lib/valida
 
 La API pública está protegida contra abusos mediante límites de velocidad por IP (Ver `docs/API.md` y `lib/ratelimit.php`).
 
+Contrato operativo actual para autenticación admin legacy:
+
+- `POST /admin-auth.php?action=login` limita a `5` intentos por minuto por IP.
+- Las respuestas del endpoint publican `X-RateLimit-Limit`,
+  `X-RateLimit-Remaining` y `X-RateLimit-Reset`.
+- Cuando el límite se excede, la respuesta devuelve `429` y `Retry-After`.
+
 ## Respuesta a Incidentes de Seguridad
 
 Si descubres una vulnerabilidad, por favor sigue estos pasos:

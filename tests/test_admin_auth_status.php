@@ -21,12 +21,20 @@ function admin_status_request(string $baseUrl): array
 
 function admin_login_request(string $baseUrl, string $password): array
 {
+    $responseHeaders = [];
     $ch = curl_init(rtrim($baseUrl, '/') . '/admin-auth.php?action=login');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 20);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['password' => $password]));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, static function ($curl, string $line) use (&$responseHeaders): int {
+        $trimmed = trim($line);
+        if ($trimmed !== '') {
+            $responseHeaders[] = $trimmed;
+        }
+        return strlen($line);
+    });
     $bodyRaw = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -34,7 +42,23 @@ function admin_login_request(string $baseUrl, string $password): array
     return [
         'code' => $code,
         'body' => json_decode((string) $bodyRaw, true),
+        'headers' => $responseHeaders,
     ];
+}
+
+function response_header_value(array $response, string $name): string
+{
+    $needle = strtolower($name) . ':';
+    foreach (($response['headers'] ?? []) as $headerLine) {
+        if (!is_string($headerLine)) {
+            continue;
+        }
+        if (stripos($headerLine, $needle) === 0) {
+            return trim(substr($headerLine, strlen($needle)));
+        }
+    }
+
+    return '';
 }
 
 function with_admin_status_server(array $env, callable $callback): void
@@ -185,6 +209,30 @@ run_test('admin login rejects legacy password by default even when a password ex
             (string) ($login['body']['error'] ?? ''),
             'legacy login should explain the fallback override'
         );
+    });
+});
+
+run_test('admin login enforces 5 requests per minute and exposes X-RateLimit headers', function () {
+    with_admin_status_server([
+        'PIELARMONIA_INTERNAL_CONSOLE_AUTH_PRIMARY' => 'legacy_password',
+        'PIELARMONIA_ADMIN_PASSWORD' => 'status-test-password',
+    ], function (string $baseUrl): void {
+        $first = admin_login_request($baseUrl, 'wrong-password');
+        assert_equals(401, $first['code'], 'first invalid login should still be processed');
+        assert_equals('5', response_header_value($first, 'X-RateLimit-Limit'), 'login should publish a 5/min limit');
+        assert_equals('4', response_header_value($first, 'X-RateLimit-Remaining'), 'remaining slots should decrease after the first try');
+        assert_greater_than(0, (int) response_header_value($first, 'X-RateLimit-Reset'), 'reset header should be positive');
+
+        for ($attempt = 0; $attempt < 4; $attempt++) {
+            admin_login_request($baseUrl, 'wrong-password');
+        }
+
+        $blocked = admin_login_request($baseUrl, 'wrong-password');
+        assert_equals(429, $blocked['code'], 'sixth login attempt should be rate limited');
+        assert_equals('5', response_header_value($blocked, 'X-RateLimit-Limit'), 'blocked response should preserve limit header');
+        assert_equals('0', response_header_value($blocked, 'X-RateLimit-Remaining'), 'blocked response should report zero remaining attempts');
+        assert_greater_than(0, (int) response_header_value($blocked, 'X-RateLimit-Reset'), 'blocked response should expose reset seconds');
+        assert_greater_than(0, (int) response_header_value($blocked, 'Retry-After'), 'blocked response should expose Retry-After');
     });
 });
 
