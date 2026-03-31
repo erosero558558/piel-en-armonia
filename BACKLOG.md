@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:53:42 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 5:57:36 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **57%** completado (266/467)
+`███████████░░░░░░░░░` **57%** completado (268/467)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -30,7 +30,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 14 | 3 | 11 | 21% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
-| ⏸ Sprint 17 | 8 | 4 | 67% |
+| ⏸ Sprint 17 | 9 | 3 | 75% |
 | ✅ Sprint 18 | 4 | 0 | 100% |
 | ⏸ Sprint 19 | 0 | 18 | 0% |
 
@@ -52,9 +52,12 @@ _Sprint completado. 24/24 tareas._
 ## ⏸ Sprint 4 — Escalar el negocio
 _Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 
+### 🔒 En progreso — NO tomar
+
+- **S4-10** `[S4]` → _Codex-erosero558558_ (expira en 478min)
+
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
-- **S4-10** `[S4]` — necesita: S4-06 primero
 - **S4-11** `[S4]` — necesita: S4-06 primero
 
 ## ⏸ Sprint 5 — Portal del Paciente (PWA)
@@ -153,10 +156,6 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 | **S9-13** | `[S9]` | M |
 | ... | | _+13 más_ |
 
-### 🔒 En progreso — NO tomar
-
-- **S9-12** `[S9]` → _codex_ (expira en 102min)
-
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
 
@@ -240,7 +239,7 @@ _Esperando que Sprint anterior esté completo. 10 tareas pendientes._
 _Sprint completado. 13/13 tareas._
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
-_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 
 ### 🟢 Disponibles (3)
 
@@ -249,10 +248,6 @@ _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 | **S17-15** | `[S17]` | M |
 | **S17-16** | `[S17]` | M |
 | **S17-17** | `[S17]` | M |
-
-### 🔒 En progreso — NO tomar
-
-- **S17-10** `[S17]` → _Antigravity_ (expira en 227min)
 
 ## ✅ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
 _Sprint completado. 4/4 tareas._

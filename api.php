@@ -61,6 +61,7 @@ require_once __DIR__ . '/controllers/GiftCardController.php';
 require_once __DIR__ . '/controllers/ReferralController.php';
 require_once __DIR__ . '/controllers/MembershipController.php';
 require_once __DIR__ . '/controllers/OnboardingController.php';
+require_once __DIR__ . '/controllers/PromotionController.php';
 
 
 

@@ -48,6 +48,7 @@ class ApiConfig
             'clinical-history-session:GET' => [120, 60],
             'public-case-stories:GET' => [60, 60],
             'public-case-media-file:GET' => [120, 60],
+            'active-promotions:GET' => [120, 60],
 
             // Public POST - Actionable, lower volume to prevent spam
             'payment-intent:POST' => [10, 60],
@@ -196,6 +197,7 @@ class ApiConfig
             ['method' => 'PATCH', 'resource' => 'reschedule'],
             ['method' => 'GET', 'resource' => 'content'],
             ['method' => 'GET', 'resource' => 'health'],
+            ['method' => 'GET', 'resource' => 'active-promotions'],
         ];
     }
 

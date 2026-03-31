@@ -100,6 +100,7 @@ final class StorageConfig
             'case_media_publications' => [],
             'case_media_events' => [],
             'availability' => [],
+            'promotions' => [],
             'updatedAt' => local_date('c'),
         ];
     }
@@ -231,6 +232,7 @@ final class StorageConfig
             ? $store['case_media_events']
             : [];
         $availability = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
+        $promotions = isset($store['promotions']) && is_array($store['promotions']) ? $store['promotions'] : [];
         $updatedAt = isset($store['updatedAt']) && is_string($store['updatedAt']) && trim($store['updatedAt']) !== ''
             ? trim($store['updatedAt'])
             : local_date('c');
@@ -274,6 +276,7 @@ final class StorageConfig
             'case_media_publications' => array_values($caseMediaPublications),
             'case_media_events' => array_values($caseMediaEvents),
             'availability' => $availability,
+            'promotions' => array_values($promotions),
             'updatedAt' => $updatedAt,
             'idx_appointments_date' => build_appointment_index($appointments),
         ];

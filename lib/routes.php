@@ -210,6 +210,8 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'push-unsubscribe', [PushController::class, 'unsubscribe']);
     $router->add('POST', 'push-test', [PushController::class, 'test']);
 
+    $router->add('GET', 'active-promotions', [PromotionController::class, 'getActivePromotions']);
+
     // v2 Routes
     $router->add('GET', 'health', [HealthController::class, 'check'], 'v2');
 }
