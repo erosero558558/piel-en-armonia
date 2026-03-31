@@ -64,6 +64,13 @@ const AUDIT_STEPS = [
         args: ['bin/verify-scripts.js', '--json'],
     },
     {
+        // S14-09: Registry de Warnings Operativos
+        id: 'warnings_registry',
+        label: 'Warning Registry',
+        command: 'node',
+        args: ['bin/check-warnings.js'],
+    },
+    {
         id: 'evidence_health',
         label: 'Evidence Health',
         command: 'node',

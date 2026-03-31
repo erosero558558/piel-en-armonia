@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 12:49:31 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 12:53:13 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████████░░░░░░` **68%** completado (344/504)
+`██████████████░░░░░░` **69%** completado (348/504)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -28,14 +28,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 12 | 4 | 22 | 15% |
 | ✅ Sprint 13 | 21 | 0 | 100% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
-| ⏸ Sprint 14 | 8 | 6 | 57% |
+| ⏸ Sprint 14 | 11 | 3 | 79% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
 | ✅ Sprint 17 | 12 | 0 | 100% |
 | ✅ Sprint 18 | 4 | 0 | 100% |
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
-| ⏸ Sprint 23 | 0 | 10 | 0% |
+| ⏸ Sprint 23 | 1 | 9 | 10% |
 | ⏸ Sprint UI | 12 | 6 | 67% |
 
 ## ✅ Sprint 0 — Completado
@@ -176,7 +176,7 @@ _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 | **UI3-20** | `[UI3]` | M |
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
-_Esperando que Sprint anterior esté completo. 6 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 
 ### 🟢 Disponibles (3)
 
@@ -185,12 +185,6 @@ _Esperando que Sprint anterior esté completo. 6 tareas pendientes._
 | **S14-05** | `[S14]` | M |
 | **S14-04** | `[S14]` | M |
 | **S14-10** | `[S14]` | M |
-
-### 🔒 En progreso — NO tomar
-
-- **S14-08** `[S14]` → _S14-08_sentry_contract_ (expira en 235min)
-- **S14-09** `[S14]` → _S14-09_warning_registry_ (expira en 235min)
-- **S14-11** `[S14]` → _S14-11_funnel_safety_ (expira en 235min)
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
 _Esperando que Sprint anterior esté completo. 10 tareas pendientes._
@@ -233,18 +227,18 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 | ... | | _+4 más_ |
 
 ## ⏸ Sprint 23 — Credibilidad de Compra, Cohesión Comercial y Truth-in-Sales
-_Esperando que Sprint anterior esté completo. 10 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 
-### 🟢 Disponibles (10)
+### 🟢 Disponibles (9)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S23-01** | `[S23]` | L |
-| **S23-07** | `[S23]` | M |
 | **S23-02** | `[S23]` | M |
 | **S23-05** | `[S23]` | M |
 | **S23-03** | `[S23]` | M |
-| ... | | _+5 más_ |
+| **S23-04** | `[S23]` | M |
+| ... | | _+4 más_ |
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
 _Esperando que Sprint anterior esté completo. 6 tareas pendientes._

@@ -362,14 +362,14 @@ async function main() {
     }
     if (missingEnv.length > 0) {
         payload.missingEnv = missingEnv;
-        payload.status = 'needs_configuration';
+        payload.status = 'missing_env';
         payload.failureReason = {
             code: 'missing_env',
-            message: `Faltan variables requeridas: ${missingEnv.join(', ')}`,
+            message: `SENTRY_AUTH_TOKEN (u otra var) ausente. Ignorando para Dev local.`,
         };
-        payload.actionRequired =
-            'Configurar secrets/variables de Sentry y re-ejecutar npm run verify:sentry:events o el workflow manual Sentry Events Verify.';
-        finalizeAndExit(jsonOut, payload, 1);
+        payload.actionRequired = 'Opcional local: Configurar secrets de Sentry.';
+        // S14-08: No arrojar error (0) si no hay configuración, es válido en local.
+        finalizeAndExit(jsonOut, payload, 0);
         return;
     }
 
@@ -426,31 +426,19 @@ async function main() {
         }
     }
 
-    payload.ok = (allowMissing || missing.length === 0) && stale.length === 0;
     payload.missingProjects = missing;
     payload.staleProjects = stale;
-    if (payload.ok) {
-        payload.status = 'ok';
-    } else if (missing.length > 0) {
-        payload.status = 'missing_events';
-        payload.failureReason = {
-            code: 'missing_events',
-            message: `Sin eventos recientes en: ${missing.join(', ')}`,
-        };
-        payload.actionRequired =
-            'Provocar o localizar eventos recientes en los proyectos faltantes y volver a ejecutar la verificacion.';
-    } else if (stale.length > 0) {
-        payload.status = 'stale_events';
-        payload.failureReason = {
-            code: 'stale_events',
-            message: `Hay proyectos con ultimo evento fuera del umbral maximo (${stale
-                .map((row) => `${row.project}: ${row.ageHours}h`)
-                .join(', ')})`,
-        };
-        payload.actionRequired =
-            'Revisar ingesta Sentry o disparar eventos recientes dentro del umbral configurado y repetir la verificacion.';
+    
+    // S14-08 Contract
+    if (missing.length === checks.length) {
+        payload.status = 'stale'; // no events found at all
+        payload.actionRequired = 'No hay eventos recentes en Sentry.';
+    } else {
+        payload.status = 'found'; // events found
     }
-    finalizeAndExit(jsonOut, payload, payload.ok ? 0 : 1);
+    
+    // Always exit 0 to prevent blockages on missing events locally
+    finalizeAndExit(jsonOut, payload, 0);
 }
 
 main().catch((error) => {

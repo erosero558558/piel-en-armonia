@@ -379,6 +379,134 @@ test.describe('Panel de administracion', () => {
         );
     });
 
+    test('settings muestra suscripción Flow OS y prepara checkout Stripe', async ({
+        page,
+    }) => {
+        const checkoutRequests = [];
+
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_test_token',
+        });
+
+        await installBasicAdminApiMocks(page, {
+            dataOverrides: {
+                clinicProfile: {
+                    clinicName: 'Aurora Derm Centro',
+                    address: 'Av. Clinica 123',
+                    phone: '+593999111222',
+                    software_plan: 'Starter',
+                    software_subscription: {
+                        status: 'active',
+                        statusLabel: 'Activa',
+                        planKey: 'starter',
+                        planLabel: 'Starter',
+                        amountLabel: '$29.00/mes',
+                        renewalAt: '2026-04-15T10:00:00-05:00',
+                        updatedAt: '2026-03-29T15:45:00-05:00',
+                        invoices: [
+                            {
+                                id: 'in_flowos_001',
+                                number: 'INV-FLOWOS-001',
+                                status: 'paid',
+                                statusLabel: 'Pagada',
+                                amountLabel: '$29.00',
+                                issuedAt: '2026-03-29T15:45:00-05:00',
+                                hostedInvoiceUrl:
+                                    'https://billing.stripe.test/invoices/in_flowos_001',
+                            },
+                        ],
+                    },
+                    updatedAt: '2026-03-29T15:45:00-05:00',
+                },
+            },
+            handleRoute: async ({
+                route,
+                resource,
+                method,
+                payload,
+                context,
+                fulfillJson,
+            }) => {
+                if (
+                    resource === 'software-subscription-checkout' &&
+                    method === 'POST'
+                ) {
+                    checkoutRequests.push(payload);
+                    context.data.clinicProfile = {
+                        ...context.data.clinicProfile,
+                        software_subscription: {
+                            ...context.data.clinicProfile.software_subscription,
+                            status: 'pending_checkout',
+                            statusLabel: 'Checkout pendiente',
+                            pendingPlanKey: 'pro',
+                            pendingPlanLabel: 'Pro',
+                            checkoutSessionId: 'cs_sub_001',
+                            checkoutUrl:
+                                'https://checkout.stripe.test/session/cs_sub_001',
+                            updatedAt: '2026-03-30T09:00:00-05:00',
+                        },
+                    };
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: {
+                            checkoutUrl:
+                                'https://checkout.stripe.test/session/cs_sub_001',
+                            sessionId: 'cs_sub_001',
+                            clinicProfile: context.data.clinicProfile,
+                            subscription:
+                                context.data.clinicProfile.software_subscription,
+                        },
+                    });
+                    return true;
+                }
+
+                return false;
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+
+        await page
+            .locator('#adminSidebar .nav-item[data-section="settings"]')
+            .click();
+
+        await expect(page.locator('#clinicProfileName')).toHaveValue(
+            'Aurora Derm Centro'
+        );
+        await expect(page.locator('#clinicProfileSoftwarePlan')).toHaveValue(
+            'Starter'
+        );
+        await expect(
+            page.locator('#softwareSubscriptionPlanHeadline')
+        ).toHaveText('Starter');
+        await expect(page.locator('#softwareSubscriptionStatusLine')).toContainText(
+            'Activa'
+        );
+        await expect(
+            page.locator('#softwareSubscriptionRenewalLine')
+        ).toContainText('Próxima renovación');
+        await expect(
+            page.locator('#softwareSubscriptionInvoiceList')
+        ).toContainText('INV-FLOWOS-001');
+
+        await page.locator('#softwareSubscriptionProBtn').click();
+
+        await expect.poll(() => checkoutRequests.length).toBe(1);
+        expect(checkoutRequests[0]).toMatchObject({
+            planKey: 'pro',
+        });
+        await expect(
+            page.locator('#softwareSubscriptionPendingLine')
+        ).toContainText('Cambio preparado a Pro');
+        await expect(
+            page.locator('#softwareSubscriptionCheckoutLink')
+        ).toHaveAttribute(
+            'href',
+            'https://checkout.stripe.test/session/cs_sub_001'
+        );
+    });
+
     test('login legacy de respaldo con contrasena vacia no funciona', async ({
         page,
     }) => {

@@ -15,6 +15,7 @@ let activeSignatureImage = '';
 let activeLogoImage = '';
 let savingDoctor = false;
 let savingClinic = false;
+let subscriptionCheckoutBusy = false;
 
 function normalizeDoctorProfile(profile) {
     const source = profile && typeof profile === 'object' ? profile : {};
@@ -31,6 +32,51 @@ function getDoctorProfileFromState() {
     return normalizeDoctorProfile(getState()?.data?.doctorProfile || {});
 }
 
+function normalizeSoftwareSubscription(snapshot) {
+    const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const invoices = Array.isArray(source.invoices) ? source.invoices : [];
+
+    return {
+        status: String(source.status || 'free').trim(),
+        statusLabel: String(source.statusLabel || '').trim(),
+        planKey: String(source.planKey || 'free').trim(),
+        planLabel: String(source.planLabel || 'Free').trim(),
+        pendingPlanKey: String(source.pendingPlanKey || '').trim(),
+        pendingPlanLabel: String(source.pendingPlanLabel || '').trim(),
+        billingInterval: String(source.billingInterval || '').trim(),
+        currency: String(source.currency || 'USD').trim(),
+        amountCents: Number(source.amountCents || 0),
+        amountLabel: String(source.amountLabel || '').trim(),
+        startedAt: String(source.startedAt || '').trim(),
+        renewalAt: String(source.renewalAt || '').trim(),
+        trialEndsAt: String(source.trialEndsAt || '').trim(),
+        trialReminderSentAt: String(source.trialReminderSentAt || '').trim(),
+        trialReminderChannel: String(source.trialReminderChannel || '').trim(),
+        trialReminderOutboxId: String(source.trialReminderOutboxId || '').trim(),
+        endedAt: String(source.endedAt || '').trim(),
+        downgradedAt: String(source.downgradedAt || '').trim(),
+        checkoutSessionId: String(source.checkoutSessionId || '').trim(),
+        checkoutUrl: String(source.checkoutUrl || '').trim(),
+        stripeCustomerId: String(source.stripeCustomerId || '').trim(),
+        stripeSubscriptionId: String(source.stripeSubscriptionId || '').trim(),
+        latestInvoiceId: String(source.latestInvoiceId || '').trim(),
+        updatedAt: String(source.updatedAt || '').trim(),
+        invoices: invoices.map((invoice) => ({
+            id: String(invoice?.id || '').trim(),
+            number: String(invoice?.number || '').trim(),
+            status: String(invoice?.status || '').trim(),
+            statusLabel: String(invoice?.statusLabel || '').trim(),
+            amountLabel: String(invoice?.amountLabel || '').trim(),
+            issuedAt: String(invoice?.issuedAt || '').trim(),
+            paidAt: String(invoice?.paidAt || '').trim(),
+            periodStart: String(invoice?.periodStart || '').trim(),
+            periodEnd: String(invoice?.periodEnd || '').trim(),
+            hostedInvoiceUrl: String(invoice?.hostedInvoiceUrl || '').trim(),
+            invoicePdf: String(invoice?.invoicePdf || '').trim(),
+        })),
+    };
+}
+
 function normalizeClinicProfile(profile) {
     const source = profile && typeof profile === 'object' ? profile : {};
     return {
@@ -38,7 +84,10 @@ function normalizeClinicProfile(profile) {
         address: String(source.address || '').trim(),
         phone: String(source.phone || '').trim(),
         logoImage: String(source.logoImage || '').trim(),
-        software_plan: String(source.software_plan || 'Básico').trim(),
+        software_plan: String(source.software_plan || 'Free').trim(),
+        software_subscription: normalizeSoftwareSubscription(
+            source.software_subscription || {}
+        ),
         updatedAt: String(source.updatedAt || '').trim(),
     };
 }
@@ -85,7 +134,8 @@ function readClinicProfileFromForm(root) {
         address: address instanceof HTMLInputElement ? address.value : '',
         phone: phone instanceof HTMLInputElement ? phone.value : '',
         logoImage: activeLogoImage,
-        software_plan: softwarePlan instanceof HTMLSelectElement ? softwarePlan.value : 'Básico',
+        software_plan: softwarePlan instanceof HTMLSelectElement ? softwarePlan.value : 'Free',
+        software_subscription: getClinicProfileFromState().software_subscription,
         updatedAt: getClinicProfileFromState().updatedAt,
     });
 }
@@ -119,6 +169,201 @@ function renderLogoPreview(root, logoImage) {
             '<div class="settings-signature-placeholder">Sin logo digital</div>'
         );
         setText('#clinicProfileLogoState', 'Sin logo cargado');
+    }
+}
+
+function resolveSubscriptionTone(subscription) {
+    if (subscription.status === 'past_due') {
+        return 'warning';
+    }
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
+        return 'success';
+    }
+    if (subscription.status === 'pending_checkout') {
+        return 'neutral';
+    }
+    return 'neutral';
+}
+
+function resolveSubscriptionStatusLine(subscription) {
+    const label = subscription.statusLabel || 'Sin suscripción activa';
+    if (subscription.status === 'active') {
+        return `${label}. ${subscription.amountLabel || 'Plan recurrente'} ya está corriendo en Stripe.`;
+    }
+    if (subscription.status === 'trialing') {
+        if (subscription.trialReminderSentAt) {
+            return `${label}. El plan ${subscription.planLabel || 'Flow OS'} sigue en trial y ya se envió recordatorio de renovación.`;
+        }
+        return `${label}. El plan ${subscription.planLabel || 'Flow OS'} sigue dentro del período promocional.`;
+    }
+    if (subscription.status === 'past_due') {
+        return `${label}. Stripe reportó un cobro pendiente y conviene revisar la factura más reciente.`;
+    }
+    if (subscription.status === 'pending_checkout') {
+        return `Checkout pendiente para ${subscription.pendingPlanLabel || subscription.planLabel || 'Flow OS'}.`;
+    }
+    if (subscription.planKey === 'enterprise') {
+        return 'Plan Enterprise bajo coordinación comercial.';
+    }
+    return 'Sin suscripción recurrente activa todavía.';
+}
+
+function resolveSubscriptionRenewalLine(subscription) {
+    if (subscription.renewalAt) {
+        return `Próxima renovación: ${formatDateTime(subscription.renewalAt)}.`;
+    }
+    if (subscription.trialEndsAt) {
+        return `Trial hasta ${formatDateTime(subscription.trialEndsAt)}.`;
+    }
+    if (subscription.endedAt) {
+        return `Terminó el ${formatDateTime(subscription.endedAt)}.`;
+    }
+    return 'Renovación no disponible.';
+}
+
+function resolveSubscriptionPendingLine(subscription) {
+    if (subscription.pendingPlanLabel) {
+        return `Cambio preparado a ${subscription.pendingPlanLabel}.`;
+    }
+    if (subscription.status === 'trialing' && subscription.trialReminderSentAt) {
+        return `Recordatorio enviado ${formatDateTime(subscription.trialReminderSentAt)}${subscription.trialReminderChannel ? ` por ${subscription.trialReminderChannel}` : ''}.`;
+    }
+    if (subscription.status === 'trialing') {
+        return 'Convierte el trial a pago antes del corte o la clínica volverá a Free.';
+    }
+    return 'Puedes activar Starter o Pro sin salir del panel.';
+}
+
+function buildSoftwareSubscriptionInvoiceItems(subscription) {
+    const invoices = Array.isArray(subscription.invoices)
+        ? subscription.invoices
+        : [];
+    if (!invoices.length) {
+        return `
+            <li class="dashboard-attention-item" data-tone="neutral">
+                <div class="dashboard-payment-account__copy">
+                    <strong>Sin facturas todavía</strong>
+                    <small>Cuando Stripe confirme el primer ciclo mensual, las invoices aparecerán aquí.</small>
+                </div>
+            </li>
+        `;
+    }
+
+    return invoices
+        .slice(0, 4)
+        .map((invoice) => {
+            const href = invoice.hostedInvoiceUrl || invoice.invoicePdf || '#';
+            const meta = [
+                invoice.amountLabel || '',
+                invoice.statusLabel || invoice.status || '',
+                invoice.issuedAt ? `Emitida ${formatDateTime(invoice.issuedAt)}` : '',
+                invoice.paidAt ? `Pagada ${formatDateTime(invoice.paidAt)}` : '',
+            ]
+                .filter(Boolean)
+                .join(' • ');
+
+            return `
+                <li class="dashboard-attention-item" data-tone="${escapeHtml(
+                    invoice.status === 'paid' ? 'success' : 'neutral'
+                )}">
+                    <div class="dashboard-payment-account__copy">
+                        <strong>${escapeHtml(invoice.number || invoice.id || 'Factura')}</strong>
+                        <small>${escapeHtml(meta || 'Sin metadatos todavía')}</small>
+                    </div>
+                    ${
+                        href !== '#'
+                            ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">Abrir</a>`
+                            : ''
+                    }
+                </li>
+            `;
+        })
+        .join('');
+}
+
+function renderSoftwareSubscriptionPanel(root, clinicProfile) {
+    const subscription = normalizeSoftwareSubscription(
+        clinicProfile?.software_subscription || {}
+    );
+    const tone = resolveSubscriptionTone(subscription);
+    const statusPill = qs('#softwareSubscriptionStatusPill', root);
+    const checkoutLink = qs('#softwareSubscriptionCheckoutLink', root);
+    const softwarePlan = qs('#clinicProfileSoftwarePlan', root);
+    const starterButton = qs('#softwareSubscriptionStarterBtn', root);
+    const proButton = qs('#softwareSubscriptionProBtn', root);
+    const isLockedPlan =
+        ['active', 'trialing', 'past_due', 'pending_checkout'].includes(
+            subscription.status
+        ) &&
+        subscription.planKey !== 'free';
+
+    setText(
+        '#softwareSubscriptionPlanHeadline',
+        subscription.planLabel || 'Free'
+    );
+    setText(
+        '#softwareSubscriptionStatusLine',
+        resolveSubscriptionStatusLine(subscription)
+    );
+    setText(
+        '#softwareSubscriptionRenewalLine',
+        resolveSubscriptionRenewalLine(subscription)
+    );
+    setText(
+        '#softwareSubscriptionPendingLine',
+        resolveSubscriptionPendingLine(subscription)
+    );
+    setText(
+        '#softwareSubscriptionStripeMeta',
+        subscription.checkoutSessionId
+            ? `Checkout ${subscription.checkoutSessionId} listo o sincronizado con Stripe.`
+            : 'Aún no se ha iniciado un checkout recurrente.'
+    );
+    setText(
+        '#softwareSubscriptionInvoiceCount',
+        `${Number(subscription.invoices?.length || 0)} registradas`
+    );
+    setText(
+        '#softwareSubscriptionUpdatedAt',
+        subscription.updatedAt
+            ? formatDateTime(subscription.updatedAt)
+            : 'Sin sincronizar'
+    );
+    setHtml(
+        '#softwareSubscriptionInvoiceList',
+        buildSoftwareSubscriptionInvoiceItems(subscription)
+    );
+    if (statusPill instanceof HTMLElement) {
+        statusPill.textContent = subscription.statusLabel || 'Free';
+        statusPill.dataset.state = tone;
+    }
+    if (checkoutLink instanceof HTMLAnchorElement) {
+        if (subscription.checkoutUrl) {
+            checkoutLink.hidden = false;
+            checkoutLink.href = subscription.checkoutUrl;
+        } else {
+            checkoutLink.hidden = true;
+            checkoutLink.href = '#';
+        }
+    }
+    if (softwarePlan instanceof HTMLSelectElement) {
+        softwarePlan.disabled = isLockedPlan;
+    }
+    if (starterButton instanceof HTMLButtonElement) {
+        starterButton.disabled =
+            subscriptionCheckoutBusy ||
+            (subscription.pendingPlanKey === 'starter' &&
+                subscription.status === 'pending_checkout') ||
+            (subscription.planKey === 'starter' &&
+                ['active', 'past_due'].includes(subscription.status));
+    }
+    if (proButton instanceof HTMLButtonElement) {
+        proButton.disabled =
+            subscriptionCheckoutBusy ||
+            (subscription.pendingPlanKey === 'pro' &&
+                subscription.status === 'pending_checkout') ||
+            (subscription.planKey === 'pro' &&
+                ['active', 'past_due'].includes(subscription.status));
     }
 }
 
@@ -214,7 +459,7 @@ function applyClinicProfileToForm(root, profile) {
         phone.value = profile.phone;
     }
     if (softwarePlan instanceof HTMLSelectElement) {
-        softwarePlan.value = profile.software_plan || 'Básico';
+        softwarePlan.value = profile.software_plan || 'Free';
     }
     if (logoFile instanceof HTMLInputElement) {
         logoFile.value = '';
@@ -241,6 +486,7 @@ function syncClinicPreview(root) {
               : 'Sin cambios guardados todavia.'
     );
     renderLogoPreview(root, profile.logoImage);
+    renderSoftwareSubscriptionPanel(root, getClinicProfileFromState());
 }
 
 function readFileAsDataUrl(file) {
@@ -471,6 +717,60 @@ function attachClinicListeners(root) {
             syncClinicPreview(root);
         });
     }
+
+    const bindSubscriptionButton = (selector, planKey, idleLabel) => {
+        const button = qs(selector, root);
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        button.addEventListener('click', async () => {
+            if (subscriptionCheckoutBusy) {
+                return;
+            }
+
+            subscriptionCheckoutBusy = true;
+            button.disabled = true;
+            button.textContent = 'Preparando Stripe...';
+
+            try {
+                const response = await apiRequest('software-subscription-checkout', {
+                    method: 'POST',
+                    body: { planKey },
+                });
+                const savedClinic = normalizeClinicProfile(
+                    response?.data?.clinicProfile || getClinicProfileFromState()
+                );
+                saveClinicProfileInState(savedClinic);
+                renderSettingsSection({ force: true });
+                createToast(
+                    `Checkout de Stripe listo para ${savedClinic.software_subscription.pendingPlanLabel || savedClinic.software_subscription.planLabel || planKey}.`,
+                    'success'
+                );
+            } catch (error) {
+                createToast(
+                    error?.message || 'No se pudo iniciar el checkout de Stripe.',
+                    'error'
+                );
+            } finally {
+                subscriptionCheckoutBusy = false;
+                button.disabled = false;
+                button.textContent = idleLabel;
+                renderSettingsSection({ force: true });
+            }
+        });
+    };
+
+    bindSubscriptionButton(
+        '#softwareSubscriptionStarterBtn',
+        'starter',
+        'Activar Starter con Stripe'
+    );
+    bindSubscriptionButton(
+        '#softwareSubscriptionProBtn',
+        'pro',
+        'Activar Pro con Stripe'
+    );
 
     const previewBtn = qs('#clinicProfilePreviewBtn', root);
     const previewModal = qs('#clinicPreviewModal', root);

@@ -284,6 +284,93 @@ function stripe_create_checkout_session(
     }
 }
 
+function stripe_create_subscription_checkout_session(
+    array $subscriptionQuote,
+    string $successUrl,
+    string $cancelUrl,
+    string $idempotencyKey = ''
+): array {
+    if (!class_exists('\Stripe\StripeClient')) {
+        throw new RuntimeException('Stripe SDK no disponible en el servidor.');
+    }
+
+    $secret = payment_stripe_secret_key();
+    if ($secret === '') {
+        throw new RuntimeException('La pasarela de pagos no esta configurada.');
+    }
+
+    $amountCents = isset($subscriptionQuote['amountCents']) ? (int) $subscriptionQuote['amountCents'] : 0;
+    if ($amountCents <= 0) {
+        throw new RuntimeException('No se pudo calcular el monto de la suscripcion.');
+    }
+
+    $currency = strtolower(trim((string) ($subscriptionQuote['currency'] ?? payment_currency())));
+    if ($currency === '') {
+        $currency = strtolower(payment_currency());
+    }
+
+    $interval = strtolower(trim((string) ($subscriptionQuote['interval'] ?? 'month')));
+    if (!in_array($interval, ['month', 'year'], true)) {
+        $interval = 'month';
+    }
+
+    $successUrl = trim($successUrl);
+    $cancelUrl = trim($cancelUrl);
+    if ($successUrl === '' || $cancelUrl === '') {
+        throw new RuntimeException('Faltan URLs de retorno para la suscripcion.');
+    }
+
+    $customerEmail = trim((string) ($subscriptionQuote['customerEmail'] ?? ''));
+    $productName = trim((string) ($subscriptionQuote['productName'] ?? 'Flow OS'));
+    $description = trim((string) ($subscriptionQuote['description'] ?? 'Suscripcion Flow OS'));
+    $metadata = payment_normalize_stripe_metadata(
+        isset($subscriptionQuote['metadata']) && is_array($subscriptionQuote['metadata'])
+            ? $subscriptionQuote['metadata']
+            : []
+    );
+
+    $params = [
+        'mode' => 'subscription',
+        'success_url' => $successUrl,
+        'cancel_url' => $cancelUrl,
+        'line_items' => [[
+            'quantity' => 1,
+            'price_data' => [
+                'currency' => $currency,
+                'unit_amount' => $amountCents,
+                'recurring' => [
+                    'interval' => $interval,
+                ],
+                'product_data' => [
+                    'name' => $productName,
+                    'description' => $description,
+                ],
+            ],
+        ]],
+        'metadata' => $metadata,
+        'subscription_data' => [
+            'metadata' => $metadata,
+        ],
+    ];
+
+    if ($customerEmail !== '') {
+        $params['customer_email'] = $customerEmail;
+    }
+
+    $options = [];
+    if ($idempotencyKey !== '') {
+        $options['idempotency_key'] = $idempotencyKey;
+    }
+
+    try {
+        $stripe = new \Stripe\StripeClient($secret);
+        $session = $stripe->checkout->sessions->create($params, $options);
+        return $session->toArray();
+    } catch (\Stripe\Exception\ApiErrorException $e) {
+        throw new RuntimeException($e->getMessage());
+    }
+}
+
 function stripe_get_payment_intent(string $paymentIntentId): array
 {
     if (!class_exists('\Stripe\StripeClient')) {

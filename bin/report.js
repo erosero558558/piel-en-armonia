@@ -147,6 +147,18 @@ if (existsSync(perfJsonPath)) {
   } catch (e) {}
 }
 
+// --- NEW: S14-11 Service Funnel Contract ---
+let serviceFunnel = null;
+try {
+  const sfPath = resolve(ROOT, 'data/funnel/service-funnel-latest.json');
+  if (existsSync(sfPath)) {
+    serviceFunnel = JSON.parse(readFileSync(sfPath, 'utf8').replace(/^\uFEFF/, ''));
+  }
+} catch (e) {
+  // Silent fail, mark field as null instead of throwing exception as per S14-11
+  serviceFunnel = null;
+}
+
 const now = new Date().toLocaleString('es-EC', { timeZone: 'America/Guayaquil' });
 const pct = Math.round((doneTotal / totalTasks) * 100);
 const progressBar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
@@ -171,6 +183,12 @@ if (asMarkdown) {
           ? `🟢 **Budget OK:** Rendimiento estable (Max LCP: ${perfStatus.maxLcp}ms)` 
           : `🔴 **LCP over budget:** Revisar regresión de web vitals (Max LCP: ${perfStatus.maxLcp}ms)`)
       : `_No performance data available._`,
+    ``,
+    `## 📊 Service Funnel`,
+    ``,
+    serviceFunnel
+      ? `🟢 **Disponible:** Última ingesta activa.`
+      : `⚪ _Falta artifact_ (\`service_funnel_missing\` omitido por S14-11).`,
     ``,
     `## Velocidad por Sprint`,
     ``,
@@ -270,6 +288,13 @@ if (asMarkdown) {
     }
   } else {
     console.log(`   ⚪ No performance data available\n`);
+  }
+
+  console.log(`📊 Service Funnel:`);
+  if (serviceFunnel) {
+    console.log(`   🟢 Disponible: Ingesta activa\n`);
+  } else {
+    console.log(`   ⚪ Falta artifact (null handle safe, sin throws)\n`);
   }
 
   console.log(`📈 Velocidad por sprint:`);

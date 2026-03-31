@@ -26,8 +26,12 @@ final class ClinicProfileController
             ? $payload['clinicProfile']
             : (is_array($payload) ? $payload : []);
 
+        $profileExists = is_file(clinic_profile_config_path());
         $current = read_clinic_profile();
         $next = clinic_profile_merge($current, $source);
+        if (!$profileExists && SoftwareSubscriptionService::shouldAutoStartTrial($next)) {
+            $next = SoftwareSubscriptionService::startTrial($next);
+        }
         $next['updatedAt'] = function_exists('local_date') ? local_date('c') : date('c');
 
         if (!clinic_profile_validate_logo_image((string) ($next['logoImage'] ?? ''))) {
@@ -47,6 +51,7 @@ final class ClinicProfileController
         audit_log_event('clinic_profile.updated', [
             'clinicName' => $next['clinicName'],
             'hasLogo' => $next['logoImage'] !== '',
+            'subscriptionStatus' => (string) ($next['software_subscription']['status'] ?? ''),
             'path' => basename(clinic_profile_config_path()),
         ]);
 

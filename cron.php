@@ -24,7 +24,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/lib/clinical_history/bootstrap.php';
+require_once __DIR__ . '/lib/ClinicProfileStore.php';
 require_once __DIR__ . '/lib/NotificationService.php';
+require_once __DIR__ . '/lib/SoftwareSubscriptionService.php';
 
 apply_security_headers(false);
 
@@ -157,6 +159,140 @@ function cron_run_task_safely(string $taskName, callable $callback, array $paylo
     }
 }
 
+function cron_queue_software_trial_reminder(array $clinicProfile, array $lifecycle): array
+{
+    $phone = trim((string) ($clinicProfile['phone'] ?? ''));
+    if ($phone === '') {
+        return [
+            'queued' => false,
+            'reason' => 'missing_phone',
+            'outboxId' => '',
+        ];
+    }
+
+    if (!function_exists('whatsapp_openclaw_repository')) {
+        $bootstrap = __DIR__ . '/lib/whatsapp_openclaw/bootstrap.php';
+        if (is_file($bootstrap)) {
+            require_once $bootstrap;
+        }
+    }
+
+    if (!function_exists('whatsapp_openclaw_repository')) {
+        return [
+            'queued' => false,
+            'reason' => 'queue_unavailable',
+            'outboxId' => '',
+        ];
+    }
+
+    $clinicName = trim((string) ($clinicProfile['clinicName'] ?? 'Flow OS'));
+    if ($clinicName === '') {
+        $clinicName = 'Flow OS';
+    }
+    $trialEndsAt = trim((string) ($lifecycle['trialEndsAt'] ?? ''));
+    $trialEndsLabel = $trialEndsAt !== ''
+        ? local_date('Y-m-d') === substr($trialEndsAt, 0, 10)
+            ? 'hoy'
+            : (function_exists('format_date_label')
+                ? format_date_label(substr($trialEndsAt, 0, 10))
+                : substr($trialEndsAt, 0, 10))
+        : 'pronto';
+    $planLabel = trim((string) ($lifecycle['planLabel'] ?? 'Pro'));
+    $daysRemaining = max(0, (int) ($lifecycle['daysRemaining'] ?? 0));
+    $renewUrl = rtrim((string) (AppConfig::BASE_URL ?? ''), '/') . '/admin.html#settings';
+    $text = "Hola, {$clinicName}. Tu trial de *{$planLabel}* en Flow OS termina {$trialEndsLabel}. ";
+    $text .= $daysRemaining > 0
+        ? "Te quedan {$daysRemaining} dias para renovar y no bajar a Free.\n\n"
+        : "Renueva hoy para no bajar a Free.\n\n";
+    $text .= "Abre {$renewUrl} y activa Stripe desde Ajustes > Suscripción Flow OS.";
+
+    $record = whatsapp_openclaw_repository()->enqueueOutbox([
+        'phone' => $phone,
+        'source' => 'system',
+        'type' => 'text',
+        'text' => $text,
+        'status' => 'pending',
+        'priority' => 'high',
+        'category' => 'software_subscription_trial',
+        'template' => 'software_trial_day12',
+        'meta' => [
+            'trialEndsAt' => $trialEndsAt,
+            'daysRemaining' => $daysRemaining,
+            'planKey' => (string) ($lifecycle['planKey'] ?? 'pro'),
+        ],
+    ]);
+
+    return [
+        'queued' => true,
+        'reason' => '',
+        'outboxId' => (string) ($record['id'] ?? ''),
+    ];
+}
+
+function cron_process_software_subscription_trial(array $payload = []): array
+{
+    $profile = read_clinic_profile();
+    $lifecycle = SoftwareSubscriptionService::describeTrialLifecycle($profile, [
+        'now' => (string) ($payload['now'] ?? local_date('c')),
+    ]);
+
+    $summary = [
+        'active' => (bool) ($lifecycle['active'] ?? false),
+        'queued' => 0,
+        'downgraded' => 0,
+        'missingPhone' => 0,
+        'queueUnavailable' => 0,
+        'changed' => false,
+        'trialEndsAt' => (string) ($lifecycle['trialEndsAt'] ?? ''),
+        'daysRemaining' => (int) ($lifecycle['daysRemaining'] ?? 0),
+    ];
+
+    if (!(bool) ($lifecycle['active'] ?? false)) {
+        return $summary;
+    }
+
+    $nextProfile = $profile;
+
+    if ((bool) ($lifecycle['shouldSendReminder'] ?? false)) {
+        $result = cron_queue_software_trial_reminder($profile, $lifecycle);
+        if ($result['queued']) {
+            $nextProfile = SoftwareSubscriptionService::markTrialReminderSent(
+                $nextProfile,
+                'whatsapp',
+                (string) ($result['outboxId'] ?? ''),
+                (string) ($payload['now'] ?? local_date('c'))
+            );
+            $summary['queued'] = 1;
+            $summary['changed'] = true;
+        } elseif ($result['reason'] === 'missing_phone') {
+            $summary['missingPhone'] = 1;
+        } elseif ($result['reason'] === 'queue_unavailable') {
+            $summary['queueUnavailable'] = 1;
+        }
+    }
+
+    if ((bool) ($lifecycle['shouldDowngrade'] ?? false)) {
+        $nextProfile = SoftwareSubscriptionService::downgradeExpiredTrial(
+            $nextProfile,
+            (string) ($payload['now'] ?? local_date('c'))
+        );
+        $summary['downgraded'] = 1;
+        $summary['changed'] = true;
+    }
+
+    if ($summary['changed']) {
+        $nextProfile['updatedAt'] = local_date('c');
+        if (write_clinic_profile($nextProfile)) {
+            return $summary;
+        }
+
+        $summary['changed'] = false;
+        $summary['persistFailed'] = 1;
+    }
+
+    return $summary;
+}
+
 // --- Task Functions ---
 
 function cron_task_reminders(array $payload): array
@@ -239,6 +375,12 @@ function cron_task_reminders(array $payload): array
         'today' => $today,
     ]);
 
+    $softwareTrialSummary = cron_process_software_subscription_trial([
+        'now' => (string) ($payload['now'] ?? local_date('c')),
+    ]);
+    $sent += (int) ($softwareTrialSummary['queued'] ?? 0);
+    $failed += (int) ($softwareTrialSummary['queueUnavailable'] ?? 0);
+
     if ($sent > 0 || (int) ($birthdaySummary['queued'] ?? 0) > 0) {
         write_store($store);
     }
@@ -256,6 +398,7 @@ function cron_task_reminders(array $payload): array
         'postConsultationFollowUps' => $postConsultationSummary,
         'medicationReminders' => $medicationReminderSummary,
         'birthdays' => $birthdaySummary,
+        'softwareSubscriptionTrial' => $softwareTrialSummary,
     ];
 }
 

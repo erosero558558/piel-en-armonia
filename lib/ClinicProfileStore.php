@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/SoftwareSubscriptionService.php';
+
 function clinic_profile_config_path(): string
 {
     $storePathsFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'StorePaths.php';
@@ -23,7 +25,8 @@ function read_clinic_profile(): array
         'address' => '',
         'phone' => '',
         'logoImage' => '',
-        'software_plan' => 'Básico',
+        'software_plan' => 'Free',
+        'software_subscription' => SoftwareSubscriptionService::normalizeSubscription([], 'free'),
     ];
 
     $path = clinic_profile_config_path();
@@ -70,6 +73,8 @@ function write_clinic_profile(array $profile): bool
 function clinic_profile_merge(array $current, array $source): array
 {
     $next = $current;
+    $currentSubscription = SoftwareSubscriptionService::normalizeClinicProfileSubscription($current);
+    $next['software_subscription'] = $currentSubscription;
 
     if (isset($source['clinicName']) && is_string($source['clinicName'])) {
         $next['clinicName'] = trim($source['clinicName']);
@@ -91,10 +96,25 @@ function clinic_profile_merge(array $current, array $source): array
     }
 
     if (isset($source['software_plan']) && is_string($source['software_plan'])) {
-        $plan = trim($source['software_plan']);
-        if (in_array($plan, ['Básico', 'Pro', 'Enterprise'], true)) {
-            $next['software_plan'] = $plan;
+        $planKey = SoftwareSubscriptionService::normalizePlanKey((string) $source['software_plan']);
+        if (SoftwareSubscriptionService::canManuallyEditPlan($currentSubscription)) {
+            $next['software_subscription'] = SoftwareSubscriptionService::applyManualPlanSelection(
+                $currentSubscription,
+                $planKey
+            );
+            $next['software_plan'] = SoftwareSubscriptionService::planLabel($planKey);
         }
+    }
+
+    if (isset($source['software_subscription']) && is_array($source['software_subscription'])) {
+        $mergedSubscription = array_merge($currentSubscription, $source['software_subscription']);
+        $next['software_subscription'] = SoftwareSubscriptionService::normalizeSubscription(
+            $mergedSubscription,
+            SoftwareSubscriptionService::derivePlanKeyFromClinicProfile($next)
+        );
+        $next['software_plan'] = SoftwareSubscriptionService::planLabel(
+            (string) ($next['software_subscription']['planKey'] ?? 'free')
+        );
     }
 
     return $next;

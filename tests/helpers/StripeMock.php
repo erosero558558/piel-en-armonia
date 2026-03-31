@@ -65,16 +65,29 @@ namespace Stripe {
             {
                 $sessionId = 'cs_mock_' . bin2hex(random_bytes(8));
                 $metadata = isset($params['metadata']) && is_array($params['metadata']) ? $params['metadata'] : [];
+                $mode = isset($params['mode']) ? (string) $params['mode'] : 'payment';
+                $subscriptionId = $mode === 'subscription'
+                    ? 'sub_mock_' . bin2hex(random_bytes(6))
+                    : null;
+                $invoiceId = $mode === 'subscription'
+                    ? 'in_mock_' . bin2hex(random_bytes(6))
+                    : null;
+                $customerId = 'cus_mock_' . bin2hex(random_bytes(6));
                 $data = [
                     'id' => $sessionId,
                     'url' => 'https://checkout.stripe.test/session/' . $sessionId,
                     'status' => 'open',
                     'payment_status' => 'unpaid',
+                    'mode' => $mode,
                     'metadata' => $metadata,
                     'client_reference_id' => isset($params['client_reference_id']) ? $params['client_reference_id'] : '',
                     'success_url' => isset($params['success_url']) ? $params['success_url'] : '',
                     'cancel_url' => isset($params['cancel_url']) ? $params['cancel_url'] : '',
                     'payment_intent' => null,
+                    'customer_email' => isset($params['customer_email']) ? $params['customer_email'] : '',
+                    'customer' => $customerId,
+                    'subscription' => $subscriptionId,
+                    'invoice' => $invoiceId,
                 ];
                 return new StripeObject($data);
             }

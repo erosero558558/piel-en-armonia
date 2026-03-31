@@ -58,6 +58,7 @@ const initialState = {
         availability: {},
         availabilityMeta: {},
         doctorProfile: null,
+        clinicProfile: null,
         queueTickets: [],
         queueMeta: null,
         leadOpsMeta: null,

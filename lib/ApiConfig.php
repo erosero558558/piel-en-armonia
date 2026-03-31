@@ -128,6 +128,7 @@ class ApiConfig
             'media-flow-proposal-review:POST' => [30, 60],
             'media-flow-publication-state:POST' => [30, 60],
             'checkout-orders:PATCH' => [30, 60],
+            'software-subscription-checkout:POST' => [12, 300],
 
             // Predictions
             'predictions:GET' => [20, 60],

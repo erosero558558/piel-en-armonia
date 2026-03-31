@@ -18,7 +18,7 @@ class CheckoutPaymentControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        unset($GLOBALS['__TEST_JSON_BODY'], $GLOBALS['__TEST_RESPONSE'], $GLOBALS['__STRIPE_MOCK_PAYMENT_INTENTS']);
+        unset($GLOBALS['__TEST_JSON_BODY'], $GLOBALS['__TEST_RESPONSE'], $GLOBALS['__TEST_RAW_BODY'], $GLOBALS['__STRIPE_MOCK_PAYMENT_INTENTS']);
 
         $this->tempDir = sys_get_temp_dir() . '/test_checkout_' . bin2hex(random_bytes(6));
         if (!is_dir($this->tempDir)) {
@@ -32,6 +32,7 @@ class CheckoutPaymentControllerTest extends TestCase
         putenv('PIELARMONIA_DATA_DIR=' . $this->tempDir);
         putenv('PIELARMONIA_STRIPE_SECRET_KEY=sk_test_checkout');
         putenv('PIELARMONIA_STRIPE_PUBLISHABLE_KEY=pk_test_checkout');
+        putenv('PIELARMONIA_STRIPE_WEBHOOK_SECRET=whsec_checkout');
         putenv('PIELARMONIA_PAYMENT_CURRENCY=USD');
         putenv('PIELARMONIA_TRANSFER_UPLOAD_DIR=' . $this->uploadDir);
         putenv('PIELARMONIA_TRANSFER_PUBLIC_BASE_URL=/uploads/transfer-proofs');
@@ -45,7 +46,9 @@ class CheckoutPaymentControllerTest extends TestCase
         require_once __DIR__ . '/../../lib/http.php';
         require_once __DIR__ . '/../../lib/ratelimit.php';
         require_once __DIR__ . '/../../lib/validation.php';
+        require_once __DIR__ . '/../../lib/auth.php';
         require_once __DIR__ . '/../../lib/models.php';
+        require_once __DIR__ . '/../../lib/ClinicProfileStore.php';
         require_once __DIR__ . '/../../payment-lib.php';
         require_once __DIR__ . '/../../controllers/PaymentController.php';
 
@@ -57,6 +60,7 @@ class CheckoutPaymentControllerTest extends TestCase
         putenv('PIELARMONIA_DATA_DIR');
         putenv('PIELARMONIA_STRIPE_SECRET_KEY');
         putenv('PIELARMONIA_STRIPE_PUBLISHABLE_KEY');
+        putenv('PIELARMONIA_STRIPE_WEBHOOK_SECRET');
         putenv('PIELARMONIA_PAYMENT_CURRENCY');
         putenv('PIELARMONIA_TRANSFER_UPLOAD_DIR');
         putenv('PIELARMONIA_TRANSFER_PUBLIC_BASE_URL');
@@ -66,7 +70,7 @@ class CheckoutPaymentControllerTest extends TestCase
         }
 
         $this->removeDirectory($this->tempDir);
-        unset($GLOBALS['__TEST_JSON_BODY'], $GLOBALS['__TEST_RESPONSE'], $GLOBALS['__STRIPE_MOCK_PAYMENT_INTENTS']);
+        unset($GLOBALS['__TEST_JSON_BODY'], $GLOBALS['__TEST_RESPONSE'], $GLOBALS['__TEST_RAW_BODY'], $GLOBALS['__STRIPE_MOCK_PAYMENT_INTENTS']);
         $_POST = [];
         $_FILES = [];
     }
@@ -405,5 +409,159 @@ class CheckoutPaymentControllerTest extends TestCase
         $this->assertSame($overdueAt, (string) ($patients[0]['nextDueAt'] ?? ''));
         $this->assertSame('PAY-ANA-001', (string) ($patients[0]['orders'][0]['receiptNumber'] ?? ''));
         $this->assertSame('outstanding', (string) ($patients[0]['orders'][0]['statusBucket'] ?? ''));
+    }
+
+    public function testAdminCanStartSoftwareSubscriptionCheckout(): void
+    {
+        \write_clinic_profile([
+            'clinicName' => 'Aurora Derm Centro',
+            'address' => 'Av. Clinica 123',
+            'phone' => '+593999111222',
+            'software_plan' => 'Free',
+        ]);
+
+        \start_secure_session();
+        $_SESSION['admin_logged_in'] = true;
+        $_SESSION['csrf_token'] = 'csrf_checkout_token';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf_checkout_token';
+
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+            'planKey' => 'starter',
+        ]);
+
+        $response = $this->captureControllerExit(static function (): void {
+            \PaymentController::softwareSubscriptionCheckout([]);
+        });
+
+        $this->assertSame(201, $response['status']);
+        $this->assertTrue((bool) ($response['payload']['ok'] ?? false));
+        $this->assertStringContainsString(
+            'https://checkout.stripe.test/session/',
+            (string) ($response['payload']['data']['checkoutUrl'] ?? '')
+        );
+        $this->assertSame(
+            'pending_checkout',
+            (string) ($response['payload']['data']['subscription']['status'] ?? '')
+        );
+        $this->assertSame(
+            'starter',
+            (string) ($response['payload']['data']['subscription']['pendingPlanKey'] ?? '')
+        );
+
+        $profile = \read_clinic_profile();
+        $this->assertSame('Free', (string) ($profile['software_plan'] ?? ''));
+        $this->assertSame(
+            'starter',
+            (string) ($profile['software_subscription']['pendingPlanKey'] ?? '')
+        );
+        $this->assertNotSame(
+            '',
+            (string) ($profile['software_subscription']['checkoutSessionId'] ?? '')
+        );
+    }
+
+    public function testStripeWebhookActivatesSoftwareSubscriptionAndStoresInvoice(): void
+    {
+        \write_clinic_profile([
+            'clinicName' => 'Aurora Derm Centro',
+            'address' => 'Av. Clinica 123',
+            'phone' => '+593999111222',
+            'software_plan' => 'Free',
+            'software_subscription' => [
+                'status' => 'pending_checkout',
+                'planKey' => 'free',
+                'pendingPlanKey' => 'pro',
+                'checkoutSessionId' => 'cs_sub_checkout_001',
+            ],
+        ]);
+
+        $_SERVER['HTTP_STRIPE_SIGNATURE'] = 'valid_signature';
+        $GLOBALS['__TEST_RAW_BODY'] = json_encode([
+            'id' => 'evt_sub_checkout_001',
+            'type' => 'checkout.session.completed',
+            'data' => [
+                'object' => [
+                    'id' => 'cs_sub_checkout_001',
+                    'mode' => 'subscription',
+                    'customer' => 'cus_sub_001',
+                    'subscription' => 'sub_flowos_001',
+                    'invoice' => 'in_flowos_001',
+                    'created' => '1774930800',
+                    'completed_at' => '1774930860',
+                    'current_period_end' => '1777609260',
+                    'subscription_status' => 'active',
+                    'metadata' => [
+                        'surface' => 'software_subscription',
+                        'plan_key' => 'pro',
+                    ],
+                ],
+            ],
+        ]);
+
+        $response = $this->captureControllerExit(static function (): void {
+            \PaymentController::webhook([]);
+        });
+
+        $this->assertSame(200, $response['status']);
+        $this->assertTrue((bool) ($response['payload']['ok'] ?? false));
+
+        $profile = \read_clinic_profile();
+        $this->assertSame('Pro', (string) ($profile['software_plan'] ?? ''));
+        $this->assertSame(
+            'active',
+            (string) ($profile['software_subscription']['status'] ?? '')
+        );
+        $this->assertSame(
+            'pro',
+            (string) ($profile['software_subscription']['planKey'] ?? '')
+        );
+        $this->assertSame(
+            'sub_flowos_001',
+            (string) ($profile['software_subscription']['stripeSubscriptionId'] ?? '')
+        );
+        $this->assertNotSame(
+            '',
+            (string) ($profile['software_subscription']['renewalAt'] ?? '')
+        );
+
+        $GLOBALS['__TEST_RAW_BODY'] = json_encode([
+            'id' => 'evt_sub_invoice_001',
+            'type' => 'invoice.paid',
+            'data' => [
+                'object' => [
+                    'id' => 'in_flowos_001',
+                    'number' => 'INV-FLOWOS-001',
+                    'status' => 'paid',
+                    'amount_paid' => 7900,
+                    'currency' => 'usd',
+                    'customer' => 'cus_sub_001',
+                    'subscription' => 'sub_flowos_001',
+                    'current_period_end' => '1777609260',
+                    'created' => '1774930860',
+                    'paid_at' => '1774930860',
+                    'hosted_invoice_url' => 'https://billing.stripe.test/invoices/in_flowos_001',
+                    'invoice_pdf' => 'https://billing.stripe.test/invoices/in_flowos_001.pdf',
+                    'metadata' => [
+                        'surface' => 'software_subscription',
+                        'plan_key' => 'pro',
+                    ],
+                ],
+            ],
+        ]);
+
+        $invoiceResponse = $this->captureControllerExit(static function (): void {
+            \PaymentController::webhook([]);
+        });
+
+        $this->assertSame(200, $invoiceResponse['status']);
+        $profile = \read_clinic_profile();
+        $invoice = $profile['software_subscription']['invoices'][0] ?? [];
+        $this->assertSame('INV-FLOWOS-001', (string) ($invoice['number'] ?? ''));
+        $this->assertSame('Pagada', (string) ($invoice['statusLabel'] ?? ''));
+        $this->assertSame('$79.00', (string) ($invoice['amountLabel'] ?? ''));
+        $this->assertStringContainsString(
+            'https://billing.stripe.test/invoices/in_flowos_001',
+            (string) ($invoice['hostedInvoiceUrl'] ?? '')
+        );
     }
 }

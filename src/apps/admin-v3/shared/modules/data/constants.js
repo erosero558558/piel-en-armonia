@@ -5,6 +5,7 @@ export const LOCAL_DATA_KEYS = {
     availability: 'availability',
     availabilityMeta: 'availability-meta',
     doctorProfile: 'doctor-profile',
+    clinicProfile: 'clinic-profile',
     queueTickets: 'queue-tickets',
     queueMeta: 'queue-meta',
     leadOpsMeta: 'leadops-meta',

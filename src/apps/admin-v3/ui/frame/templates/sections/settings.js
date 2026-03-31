@@ -135,7 +135,8 @@ export function renderSettingsSection() {
                             <label class="settings-field">
                                 <span>Software Plan</span>
                                 <select id="clinicProfileSoftwarePlan" name="softwarePlan">
-                                    <option value="Básico">Básico</option>
+                                    <option value="Free">Free</option>
+                                    <option value="Starter">Starter</option>
                                     <option value="Pro">Pro</option>
                                     <option value="Enterprise">Enterprise</option>
                                 </select>
@@ -176,6 +177,70 @@ export function renderSettingsSection() {
                             </button>
                         </div>
                     </form>
+                </article>
+
+                <article class="sony-panel settings-form-panel" style="margin-top: 20px;">
+                    <header class="section-header">
+                        <div>
+                            <h3>Suscripción Flow OS</h3>
+                            <p>Checkout recurrente por Stripe con visibilidad de renovación e invoices.</p>
+                        </div>
+                        <span class="settings-completion-pill" id="softwareSubscriptionStatusPill">Free</span>
+                    </header>
+
+                    <div class="settings-preview-card">
+                        <p class="settings-preview-eyebrow">Plan activo</p>
+                        <strong id="softwareSubscriptionPlanHeadline">Free</strong>
+                        <p id="softwareSubscriptionStatusLine">Sin suscripción recurrente activa todavía.</p>
+                        <p id="softwareSubscriptionRenewalLine">Renovación no disponible.</p>
+                        <p id="softwareSubscriptionPendingLine">Puedes activar Starter o Pro sin salir del panel.</p>
+                    </div>
+
+                    <div class="settings-form-actions">
+                        <button
+                            type="button"
+                            id="softwareSubscriptionStarterBtn"
+                            class="admin-theme-btn settings-secondary-btn"
+                        >
+                            Activar Starter con Stripe
+                        </button>
+                        <button
+                            type="button"
+                            id="softwareSubscriptionProBtn"
+                            class="admin-v3-command-btn settings-primary-btn"
+                        >
+                            Activar Pro con Stripe
+                        </button>
+                        <a
+                            id="softwareSubscriptionCheckoutLink"
+                            class="admin-theme-btn settings-secondary-btn"
+                            href="#"
+                            target="_blank"
+                            rel="noopener"
+                            hidden
+                        >
+                            Abrir checkout seguro
+                        </a>
+                    </div>
+
+                    <div class="settings-status-panel" style="margin-top: 16px;">
+                        <dl class="settings-status-list">
+                            <div>
+                                <dt>Stripe</dt>
+                                <dd id="softwareSubscriptionStripeMeta">Aún no se ha iniciado un checkout recurrente.</dd>
+                            </div>
+                            <div>
+                                <dt>Facturas</dt>
+                                <dd id="softwareSubscriptionInvoiceCount">0 registradas</dd>
+                            </div>
+                            <div>
+                                <dt>Último cambio</dt>
+                                <dd id="softwareSubscriptionUpdatedAt">Sin sincronizar</dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <ul id="softwareSubscriptionInvoiceList" class="sony-list dashboard-attention-list" style="margin-top: 16px;"></ul>
                 </article>
 
                 <dialog id="clinicPreviewModal" class="clinic-preview-dialog">

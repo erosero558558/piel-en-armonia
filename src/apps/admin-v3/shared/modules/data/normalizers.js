@@ -41,6 +41,34 @@ function normalizeDoctorProfile(data, fallbackState) {
     };
 }
 
+function normalizeClinicProfile(data, fallbackState) {
+    const source =
+        data.clinicProfile && typeof data.clinicProfile === 'object'
+            ? data.clinicProfile
+            : fallbackState?.clinicProfile &&
+                typeof fallbackState.clinicProfile === 'object'
+              ? fallbackState.clinicProfile
+              : null;
+
+    if (!source) {
+        return null;
+    }
+
+    return {
+        clinicName: String(source.clinicName || '').trim(),
+        address: String(source.address || '').trim(),
+        phone: String(source.phone || '').trim(),
+        logoImage: String(source.logoImage || '').trim(),
+        software_plan: String(source.software_plan || 'Free').trim(),
+        software_subscription:
+            source.software_subscription &&
+            typeof source.software_subscription === 'object'
+                ? source.software_subscription
+                : {},
+        updatedAt: String(source.updatedAt || '').trim(),
+    };
+}
+
 function normalizeReviews(data, fallbackState) {
     const source = Array.isArray(data.reviews) ? data.reviews : (fallbackState?.reviews || []);
     const totalReviews = source.length;
@@ -75,6 +103,7 @@ export function normalizeAdminDataPayload(data, healthPayload, fallbackState) {
                 ? data.availabilityMeta
                 : {},
         doctorProfile: normalizeDoctorProfile(data, fallbackState),
+        clinicProfile: normalizeClinicProfile(data, fallbackState),
         queueTickets: normalizeQueueTickets(data),
         queueMeta:
             data.queueMeta && typeof data.queueMeta === 'object'
@@ -180,6 +209,7 @@ export function normalizeAdminStorePayload(payload, currentFunnelMetrics) {
         availability: payload.availability || {},
         availabilityMeta: payload.availabilityMeta || {},
         doctorProfile: payload.doctorProfile || null,
+        clinicProfile: payload.clinicProfile || null,
         queueTickets: payload.queueTickets || [],
         queueMeta: payload.queueMeta || null,
         leadOpsMeta: payload.leadOpsMeta || null,
