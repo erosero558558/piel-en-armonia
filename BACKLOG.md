@@ -22,7 +22,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint 8 | 8 | 9 | 47% |
-| ⏸ Sprint 9 | 8 | 19 | 30% |
+| ⏸ Sprint 9 | 9 | 18 | 33% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
 | ⏸ Sprint 13 | 4 | 17 | 19% |
@@ -140,7 +140,7 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 | ... | | _+4 más_ |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
-_Esperando que Sprint anterior esté completo. 19 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 
 ### 🟢 Disponibles (18)
 

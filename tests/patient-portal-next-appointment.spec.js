@@ -17,6 +17,25 @@ test.describe('Patient portal next appointment card', () => {
             window.localStorage.setItem('auroraPatientPortalSession', JSON.stringify(session));
         }, SESSION);
 
+        await page.route('**/data/catalog/cross-sell.json', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    suggestions: [
+                        {
+                            service_id: 'consulta',
+                            badge_es: 'Complemento frecuente',
+                            title_es: 'Diagnóstico integral de piel, cabello y uñas',
+                            description_es: 'Esta valoración suele ser el siguiente paso más útil después de una consulta general.',
+                            href: '/servicios/diagnostico-integral.html',
+                            cta_label_es: 'Ver valoración',
+                        },
+                    ],
+                }),
+            });
+        });
+
         await page.route('**/api.php?resource=patient-portal-dashboard', async (route) => {
             await new Promise((resolve) => setTimeout(resolve, 180));
             await route.fulfill({
@@ -32,6 +51,7 @@ test.describe('Patient portal next appointment card', () => {
                         },
                         nextAppointment: {
                             id: 101,
+                            serviceId: 'consulta',
                             dateLabel: 'jue 2 abr 2026',
                             timeLabel: '10:30',
                             doctorName: 'Dra Ana Rosero',
@@ -63,6 +83,14 @@ test.describe('Patient portal next appointment card', () => {
         await expect(page.locator('[data-portal-next-type]')).toContainText('Consulta presencial');
         await expect(page.locator('[data-portal-next-service]')).toContainText('Consulta Dermatológica');
         await expect(page.locator('[data-portal-next-preparation]')).toContainText('Llega 10 minutos antes');
+        await expect(page.locator('[data-portal-next-cross-sell]')).toBeVisible();
+        await expect(page.locator('[data-portal-next-cross-sell-title]')).toContainText(
+            'Diagnóstico integral de piel, cabello y uñas'
+        );
+        await expect(page.locator('[data-portal-next-cross-sell-cta]')).toHaveAttribute(
+            'href',
+            '/servicios/diagnostico-integral.html'
+        );
         await expect(page.locator('[data-portal-next-reagendar]')).toHaveAttribute(
             'href',
             '/?reschedule=tok_live_001'
@@ -77,6 +105,16 @@ test.describe('Patient portal next appointment card', () => {
         await page.addInitScript((session) => {
             window.localStorage.setItem('auroraPatientPortalSession', JSON.stringify(session));
         }, SESSION);
+
+        await page.route('**/data/catalog/cross-sell.json', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    suggestions: [],
+                }),
+            });
+        });
 
         await page.route('**/api.php?resource=patient-portal-dashboard', async (route) => {
             await route.fulfill({

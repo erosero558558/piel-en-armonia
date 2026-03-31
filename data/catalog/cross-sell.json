@@ -1,0 +1,91 @@
+{
+    "version": "2026.03-cross-sell-v1",
+    "updated_at": "2026-03-31T00:00:00-05:00",
+    "timezone": "America/Guayaquil",
+    "suggestions": [
+        {
+            "service_id": "consulta",
+            "badge_es": "Complemento frecuente",
+            "badge_en": "Common pairing",
+            "title_es": "Diagnóstico integral de piel, cabello y uñas",
+            "title_en": "Full skin, hair and nail assessment",
+            "description_es": "Si quieres ampliar el mapa clínico de tu piel, esta valoración suele ser el siguiente paso más útil después de una consulta general.",
+            "description_en": "If you want a broader clinical baseline, this is the most useful next step after a general consultation.",
+            "href": "/servicios/diagnostico-integral.html",
+            "cta_label_es": "Ver valoración",
+            "cta_label_en": "View assessment"
+        },
+        {
+            "service_id": "telefono",
+            "badge_es": "Para seguimiento completo",
+            "badge_en": "For full follow-up",
+            "title_es": "Diagnóstico integral de piel, cabello y uñas",
+            "title_en": "Full skin, hair and nail assessment",
+            "description_es": "Cuando la llamada destapa varias dudas clínicas, esta valoración presencial ayuda a cerrar el diagnóstico con más contexto visual.",
+            "description_en": "When the call reveals multiple clinical questions, this in-person assessment helps close the diagnosis with more visual context.",
+            "href": "/servicios/diagnostico-integral.html",
+            "cta_label_es": "Explorar valoración",
+            "cta_label_en": "Explore assessment"
+        },
+        {
+            "service_id": "video",
+            "badge_es": "Siguiente paso recomendado",
+            "badge_en": "Recommended next step",
+            "title_es": "Diagnóstico integral de piel, cabello y uñas",
+            "title_en": "Full skin, hair and nail assessment",
+            "description_es": "Si tu video consulta abre un plan más amplio, esta valoración presencial suele complementar muy bien el seguimiento remoto.",
+            "description_en": "If your video visit opens a broader plan, this in-person assessment usually complements remote follow-up well.",
+            "href": "/servicios/diagnostico-integral.html",
+            "cta_label_es": "Ver siguiente paso",
+            "cta_label_en": "View next step"
+        },
+        {
+            "service_id": "acne",
+            "badge_es": "Combinación que más convierte",
+            "badge_en": "Best-performing pairing",
+            "title_es": "Peeling químico",
+            "title_en": "Chemical peel",
+            "description_es": "Suele combinarse con control de acné para trabajar textura, marcas postinflamatorias y uniformidad del tono.",
+            "description_en": "This is commonly paired with acne care to work on texture, post-inflammatory marks and tone evenness.",
+            "href": "/servicios/peeling-quimico.html",
+            "cta_label_es": "Ver complemento",
+            "cta_label_en": "View add-on"
+        },
+        {
+            "service_id": "cancer",
+            "badge_es": "Seguimiento preventivo",
+            "badge_en": "Preventive follow-up",
+            "title_es": "Diagnóstico integral de piel, cabello y uñas",
+            "title_en": "Full skin, hair and nail assessment",
+            "description_es": "Además del control puntual de lesiones, esta valoración ayuda a revisar el panorama completo de piel, cabello y uñas en una sola visita.",
+            "description_en": "Beyond targeted lesion review, this assessment helps cover the full skin, hair and nail picture in one visit.",
+            "href": "/servicios/diagnostico-integral.html",
+            "cta_label_es": "Ver evaluación completa",
+            "cta_label_en": "View full assessment"
+        },
+        {
+            "service_id": "laser",
+            "badge_es": "Se vende bien junto",
+            "badge_en": "Often sold together",
+            "title_es": "Mesoterapia",
+            "title_en": "Mesotherapy",
+            "description_es": "En rutas de reparación y estímulo cutáneo, suele sumarse para reforzar hidratación, recuperación y calidad de piel.",
+            "description_en": "In repair and skin stimulation paths, it is often added to reinforce hydration, recovery and overall skin quality.",
+            "href": "/servicios/mesoterapia.html",
+            "cta_label_es": "Ver mesoterapia",
+            "cta_label_en": "View mesotherapy"
+        },
+        {
+            "service_id": "rejuvenecimiento",
+            "badge_es": "Dúo comercial fuerte",
+            "badge_en": "Strong commercial duo",
+            "title_es": "Botox",
+            "title_en": "Botox",
+            "description_es": "Se combina con frecuencia para suavizar líneas de expresión y completar el resultado del rejuvenecimiento médico.",
+            "description_en": "It is frequently paired to soften expression lines and complete the result of medical rejuvenation.",
+            "href": "/servicios/botox.html",
+            "cta_label_es": "Ver botox",
+            "cta_label_en": "View botox"
+        }
+    ]
+}
