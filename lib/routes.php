@@ -143,6 +143,7 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'openclaw-interactions', [OpenclawController::class, 'checkInteractions']);
     $router->add('POST', 'openclaw-summarize', [OpenclawController::class, 'summarizeSession']);
     $router->add('GET', 'openclaw-router-status', [OpenclawController::class, 'routerStatus']);
+    $router->add('POST', 'openclaw-fast-close', [OpenclawController::class, 'fastClose']); // S24: cierra consulta en 1 click
 
     // Gift Cards
     $router->add('POST', 'gift-card-issue', [GiftCardController::class, 'issue']);

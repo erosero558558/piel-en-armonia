@@ -1118,6 +1118,120 @@ final class OpenclawController
         ];
     }
 
+    // ── fastClose (S24 — Un click cierra la consulta) ─────────────────────
+
+    /**
+     * Fast Close: guarda diagnóstico + nota de evolución + cierra la consulta
+     * en una sola request atómica.
+     *
+     * Payload mínimo:
+     *   case_id      (string)  requerido
+     *   cie10_code   (string)  requerido
+     *   evolution    (string)  requerido (al menos 10 chars)
+     *
+     * Payload opcional:
+     *   cie10_description  (string)
+     *   notes              (string)  notas adicionales de diagnóstico
+     *   post_instructions  (string)  indicaciones para el paciente
+     *   close_stage        (string)  default: 'completed'
+     *
+     * Respuesta: { ok, closed_at, diagnosis_saved, evolution_id, stage }
+     */
+    public static function fastClose(array $context): void
+    {
+        self::requireAuth();
+        $payload = require_json_body();
+
+        $caseId     = trim((string) ($payload['case_id'] ?? ''));
+        $cie10Code  = trim((string) ($payload['cie10_code'] ?? ''));
+        $evolution  = trim((string) ($payload['evolution'] ?? ''));
+
+        if ($caseId === '') {
+            json_response(['ok' => false, 'error' => 'case_id requerido'], 400);
+        }
+        if ($cie10Code === '') {
+            json_response(['ok' => false, 'error' => 'cie10_code requerido para cerrar la consulta'], 400);
+        }
+        if (strlen($evolution) < 10) {
+            json_response(['ok' => false, 'error' => 'La nota de evolución debe tener al menos 10 caracteres'], 400);
+        }
+
+        $cie10Desc   = trim((string) ($payload['cie10_description'] ?? ''));
+        $closeStage  = in_array($payload['close_stage'] ?? '', ['completed', 'follow_up', 'referred'], true)
+            ? $payload['close_stage']
+            : 'completed';
+
+        // S10-02: audit de sugestión de IA en fast-close
+        $aiSuggested = trim((string) ($payload['ai_suggested_code'] ?? ''));
+        $outcome = $aiSuggested === '' ? 'manual' : ($aiSuggested === $cie10Code ? 'accepted_as_is' : 'edited');
+        self::logClinicalAiAction([
+            'action'       => 'openclaw-fast-close',
+            'case_id'      => $caseId,
+            'outcome'      => $outcome,
+            'saved_value'  => $cie10Code . ' ' . $cie10Desc,
+            'ai_suggested' => $aiSuggested,
+            'diff'         => ($outcome === 'edited') ? ['from' => $aiSuggested, 'to' => $cie10Code] : null,
+        ]);
+
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
+        $service      = new ClinicalHistoryService();
+        $doctorProfile = doctor_profile_document_fields([
+            'name' => trim((string) ($payload['doctor_name'] ?? ($_SESSION['admin_email'] ?? ''))),
+        ]);
+
+        $closedAt    = gmdate('c');
+        $evolutionId = null;
+
+        $result = self::mutateStore(static function (array $store) use (
+            $service, $caseId, $cie10Code, $cie10Desc, $evolution,
+            $closeStage, $closedAt, $doctorProfile, $payload, &$evolutionId
+        ): array {
+            // 1. Guardar diagnóstico
+            $store = $service->saveDiagnosis($store, [
+                'caseId'           => $caseId,
+                'cie10Code'        => $cie10Code,
+                'cie10Description' => $cie10Desc,
+                'notes'            => $payload['notes'] ?? '',
+                'source'           => 'openclaw-fast-close',
+            ]);
+
+            // 2. Guardar nota de evolución (incluyendo indicaciones si vienen)
+            $evolutionText = $evolution;
+            $postInstructions = trim((string) ($payload['post_instructions'] ?? ''));
+            if ($postInstructions !== '') {
+                $evolutionText .= "\n\n**Indicaciones para el paciente:**\n" . $postInstructions;
+            }
+            $evolutionResult = $service->saveEvolutionNote($store, [
+                'caseId'          => $caseId,
+                'text'            => $evolutionText,
+                'cie10Code'       => $cie10Code,
+                'doctorId'        => $payload['doctor_id'] ?? ($doctorProfile['name'] ?? ''),
+                'doctorName'      => $doctorProfile['name'] ?? '',
+                'doctorSpecialty' => $doctorProfile['specialty'] ?? '',
+                'doctorMsp'       => $doctorProfile['msp'] ?? '',
+                'source'          => 'openclaw-fast-close',
+            ]);
+            $evolutionId = $evolutionResult['id'] ?? null;
+            $store       = $evolutionResult['store'] ?? $store;
+
+            // 3. Cambiar el stage del caso a closed
+            if (isset($store['cases'][$caseId])) {
+                $store['cases'][$caseId]['stage']     = $closeStage;
+                $store['cases'][$caseId]['closed_at'] = $closedAt;
+            }
+
+            return $store;
+        });
+
+        json_response([
+            'ok'              => true,
+            'closed_at'       => $closedAt,
+            'diagnosis_saved' => true,
+            'evolution_id'    => $evolutionId,
+            'stage'           => $closeStage,
+        ]);
+    }
+
     // ── logClinicalAiAction (S10-02) ─────────────────────────────────────────
 
     /**
