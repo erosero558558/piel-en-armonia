@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 12:26:32 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 12:32:52 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -88,16 +88,20 @@ _Esperando que Sprint anterior esté completo. 15 tareas pendientes._
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
 _Esperando que Sprint anterior esté completo. 27 tareas pendientes._
 
-### 🟢 Disponibles (27)
+### 🟢 Disponibles (26)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S7-02** | `[S7]` | S |
 | **S7-04** | `[S7]` | S |
 | **S7-05** | `[S7]` | S |
-| **S7-07** | `[S7]` | M |
 | **S7-08** | `[S7]` | S |
-| ... | | _+22 más_ |
+| **S7-09** | `[S7]` | S |
+| ... | | _+21 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S7-07** `[S7]` → _Codex-erosero558558_ (expira en 238min)
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._
@@ -167,13 +171,16 @@ _Esperando que Sprint anterior esté completo. 22 tareas pendientes._
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 
-### 🟢 Disponibles (3)
+### 🟢 Disponibles (2)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S13-15** | `[S13]` | M |
-| **S13-18** | `[S13]` | M |
+| **S13-14** | `[S13]` | M |
 | **S13-20** | `[S13]` | M |
+
+### 🔒 En progreso — NO tomar
+
+- **S13-18** `[S13]` → _S13-18_double_submit_ (expira en 235min)
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
@@ -187,16 +194,22 @@ _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 
-### 🟢 Disponibles (11)
+### 🟢 Disponibles (8)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S14-00** | `[S14]` | M |
 | **S14-01** | `[S14]` | S |
-| **S14-02** | `[S14]` | M |
 | **S14-05** | `[S14]` | M |
-| **S14-06** | `[S14]` | M |
-| ... | | _+6 más_ |
+| **S14-08** | `[S14]` | M |
+| **S14-09** | `[S14]` | M |
+| ... | | _+3 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S14-02** `[S14]` → _S14-02_pflowos_clean_ (expira en 235min)
+- **S14-06** `[S14]` → _S14-06_dead_scripts_ (expira en 235min)
+- **S14-13** `[S14]` → _S14-13_component_xss_ (expira en 235min)
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
 _Esperando que Sprint anterior esté completo. 10 tareas pendientes._
