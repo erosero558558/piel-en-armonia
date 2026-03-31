@@ -27,6 +27,24 @@ spec:
         volumeMounts:
         - name: data-volume
           mountPath: /var/www/data
+        readinessProbe:
+          httpGet:
+            path: /api.php?resource=health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api.php?resource=health
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 5
       volumes:
       - name: data-volume
         persistentVolumeClaim:
