@@ -471,10 +471,21 @@ Archivos de manifiesto en carpeta `k8s/`:
 4.  **Despliegue App**:
     - Construye y sube tu imagen Docker (`docker build -t tu-repo/app:latest . && docker push ...`).
     - Actualiza la imagen en `k8s/deployment.yaml`.
+    - El deployment canonico incluye `readinessProbe` y `livenessProbe`
+      contra `/api.php?resource=health`; si cambias el contenedor o el puerto,
+      conserva ese contrato.
     - Aplica:
         ```bash
         kubectl apply -f k8s/deployment.yaml
         kubectl apply -f k8s/service.yaml
+        ```
+    - Verifica probes en el pod activo:
+        ```bash
+        kubectl describe pod -n pielarmonia -l app=pielarmonia-app | grep -A6 "Readiness\|Liveness"
+        ```
+    - Smoke local de latencia antes de promover cambios grandes de health:
+        ```bash
+        php tests/test_health_endpoint_latency.php
         ```
 
 5.  **Ingress**:
