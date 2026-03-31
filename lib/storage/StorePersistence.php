@@ -11,6 +11,7 @@ final class StorePersistence
     {
         return [
             'certificates' => 'certificates_json',
+            'gift_cards' => 'gift_cards_json',
             'prescriptions' => 'prescriptions_json',
             'checkout_orders' => 'checkout_orders_json',
             'queue_help_requests' => 'queue_help_requests_json',
@@ -452,6 +453,7 @@ final class StorePersistence
                 'callbacks' => self::fetchJsonDataRows($pdo, 'callbacks'),
                 'reviews' => self::fetchJsonDataRows($pdo, 'reviews'),
                 'certificates' => [],
+                'gift_cards' => [],
                 'prescriptions' => [],
                 'queue_tickets' => self::fetchJsonDataRows($pdo, 'queue_tickets'),
                 'queue_help_requests' => [],

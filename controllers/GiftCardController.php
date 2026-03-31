@@ -2,116 +2,135 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/gift_cards/GiftCardService.php';
-require_once __DIR__ . '/../lib/http.php';
+require_once __DIR__ . '/../lib/storage.php';
+require_once __DIR__ . '/../lib/validation.php';
 
-class GiftCardController
+final class GiftCardController
 {
-    /**
-     * POST /api.php?resource=gift-card-issue
-     */
-    public function issue(): void
+    public static function issue(array $context): void
     {
-        // Enforce administrative authentication for issuance
-        requireAuth();
-        
-        // Also check if the user is truly an admin (assuming auth provides a session flag or role)
-        // For Aurora Derm, rely on requireAuth() + session scope for admin routes.
+        $payload = require_json_body();
 
-        $inputData = file_get_contents('php://input');
-        $data = json_decode($inputData, true);
-
-        if (!$data || !isset($data['amount_cents'])) {
-            http_response_code(400);
-            echo json_encode(["error" => "Invalid payload, missing amount_cents"]);
-            return;
+        $amountCents = self::resolveAmountCents($payload);
+        if ($amountCents <= 0) {
+            json_response([
+                'ok' => false,
+                'error' => 'El monto debe ser mayor a cero.',
+            ], 400);
         }
 
-        $amountCents = (int)$data['amount_cents'];
-        $issuerId = $data['issuer'] ?? $_SESSION['user_id'] ?? 'Admin';
-        $recipientEmail = $data['recipient_email'] ?? null;
+        $senderName = truncate_field(trim((string) ($payload['sender'] ?? $payload['issuer'] ?? '')), 120);
+        $recipientName = truncate_field(trim((string) ($payload['recipient'] ?? '')), 120);
+        $recipientEmail = strtolower(trim((string) ($payload['email'] ?? $payload['recipient_email'] ?? '')));
+        $note = truncate_field(trim((string) ($payload['note'] ?? '')), 180);
 
-        try {
-            $giftCard = GiftCardService::issue($amountCents, $issuerId, $recipientEmail);
-            
-            // Format QR payload. Often a URL pointing to the gift card verification or redemption page
-            $baseUrl = $_ENV['APP_URL'] ?? 'https://pielarmonia.com';
-            $qrUrl = $baseUrl . '/es/gift-cards/redimir?code=' . urlencode($giftCard->code);
-
-            echo json_encode([
-                "message" => "Gift card issued successfully",
-                "code" => $giftCard->code,
-                "amount_cents" => $giftCard->amount_cents,
-                "recipient_email" => $giftCard->recipient_email,
-                "expires_at" => $giftCard->expires_at,
-                "qr_data" => $qrUrl
-            ]);
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(["error" => $e->getMessage()]);
-        }
-    }
-
-    /**
-     * POST /api.php?resource=gift-card-redeem
-     */
-    public function redeem(): void
-    {
-        requireAuth();
-
-        $inputData = file_get_contents('php://input');
-        $data = json_decode($inputData, true);
-
-        if (!$data || !isset($data['code']) || !isset($data['amount_cents'])) {
-            http_response_code(400);
-            echo json_encode(["error" => "Invalid payload, missing code or amount_cents"]);
-            return;
+        if ($senderName === '') {
+            json_response([
+                'ok' => false,
+                'error' => 'La persona que regala es obligatoria.',
+            ], 400);
         }
 
-        $code = trim($data['code']);
-        $amountCents = (int)$data['amount_cents'];
+        if ($recipientName === '') {
+            json_response([
+                'ok' => false,
+                'error' => 'La persona destinataria es obligatoria.',
+            ], 400);
+        }
 
-        try {
-            $success = GiftCardService::redeem($code, $amountCents);
-            
-            if ($success) {
-                echo json_encode(["message" => "Gift card redeemed successfully", "amount_redeemed_cents" => $amountCents]);
-            } else {
-                http_response_code(400);
-                echo json_encode(["error" => "Gift card invalid, expired, or insufficient balance"]);
+        if ($recipientEmail !== '' && !validate_email($recipientEmail)) {
+            json_response([
+                'ok' => false,
+                'error' => 'El correo del destinatario no es valido.',
+            ], 400);
+        }
+
+        $lockResult = with_store_lock(static function () use ($amountCents, $senderName, $recipientName, $recipientEmail, $note): array {
+            $service = new GiftCardService();
+            $result = $service->issue(
+                read_store(),
+                $amountCents,
+                $senderName,
+                $recipientEmail,
+                [
+                    'recipient_name' => $recipientName,
+                    'sender_name' => $senderName,
+                    'note' => $note,
+                ]
+            );
+
+            if (!write_store($result['store'], false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo guardar la gift card.',
+                    'code' => 503,
+                ];
             }
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(["error" => $e->getMessage()]);
+
+            return [
+                'ok' => true,
+                'giftCard' => $result['giftCard'],
+            ];
+        });
+
+        if (
+            ($lockResult['ok'] ?? false) !== true ||
+            !is_array($lockResult['result'] ?? null) ||
+            (($lockResult['result']['ok'] ?? false) !== true)
+        ) {
+            $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : $lockResult;
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo emitir la gift card.'),
+            ], (int) ($result['code'] ?? 503));
         }
+
+        $giftCard = is_array($lockResult['result']['giftCard'] ?? null) ? $lockResult['result']['giftCard'] : [];
+
+        json_response([
+            'ok' => true,
+            'data' => [
+                'code' => (string) ($giftCard['code'] ?? ''),
+                'qrData' => (string) ($giftCard['qr_data'] ?? ''),
+                'qrImageUrl' => (string) ($giftCard['qr_image_url'] ?? ''),
+                'giftCard' => $giftCard,
+            ],
+        ], 201);
     }
 
     /**
-     * GET /api.php?resource=gift-card-validate&code=XXX
+     * @param array<string,mixed> $payload
      */
-    public function validate(): void
+    private static function resolveAmountCents(array $payload): int
     {
-        $code = $_GET['code'] ?? null;
-        if (!$code) {
-            http_response_code(400);
-            echo json_encode(["error" => "Missing code"]);
-            return;
+        if (isset($payload['amount_cents'])) {
+            $raw = $payload['amount_cents'];
+            if (is_int($raw)) {
+                return $raw;
+            }
+
+            if (is_string($raw) && preg_match('/^\d+$/', trim($raw)) === 1) {
+                return (int) trim($raw);
+            }
         }
 
-        $giftCard = GiftCardService::validate(trim($code));
-        if ($giftCard && $giftCard->isActive()) {
-            echo json_encode([
-                "valid" => true,
-                "code" => $giftCard->code,
-                "balance_cents" => $giftCard->balance_cents,
-                "expires_at" => $giftCard->expires_at
-            ]);
-        } else {
-            echo json_encode([
-                "valid" => false,
-                "reason" => "Invalid, exhausted, or expired"
-            ]);
+        $rawAmount = $payload['amount'] ?? null;
+        if (is_int($rawAmount)) {
+            return $rawAmount * 100;
         }
+
+        if (is_float($rawAmount)) {
+            return (int) round($rawAmount * 100);
+        }
+
+        if (is_string($rawAmount)) {
+            $normalized = str_replace(',', '.', trim($rawAmount));
+            if (is_numeric($normalized)) {
+                return (int) round(((float) $normalized) * 100);
+            }
+        }
+
+        return 0;
     }
 }

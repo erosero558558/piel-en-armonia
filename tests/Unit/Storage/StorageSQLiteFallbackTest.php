@@ -224,6 +224,22 @@ final class StorageSQLiteFallbackTest extends TestCase
                 ],
             ],
         ];
+        $store['gift_cards'] = [
+            'AUR-GIFT-701A' => [
+                'id' => 'AUR-GIFT-701A',
+                'code' => 'AUR-GIFT-701A',
+                'amount_cents' => 10000,
+                'balance_cents' => 7500,
+                'issuer_id' => 'Aurora Demo',
+                'recipient_email' => 'paciente@example.com',
+                'recipient_name' => 'Paciente Demo',
+                'issued_at' => '2026-03-20T10:00:00-05:00',
+                'expires_at' => '2026-06-18T10:00:00-05:00',
+                'status' => 'active',
+                'qr_data' => 'https://pielarmonia.com/es/gift-cards/?gift_card=AUR-GIFT-701A',
+                'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https%3A%2F%2Fpielarmonia.com%2Fes%2Fgift-cards%2F%3Fgift_card%3DAUR-GIFT-701A',
+            ],
+        ];
         $store['case_media_proposals'] = [
             [
                 'id' => 70104,
@@ -265,6 +281,12 @@ final class StorageSQLiteFallbackTest extends TestCase
         $this->assertSame('doc:0912345678', (string) ($roundTrip['patient_birthday_messages'][0]['patientKey'] ?? ''));
         $this->assertArrayHasKey('rx_701', $roundTrip['prescriptions'] ?? []);
         $this->assertSame('CASE-MEDIA-701', (string) ($roundTrip['prescriptions']['rx_701']['caseId'] ?? ''));
+        $this->assertArrayHasKey('AUR-GIFT-701A', $roundTrip['gift_cards'] ?? []);
+        $this->assertSame(7500, (int) ($roundTrip['gift_cards']['AUR-GIFT-701A']['balance_cents'] ?? 0));
+        $this->assertSame(
+            'https://pielarmonia.com/es/gift-cards/?gift_card=AUR-GIFT-701A',
+            (string) ($roundTrip['gift_cards']['AUR-GIFT-701A']['qr_data'] ?? '')
+        );
         $this->assertSame(
             '8 semanas',
             (string) ($roundTrip['prescriptions']['rx_701']['medications'][0]['duration'] ?? '')

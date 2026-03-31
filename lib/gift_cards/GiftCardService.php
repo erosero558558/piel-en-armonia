@@ -2,129 +2,353 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../validation.php';
 
-class GiftCard
+final class GiftCardService
 {
-    public string $code;
-    public int $amount_cents;
-    public int $balance_cents;
-    public ?string $issuer_id;
-    public ?string $recipient_email;
-    public string $status;
-    public string $issued_at;
-    public ?string $expires_at;
+    private const CODE_PREFIX = 'AUR-GIFT';
+    private const DEFAULT_EXPIRY_DAYS = 90;
+    private const QR_SIZE = '240x240';
 
-    public function __construct(array $data)
-    {
-        $this->code = $data['code'] ?? '';
-        $this->amount_cents = (int)($data['amount_cents'] ?? 0);
-        $this->balance_cents = (int)($data['balance_cents'] ?? 0);
-        $this->issuer_id = $data['issuer_id'] ?? null;
-        $this->recipient_email = $data['recipient_email'] ?? null;
-        $this->status = $data['status'] ?? 'active';
-        $this->issued_at = $data['issued_at'] ?? gmdate('Y-m-d H:i:s');
-        $this->expires_at = $data['expires_at'] ?? null;
-    }
-
-    public function isActive(): bool
-    {
-        if ($this->status !== 'active') {
-            return false;
-        }
-        if ($this->balance_cents <= 0) {
-            return false;
-        }
-        if ($this->expires_at !== null && new DateTime($this->expires_at) < new DateTime()) {
-            return false;
-        }
-        return true;
-    }
-}
-
-class GiftCardService
-{
     /**
-     * @return GiftCard
-     * @throws Exception
+     * @param array<string,mixed> $store
+     * @param array<string,mixed> $options
+     * @return array{store:array<string,mixed>,giftCard:array<string,mixed>}
      */
-    public static function issue(int $amountCents, ?string $issuerId, ?string $recipientEmail, int $validityDays = 365): GiftCard
+    public function issue(array $store, int $amountCents, string $issuerId, string $recipientEmail = '', array $options = []): array
     {
         if ($amountCents <= 0) {
-            throw new InvalidArgumentException("Amount must be greater than zero");
+            throw new InvalidArgumentException('El monto debe ser mayor a cero.');
         }
 
-        $code = self::generateUniqueCode();
-        $issuedAt = gmdate('Y-m-d H:i:s');
-        $expiresAt = gmdate('Y-m-d H:i:s', strtotime("+$validityDays days"));
-
-        $sql = "INSERT INTO gift_cards (code, amount_cents, balance_cents, issuer_id, recipient_email, issued_at, expires_at, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'active')";
-                
-        $params = [$code, $amountCents, $amountCents, $issuerId, $recipientEmail, $issuedAt, $expiresAt];
-        
-        $result = db_query($sql, $params);
-        if ($result === false) {
-            throw new RuntimeException("Failed to issue gift card in database");
+        $issuerId = self::normalizeLabel($issuerId, 120);
+        if ($issuerId === '') {
+            throw new InvalidArgumentException('La persona emisora es obligatoria.');
         }
 
-        return new GiftCard([
+        $recipientName = self::normalizeLabel((string) ($options['recipient_name'] ?? ''), 120);
+        if ($recipientName === '') {
+            throw new InvalidArgumentException('La persona destinataria es obligatoria.');
+        }
+
+        $senderName = self::normalizeLabel((string) ($options['sender_name'] ?? $issuerId), 120);
+        $note = self::normalizeText((string) ($options['note'] ?? ''), 180);
+        $recipientEmail = self::normalizeEmail($recipientEmail);
+        if ($recipientEmail !== '' && !validate_email($recipientEmail)) {
+            throw new InvalidArgumentException('El correo del destinatario no es valido.');
+        }
+
+        $store = self::normalizeStore($store);
+        $issuedAt = trim((string) ($options['issued_at'] ?? ''));
+        if ($issuedAt === '') {
+            $issuedAt = local_date('c');
+        }
+        $expiresAt = self::normalizeExpiry((string) ($options['expires_at'] ?? ''), $issuedAt);
+        $code = self::generateUniqueCode($store['gift_cards']);
+
+        $giftCard = self::normalizeGiftCardRecord([
+            'id' => $code,
             'code' => $code,
             'amount_cents' => $amountCents,
             'balance_cents' => $amountCents,
             'issuer_id' => $issuerId,
             'recipient_email' => $recipientEmail,
+            'recipient_name' => $recipientName,
+            'sender_name' => $senderName,
+            'note' => $note,
             'issued_at' => $issuedAt,
             'expires_at' => $expiresAt,
-            'status' => 'active'
-        ]);
-    }
+            'status' => 'active',
+            'currency' => 'USD',
+            'redemptions' => [],
+        ], $code);
 
-    /**
-     * @return GiftCard|null
-     */
-    public static function validate(string $code): ?GiftCard
-    {
-        $sql = "SELECT * FROM gift_cards WHERE code = ? LIMIT 1";
-        $result = db_query($sql, [$code]);
-        if (is_array($result) && count($result) > 0) {
-            return new GiftCard($result[0]);
+        if ($giftCard === null) {
+            throw new RuntimeException('No se pudo generar la gift card.');
         }
-        return null;
+
+        $store['gift_cards'][$code] = $giftCard;
+        $store['updatedAt'] = local_date('c');
+
+        return [
+            'store' => $store,
+            'giftCard' => $giftCard,
+        ];
     }
 
     /**
-     * @param string $code
-     * @param int $amountCents
-     * @return bool
-     * @throws Exception
+     * @param array<string,mixed> $store
+     * @return array<string,mixed>|null
      */
-    public static function redeem(string $code, int $amountCents): bool
+    public function validate(array $store, string $code): ?array
     {
+        $store = self::normalizeStore($store);
+        $normalizedCode = self::normalizeCode($code);
+        if ($normalizedCode === '') {
+            return null;
+        }
+
+        $giftCard = $store['gift_cards'][$normalizedCode] ?? null;
+        if (!is_array($giftCard)) {
+            return null;
+        }
+
+        if (($giftCard['status'] ?? 'active') !== 'active') {
+            return null;
+        }
+
+        if ((int) ($giftCard['balance_cents'] ?? 0) <= 0) {
+            return null;
+        }
+
+        return $giftCard;
+    }
+
+    /**
+     * @param array<string,mixed> $store
+     * @param array<string,mixed> $options
+     * @return array{ok:bool,store:array<string,mixed>,giftCard:array<string,mixed>|null,error?:string}
+     */
+    public function redeem(array $store, string $code, int $amountCents, array $options = []): array
+    {
+        $store = self::normalizeStore($store);
+        $normalizedCode = self::normalizeCode($code);
+        if ($normalizedCode === '' || !isset($store['gift_cards'][$normalizedCode])) {
+            return [
+                'ok' => false,
+                'store' => $store,
+                'giftCard' => null,
+                'error' => 'gift_card_not_found',
+            ];
+        }
+
         if ($amountCents <= 0) {
-            throw new InvalidArgumentException("Amount to redeem must be greater than zero");
+            return [
+                'ok' => false,
+                'store' => $store,
+                'giftCard' => $store['gift_cards'][$normalizedCode],
+                'error' => 'invalid_amount',
+            ];
         }
 
-        // Lock pattern: verify balance and update in a single transaction-like query.
-        $sql = "UPDATE gift_cards 
-                SET balance_cents = balance_cents - ?, 
-                    status = CASE WHEN balance_cents - ? <= 0 THEN 'redeemed' ELSE status END
-                WHERE code = ? 
-                  AND status = 'active'
-                  AND balance_cents >= ?
-                  AND (expires_at IS NULL OR expires_at >= CURRENT_TIMESTAMP)";
-                  
-        $params = [$amountCents, $amountCents, $code, $amountCents];
-        $affectedRows = db_query($sql, $params);
+        $giftCard = $store['gift_cards'][$normalizedCode];
+        if (($giftCard['status'] ?? 'active') !== 'active') {
+            return [
+                'ok' => false,
+                'store' => $store,
+                'giftCard' => $giftCard,
+                'error' => 'gift_card_inactive',
+            ];
+        }
 
-        return $affectedRows > 0;
+        $balanceCents = (int) ($giftCard['balance_cents'] ?? 0);
+        if ($amountCents > $balanceCents) {
+            return [
+                'ok' => false,
+                'store' => $store,
+                'giftCard' => $giftCard,
+                'error' => 'gift_card_insufficient_balance',
+            ];
+        }
+
+        $redemptions = is_array($giftCard['redemptions'] ?? null)
+            ? array_values(array_filter($giftCard['redemptions'], 'is_array'))
+            : [];
+        $redemptions[] = [
+            'amount_cents' => $amountCents,
+            'redeemed_at' => local_date('c'),
+            'reference' => self::normalizeText((string) ($options['reference'] ?? ''), 120),
+        ];
+
+        $giftCard['balance_cents'] = $balanceCents - $amountCents;
+        $giftCard['redemptions'] = $redemptions;
+        $giftCard['status'] = $giftCard['balance_cents'] <= 0 ? 'redeemed' : 'active';
+
+        $store['gift_cards'][$normalizedCode] = self::normalizeGiftCardRecord($giftCard, $normalizedCode);
+        $store['updatedAt'] = local_date('c');
+
+        return [
+            'ok' => true,
+            'store' => $store,
+            'giftCard' => $store['gift_cards'][$normalizedCode],
+        ];
     }
 
-    private static function generateUniqueCode(): string
+    /**
+     * @param array<string,mixed> $store
+     * @return array<string,mixed>
+     */
+    private static function normalizeStore(array $store): array
     {
-        // Generates an alphanumeric secure format: AD-XXXX-XXXX
-        $bytes = random_bytes(6);
-        $hex = strtoupper(bin2hex($bytes));
-        return "AD-" . substr($hex, 0, 4) . "-" . substr($hex, 4, 4);
+        $giftCards = isset($store['gift_cards']) && is_array($store['gift_cards']) ? $store['gift_cards'] : [];
+        $normalized = [];
+
+        foreach ($giftCards as $key => $giftCard) {
+            if (!is_array($giftCard)) {
+                continue;
+            }
+
+            $normalizedCard = self::normalizeGiftCardRecord($giftCard, is_string($key) ? $key : '');
+            if ($normalizedCard === null) {
+                continue;
+            }
+
+            $normalized[$normalizedCard['code']] = $normalizedCard;
+        }
+
+        $store['gift_cards'] = $normalized;
+        return $store;
+    }
+
+    /**
+     * @param array<string,mixed> $giftCard
+     * @return array<string,mixed>|null
+     */
+    private static function normalizeGiftCardRecord(array $giftCard, string $fallbackCode = ''): ?array
+    {
+        $code = self::normalizeCode((string) ($giftCard['code'] ?? $giftCard['id'] ?? $fallbackCode));
+        if ($code === '') {
+            return null;
+        }
+
+        $amountCents = max(0, self::toInt($giftCard['amount_cents'] ?? 0));
+        $balanceCents = max(0, self::toInt($giftCard['balance_cents'] ?? $amountCents));
+        $issuedAt = trim((string) ($giftCard['issued_at'] ?? local_date('c')));
+        $expiresAt = self::normalizeExpiry((string) ($giftCard['expires_at'] ?? ''), $issuedAt);
+        $status = self::deriveStatus((string) ($giftCard['status'] ?? ''), $balanceCents, $expiresAt);
+        $qrData = trim((string) ($giftCard['qr_data'] ?? ''));
+        if ($qrData === '') {
+            $qrData = self::buildQrData($code);
+        }
+
+        return [
+            'id' => $code,
+            'code' => $code,
+            'amount_cents' => $amountCents,
+            'balance_cents' => $balanceCents,
+            'issuer_id' => self::normalizeLabel((string) ($giftCard['issuer_id'] ?? ''), 120),
+            'recipient_email' => self::normalizeEmail((string) ($giftCard['recipient_email'] ?? '')),
+            'recipient_name' => self::normalizeLabel((string) ($giftCard['recipient_name'] ?? ''), 120),
+            'sender_name' => self::normalizeLabel((string) ($giftCard['sender_name'] ?? ''), 120),
+            'note' => self::normalizeText((string) ($giftCard['note'] ?? ''), 180),
+            'issued_at' => $issuedAt,
+            'expires_at' => $expiresAt,
+            'status' => $status,
+            'currency' => trim((string) ($giftCard['currency'] ?? 'USD')) ?: 'USD',
+            'qr_data' => $qrData,
+            'qr_image_url' => self::buildQrImageUrl($qrData),
+            'redemptions' => is_array($giftCard['redemptions'] ?? null)
+                ? array_values(array_filter($giftCard['redemptions'], 'is_array'))
+                : [],
+        ];
+    }
+
+    private static function normalizeCode(string $code): string
+    {
+        $normalized = strtoupper(trim($code));
+        $normalized = preg_replace('/[^A-Z0-9\-]/', '', $normalized);
+        return is_string($normalized) ? $normalized : '';
+    }
+
+    private static function normalizeEmail(string $email): string
+    {
+        return strtolower(trim($email));
+    }
+
+    private static function normalizeLabel(string $value, int $maxLength): string
+    {
+        return truncate_field(trim($value), $maxLength);
+    }
+
+    private static function normalizeText(string $value, int $maxLength): string
+    {
+        return truncate_field(trim($value), $maxLength);
+    }
+
+    private static function normalizeExpiry(string $expiresAt, string $issuedAt): string
+    {
+        if (trim($expiresAt) !== '') {
+            return trim($expiresAt);
+        }
+
+        try {
+            $issued = new DateTimeImmutable($issuedAt);
+            return $issued->modify('+' . self::DEFAULT_EXPIRY_DAYS . ' days')->format(DateTimeInterface::ATOM);
+        } catch (Throwable $error) {
+            return local_date('c');
+        }
+    }
+
+    /**
+     * @param array<string,array<string,mixed>> $giftCards
+     */
+    private static function generateUniqueCode(array $giftCards): string
+    {
+        do {
+            try {
+                $token = strtoupper(bin2hex(random_bytes(4)));
+            } catch (Throwable $error) {
+                $token = strtoupper(substr(md5((string) microtime(true) . ':' . (string) mt_rand()), 0, 8));
+            }
+
+            $code = self::CODE_PREFIX . '-' . $token;
+        } while (isset($giftCards[$code]));
+
+        return $code;
+    }
+
+    private static function buildQrData(string $code): string
+    {
+        return 'https://pielarmonia.com/es/gift-cards/?gift_card=' . rawurlencode($code);
+    }
+
+    private static function buildQrImageUrl(string $qrData): string
+    {
+        return 'https://api.qrserver.com/v1/create-qr-code/?size=' . self::QR_SIZE . '&data=' . rawurlencode($qrData);
+    }
+
+    private static function deriveStatus(string $status, int $balanceCents, string $expiresAt): string
+    {
+        $normalizedStatus = strtolower(trim($status));
+        if ($normalizedStatus === 'expired' || self::isExpired($expiresAt)) {
+            return 'expired';
+        }
+
+        if ($normalizedStatus === 'redeemed' || $balanceCents <= 0) {
+            return 'redeemed';
+        }
+
+        return 'active';
+    }
+
+    private static function isExpired(string $expiresAt): bool
+    {
+        try {
+            $expiry = new DateTimeImmutable($expiresAt);
+            $now = new DateTimeImmutable(local_date('c'));
+            return $expiry < $now;
+        } catch (Throwable $error) {
+            return false;
+        }
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private static function toInt($value): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && preg_match('/^-?\d+$/', trim($value)) === 1) {
+            return (int) trim($value);
+        }
+
+        if (is_float($value)) {
+            return (int) round($value);
+        }
+
+        return 0;
     }
 }
