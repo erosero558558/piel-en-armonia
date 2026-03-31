@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:41:45 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 5:52:26 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **56%** completado (262/467)
+`███████████░░░░░░░░░` **57%** completado (265/467)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -22,16 +22,16 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint 8 | 8 | 9 | 47% |
-| ⏸ Sprint 9 | 8 | 19 | 30% |
+| ⏸ Sprint 9 | 9 | 18 | 33% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
 | ⏸ Sprint 13 | 4 | 17 | 19% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
-| ⏸ Sprint 14 | 2 | 12 | 14% |
+| ⏸ Sprint 14 | 3 | 11 | 21% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
 | ⏸ Sprint 17 | 8 | 4 | 67% |
-| ⏸ Sprint 18 | 3 | 1 | 75% |
+| ✅ Sprint 18 | 4 | 0 | 100% |
 | ⏸ Sprint 19 | 0 | 18 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -140,9 +140,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 | ... | | _+4 más_ |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
-_Esperando que Sprint anterior esté completo. 19 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 
-### 🟢 Disponibles (19)
+### 🟢 Disponibles (18)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -150,8 +150,8 @@ _Esperando que Sprint anterior esté completo. 19 tareas pendientes._
 | **S9-02** | `[S9]` | M |
 | **S9-03** | `[S9]` | L |
 | **S9-04** | `[S9]` | M |
-| **S9-12** | `[S9]` | S |
-| ... | | _+14 más_ |
+| **S9-13** | `[S9]` | M |
+| ... | | _+13 más_ |
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
@@ -205,9 +205,9 @@ _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 | **UI3-20** | `[UI3]` | M |
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
-_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 
-### 🟢 Disponibles (12)
+### 🟢 Disponibles (11)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -216,7 +216,7 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | **S14-02** | `[S14]` | M |
 | **S14-05** | `[S14]` | M |
 | **S14-06** | `[S14]` | M |
-| ... | | _+7 más_ |
+| ... | | _+6 más_ |
 
 ## ⏸ Sprint 15 — Sistema de Agentes: Correcciones y Autosanación
 _Esperando que Sprint anterior esté completo. 10 tareas pendientes._
@@ -238,23 +238,20 @@ _Sprint completado. 13/13 tareas._
 ## ⏸ Sprint 17 — Producto y Monetización Real
 _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 
-### 🟢 Disponibles (4)
+### 🟢 Disponibles (3)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S17-10** | `[S17]` | M |
 | **S17-15** | `[S17]` | M |
 | **S17-16** | `[S17]` | M |
 | **S17-17** | `[S17]` | M |
 
-## ⏸ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
-_Esperando que Sprint anterior esté completo. 1 tareas pendientes._
+### 🔒 En progreso — NO tomar
 
-### 🟢 Disponibles (1)
+- **S17-10** `[S17]` → _Antigravity_ (expira en 228min)
 
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S18-12** | `[S18]` | M |
+## ✅ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
+_Sprint completado. 4/4 tareas._
 
 ## ⏸ Sprint 19 — Notificaciones, WhatsApp Ops y Android TV
 _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
