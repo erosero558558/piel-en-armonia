@@ -172,6 +172,11 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'onboarding-step', [OnboardingController::class, 'updateStep']);
     $router->add('GET', 'walkthrough-config', [OnboardingController::class, 'walkthroughConfig']);
 
+    // Branding
+    require_once __DIR__ . '/../controllers/BrandingController.php';
+    $router->add('GET', 'clinic-branding-meta', [BrandingController::class, 'meta']);
+    $router->add('GET', 'clinic-branding-css', [BrandingController::class, 'css']);
+
     $router->add('GET', 'reviews', [ReviewController::class, 'index']);
     $router->add('POST', 'reviews', [ReviewController::class, 'store']);
 
@@ -211,6 +216,8 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'push-test', [PushController::class, 'test']);
 
     $router->add('GET', 'active-promotions', [PromotionController::class, 'getActivePromotions']);
+
+    $router->add('GET', 'push-diagnostics', [PushController::class, 'diagnostics']);
 
     // v2 Routes
     $router->add('GET', 'health', [HealthController::class, 'check'], 'v2');

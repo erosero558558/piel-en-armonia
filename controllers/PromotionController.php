@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/promotions/PromotionEngine.php';
 
 class PromotionController
 {
-    public function getActivePromotions(array $context): void
+    public static function getActivePromotions(array $context): void
     {
         $store = $context['store'];
         $promotions = $store['promotions'] ?? [];

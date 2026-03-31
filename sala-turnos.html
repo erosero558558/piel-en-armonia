@@ -21,6 +21,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles/tokens.css">
+  <link href="/api.php?resource=clinic-branding-css" rel="stylesheet">
+  <script src="/js/aurora-branding.js" defer></script>
 <link rel="stylesheet" href="/styles/base.css">
 <link rel="stylesheet" href="/styles/components.css">
 <link rel="stylesheet" href="/styles/aurora-tv.css">
@@ -33,7 +35,7 @@
         <header class="display-header">
             <div class="display-brand">
                 <span class="display-stage-kicker">Pantalla de sala</span>
-                <strong id="displayBrandName">Aurora Derm</strong>
+                <strong id="displayBrandName"><span class="aurora-brand-name">Aurora Derm</span></strong>
                 <span id="displayBrandMeta">Llamados en pantalla grande</span>
                 <span id="displayClinicMeta">Piloto web por clínica</span>
                 <span
@@ -74,7 +76,7 @@
             data-turnero-stage-surface="display"
         >
             <div class="turnero-stage-chrome__copy">
-                <p class="turnero-stage-chrome__eyebrow">Flow OS · Aurora Derm piloto</p>
+                <p class="turnero-stage-chrome__eyebrow">Flow OS · <span class="aurora-brand-name">Aurora Derm</span> piloto</p>
                 <strong data-turnero-stage-label>Sala</strong>
                 <span data-turnero-stage-order
                     >Etapa 03 / 04 · Llegada -> Recepcion -> Sala -> Gerencia</span

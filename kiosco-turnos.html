@@ -21,6 +21,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles/tokens.css">
+  <link href="/api.php?resource=clinic-branding-css" rel="stylesheet">
+  <script src="/js/aurora-branding.js" defer></script>
 <link rel="stylesheet" href="/styles/base.css">
 <link rel="stylesheet" href="/styles/components.css">
 <link rel="stylesheet" href="/styles/aurora-kiosk.css">
@@ -42,7 +44,7 @@
         </div>
         <header class="kiosk-header">
             <div class="kiosk-brand">
-                <strong>Aurora Derm</strong>
+                <strong><span class="aurora-brand-name">Aurora Derm</span></strong>
                 <span>Kiosco de turnos</span>
                 <span id="kioskClinicMeta">Piloto web por clínica</span>
             </div>
@@ -116,7 +118,7 @@
             data-turnero-stage-surface="kiosk"
         >
             <div class="turnero-stage-chrome__copy">
-                <p class="turnero-stage-chrome__eyebrow">Flow OS · Aurora Derm piloto</p>
+                <p class="turnero-stage-chrome__eyebrow">Flow OS · <span class="aurora-brand-name">Aurora Derm</span> piloto</p>
                 <strong data-turnero-stage-label>Llegada</strong>
                 <span data-turnero-stage-order
                     >Etapa 01 / 04 · Llegada -> Recepcion -> Sala -> Gerencia</span
