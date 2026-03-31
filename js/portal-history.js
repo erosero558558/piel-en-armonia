@@ -451,8 +451,59 @@
         }
     }
 
+    async function handleHistoryDownloadClick(event) {
+        const trigger = event.target instanceof Element
+            ? event.target.closest('#download-history-btn')
+            : null;
+        if (!(trigger instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const session = readSession();
+        if (!isFreshSession(session)) {
+            clearSession();
+            redirectToLogin();
+            return;
+        }
+
+        const token = String(session.token || '').trim();
+        if (!token) {
+            return;
+        }
+
+        const originalHtml = trigger.innerHTML;
+        trigger.setAttribute('aria-busy', 'true');
+        trigger.disabled = true;
+        trigger.innerHTML = 'Generando PDF...';
+
+        try {
+            const response = await requestDocument('/api.php?resource=patient-portal-history-pdf', token);
+            if (response.status === 401) {
+                clearSession();
+                redirectToLogin();
+                return;
+            }
+
+            if (!response.ok || !response.blob) {
+                throw new Error('portal_history_pdf_download_failed');
+            }
+
+            const fileName = parseFilename(response.headers, 'historia-clinica-paciente.pdf');
+            triggerBlobDownload(response.blob, fileName);
+        } catch (_error) {
+            window.alert('No pudimos generar la historia clínica en este momento. Inténtalo más tarde.');
+        } finally {
+            trigger.removeAttribute('aria-busy');
+            trigger.disabled = false;
+            trigger.innerHTML = originalHtml;
+        }
+    }
+
     document.addEventListener('click', (event) => {
         void handleDocumentClick(event);
+        void handleHistoryDownloadClick(event);
     });
 
     document.addEventListener('DOMContentLoaded', () => {
