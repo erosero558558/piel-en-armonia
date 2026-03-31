@@ -4,6 +4,8 @@ Este documento contiene los parámetros exactos requeridos para configurar el **
 
 El propósito de este Custom GPT es asistir al equipo médico (Dra. Rosero y especialistas) interactuando en tiempo real con la historia clínica electrónica mediante llamadas seguras a los endpoints de la API documentados en el esquema `openapi-openclaw.yaml`.
 
+La versión vigente del schema y el paquete operativo de importación quedan resumidos en `docs/gpt-schema-pack-latest.md`.
+
 ---
 
 ## 1. Perfil Básico del GPT
@@ -47,6 +49,7 @@ Debes importar las definiciones técnicas para que el GPT sepa cómo hablar con 
 1. Navega hacia **"Actions"** al configurar el GPT → **Create new action**.
 2. **Authentication:** Selecciona **OAuth** (la clínica proporcionará un *Client ID*, *Client Secret*, *Authorization URL* y *Token URL* requeridos de acuerdo al estándar OAuth 2 implementado en el control de acceso del operador; si se usa un API Key por diseño preliminar, escoge "API Key / Bearer").
 3. **Schema:** Copia en su totalidad el contenido del archivo de nuestro repositorio `openapi-openclaw.yaml` y pégalo en el editor YAML.
+   - Antes de importar, confirma en `docs/gpt-schema-pack-latest.md` cuál es el valor vigente de `x-schema-version`.
 4. Asegúrate que en la sección **Servers** de la Action la URL figure correctamente: `url: https://pielarmonia.com/api/openclaw` (este link mapea el ambiente de producción).
 
 ---

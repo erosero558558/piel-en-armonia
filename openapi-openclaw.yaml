@@ -1,4 +1,5 @@
 openapi: 3.1.0
+x-schema-version: 2026-03-30-28e1a0816c7c
 info:
   title: OpenClaw — Aurora Derm Clinical Actions API
   description: |

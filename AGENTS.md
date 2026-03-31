@@ -1841,7 +1841,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 16.6 OpenClaw schema y API spec
 
 - [ ] **S16-11** `[M]` Guard de drift para openapi-openclaw.yaml — si un endpoint OpenClaw cambia en backend pero no en el YAML, nadie lo detecta. Crear `bin/check-openapi-drift.js`: leer `openapi-openclaw.yaml`, extraer paths/operations, comparar con endpoints registrados en `routes.php` o `OpenclawController.php`. Si hay diff → exit 1 con lista de discrepancias. Añadir como step en CI. Verificable: añadir ruta a OpenclawController sin actualizar YAML → `node bin/check-openapi-drift.js` → exit 1.
-- [ ] **S16-12** `[S]` Release pack de schema para Custom GPT — versionar `openapi-openclaw.yaml` y `docs/chatgpt-custom-gpt-instructions.md` juntos. Añadir campo `x-schema-version: YYYY-MM-DD-hash` al YAML. Crear `bin/gen-gpt-schema-pack.js` que genera `docs/gpt-schema-pack-latest.md` con: versión, hash del YAML, fecha, instrucciones de importación. El equipo médico puede ver qué schema está vigente sin revisar git. Verificable: `node bin/gen-gpt-schema-pack.js && grep "x-schema-version" docs/gpt-schema-pack-latest.md` → match.
+- [x] **S16-12** `[S]` Release pack de schema para Custom GPT — versionar `openapi-openclaw.yaml` y `docs/chatgpt-custom-gpt-instructions.md` juntos. Añadir campo `x-schema-version: YYYY-MM-DD-hash` al YAML. Crear `bin/gen-gpt-schema-pack.js` que genera `docs/gpt-schema-pack-latest.md` con: versión, hash del YAML, fecha, instrucciones de importación. El equipo médico puede ver qué schema está vigente sin revisar git. Verificable: `node bin/gen-gpt-schema-pack.js && grep "x-schema-version" docs/gpt-schema-pack-latest.md` → match.
 
 ---
 
