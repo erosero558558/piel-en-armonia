@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 11:07:23 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 11:17:01 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **51%** completado (228/449)
+`██████████░░░░░░░░░░` **51%** completado (229/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -29,7 +29,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint UI | 19 | 1 | 95% |
 | ⏸ Sprint 14 | 2 | 12 | 14% |
 | ⏸ Sprint 15 | 1 | 12 | 8% |
-| ⏸ Sprint 16 | 4 | 9 | 31% |
+| ⏸ Sprint 16 | 5 | 8 | 38% |
 | ⏸ Sprint 17 | 0 | 12 | 0% |
 | ⏸ Sprint 18 | 0 | 4 | 0% |
 
@@ -160,7 +160,7 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S9-06** `[S9]` → _Codex-erosero558558_ (expira en 229min)
+- **S9-06** `[S9]` → _Codex-erosero558558_ (expira en 220min)
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
@@ -242,18 +242,18 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | ... | | _+7 más_ |
 
 ## ⏸ Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
-_Esperando que Sprint anterior esté completo. 9 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 8 tareas pendientes._
 
-### 🟢 Disponibles (9)
+### 🟢 Disponibles (8)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S16-05** | `[S16]` | M |
 | **S16-06** | `[S16]` | M |
 | **S16-13** | `[S16]` | S |
 | **S16-07** | `[S16]` | M |
 | **S16-08** | `[S16]` | M |
-| ... | | _+4 más_ |
+| **S16-09** | `[S16]` | S |
+| ... | | _+3 más_ |
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
