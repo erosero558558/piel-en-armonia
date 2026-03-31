@@ -77,6 +77,13 @@ const AUDIT_STEPS = [
         args: ['bin/check-evidence-health.js', '--json'],
     },
     {
+        id: 'sprint30_smoke',
+        label: 'Sprint 30 Smoke Test',
+        command: 'node',
+        args: ['--test', 'tests-node/sprint30-smoke.test.js'],
+        optional: false,
+    },
+    {
         // Carencia #1: claim expiry + orphan detection
         id: 'claim_gc',
         label: 'Claim GC',

@@ -3266,7 +3266,7 @@ final class ClinicalHistorySessionRepository
             $normalized['preguntasFaltantes'] = self::normalizeStringList($intake['preguntasFaltantes'] ?? []);
             $normalized['adjuntos'] = self::normalizeAttachmentList($intake['adjuntos'] ?? []);
             $normalized['datosPaciente'] = self::normalizePatientFacts($intake['datosPaciente'] ?? []);
-    
+
             $posologia = isset($intake['posologiaBorrador']) && is_array($intake['posologiaBorrador'])
                 ? $intake['posologiaBorrador']
                 : [];
@@ -3278,9 +3278,105 @@ final class ClinicalHistorySessionRepository
                 'units' => self::trimString($posologia['units'] ?? ''),
                 'ambiguous' => array_key_exists('ambiguous', $posologia) ? (bool) $posologia['ambiguous'] : true,
             ];
-    
+
+            // S30-01: Signos vitales por consulta (MSP Ecuador HCU-005 obligatorio)
+            $vs = isset($intake['vitalSigns']) && is_array($intake['vitalSigns'])
+                ? $intake['vitalSigns']
+                : [];
+            $bpSys  = isset($vs['bloodPressureSystolic'])  ? (int) $vs['bloodPressureSystolic']  : null;
+            $bpDia  = isset($vs['bloodPressureDiastolic']) ? (int) $vs['bloodPressureDiastolic'] : null;
+            $hr     = isset($vs['heartRate'])              ? (int) $vs['heartRate']              : null;
+            $rr     = isset($vs['respiratoryRate'])        ? (int) $vs['respiratoryRate']        : null;
+            $temp   = isset($vs['temperatureCelsius'])     ? (float) $vs['temperatureCelsius']   : null;
+            $spo2   = isset($vs['spo2Percent'])            ? (int) $vs['spo2Percent']            : null;
+            $wt     = isset($vs['weightKg'])               ? (float) $vs['weightKg']             : null;
+            $ht     = isset($vs['heightCm'])               ? (float) $vs['heightCm']             : null;
+            $gluc   = isset($vs['glucometryMgDl'])         ? (int) $vs['glucometryMgDl']         : null;
+            $pain   = isset($vs['painScale'])              ? max(0, min(10, (int) $vs['painScale'])) : null;
+            $glucCtx = self::trimString($vs['glucometryContext'] ?? ''); // 'fasting'|'postprandial'|''
+
+            // BMI calculado automáticamente si hay peso y talla
+            $bmi = null;
+            if ($wt !== null && $ht !== null && $ht > 0.0) {
+                $htM = $ht / 100.0;
+                $bmi = round($wt / ($htM * $htM), 1);
+            }
+
+            // Alertas automáticas por valores fuera de rango clínico
+            $vitalAlerts = [];
+            if ($bpSys !== null) {
+                if ($bpSys >= 180) $vitalAlerts[] = 'Presión sistólica elevada (crisis hipertensiva posible)';
+                elseif ($bpSys >= 140) $vitalAlerts[] = 'Presión sistólica en rango hipertensivo';
+                elseif ($bpSys < 90) $vitalAlerts[] = 'Presión sistólica baja (hipotensión)';
+            }
+            if ($bpDia !== null) {
+                if ($bpDia >= 120) $vitalAlerts[] = 'Presión diastólica muy elevada';
+                elseif ($bpDia >= 90) $vitalAlerts[] = 'Presión diastólica en rango hipertensivo';
+            }
+            if ($hr !== null) {
+                if ($hr > 130) $vitalAlerts[] = 'Taquicardia (FC > 130 lpm)';
+                elseif ($hr < 45) $vitalAlerts[] = 'Bradicardia severa (FC < 45 lpm)';
+            }
+            if ($rr !== null) {
+                if ($rr > 25) $vitalAlerts[] = 'Taquipnea (FR > 25 rpm)';
+                elseif ($rr < 10) $vitalAlerts[] = 'Bradipnea (FR < 10 rpm)';
+            }
+            if ($temp !== null) {
+                if ($temp >= 39.5) $vitalAlerts[] = 'Fiebre alta (≥ 39.5°C)';
+                elseif ($temp >= 38.0) $vitalAlerts[] = 'Fiebre moderada (38-39.5°C)';
+                elseif ($temp < 35.5) $vitalAlerts[] = 'Hipotermia (< 35.5°C)';
+            }
+            if ($spo2 !== null) {
+                if ($spo2 < 90) $vitalAlerts[] = 'SpO2 crítica — considerar oxigenoterapia urgente';
+                elseif ($spo2 < 94) $vitalAlerts[] = 'SpO2 baja — vigilar saturación';
+            }
+            if ($gluc !== null) {
+                if ($gluc > 300) $vitalAlerts[] = 'Glucemia muy elevada (> 300 mg/dL) — evaluar cetoacidosis';
+                elseif ($gluc > 200) $vitalAlerts[] = 'Glucemia elevada (> 200 mg/dL)';
+                elseif ($gluc < 70) $vitalAlerts[] = 'Hipoglucemia (< 70 mg/dL)';
+            }
+            if ($pain !== null && $pain >= 8) {
+                $vitalAlerts[] = 'Dolor severo (EVA ' . $pain . '/10)';
+            }
+
+            $normalized['vitalSigns'] = [
+                'bloodPressureSystolic'  => $bpSys,
+                'bloodPressureDiastolic' => $bpDia,
+                'heartRate'              => $hr,
+                'respiratoryRate'        => $rr,
+                'temperatureCelsius'     => $temp,
+                'spo2Percent'            => $spo2,
+                'weightKg'               => $wt,
+                'heightCm'               => $ht,
+                'bmi'                    => $bmi,
+                'glucometryMgDl'         => $gluc,
+                'glucometryContext'      => $glucCtx,
+                'painScale'              => $pain,
+                'vitalAlerts'            => $vitalAlerts,
+                'takenBy'                => self::trimString($vs['takenBy'] ?? ''),
+                'takenAt'                => self::trimString($vs['takenAt'] ?? ''),
+            ];
+
+            // S30-21: Medicación crónica persistente entre visitas
+            $chronicMeds = [];
+            foreach (($intake['chronicMedications'] ?? []) as $med) {
+                if (!is_array($med)) continue;
+                $name = self::trimString($med['name'] ?? $med['medication'] ?? '');
+                if ($name === '') continue;
+                $chronicMeds[] = [
+                    'name'          => $name,
+                    'dose'          => self::trimString($med['dose'] ?? ''),
+                    'frequency'     => self::trimString($med['frequency'] ?? ''),
+                    'startedAt'     => self::trimString($med['startedAt'] ?? ''),
+                    'source'        => self::trimString($med['source'] ?? 'manual'),
+                    'prescriptionId'=> self::trimString($med['prescriptionId'] ?? ''),
+                ];
+            }
+            $normalized['chronicMedications'] = $chronicMeds;
+
             return $normalized;
         }
+
 
     private static function normalizeFitzpatrickValue($value): string
         {
