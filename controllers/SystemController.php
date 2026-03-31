@@ -141,6 +141,9 @@ class SystemController
 
         $stats = ['confirmed' => 0, 'no_show' => 0, 'completed' => 0, 'cancelled' => 0];
         $patientVisits = [];
+        $queueStats = [];
+        $queueWaitingCount = 0;
+        $queueCalledCount = 0;
         $patientKeyResolver = static function (array $appointment): string {
             $email = strtolower(trim((string) ($appointment['email'] ?? '')));
             if ($email !== '' && strpos($email, '@') !== false) {
@@ -182,6 +185,46 @@ class SystemController
             }
         }
 
+        if (isset($store['queue_tickets']) && is_array($store['queue_tickets'])) {
+            foreach ($store['queue_tickets'] as $ticket) {
+                if (!is_array($ticket)) {
+                    continue;
+                }
+
+                $status = strtolower(trim((string) ($ticket['status'] ?? 'waiting')));
+                if ($status === '') {
+                    $status = 'waiting';
+                }
+
+                if (!isset($queueStats[$status])) {
+                    $queueStats[$status] = 0;
+                }
+                $queueStats[$status]++;
+
+                if ($status === 'waiting') {
+                    $queueWaitingCount++;
+                }
+                if ($status === 'called') {
+                    $queueCalledCount++;
+                }
+            }
+            ksort($queueStats);
+        }
+
+        $pendingHelpRequests = 0;
+        if (isset($store['queue_help_requests']) && is_array($store['queue_help_requests'])) {
+            foreach ($store['queue_help_requests'] as $request) {
+                if (!is_array($request)) {
+                    continue;
+                }
+
+                $status = strtolower(trim((string) ($request['status'] ?? 'pending')));
+                if (in_array($status, ['pending', 'attending'], true)) {
+                    $pendingHelpRequests++;
+                }
+            }
+        }
+
         $output = Metrics::export();
 
         // Output business metrics
@@ -194,6 +237,21 @@ class SystemController
             $output .= "\n# TYPE auroraderm_appointments_total gauge";
             $output .= "\nauroraderm_appointments_total{status=\"$st\"} $count";
         }
+
+        foreach ($queueStats as $status => $count) {
+            $output .= "\n# TYPE auroraderm_queue_tickets_total gauge";
+            $output .= "\nauroraderm_queue_tickets_total{status=\"$status\"} $count";
+        }
+
+        $queueSize = $queueWaitingCount + $queueCalledCount;
+        $output .= "\n# TYPE auroraderm_queue_size gauge";
+        $output .= "\nauroraderm_queue_size $queueSize";
+        $output .= "\n# TYPE auroraderm_queue_waiting_total gauge";
+        $output .= "\nauroraderm_queue_waiting_total $queueWaitingCount";
+        $output .= "\n# TYPE auroraderm_queue_called_total gauge";
+        $output .= "\nauroraderm_queue_called_total $queueCalledCount";
+        $output .= "\n# TYPE auroraderm_queue_help_requests_pending_total gauge";
+        $output .= "\nauroraderm_queue_help_requests_pending_total $pendingHelpRequests";
 
         $totalValid = $stats['confirmed'] + $stats['no_show'] + $stats['completed'];
         $rate = $totalValid > 0 ? ($stats['no_show'] / $totalValid) : 0;

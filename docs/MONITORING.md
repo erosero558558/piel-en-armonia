@@ -6,7 +6,7 @@ This document is the **single source of truth** for all Basic and Advanced Monit
 
 To ensure the application is reachable and the storage layer is operational, configure your uptime monitor to check the following endpoint:
 
-- **URL**: `https://pielarmonia.com/api.php?resource=health`
+- **URL**: `https://aurora-derm.com/api.php?resource=health`
 - **Method**: `GET`
 - **Expected Status**: `200 OK`
 - **Expected Keyword**: `"ok": true` (Verifies storage is writable and healthy).
@@ -71,6 +71,24 @@ This script provides a unified view of Sentry evidence, Weekly KPIs, and Product
 ## 6. Self-Hosted Grafana + Prometheus (Advanced)
 
 For advanced local monitoring:
-1. Start the PHP server: `php -S 0.0.0.0:8080 -t .`
-2. Start the stack: `docker-compose -f docker-compose.monitoring.yml up -d`
-3. Access Prometheus at `http://localhost:9090` and Grafana at `http://localhost:3000` (admin/admin).
+1. Export the same diagnostics token that the app will accept:
+   ```bash
+   export AURORADERM_DIAGNOSTICS_ACCESS_TOKEN=prometheus-local-token
+   ```
+2. Start the local PHP server on the Docker-visible port:
+   ```bash
+   php -S 0.0.0.0:8080 -t .
+   ```
+3. Start the monitoring stack:
+   ```bash
+   docker-compose -f docker-compose.monitoring.yml up -d
+   ```
+4. Access Prometheus at `http://localhost:9090` and Grafana at `http://localhost:3000` (admin/admin).
+
+Prometheus scrapes `http://host.docker.internal:8080/api.php?resource=metrics` with
+the bearer token from `AURORADERM_DIAGNOSTICS_ACCESS_TOKEN`, so the stack no
+longer depends on legacy `pielarmonia` names or on unauthenticated diagnostics.
+
+Minimum alerting wired in this repo:
+- `AuroraDermQueueBacklogHigh`: queue backlog stays above `20`.
+- `AuroraDermApiErrorRateHigh`: API 5xx ratio over 5 minutes exceeds `5%`.

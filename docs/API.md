@@ -134,8 +134,13 @@ La fase backend-only agrega observabilidad aditiva sin abrir endpoints nuevos:
 - `GET /api.php?resource=telemedicine-ops-diagnostics` (admin) devuelve
   diagnóstico operativo post-backfill con severidades (`healthy|degraded|critical`),
   checks por código y acciones sugeridas de remediación.
-- `GET /api.php?resource=metrics` exporta gauges Prometheus de telemedicina,
+- `GET /api.php?resource=metrics` exporta gauges Prometheus operativos,
   incluyendo:
+    - `AURORADERM_queue_size`
+    - `AURORADERM_queue_waiting_total`
+    - `AURORADERM_queue_called_total`
+    - `AURORADERM_queue_tickets_total{status=...}`
+    - `AURORADERM_queue_help_requests_pending_total`
     - `AURORADERM_telemedicine_intakes_total`
     - `AURORADERM_telemedicine_review_queue_total`
     - `AURORADERM_telemedicine_review_decisions_total`
@@ -191,4 +196,3 @@ Content-Type: application/json
   "privacyConsent": true
 }
 ```
-

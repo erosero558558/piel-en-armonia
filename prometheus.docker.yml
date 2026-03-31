@@ -6,10 +6,13 @@ rule_files:
     - "/etc/prometheus/prometheus.rules.yml"
 
 scrape_configs:
-    - job_name: 'pielarmonia'
+    - job_name: 'auroraderm_app'
       scheme: http
       metrics_path: '/api.php'
       params:
           resource: ['metrics']
+      authorization:
+          type: Bearer
+          credentials_file: /tmp/prometheus_diagnostics.token
       static_configs:
-          - targets: ['host.docker.internal:8080'] # Targets the host machine's PHP server
+          - targets: ['host.docker.internal:8080'] # Local PHP server or Docker-published app port
