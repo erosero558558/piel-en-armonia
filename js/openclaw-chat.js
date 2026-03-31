@@ -835,6 +835,21 @@ CONTEXTO DEL PACIENTE:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ case_id: state.caseId, ...value }),
         });
+        
+        // S27-03: Guardar en localStorage las últimas búsquedas CIE-10 del médico.
+        if (window.saveCie10ToRecent) {
+            window.saveCie10ToRecent(value.code, "Sugerencia Clínica IA");
+        } else {
+            // Standalone fallback
+            try {
+                let recents = JSON.parse(localStorage.getItem('aurora_cie10_recent') || '[]');
+                recents = recents.filter(r => r.code !== value.code);
+                recents.unshift({ code: value.code, description: "Sugerencia Clínica IA" });
+                if (recents.length > 10) recents.pop();
+                localStorage.setItem('aurora_cie10_recent', JSON.stringify(recents));
+            } catch (e) {}
+        }
+        
         showToast(`✅ Diagnóstico ${value.code} aplicado a la historia clínica`);
         break;
 

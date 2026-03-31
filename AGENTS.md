@@ -2197,7 +2197,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S27-02** `[M]` `[UI]` Panel de alergias e interacciones siempre visible — arriba del campo de prescripción, una barra fija en amber/gold que muestre las alergias activas del paciente. No debe estar enterrada en un tab. Si no hay alergias: barra verde "Sin alergias registradas". Verificable: `grep "allergy-bar\|allergy.*fixed" styles/aurora-clinical.css` → match; visible en DOM con `position: sticky`.
 
-- [ ] **S27-03** `[M]` Historial de búsquedas CIE-10 del médico — los médicos buscan los mismos 20 diagnósticos el 90% del tiempo. Guardar en `localStorage` las últimas 10 búsquedas CIE-10 del médico. Al abrir el selector de diagnóstico, mostrar "Recientes:" antes de escribir. Verificable: `grep "cie10.*recent\|localStorage.*cie10" js/openclaw-chat.js` → match; búsquedas previas aparecen sin escribir.
+- [x] **S27-03** `[M]` Historial de búsquedas CIE-10 del médico — los médicos buscan los mismos 20 diagnósticos el 90% del tiempo. Guardar en `localStorage` las últimas 10 búsquedas CIE-10 del médico. Al abrir el selector de diagnóstico, mostrar "Recientes:" antes de escribir. Verificable: `grep "cie10.*recent\|localStorage.*cie10" js/openclaw-chat.js` → match; búsquedas previas aparecen sin escribir.
 
 - [ ] **S27-04** `[M]` Autoguardado de borrador de evolución — mientras el médico escribe la nota de evolución, hacer autosave a `localStorage` cada 30 segundos. Si cierra accidentalmente, al volver aparece: "Tienes un borrador sin guardar. ¿Recuperar?" Verificable: `grep "autosave\|draft.*evolution\|recovery.*draft" js/admin.js` → match.
 

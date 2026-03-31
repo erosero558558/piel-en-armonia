@@ -15,6 +15,32 @@
     let activeTarget = null;
     let dropdownElement = null;
 
+    // ── LocalStorage ─────────────────────────────────────────────────────────────
+    function getRecentCie10() {
+        try {
+            const raw = localStorage.getItem('aurora_cie10_recent');
+            if (!raw) return [];
+            return JSON.parse(raw);
+        } catch { return []; }
+    }
+
+    function saveRecentCie10(code, desc) {
+        if (!code || !desc) return;
+        let recents = getRecentCie10();
+        // Remove existing if any
+        recents = recents.filter(r => r.code !== code);
+        // Add to front
+        recents.unshift({ code, description: desc });
+        // Keep top 10
+        if (recents.length > 10) recents.pop();
+        try {
+            localStorage.setItem('aurora_cie10_recent', JSON.stringify(recents));
+        } catch {}
+    }
+
+    // Expose global method so openclaw-chat can sync to the same recent list
+    window.saveCie10ToRecent = saveRecentCie10;
+
     // ── Inject Styles ────────────────────────────────────────────────────────────
     function injectStyles() {
         if (document.getElementById('cie10-autocomplete-styles')) return;
@@ -113,6 +139,9 @@
         if (!items || items.length === 0) {
             dropdown.innerHTML = '<div class="cie10-item" style="cursor:default; color:#6b7280;">No se encontraron resultados</div>';
         } else {
+            if (items._is_recent) {
+                dropdown.innerHTML = '<div style="padding: 4px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-gray-500, #6b7280);">Recientes:</div>';
+            }
             items.forEach((item, idx) => {
                 const li = document.createElement('li');
                 li.className = 'cie10-item';
@@ -212,6 +241,7 @@
         el.dispatchEvent(new Event('input', { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
         
+        saveRecentCie10(code, desc);
         hideDropdown();
         el.focus();
         
@@ -240,6 +270,22 @@
         debounceTimer = setTimeout(() => {
             fetchSuggest(ctx.text, target);
         }, DEBOUNCE_MS);
+    });
+
+    document.body.addEventListener('focusin', (event) => {
+        const target = event.target;
+        if (!target || typeof target.id !== 'string' || !target.id.toLowerCase().includes('cie10')) return;
+
+        const ctx = getCurrentLineContext(target);
+        
+        // If empty or too short, show recents
+        if (!ctx.skip && ctx.text.length < MIN_LENGTH) {
+            const recents = getRecentCie10();
+            if (recents.length > 0) {
+                recents._is_recent = true; // flag to render "Recientes:" label
+                showDropdown(recents, target);
+            }
+        }
     });
 
     document.body.addEventListener('focusout', (event) => {
