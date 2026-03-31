@@ -114,7 +114,7 @@ function parseTasks(md) {
 const ROLE_AFFINITY = {
   backend: {
     wipLimit: 2,
-    description: 'PHP, APIs, servicios, lógica de negocio',,
+    description: 'PHP, APIs, servicios, lógica de negocio',
     // Ordenados por impacto en el médico del día 1
     prefer: [
       'S3-19', // Receta digital — genera PDF con membrete
@@ -147,6 +147,7 @@ const ROLE_AFFINITY = {
   },
 
   frontend: {
+    wipLimit: 1,
     description: 'HTML, CSS, UI, vistas en admin y público',
     prefer: [
       'S3-15', // Anamnesis — formulario en admin
@@ -178,6 +179,7 @@ const ROLE_AFFINITY = {
   },
 
   content: {
+    wipLimit: 1,
     description: 'Blog posts, SEO copy, textos de servicio',
     prefer: [
       'S2-14', // Blog dermatología
@@ -198,6 +200,7 @@ const ROLE_AFFINITY = {
   },
 
   devops: {
+    wipLimit: 1,
     description: 'CI/CD, limpieza, auditorías, performance, testing',
     prefer: [
       'S4-21', // Auditoria final pre-launch
@@ -221,6 +224,7 @@ const ROLE_AFFINITY = {
   },
 
   fullstack: {
+    wipLimit: 2,
     description: 'Cualquier tarea disponible — prioridad junio',
     prefer: [
       'S3-19', 'S3-20', 'S3-15', 'S3-24', 'S3-09',
@@ -238,6 +242,7 @@ const ROLE_AFFINITY = {
   },
 
   ui: {
+    wipLimit: 1,
     description: '🎨 ANTIGRAVITY EXCLUSIVO — Rediseño total UI/UX Aurora Derm',
     prefer: [
       'UI-01', 'UI-02', 'UI-03', 'UI-04', 'UI-05',
@@ -353,6 +358,30 @@ const md     = read(AGENTS_FILE);
 const tasks  = parseTasks(md);
 const claims = loadAllClaims();
 const config = ROLE_AFFINITY[roleArg];
+
+let activeWip = 0;
+for (const [taskId, claimData] of Object.entries(claims)) {
+  if (isExpired(claimData)) continue;
+  const t = tasks.find(x => x.id === taskId);
+  if (!t) continue;
+  let bestR = null;
+  let bestScore = -99999;
+  for (const r of Object.keys(ROLE_AFFINITY)) {
+    if (r !== 'ui' && t.uiTag) continue;
+    if (r === 'ui' && !t.uiTag) continue;
+    const s = scoreTask(t, r, {});
+    if (s > bestScore) {
+      bestScore = s;
+      bestR = r;
+    }
+  }
+  if (bestR === roleArg) activeWip++;
+}
+
+if (config.wipLimit && activeWip >= config.wipLimit) {
+  console.log(`\n🛑 WIP limit reached — termina una tarea antes (${activeWip}/${config.wipLimit} claims activas para ${roleArg}).\n`);
+  process.exit(0);
+}
 
 const scored = tasks
   .map(t => ({ ...t, score: scoreTask(t, roleArg, claims) }))
