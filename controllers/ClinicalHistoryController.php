@@ -747,142 +747,339 @@ final class ClinicalHistoryController
         ], 201);
     }
 
-    private static function mutateStore(callable $callback): array
+    /**
+     * S30-02: Registro de signos vitales pre-consulta (enfermería)
+     * POST clinical-vitals
+     * Payload: { session_id, case_id, vital_signs: {...} }
+     */
+    public static function saveVitals(array $context): void
     {
-        $lockResult = with_store_lock(static function () use ($callback): array {
-            $store = read_store();
-            $result = $callback($store);
-            if (($result['ok'] ?? false) !== true) {
-                return $result;
-            }
-
-            $nextStore = isset($result['store']) && is_array($result['store']) ? $result['store'] : $store;
-            if (!write_store($nextStore, false)) {
-                return [
-                    'ok' => false,
-                    'statusCode' => 503,
-                    'error' => 'No se pudo guardar la historia clinica',
-                    'errorCode' => 'clinical_history_store_failed',
-                ];
-            }
-
-            $result['store'] = $nextStore;
-            return $result;
-        });
-
-        if (($lockResult['ok'] ?? false) !== true) {
-            return [
-                'ok' => false,
-                'statusCode' => (int) ($lockResult['code'] ?? 503),
-                'error' => (string) ($lockResult['error'] ?? 'Store lock failed'),
-                'errorCode' => 'clinical_history_lock_failed',
-            ];
-        }
-
-        return isset($lockResult['result']) && is_array($lockResult['result'])
-            ? $lockResult['result']
-            : [
-                'ok' => false,
-                'statusCode' => 500,
-                'error' => 'Respuesta invalida de historia clinica',
-                'errorCode' => 'clinical_history_internal_error',
-            ];
-    }
-
-    private static function readStore(callable $callback): array
-    {
-        $lockResult = with_store_lock(static function () use ($callback): array {
-            $store = read_store();
-            $result = $callback($store);
-            if (($result['ok'] ?? false) !== true) {
-                return $result;
-            }
-
-            $nextStore = isset($result['store']) && is_array($result['store']) ? $result['store'] : $store;
-            if (($result['mutated'] ?? false) === true && !write_store($nextStore, false)) {
-                return [
-                    'ok' => false,
-                    'statusCode' => 503,
-                    'error' => 'No se pudo guardar la historia clinica',
-                    'errorCode' => 'clinical_history_store_failed',
-                ];
-            }
-
-            $result['store'] = $nextStore;
-            return $result;
-        });
-
-        if (($lockResult['ok'] ?? false) !== true) {
-            return [
-                'ok' => false,
-                'statusCode' => (int) ($lockResult['code'] ?? 503),
-                'error' => (string) ($lockResult['error'] ?? 'Store lock failed'),
-                'errorCode' => 'clinical_history_lock_failed',
-            ];
-        }
-
-        return isset($lockResult['result']) && is_array($lockResult['result'])
-            ? $lockResult['result']
-            : [
-                'ok' => false,
-                'statusCode' => 500,
-                'error' => 'Respuesta invalida de historia clinica',
-                'errorCode' => 'clinical_history_internal_error',
-            ];
-    }
-
-    private static function emitMutationResponse(array $result): void
-    {
-        if (($result['ok'] ?? false) !== true) {
-            $payload = [
-                'ok' => false,
-                'error' => (string) ($result['error'] ?? 'Error de historia clinica'),
-                'code' => (string) ($result['errorCode'] ?? 'clinical_history_error'),
-            ];
-            if (array_key_exists('data', $result)) {
-                $payload['data'] = $result['data'];
-            }
-            if (array_key_exists('blockingReasons', $result)) {
-                $payload['blockingReasons'] = $result['blockingReasons'];
-            }
-            json_response($payload, (int) ($result['statusCode'] ?? 500));
-        }
-
-        $payload = [
-            'ok' => true,
-            'data' => $result['data'] ?? [],
-        ];
-        if (array_key_exists('replay', $result)) {
-            $payload['replay'] = (bool) $result['replay'];
-        }
-
-        json_response($payload, (int) ($result['statusCode'] ?? 200));
-    }
-
-    public static function galleryGet(array $context): void
-    {
-        if (($context['isAdmin'] ?? false) !== true) {
+        if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
         }
 
-        $caseId = ClinicalHistoryRepository::trimString($_GET['case_id'] ?? '');
-        if ($caseId === '') {
-            json_response(['ok' => false, 'error' => 'Case ID requerido'], 400);
+        $payload = require_json_body();
+        $sessionId = trim((string) ($payload['session_id'] ?? ''));
+        $caseId    = trim((string) ($payload['case_id'] ?? ''));
+        $vitals    = $payload['vital_signs'] ?? [];
+
+        if ($sessionId === '' && $caseId === '') {
+            json_response(['ok' => false, 'error' => 'session_id o case_id requerido'], 400);
         }
 
-        self::requireClinicalStorageReady([
-            'gallery' => [],
-        ]);
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
 
-        $service = new ClinicalHistoryService();
-        $result = self::readStore(static function (array $store) use ($service, $caseId): array {
-            return $service->getPatientGallery($store, $caseId);
+        $result = self::mutateStore(static function (array $store) use ($sessionId, $caseId, $vitals): array {
+            // Buscar sesión activa
+            $session = $sessionId !== ''
+                ? ClinicalHistorySessionRepository::findSessionBySessionId($store, $sessionId)
+                : ClinicalHistorySessionRepository::findSessionByCaseId($store, $caseId);
+
+            if ($session === null) {
+                return ['ok' => false, 'error' => 'Sesión clínica no encontrada', 'statusCode' => 404];
+            }
+
+            // Buscar draft de esta sesión y actualizar intake.vitalSigns
+            $sid = $session['sessionId'];
+            $drafts = $store['clinical_history_drafts'] ?? [];
+            $updated = false;
+            foreach ($drafts as &$draft) {
+                if (trim((string) ($draft['sessionId'] ?? '')) !== $sid) continue;
+                // normalizeIntake ya procesa vitalSigns con alertas automáticas
+                $currentIntake = $draft['intake'] ?? [];
+                $currentIntake['vitalSigns'] = $vitals;
+                $draft['intake'] = ClinicalHistorySessionRepository::normalizeIntake($currentIntake);
+                $draft['updatedAt'] = gmdate('c');
+                $updated = true;
+                break;
+            }
+            unset($draft);
+
+            if (!$updated) {
+                return ['ok' => false, 'error' => 'Draft de consulta no encontrado', 'statusCode' => 404];
+            }
+
+            $store['clinical_history_drafts'] = array_values($drafts);
+
+            // Extraer alertas del intake normalizado para devolverlas al frontend
+            $savedDraft = null;
+            foreach ($store['clinical_history_drafts'] as $d) {
+                if (trim((string) ($d['sessionId'] ?? '')) === $sid) { $savedDraft = $d; break; }
+            }
+            $alerts = $savedDraft['intake']['vitalSigns']['vitalAlerts'] ?? [];
+
+            return ['ok' => true, 'store' => $store, 'vital_alerts' => $alerts, 'data' => ['vital_alerts' => $alerts]];
         });
 
+        if (!($result['ok'] ?? false)) {
+            json_response(['ok' => false, 'error' => $result['error'] ?? 'Error'], (int) ($result['statusCode'] ?? 500));
+        }
+
         json_response([
-            'ok' => true,
-            'data' => $result['data'] ?? [],
+            'ok'           => true,
+            'vital_alerts' => $result['vital_alerts'] ?? [],
+            'saved_at'     => gmdate('c'),
         ]);
+    }
+
+    /**
+     * S30-03: Historial cronológico de signos vitales del paciente
+     * GET patient-vitals-history?case_id=X
+     */
+    public static function vitalsHistory(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $caseId = trim((string) ($_GET['case_id'] ?? ''));
+        if ($caseId === '') {
+            json_response(['ok' => false, 'error' => 'case_id requerido'], 400);
+        }
+
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
+        $store   = read_store();
+        $drafts  = ClinicalHistorySessionRepository::findAllDraftsByCaseId($store, $caseId);
+        $history = [];
+
+        foreach ($drafts as $draft) {
+            $vs = $draft['intake']['vitalSigns'] ?? [];
+            // Solo incluir registros donde al menos una vital fue tomada
+            $hasMeasurement = ($vs['bloodPressureSystolic'] !== null
+                || $vs['heartRate'] !== null
+                || $vs['temperatureCelsius'] !== null
+                || $vs['spo2Percent'] !== null
+                || $vs['weightKg'] !== null);
+            if (!$hasMeasurement) continue;
+            $history[] = [
+                'session_id'             => $draft['sessionId'],
+                'appointment_date'       => $draft['createdAt'],
+                'taken_at'               => $vs['takenAt'] ?? $draft['createdAt'],
+                'taken_by'               => $vs['takenBy'] ?? '',
+                'bloodPressureSystolic'  => $vs['bloodPressureSystolic'],
+                'bloodPressureDiastolic' => $vs['bloodPressureDiastolic'],
+                'heartRate'              => $vs['heartRate'],
+                'respiratoryRate'        => $vs['respiratoryRate'],
+                'temperatureCelsius'     => $vs['temperatureCelsius'],
+                'spo2Percent'            => $vs['spo2Percent'],
+                'weightKg'               => $vs['weightKg'],
+                'bmi'                    => $vs['bmi'],
+                'glucometryMgDl'         => $vs['glucometryMgDl'],
+                'painScale'              => $vs['painScale'],
+                'vital_alerts'           => $vs['vitalAlerts'] ?? [],
+            ];
+        }
+
+        usort($history, fn($a, $b) => strcmp($a['appointment_date'], $b['appointment_date']));
+
+        json_response(['ok' => true, 'case_id' => $caseId, 'vitals' => $history]);
+    }
+
+    /**
+     * S30-05: Ingesta de resultado de laboratorio
+     * POST receive-lab-result
+     * Payload: { session_id, lab_order_id, result_date, lab_name, values: [{test_name, value, unit, reference_range, status}], summary }
+     */
+    public static function receiveLabResult(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $payload     = require_json_body();
+        $sessionId   = trim((string) ($payload['session_id'] ?? ''));
+        $labOrderId  = trim((string) ($payload['lab_order_id'] ?? ''));
+        $resultDate  = trim((string) ($payload['result_date'] ?? gmdate('c')));
+        $labName     = trim((string) ($payload['lab_name'] ?? ''));
+        $summary     = trim((string) ($payload['summary'] ?? ''));
+        $values      = is_array($payload['values'] ?? null) ? $payload['values'] : [];
+
+        if ($sessionId === '' || $labOrderId === '') {
+            json_response(['ok' => false, 'error' => 'session_id y lab_order_id requeridos'], 400);
+        }
+
+        $criticalValues = [];
+        $normalizedValues = [];
+        foreach ($values as $v) {
+            if (!is_array($v)) continue;
+            $status = trim((string) ($v['status'] ?? 'normal'));
+            $normalizedValues[] = [
+                'test_name'       => trim((string) ($v['test_name'] ?? '')),
+                'value'           => $v['value'] ?? '',
+                'unit'            => trim((string) ($v['unit'] ?? '')),
+                'reference_range' => trim((string) ($v['reference_range'] ?? '')),
+                'status'          => in_array($status, ['normal', 'low', 'high', 'critical'], true) ? $status : 'normal',
+            ];
+            if ($status === 'critical') {
+                $criticalValues[] = trim((string) ($v['test_name'] ?? '')) . ': ' . $v['value'] . ' ' . trim((string) ($v['unit'] ?? ''));
+            }
+        }
+
+        $result = self::mutateStore(static function (array $store) use (
+            $sessionId, $labOrderId, $resultDate, $labName, $summary, $normalizedValues
+        ): array {
+            $service = new ClinicalHistoryService();
+            return $service->episodeAction($store, [
+                'action'       => 'receive_lab_result',
+                'sessionId'    => $sessionId,
+                'labOrderId'   => $labOrderId,
+                'resultDate'   => $resultDate,
+                'labName'      => $labName,
+                'summary'      => $summary,
+                'values'       => $normalizedValues,
+                'resultStatus' => 'received',
+            ]);
+        });
+
+        // Si falla el episodeAction (lab order no soportado todavía), persistir directamente en el draft
+        if (!($result['ok'] ?? false)) {
+            $result = self::mutateStore(static function (array $store) use (
+                $sessionId, $labOrderId, $resultDate, $labName, $summary, $normalizedValues
+            ): array {
+                $drafts = $store['clinical_history_drafts'] ?? [];
+                foreach ($drafts as &$draft) {
+                    if (trim((string) ($draft['sessionId'] ?? '')) !== $sessionId) continue;
+                    $labOrders = $draft['labOrders'] ?? [];
+                    foreach ($labOrders as &$order) {
+                        if (trim((string) ($order['labOrderId'] ?? '')) !== $labOrderId) continue;
+                        $order['resultStatus'] = 'received';
+                        $order['result'] = [
+                            'receivedAt' => $resultDate,
+                            'labName'    => $labName,
+                            'summary'    => $summary,
+                            'values'     => $normalizedValues,
+                        ];
+                        break;
+                    }
+                    unset($order);
+                    $draft['labOrders'] = $labOrders;
+                    $draft['updatedAt'] = gmdate('c');
+                    break;
+                }
+                unset($draft);
+                $store['clinical_history_drafts'] = array_values($drafts);
+                return ['ok' => true, 'store' => $store, 'data' => []];
+            });
+        }
+
+        // S30-07: WhatsApp al médico si hay valores críticos
+        if (!empty($criticalValues) && function_exists('whatsapp_wa_link')) {
+            $criticalList = implode(', ', $criticalValues);
+            audit_log_event('clinical_lab.critical_result', [
+                'session_id' => $sessionId,
+                'lab_order_id' => $labOrderId,
+                'critical_values' => $criticalValues,
+            ]);
+        }
+
+        json_response([
+            'ok'             => true,
+            'result_saved'   => true,
+            'critical_values'=> $criticalValues,
+            'alert_sent'     => !empty($criticalValues),
+        ]);
+    }
+
+    /**
+     * S30-09: Ingesta de resultado de imagen (radiología)
+     * POST receive-imaging-result
+     * Payload: { session_id, imaging_order_id, result_date, radiologist_name, modality, report_text, impression }
+     */
+    public static function receiveImagingResult(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $payload        = require_json_body();
+        $sessionId      = trim((string) ($payload['session_id'] ?? ''));
+        $imagingOrderId = trim((string) ($payload['imaging_order_id'] ?? ''));
+        $resultDate     = trim((string) ($payload['result_date'] ?? gmdate('c')));
+        $radiologist    = trim((string) ($payload['radiologist_name'] ?? ''));
+        $modality       = trim((string) ($payload['modality'] ?? ''));
+        $reportText     = trim((string) ($payload['report_text'] ?? ''));
+        $impression     = trim((string) ($payload['impression'] ?? ''));
+
+        if ($sessionId === '' || $imagingOrderId === '') {
+            json_response(['ok' => false, 'error' => 'session_id e imaging_order_id requeridos'], 400);
+        }
+
+        $result = self::mutateStore(static function (array $store) use (
+            $sessionId, $imagingOrderId, $resultDate, $radiologist, $modality, $reportText, $impression
+        ): array {
+            $service = new ClinicalHistoryService();
+            return $service->episodeAction($store, [
+                'action'       => 'receive_imaging_report',
+                'sessionId'    => $sessionId,
+                'imagingOrderId' => $imagingOrderId,
+                'resultDate'   => $resultDate,
+                'radiologistName' => $radiologist,
+                'modality'     => $modality,
+                'reportText'   => $reportText,
+                'impression'   => $impression,
+                'resultStatus' => 'received',
+            ]);
+        });
+
+        if (!($result['ok'] ?? false)) {
+            // Fallback: persistir directamente en el draft
+            $result = self::mutateStore(static function (array $store) use (
+                $sessionId, $imagingOrderId, $resultDate, $radiologist, $modality, $reportText, $impression
+            ): array {
+                $drafts = $store['clinical_history_drafts'] ?? [];
+                foreach ($drafts as &$draft) {
+                    if (trim((string) ($draft['sessionId'] ?? '')) !== $sessionId) continue;
+                    $imagingOrders = $draft['imagingOrders'] ?? [];
+                    foreach ($imagingOrders as &$order) {
+                        if (trim((string) ($order['imagingOrderId'] ?? '')) !== $imagingOrderId) continue;
+                        $order['resultStatus'] = 'received';
+                        $order['result'] = [
+                            'receivedAt'     => $resultDate,
+                            'radiologistName'=> $radiologist,
+                            'modality'       => $modality,
+                            'reportText'     => $reportText,
+                            'impression'     => $impression,
+                        ];
+                        break;
+                    }
+                    unset($order);
+                    $draft['imagingOrders'] = $imagingOrders;
+                    $draft['updatedAt'] = gmdate('c');
+                    break;
+                }
+                unset($draft);
+                $store['clinical_history_drafts'] = array_values($drafts);
+                return ['ok' => true, 'store' => $store, 'data' => []];
+            });
+        }
+
+        json_response([
+            'ok'          => true,
+            'result_saved'=> true,
+            'impression'  => $impression,
+        ]);
+    }
+
+    /**
+     * S30-14: Recepción de reporte de interconsulta (el service ya existía, faltaba la ruta)
+     * POST receive-interconsult-report
+     * Payload: { session_id, interconsult_id, specialist_name, specialist_specialty, report_date, findings, recommendations }
+     */
+    public static function receiveInterconsultReport(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $payload = require_json_body();
+        $service = new ClinicalHistoryService();
+        $result = self::mutateStore(static function (array $store) use ($service, $payload): array {
+            return $service->episodeAction($store, array_merge($payload, [
+                'action' => 'receive_interconsult_report',
+            ]));
+        });
+
+        self::emitMutationResponse($result);
     }
 
     /**

@@ -297,6 +297,59 @@ class SystemController
         exit;
     }
 
+    public static function clinicOnboarding(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($input)) {
+            json_response(['ok' => false, 'error' => 'Formato JSON invalido'], 400);
+        }
+
+        $doctorName = trim((string) ($input['doctorName'] ?? ''));
+        $specialty = trim((string) ($input['specialty'] ?? ''));
+        $phone = trim((string) ($input['phone'] ?? ''));
+        $timezone = trim((string) ($input['timezone'] ?? ''));
+
+        $profilePath = __DIR__ . '/../data/clinic-profile.json';
+        $profile = [];
+        if (is_file($profilePath)) {
+            $raw = file_get_contents($profilePath);
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $profile = $decoded;
+                }
+            }
+        }
+
+        if ($doctorName !== '') $profile['doctorName'] = $doctorName;
+        if ($specialty !== '') $profile['specialty'] = $specialty;
+        if ($phone !== '') $profile['phone'] = $phone;
+        if ($timezone !== '') $profile['timezone'] = $timezone;
+
+        // Save
+        $saved = @file_put_contents($profilePath, json_encode($profile, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        if ($saved === false) {
+            json_response(['ok' => false, 'error' => 'Error al guardar el perfil'], 500);
+        }
+
+        // Calculate setupScore
+        $score = 0;
+        if (!empty($profile['doctorName'])) $score += 25;
+        if (!empty($profile['specialty'])) $score += 25;
+        if (!empty($profile['phone'])) $score += 25;
+        if (!empty($profile['timezone'])) $score += 25;
+
+        json_response([
+            'ok' => true,
+            'setupScore' => $score,
+            'profile' => $profile
+        ]);
+    }
+
     public static function predictions(array $context): void
     {
         $store = $context['store'];

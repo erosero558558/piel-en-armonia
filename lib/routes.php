@@ -10,6 +10,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'public-runtime-config', [SystemController::class, 'publicRuntimeConfig']);
     $router->add('GET', 'metrics', [SystemController::class, 'metrics']);
     $router->add('GET', 'predictions', [SystemController::class, 'predictions']);
+    $router->add('POST', 'clinic-onboarding', [SystemController::class, 'clinicOnboarding']);
     $router->add('POST', 'operator-auth-start', [OperatorAuthController::class, 'start']);
     $router->add('GET', 'operator-auth-status', [OperatorAuthController::class, 'status']);
     $router->add('POST', 'operator-auth-complete', [OperatorAuthController::class, 'complete']);
@@ -92,6 +93,11 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'clinical-media-upload', [ClinicalHistoryController::class, 'uploadMedia']);
     $router->add('GET', 'clinical-photos', [ClinicalHistoryController::class, 'getClinicalPhotos']);
     $router->add('POST', 'clinical-photo-upload', [ClinicalHistoryController::class, 'uploadClinicalPhoto']);
+    $router->add('POST', 'clinical-vitals', [ClinicalHistoryController::class, 'saveVitals']);              // S30-02: signos vitales
+    $router->add('GET', 'patient-vitals-history', [ClinicalHistoryController::class, 'vitalsHistory']);     // S30-03: historial de vitales
+    $router->add('POST', 'receive-lab-result', [ClinicalHistoryController::class, 'receiveLabResult']);     // S30-05: ingesta de resultados lab
+    $router->add('POST', 'receive-imaging-result', [ClinicalHistoryController::class, 'receiveImagingResult']); // S30-09: resultado de imagen
+    $router->add('POST', 'receive-interconsult-report', [ClinicalHistoryController::class, 'receiveInterconsultReport']); // S30-14: report expuesto
     $router->add('GET', 'media-flow-queue', [CaseMediaFlowController::class, 'queue']);
     $router->add('GET', 'media-flow-case', [CaseMediaFlowController::class, 'caseGet']);
     $router->add('POST', 'media-flow-proposal-generate', [CaseMediaFlowController::class, 'proposalGenerate']);
