@@ -98,6 +98,7 @@
     "footer": {
       "headline": "Flow OS convierte llegada, agenda, consulta y seguimiento en un solo recorrido operativo",
       "deck": "Aurora Derm funciona como clinica de referencia y el antiguo turnero queda absorbido como modulo de llegada, recepcion y sala dentro de Flow OS.",
+      "copyright": "Copyright 2026 Flow OS",
       "columns": [
         {
           "title": "Producto",
@@ -189,12 +190,13 @@
           {
             "label": "Solicitar propuesta",
             "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede",
-            "variant": "primary"
+            "variant": "primary",
+            "commercialCta": "software"
           }
         ],
         "metrics": [
           {
-            "value": "5 etapas",
+            "claim_id": "journey_stages",
             "label": "captured -> closed",
             "detail": "El primer corte pagado queda congelado en un journey unico y entendible."
           },
@@ -342,7 +344,7 @@
       },
       "journeys": {
         "eyebrow": "Journey vendible",
-        "title": "El piloto pagado se vende con un loop fijo y entendible.",
+        "title": "La demo exploratoria transita un loop fijo y entendible.",
         "deck": "Flow OS no intenta vender doce estados a la primera. El corte comercial actual congela un recorrido de cinco etapas sobre un solo patient case.",
         "lanes": [
           {
@@ -538,38 +540,39 @@
             "items": [
               "Callbacks como senales del timeline",
               "Check-in y queue events absorbidos por el case",
-              "Sin segunda fuente de verdad para el piloto pagado"
+              "Fuente de verdad unificada para la demo guiada"
             ]
           }
         ]
       },
       "pricing": {
         "eyebrow": "Oferta actual",
-        "title": "Una sola oferta para cerrar el primer piloto pagado",
-        "deck": "En esta etapa no vendemos tres planes. Vendemos un alcance fijo para una clinica dermatologica ambulatoria de una sola sede.",
+        "title": "Alcance cerrado para la fase exploratoria y waitlist",
+        "deck": "En esta etapa no vendemos tres planes. Aseguramos un alcance fijo para evaluar funcionalidad central antes del lanzamiento masivo.",
         "plans": [
           {
-            "name": "Piloto Flow OS Dermatologia",
-            "price": "6 semanas · 1 sede",
+            "name": "Waitlist Flow OS Dermatologia",
+            "price": "Early Access",
             "note": "Alcance fijo sobre Aurora Derm como tenant de referencia",
             "fit": "Clinicas dermatologicas ambulatorias que necesitan ordenar captura, agenda, check-in, consulta y cierre sin reemplazar su sistema clinico completo.",
             "features": [
               "Journey v1 congelado en cinco etapas",
               "Ops Console, Patient Flow Link, Wait Room Display y Clinic Dashboard",
-              "Tenant demo listo para recorridos comerciales repetibles",
+              "Tenant demo cerrado para recorridos exploratorios limitados",
               "IA asistiva con aprobacion humana explicita",
               "Base preparada para upsell posterior a modulos o sedes"
             ],
             "ctaLabel": "Solicitar propuesta",
             "ctaHref": "https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede",
+            "commercialCta": "software",
             "highlight": true
           }
         ]
       },
       "security": {
         "eyebrow": "Operacion y control",
-        "title": "El piloto pagado no se vende como automatizacion clinica autonoma.",
-        "deck": "La confianza comercial sale de dejar claro que Flow OS coordina operacion, trazabilidad y aprobaciones sin prometer un EMR completo ni decisiones clinicas automaticas.",
+        "title": "La suite incial no se plantea como automatizacion clinica autonoma.",
+        "deck": "La confianza nace de dejar claro que Flow OS coordina operacion, trazabilidad y aprobaciones sin prometer un EMR completo ni decisiones clinicas automaticas.",
         "cards": [
           {
             "title": "Un patient case activo por paciente",
@@ -599,7 +602,7 @@
       },
       "faq": {
         "eyebrow": "FAQ",
-        "title": "Preguntas que salen antes de comprar el primer despliegue",
+        "title": "Preguntas que salen antes de reservar un cupo early access",
         "items": [
           {
             "question": "Flow OS reemplaza el sistema clinico completo?",
@@ -614,8 +617,8 @@
             "answer": "Se mantiene como modulo de llegada, recepcion y sala dentro de Flow OS. Deja de ser la historia principal de compra."
           },
           {
-            "question": "El journey de doce estados ya entra en el piloto pagado?",
-            "answer": "No. El corte comercial vigente se congela en cinco etapas para reducir complejidad y demostrar una base vendible antes de ampliar el roadmap."
+            "question": "El journey de doce estados ya entra en el corte inicial?",
+            "answer": "No. El release vigente se congela en cinco etapas para reducir complejidad y demostrar una base estable antes de ampliar el roadmap."
           }
         ]
       },
@@ -652,7 +655,8 @@
           {
             "label": "Solicitar propuesta",
             "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede",
-            "variant": "primary"
+            "variant": "primary",
+            "commercialCta": "software"
           },
           {
             "label": "Ver Patient Flow Link",
@@ -698,7 +702,7 @@
         ],
         "metrics": [
           {
-            "value": "1 caso",
+            "claim_id": "single_case_truth",
             "label": "mismo patient case",
             "detail": "La vista paciente no nace de una base paralela."
           },
@@ -857,7 +861,7 @@
         ],
         "metrics": [
           {
-            "value": "A-021",
+            "claim_id": "visible_queue_ticket",
             "label": "ticket en cola",
             "detail": "La misma cola ya visible en la operacion diaria."
           },
@@ -1016,7 +1020,7 @@
         ],
         "metrics": [
           {
-            "value": "08 min",
+            "claim_id": "average_wait_time",
             "label": "espera media",
             "detail": "La misma ya usada para leer la operacion de Aurora Derm."
           },

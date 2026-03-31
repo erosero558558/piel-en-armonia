@@ -53,15 +53,37 @@ const ComponentLoader = {
         
         try {
             const html = component.render(props);
-            element.innerHTML = html;
+            // SEC-01: sanitize HTML before injection to prevent XSS
+            // Use DOMPurify if available (loaded in admin.html), otherwise safe
+            if (typeof DOMPurify !== 'undefined') {
+                element.innerHTML = DOMPurify.sanitize(html, {
+                    ALLOWED_TAGS: ['div','span','p','h1','h2','h3','h4','h5','h6',
+                        'ul','ol','li','strong','em','b','i','a','img','button',
+                        'input','select','option','label','form','table','thead',
+                        'tbody','tr','th','td','section','article','header','footer',
+                        'nav','main','aside','figure','figcaption','time','mark'],
+                    ALLOWED_ATTR: ['class','id','style','href','src','alt','type',
+                        'value','placeholder','data-*','aria-*','role','tabindex',
+                        'target','rel','for','name','action','method'],
+                });
+            } else {
+                // Fallback: strip script tags at minimum before injecting
+                const safe = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                                  .replace(/\bon\w+\s*=/gi, 'data-blocked=');
+                element.innerHTML = safe;
+            }
             
-            // Llamar onMount si existe
+            // Call onMount if defined
             if (component.onMount) {
                 component.onMount(element, props);
             }
         } catch (error) {
             console.error(`Error renderizando "${name}":`, error);
-            element.innerHTML = `<p style="color:red">Error cargando ${name}</p>`;
+            // SEC-01: use textContent for error message to prevent second-order XSS
+            const errEl = document.createElement('p');
+            errEl.style.color = 'red';
+            errEl.textContent = `Error cargando ${name}`;
+            element.appendChild(errEl);
         }
     },
     

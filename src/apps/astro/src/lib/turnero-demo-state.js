@@ -1,4 +1,16 @@
 import { getWhatsappNumber } from './whatsapp-config.js';
+import fs from 'node:fs';
+import path from 'node:path';
+
+function getProofLedger() {
+    try {
+        const raw = fs.readFileSync(path.join('data', 'flow-os', 'proof-ledger.json'), 'utf-8');
+        return JSON.parse(raw) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
 const DEMO_STATE_VERSION = 'turnero-demo-state-v1';
 
 const BASE_STATE = Object.freeze({
@@ -91,17 +103,17 @@ const COPY = {
         demo: {
             heroMetrics: [
                 {
-                    value: '3',
+                    claim_id: 'arrival_channels',
                     label: 'canales de llegada',
                     detail: 'QR, WhatsApp y SMS activan el mismo check-in sandbox.',
                 },
                 {
-                    value: '06 min',
+                    claim_id: 'estimated_wait',
                     label: 'espera estimada',
                     detail: 'La cifra coincide con estado del turno y dashboard.',
                 },
                 {
-                    value: 'Outbox 2',
+                    claim_id: 'kiosk_outbox',
                     label: 'tickets offline en cola',
                     detail: 'El kiosco puede seguir capturando y sincronizar despues.',
                 },
@@ -112,17 +124,17 @@ const COPY = {
         status: {
             heroMetrics: [
                 {
-                    value: 'A-041',
+                    claim_id: 'calling_now',
                     label: 'llamando ahora',
                     detail: 'El mismo ticket visible en sala, recepcion y celular.',
                 },
                 {
-                    value: 'A-042',
+                    claim_id: 'next_ticket',
                     label: 'siguiente ticket',
                     detail: 'La siguiente posicion se comparte con el display y la cola admin.',
                 },
                 {
-                    value: '12 s',
+                    claim_id: 'last_update',
                     label: 'ultima actualizacion',
                     detail: 'El estado publico y el heartbeat usan la misma base sandbox.',
                 },
@@ -133,17 +145,17 @@ const COPY = {
         dashboard: {
             heroMetrics: [
                 {
-                    value: '08 min',
+                    claim_id: 'average_wait_time',
                     label: 'espera media',
                     detail: 'Comparada contra la semana previa y el objetivo diario.',
                 },
                 {
-                    value: '6.2%',
+                    claim_id: 'no_show_rate',
                     label: 'no-show',
                     detail: 'La reduccion ya conversa con recordatorios y check-in previo.',
                 },
                 {
-                    value: '124',
+                    claim_id: 'served_today',
                     label: 'tickets atendidos hoy',
                     detail: 'La lectura por sede y consultorio sale del mismo sandbox.',
                 },
@@ -191,17 +203,17 @@ const COPY = {
         demo: {
             heroMetrics: [
                 {
-                    value: '3',
+                    claim_id: 'arrival_channels',
                     label: 'arrival channels',
                     detail: 'QR, WhatsApp, and SMS activate the same sandbox check-in.',
                 },
                 {
-                    value: '06 min',
+                    claim_id: 'estimated_wait',
                     label: 'estimated wait',
                     detail: 'The value matches queue status and dashboard.',
                 },
                 {
-                    value: 'Outbox 2',
+                    claim_id: 'kiosk_outbox',
                     label: 'offline tickets pending',
                     detail: 'The kiosk keeps capturing and syncs later.',
                 },
@@ -212,17 +224,17 @@ const COPY = {
         status: {
             heroMetrics: [
                 {
-                    value: 'A-041',
+                    claim_id: 'calling_now',
                     label: 'calling now',
                     detail: 'The same live ticket appears on phone, reception, and room display.',
                 },
                 {
-                    value: 'A-042',
+                    claim_id: 'next_ticket',
                     label: 'next ticket',
                     detail: 'The next position is shared across the public and admin views.',
                 },
                 {
-                    value: '12 s',
+                    claim_id: 'last_update',
                     label: 'last update',
                     detail: 'The public surface and heartbeat read from the same sandbox.',
                 },
@@ -233,17 +245,17 @@ const COPY = {
         dashboard: {
             heroMetrics: [
                 {
-                    value: '08 min',
+                    claim_id: 'average_wait_time',
                     label: 'average wait',
                     detail: 'Compared against the previous week and the daily target.',
                 },
                 {
-                    value: '6.2%',
+                    claim_id: 'no_show_rate',
                     label: 'no-show',
                     detail: 'Already tied to reminders and pre-arrival confirmation.',
                 },
                 {
-                    value: '124',
+                    claim_id: 'served_today',
                     label: 'served tickets today',
                     detail: 'Site and room reporting comes from the same sandbox.',
                 },
@@ -297,39 +309,67 @@ function routeHref(suiteRoutes, pageKey) {
 
 function proofItems(locale, state) {
     const copy = COPY[locale].proof.items;
+    const ledger = getProofLedger();
+    const extract = (id, fallback) => {
+        const claim = ledger[id];
+        if (claim) {
+            return {
+                value: claim[`value_${locale}`] || claim.value || fallback,
+                status: claim.status || null,
+                capturedAt: claim.captured_at || null
+            };
+        }
+        return { value: fallback, status: null, capturedAt: null };
+    };
+
+    const kioskOutbox = extract('kiosk_outbox', `Outbox ${withInteger(state.kiosk.offlineOutboxPending)}`);
+    const printFallback = extract('print_fallback', locale === 'en' ? 'Web ticket ready' : 'Web ticket listo');
+    const displaySnapshot = extract('display_snapshot', `Snapshot ${withSeconds(state.display.snapshotAgeSeconds)}`);
+    const surfaceHeartbeats = extract('surface_heartbeats', locale === 'en'
+        ? `Op ${state.operator.heartbeatSeconds}s | Kiosk ${state.kiosk.heartbeatSeconds}s | TV ${state.display.heartbeatSeconds}s`
+        : `Op ${state.operator.heartbeatSeconds}s | Kiosco ${state.kiosk.heartbeatSeconds}s | TV ${state.display.heartbeatSeconds}s`);
+    const nativeReleases = extract('native_releases', state.releases.operator);
+
     return [
         {
             id: 'kiosk-outbox',
             label: copy.kioskOutbox.label,
-            value: `Outbox ${withInteger(state.kiosk.offlineOutboxPending)}`,
+            value: kioskOutbox.value,
             detail: copy.kioskOutbox.detail,
+            status: kioskOutbox.status,
+            capturedAt: kioskOutbox.capturedAt
         },
         {
             id: 'print-fallback',
             label: copy.printFallback.label,
-            value: locale === 'en' ? 'Web ticket ready' : 'Web ticket listo',
+            value: printFallback.value,
             detail: copy.printFallback.detail,
+            status: printFallback.status,
+            capturedAt: printFallback.capturedAt
         },
         {
             id: 'display-snapshot',
             label: copy.displaySnapshot.label,
-            value: `Snapshot ${withSeconds(state.display.snapshotAgeSeconds)}`,
+            value: displaySnapshot.value,
             detail: copy.displaySnapshot.detail,
+            status: displaySnapshot.status,
+            capturedAt: displaySnapshot.capturedAt
         },
         {
             id: 'surface-heartbeats',
             label: copy.heartbeats.label,
-            value:
-                locale === 'en'
-                    ? `Op ${state.operator.heartbeatSeconds}s | Kiosk ${state.kiosk.heartbeatSeconds}s | TV ${state.display.heartbeatSeconds}s`
-                    : `Op ${state.operator.heartbeatSeconds}s | Kiosco ${state.kiosk.heartbeatSeconds}s | TV ${state.display.heartbeatSeconds}s`,
+            value: surfaceHeartbeats.value,
             detail: copy.heartbeats.detail,
+            status: surfaceHeartbeats.status,
+            capturedAt: surfaceHeartbeats.capturedAt
         },
         {
             id: 'native-releases',
             label: copy.releases.label,
-            value: state.releases.operator,
+            value: nativeReleases.value,
             detail: copy.releases.detail,
+            status: nativeReleases.status,
+            capturedAt: nativeReleases.capturedAt
         },
     ];
 }

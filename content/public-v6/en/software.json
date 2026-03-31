@@ -98,6 +98,7 @@
     "footer": {
       "headline": "Flow OS turns arrival, booking, consult, and follow-up into one operating journey",
       "deck": "Aurora Derm acts as the reference clinic and the legacy turnero now lives inside Flow OS as the arrival, reception, and waiting-room module.",
+      "copyright": "Copyright 2026 Flow OS",
       "columns": [
         {
           "title": "Product",
@@ -194,9 +195,9 @@
         ],
         "metrics": [
           {
-            "value": "5 stages",
+            "claim_id": "journey_stages",
             "label": "captured -> closed",
-            "detail": "The paid pilot is intentionally frozen into one clear operating journey."
+            "detail": "The exploratory demo is intentionally frozen into one clear operating journey."
           },
           {
             "value": "1 tenant",
@@ -342,7 +343,7 @@
       },
       "journeys": {
         "eyebrow": "Sellable journey",
-        "title": "The paid pilot is sold as one fixed and understandable loop.",
+        "title": "The exploratory demo runs with one fixed and understandable loop.",
         "deck": "Flow OS does not try to sell twelve states up front. The current commercial cut freezes a five-stage journey on one patient case.",
         "lanes": [
           {
@@ -538,19 +539,19 @@
             "items": [
               "Callbacks as case timeline signals",
               "Check-in and queue events absorbed by the case",
-              "No second source of truth for the paid pilot"
+              "Unified source of truth for the guided demo"
             ]
           }
         ]
       },
       "pricing": {
         "eyebrow": "Current offer",
-        "title": "One offer to close the first paid pilot",
-        "deck": "At this stage we do not sell three plans. We sell one fixed-scope offer for a single-site ambulatory dermatology clinic.",
+        "title": "Closed scope for the exploratory and waitlist phase",
+        "deck": "At this stage we do not sell three plans. We ensure a fixed scope to evaluate core functionality before a massive rollout.",
         "plans": [
           {
-            "name": "Flow OS Dermatology Pilot",
-            "price": "6 weeks · 1 site",
+            "name": "Flow OS Dermatology Waitlist",
+            "price": "Early Access",
             "note": "Fixed scope with Aurora Derm as the reference tenant",
             "fit": "Ambulatory dermatology clinics that need to align capture, booking, check-in, consult, and closure without replacing their full clinical system.",
             "features": [
@@ -568,7 +569,7 @@
       },
       "security": {
         "eyebrow": "Operations and control",
-        "title": "The paid pilot is not sold as autonomous clinical automation.",
+        "title": "The early suite is not pitched as autonomous clinical automation.",
         "deck": "Commercial trust comes from being explicit: Flow OS coordinates operations, traceability, and approvals without claiming to replace a full EMR or run autonomous clinical decisions.",
         "cards": [
           {
@@ -599,7 +600,7 @@
       },
       "faq": {
         "eyebrow": "FAQ",
-        "title": "Questions that come up before the first deployment is bought",
+        "title": "Questions that come up before reserving an early access spot",
         "items": [
           {
             "question": "Does Flow OS replace the full clinical system?",
@@ -614,7 +615,7 @@
             "answer": "It stays in place as the arrival, reception, and waiting-room module inside Flow OS. It stops being the main buying story."
           },
           {
-            "question": "Does the twelve-state journey already belong in the paid pilot?",
+            "question": "Does the twelve-state journey already belong in the initial cut?",
             "answer": "No. The current commercial cut is frozen into five stages to reduce complexity and prove a sellable base before expanding the roadmap."
           }
         ]
@@ -698,7 +699,7 @@
         ],
         "metrics": [
           {
-            "value": "1 case",
+            "claim_id": "single_case_truth",
             "label": "same patient case",
             "detail": "The patient view does not come from a parallel data source."
           },
@@ -857,7 +858,7 @@
         ],
         "metrics": [
           {
-            "value": "A-021",
+            "claim_id": "visible_queue_ticket",
             "label": "ticket in queue",
             "detail": "The same queue already visible in the operating flow."
           },
@@ -1016,7 +1017,7 @@
         ],
         "metrics": [
           {
-            "value": "08 min",
+            "claim_id": "average_wait_time",
             "label": "average wait",
             "detail": "The same readout already used to explain Aurora Derm."
           },

@@ -1,116 +1,200 @@
 /**
- * Aurora Derm — Liquid Glass Fluid Scroll Reveal System
- * Replaces old flat opacity reveals with a spring physics approach.
- * UI Sprint 4 - Fluid Motion (UI4-10)
+ * aurora-scroll-reveal.js — Fluid Scroll Reveal con spring physics
+ *
+ * S10-UI4-10: reemplaza transiciones opacity planas por sistema físico
+ * Inspiración: Apple WWDC motion design language
+ *
+ * Cada elemento que tiene [data-reveal] o la clase .reveal-on-scroll
+ * entra con:
+ *   - translateY +24px → 0
+ *   - blur(8px)     → blur(0)
+ *   - opacity 0     → 1
+ * Spring: cubic-bezier(0.34, 1.56, 0.64, 1) — duración 480ms
+ * Stagger entre hermanos: 60ms
+ *
+ * Auto-inicializado: sólo carga si IntersectionObserver está disponible.
  */
 
-class AuroraScrollReveal {
-    constructor(options = {}) {
-        this.observerOptions = {
-            root: null,
-            rootMargin: options.rootMargin || '0px 0px -50px 0px',
-            threshold: options.threshold || 0.1
-        };
-        
-        // Use the spring cubic-bezier for fluid dynamics (UI4-10 requirement)
-        // Spring profile: cubic-bezier(0.34, 1.56, 0.64, 1)
-        this.easeSpring = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-        this.duration = '480ms';
-        this.staggerDelay = 60; // ms between siblings
-        
-        this.observer = new IntersectionObserver(this.handleIntersect.bind(this), this.observerOptions);
-        
-        // Add core styles dynamically to ensure consistency
-        this.injectStyles();
-        this.init();
+(function () {
+  'use strict';
+
+  // ── Constantes ─────────────────────────────────────────────────────────────
+
+  var SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+  var DURATION = 480;
+  var STAGGER = 60;
+  var THRESHOLD = 0.12;
+  var ROOT_MARGIN = '0px 0px -48px 0px';
+
+  // Selectores que participan automáticamente
+  var AUTO_SELECTORS = [
+    '[data-reveal]',
+    '.reveal-on-scroll',
+    '.lg-surface',
+    '.lg-surface--dark',
+    '.lg-surface--gold',
+    '.v6-corporate-matrix__card',
+    '.v6-editorial__card',
+    '.v6-trust-signal',
+    '.v6-news-strip__item',
+  ].join(', ');
+
+  // ── Estado ─────────────────────────────────────────────────────────────────
+
+  var observer = null;
+  var staggerCounts = new WeakMap(); // parent → next stagger index
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function getStaggerDelay(el) {
+    var parent = el.parentElement;
+    if (!parent) return 0;
+
+    var override = el.dataset && el.dataset.revealDelay;
+    if (override !== undefined) return parseInt(override, 10) || 0;
+
+    var idx = staggerCounts.get(parent) || 0;
+    staggerCounts.set(parent, idx + 1);
+    return idx * STAGGER;
+  }
+
+  function prepareElement(el) {
+    if (el._auroraRevealReady) return;
+    el._auroraRevealReady = true;
+
+    // Soporte reducedMotion — accesibilidad
+    var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      el._auroraRevealSkip = true;
+      return;
     }
 
-    injectStyles() {
-        if (document.getElementById('aurora-reveal-styles')) return;
+    el.style.setProperty('opacity', '0');
+    el.style.setProperty('transform', 'translateY(24px)');
+    el.style.setProperty('filter', 'blur(8px)');
+    el.style.setProperty('will-change', 'opacity, transform, filter');
+  }
 
-        const style = document.createElement('style');
-        style.id = 'aurora-reveal-styles';
-        style.textContent = `
-            /* Initial state: translated +24px Y, blur(8px), 0 opacity */
-            .lg-reveal {
-                opacity: 0;
-                transform: translateY(24px);
-                filter: blur(8px);
-                will-change: opacity, transform, filter;
-                transition: 
-                    opacity ${this.duration} ${this.easeSpring}, 
-                    transform ${this.duration} ${this.easeSpring}, 
-                    filter ${this.duration} ${this.easeSpring};
-            }
-            /* End state: su posición final */
-            .lg-reveal.is-revealed {
-                opacity: 1;
-                transform: translateY(0);
-                filter: blur(0);
-            }
+  function revealElement(el) {
+    if (el._auroraRevealSkip || el._auroraRevealed) return;
+    el._auroraRevealed = true;
 
-            /* Respect reduced motion preferences */
-            @media (prefers-reduced-motion: reduce) {
-                .lg-reveal {
-                    transition: opacity ${this.duration} ease !important;
-                    transform: none !important;
-                    filter: none !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    var delay = getStaggerDelay(el);
+    var transition = [
+      'opacity ' + DURATION + 'ms ' + SPRING + ' ' + delay + 'ms',
+      'transform ' + DURATION + 'ms ' + SPRING + ' ' + delay + 'ms',
+      'filter ' + DURATION + 'ms ease-out ' + delay + 'ms',
+    ].join(', ');
 
-    handleIntersect(entries) {
-        // Find visible entries
-        const intersecting = entries.filter(entry => entry.isIntersecting);
-        if (intersecting.length === 0) return;
+    el.style.setProperty('transition', transition);
+    el.style.setProperty('opacity', '');
+    el.style.setProperty('transform', '');
+    el.style.setProperty('filter', '');
 
-        // Apply stagger delay to elements appearing at the same time
-        intersecting.forEach((entry, idx) => {
-            const target = entry.target;
-            const delay = idx * this.staggerDelay;
+    // Cleanup after animation
+    setTimeout(function () {
+      el.style.removeProperty('will-change');
+      el.style.removeProperty('transition');
+    }, DURATION + delay + 100);
+  }
 
-            if (delay > 0) {
-                target.style.transitionDelay = `${delay}ms`;
-            }
+  // ── IntersectionObserver ───────────────────────────────────────────────────
 
-            // Reveal the element
-            requestAnimationFrame(() => {
-                target.classList.add('is-revealed');
-            });
-
-            // Stop observing once revealed (run once)
-            this.observer.unobserve(target);
+  function createObserver() {
+    return new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            revealElement(entry.target);
+            observer.unobserve(entry.target);
+          }
         });
-    }
+      },
+      {
+        threshold: THRESHOLD,
+        rootMargin: ROOT_MARGIN,
+      }
+    );
+  }
 
-    init() {
-        // Automatically hook any element with the reveal class
-        const elements = document.querySelectorAll('.aurora-reveal, [data-aurora-reveal], .lg-reveal-target');
-        elements.forEach(el => this.observe(el));
-    }
+  function observeAll() {
+    var elements = document.querySelectorAll(AUTO_SELECTORS);
+    // Reset stagger counts para re-runs
+    staggerCounts = new WeakMap();
+
+    elements.forEach(function (el) {
+      // Skip elementos con [data-no-reveal] o que ya se revelaron
+      if (el.dataset && el.dataset.noReveal !== undefined) return;
+      if (el._auroraRevealed) return;
+
+      prepareElement(el);
+      if (!el._auroraRevealSkip) {
+        observer.observe(el);
+      }
+    });
+  }
+
+  // ── API Pública ────────────────────────────────────────────────────────────
+
+  window.AuroraScrollReveal = {
+    /**
+     * Revela manualmente un elemento (útil para contenido cargado dinámicamente)
+     */
+    reveal: function (el) {
+      if (!(el instanceof Element)) return;
+      prepareElement(el);
+      requestAnimationFrame(function () { revealElement(el); });
+    },
 
     /**
-     * Programmatically observe a new element for scroll reveal
-     * @param {HTMLElement} node 
+     * Añade nuevos elementos al observer (útil para contenido AJAX)
      */
-    observe(node) {
-        if (!node.classList.contains('lg-reveal')) {
-            node.classList.add('lg-reveal');
+    observe: function (el) {
+      if (!(el instanceof Element)) return;
+      if (el._auroraRevealed || el._auroraRevealSkip) return;
+      prepareElement(el);
+      if (observer && !el._auroraRevealSkip) observer.observe(el);
+    },
+
+    /**
+     * Re-escanea el DOM (útil tras navegaciones SPA)
+     */
+    refresh: function () {
+      observeAll();
+    },
+  };
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+
+  function init() {
+    if (!window.IntersectionObserver) return; // Fallback: nada, los elementos quedan visibles
+
+    observer = createObserver();
+    observeAll();
+
+    // Escuchar mutaciones del DOM para contenido cargado dinámicamente
+    if (window.MutationObserver) {
+      var mutationObs = new MutationObserver(function (mutations) {
+        var hasNewNodes = mutations.some(function (m) {
+          return m.addedNodes && m.addedNodes.length > 0;
+        });
+        if (hasNewNodes) {
+          // Debounce para no re-escanear con cada micro-mutación
+          clearTimeout(mutationObs._timer);
+          mutationObs._timer = setTimeout(observeAll, 150);
         }
-        this.observer.observe(node);
-    }
+      });
 
-    /**
-     * Re-scan the DOM for dynamically added elements
-     */
-    refresh() {
-        this.init();
+      mutationObs.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
     }
-}
+  }
 
-// Ensure execution on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.auroraScrollReveal = new AuroraScrollReveal();
-});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

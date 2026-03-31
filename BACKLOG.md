@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 12:58:07 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 3:41:01 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████████░░░░░░` **69%** completado (349/504)
+`██████████████░░░░░░` **71%** completado (357/504)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -18,13 +18,13 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 4 | 26 | 0 | 100% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
 | ⏸ Sprint 6 | 12 | 13 | 48% |
-| ⏸ Sprint 7 | 10 | 27 | 27% |
+| ⏸ Sprint 7 | 11 | 26 | 30% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
 | ⏸ Sprint 8 | 10 | 7 | 59% |
 | ⏸ Sprint 9 | 9 | 18 | 33% |
-| ⏸ Sprint 10 | 1 | 29 | 3% |
+| ⏸ Sprint 10 | 2 | 28 | 7% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
 | ✅ Sprint 13 | 21 | 0 | 100% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
@@ -35,7 +35,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 18 | 4 | 0 | 100% |
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
-| ⏸ Sprint 23 | 1 | 9 | 10% |
+| ⏸ Sprint 23 | 7 | 3 | 70% |
 | ⏸ Sprint UI | 12 | 6 | 67% |
 
 ## ✅ Sprint 0 — Completado
@@ -84,18 +84,18 @@ _Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 - **S6-24** `[S6]` — necesita: S6-23 primero
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 27 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 
-### 🟢 Disponibles (27)
+### 🟢 Disponibles (26)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S7-02** | `[S7]` | S |
-| **S7-04** | `[S7]` | S |
 | **S7-05** | `[S7]` | S |
 | **S7-07** | `[S7]` | M |
 | **S7-08** | `[S7]` | S |
-| ... | | _+22 más_ |
+| **S7-09** | `[S7]` | S |
+| ... | | _+21 más_ |
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._
@@ -135,18 +135,18 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 | ... | | _+13 más_ |
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
-_Esperando que Sprint anterior esté completo. 29 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 28 tareas pendientes._
 
-### 🟢 Disponibles (29)
+### 🟢 Disponibles (28)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S10-01** | `[S10]` | M |
-| **S10-02** | `[S10]` | M |
 | **S10-03** | `[S10]` | S |
 | **S10-04** | `[S10]` | M |
 | **S10-05** | `[S10]` | M |
-| ... | | _+24 más_ |
+| **S10-06** | `[S10]` | M |
+| ... | | _+23 más_ |
 
 ## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
 _Esperando que Sprint anterior esté completo. 22 tareas pendientes._
@@ -226,18 +226,15 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 | ... | | _+4 más_ |
 
 ## ⏸ Sprint 23 — Credibilidad de Compra, Cohesión Comercial y Truth-in-Sales
-_Esperando que Sprint anterior esté completo. 9 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 
-### 🟢 Disponibles (9)
+### 🟢 Disponibles (3)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S23-01** | `[S23]` | L |
-| **S23-02** | `[S23]` | M |
-| **S23-05** | `[S23]` | M |
-| **S23-03** | `[S23]` | M |
-| **S23-04** | `[S23]` | M |
-| ... | | _+4 más_ |
+| **S23-10** | `[S23]` | M |
+| **S23-08** | `[S23]` | M |
+| **S23-09** | `[S23]` | M |
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
 _Esperando que Sprint anterior esté completo. 6 tareas pendientes._

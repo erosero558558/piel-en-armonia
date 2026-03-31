@@ -97,6 +97,7 @@ const TURNERO_NATIVE_APPS_COPY = {
         cards: {
             operator: {
                 eyebrow: 'Recepción / Operador',
+                readinessBadge: 'En validación',
                 title: 'Flow OS Operator',
                 copy: 'Shell de escritorio para llamar, reimprimir y cerrar tickets con numpad dedicado y configuracion por consultorio.',
                 bullets: [
@@ -107,6 +108,7 @@ const TURNERO_NATIVE_APPS_COPY = {
             },
             kiosk: {
                 eyebrow: 'Check-in / Kiosco',
+                readinessBadge: 'Piloto guiado',
                 title: 'Flow OS Kiosk',
                 copy: 'App nativa para check-in guiado, impresión térmica y soporte visible cuando recepción necesita intervenir.',
                 bullets: [
@@ -117,6 +119,7 @@ const TURNERO_NATIVE_APPS_COPY = {
             },
             sala_tv: {
                 eyebrow: 'Pantalla / Sala TV',
+                readinessBadge: 'Piloto guiado',
                 title: 'Flow OS Sala TV',
                 copy: 'APK para Android TV con llamados en vivo, privacidad visible y continuidad cuando la sala necesita una pantalla dedicada.',
                 bullets: [
@@ -138,6 +141,7 @@ const TURNERO_NATIVE_APPS_COPY = {
         cards: {
             operator: {
                 eyebrow: 'Reception / Operator',
+                readinessBadge: 'In validation',
                 title: 'Flow OS Operator',
                 copy: 'Desktop shell for calling, reprinting, and closing tickets with a dedicated numpad and room-aware setup.',
                 bullets: [
@@ -148,6 +152,7 @@ const TURNERO_NATIVE_APPS_COPY = {
             },
             kiosk: {
                 eyebrow: 'Check-in / Kiosk',
+                readinessBadge: 'Guided pilot',
                 title: 'Flow OS Kiosk',
                 copy: 'Native check-in app for guided arrival, thermal printing, and visible help when reception needs to step in.',
                 bullets: [
@@ -158,6 +163,7 @@ const TURNERO_NATIVE_APPS_COPY = {
             },
             sala_tv: {
                 eyebrow: 'Display / Sala TV',
+                readinessBadge: 'Guided pilot',
                 title: 'Flow OS Sala TV',
                 copy: 'Android TV APK for live room calls, privacy-safe display, and a dedicated waiting-room screen when browsers are not enough.',
                 bullets: [
@@ -1104,9 +1110,23 @@ function sanitizeSoftwareAction(action) {
     };
 }
 
-function sanitizeSoftwareMetric(metric) {
-    const value = normalizeText(metric?.value);
+function sanitizeSoftwareMetric(metric, locale = 'es') {
+    let value = normalizeText(metric?.value);
     const label = normalizeText(metric?.label);
+    const claimId = normalizeText(metric?.claim_id);
+    let capturedAt = null;
+    let status = null;
+
+    if (claimId) {
+        const ledger = getV6ProofLedger();
+        const claim = ledger[claimId];
+        if (claim) {
+            value = normalizeText(claim[`value_${locale}`]) || normalizeText(claim.value) || value;
+            capturedAt = normalizeText(claim.captured_at);
+            status = normalizeText(claim.status);
+        }
+    }
+
     if (!value || !label) {
         return null;
     }
@@ -1114,6 +1134,8 @@ function sanitizeSoftwareMetric(metric) {
         value,
         label,
         detail: normalizeText(metric?.detail),
+        capturedAt,
+        status,
     };
 }
 
@@ -1290,6 +1312,36 @@ function buildTurneroWebFallbackHref(surface) {
     );
 }
 
+function getNativeAppReadinessBadge(surface, locale) {
+    const isEn = typeof locale === 'string' && locale.startsWith('en');
+    
+    // Fallbacks if no rigorous surface definition exists
+    if (!surface || !surface.targets) {
+        return isEn ? 'Not Published' : 'No publicado';
+    }
+
+    const channel = surface.updateChannel || 'stable';
+    const hasArtifact = Object.values(surface.targets).some((target) => {
+        if (!target.downloadPath || !target.manualFile) return false;
+        const relativePath = path.join('app-downloads', channel, target.downloadPath, target.manualFile);
+        const absolutePath = path.join(REPO_ROOT, relativePath);
+        return fs.existsSync(absolutePath);
+    });
+
+    if (!hasArtifact) {
+        return isEn ? 'In Validation' : 'En validación';
+    }
+
+    if (surface.status === 'published') {
+        if (channel === 'stable') {
+            return isEn ? 'Available Now' : 'Disponible ahora';
+        }
+        return isEn ? 'Guided Pilot' : 'Piloto guiado';
+    }
+
+    return isEn ? 'In Validation' : 'En validación';
+}
+
 function buildSoftwareLandingNativeApps(locale, nativeApps = {}) {
     const safeLocale = normalizeLocale(locale);
     const copy =
@@ -1312,6 +1364,7 @@ function buildSoftwareLandingNativeApps(locale, nativeApps = {}) {
 
         return {
             surfaceId,
+            readinessBadge: getNativeAppReadinessBadge(surface, locale),
             eyebrow: normalizeText(cardCopy.eyebrow),
             title:
                 normalizeText(cardCopy.title) ||
@@ -1494,6 +1547,7 @@ function sanitizeSoftwareNav(nav) {
         footer: {
             headline: normalizeText(footer.headline),
             deck: normalizeText(footer.deck),
+            copyright: normalizeText(footer.copyright),
             columns: Array.isArray(footer.columns)
                 ? footer.columns
                       .map(sanitizeSoftwareFooterColumn)
@@ -1878,7 +1932,7 @@ function assertSoftwareSurfaceContract(
     }
 }
 
-function sanitizeSoftwareHero(hero) {
+function sanitizeSoftwareHero(hero, locale = 'es') {
     const source = isObject(hero) ? hero : {};
     return {
         eyebrow: normalizeText(source.eyebrow),
@@ -1889,7 +1943,7 @@ function sanitizeSoftwareHero(hero) {
             ? source.actions.map(sanitizeSoftwareAction).filter(Boolean)
             : [],
         metrics: Array.isArray(source.metrics)
-            ? source.metrics.map(sanitizeSoftwareMetric).filter(Boolean)
+            ? source.metrics.map(m => sanitizeSoftwareMetric(m, locale)).filter(Boolean)
             : [],
         panels: Array.isArray(source.panels)
             ? source.panels.map(sanitizeSoftwarePanel).filter(Boolean)
@@ -1924,12 +1978,42 @@ function sanitizeSoftwareLandingPage(page) {
     const pricing = isObject(source.pricing) ? source.pricing : {};
     const security = isObject(source.security) ? source.security : {};
     const faq = isObject(source.faq) ? source.faq : {};
+    const config = getV6CommercialConfig();
+    const safeLocale = normalizeLocale(source.locale);
+    const primaryHref = normalizeHref(config?.cta_targets?.primary_href);
+    const primaryLabel = normalizeText(config?.cta_targets?.[`primary_label_${safeLocale}`]);
+
+    const overrideActions = (actions) => {
+        if (!primaryHref || !primaryLabel || !Array.isArray(actions)) return actions;
+        return actions.map(a => a.isPrimary ? { ...a, href: primaryHref, label: primaryLabel } : a);
+    };
+
+    const parsedHero = sanitizeSoftwareHero(source.hero, safeLocale);
+    if (parsedHero?.actions) {
+        parsedHero.actions = overrideActions(parsedHero.actions);
+    }
+
+    const parsedFinalCta = sanitizeSoftwareFinalCta(source.finalCta);
+    if (parsedFinalCta?.actions) {
+        parsedFinalCta.actions = overrideActions(parsedFinalCta.actions);
+    }
+
+    let parsedPlans = Array.isArray(pricing.plans)
+        ? pricing.plans.map(sanitizeSoftwarePlan).filter(Boolean)
+        : [];
+    if (config?.pricing_mode === 'fixed_pilot' && parsedPlans.length > 1) {
+        parsedPlans = parsedPlans.slice(0, 1);
+    }
+    if (primaryHref && primaryLabel) {
+        parsedPlans = parsedPlans.map(p => ({ ...p, ctaHref: primaryHref, ctaLabel: primaryLabel }));
+    }
+
     return {
         title: normalizeText(source.title),
         description: normalizeText(source.description),
         breadcrumb: sanitizeBreadcrumb(source.breadcrumb),
         heading: normalizeText(source.heading),
-        hero: sanitizeSoftwareHero(source.hero),
+        hero: parsedHero,
         focus: {
             eyebrow: normalizeText(focus.eyebrow),
             title: normalizeText(focus.title),
@@ -1981,9 +2065,7 @@ function sanitizeSoftwareLandingPage(page) {
             eyebrow: normalizeText(pricing.eyebrow),
             title: normalizeText(pricing.title),
             deck: normalizeText(pricing.deck),
-            plans: Array.isArray(pricing.plans)
-                ? pricing.plans.map(sanitizeSoftwarePlan).filter(Boolean)
-                : [],
+            plans: parsedPlans,
         },
         security: {
             eyebrow: normalizeText(security.eyebrow),
@@ -2002,12 +2084,32 @@ function sanitizeSoftwareLandingPage(page) {
                 ? faq.items.map(sanitizeSoftwareFaqItem).filter(Boolean)
                 : [],
         },
-        finalCta: sanitizeSoftwareFinalCta(source.finalCta),
+        finalCta: parsedFinalCta,
     };
 }
 
 function sanitizeSoftwareSurfacePage(page) {
     const source = isObject(page) ? page : {};
+    const config = getV6CommercialConfig();
+    const safeLocale = normalizeLocale(source.locale);
+    const primaryHref = normalizeHref(config?.cta_targets?.primary_href);
+    const primaryLabel = normalizeText(config?.cta_targets?.[`primary_label_${safeLocale}`]);
+
+    const overrideActions = (actions) => {
+        if (!primaryHref || !primaryLabel || !Array.isArray(actions)) return actions;
+        return actions.map(a => a.isPrimary ? { ...a, href: primaryHref, label: primaryLabel } : a);
+    };
+
+    const parsedHero = sanitizeSoftwareHero(source.hero, safeLocale);
+    if (parsedHero?.actions) {
+        parsedHero.actions = overrideActions(parsedHero.actions);
+    }
+
+    const parsedFinalCta = sanitizeSoftwareFinalCta(source.finalCta);
+    if (parsedFinalCta?.actions) {
+        parsedFinalCta.actions = overrideActions(parsedFinalCta.actions);
+    }
+
     const steps = isObject(source.steps) ? source.steps : {};
     const advantages = isObject(source.advantages) ? source.advantages : {};
     const connections = isObject(source.connections) ? source.connections : {};
@@ -2016,7 +2118,7 @@ function sanitizeSoftwareSurfacePage(page) {
         description: normalizeText(source.description),
         breadcrumb: sanitizeBreadcrumb(source.breadcrumb),
         heading: normalizeText(source.heading),
-        hero: sanitizeSoftwareHero(source.hero),
+        hero: parsedHero,
         mockup: sanitizeSoftwareMockup(source.mockup, source.heading),
         steps: {
             eyebrow: normalizeText(steps.eyebrow),
@@ -2037,7 +2139,7 @@ function sanitizeSoftwareSurfacePage(page) {
             title: normalizeText(connections.title),
             items: sanitizeTextList(connections.items),
         },
-        finalCta: sanitizeSoftwareFinalCta(source.finalCta),
+        finalCta: parsedFinalCta,
     };
 }
 
@@ -2110,9 +2212,9 @@ function sanitizeSoftwareData(locale, payload) {
             ...(isObject(pages.landing) ? pages.landing : {}),
             locale,
         }),
-        demo: sanitizeSoftwareSurfacePage(pages.demo),
-        status: sanitizeSoftwareSurfacePage(pages.status),
-        dashboard: sanitizeSoftwareSurfacePage(pages.dashboard),
+        demo: sanitizeSoftwareSurfacePage({ ...(isObject(pages.demo) ? pages.demo : {}), locale }),
+        status: sanitizeSoftwareSurfacePage({ ...(isObject(pages.status) ? pages.status : {}), locale }),
+        dashboard: sanitizeSoftwareSurfacePage({ ...(isObject(pages.dashboard) ? pages.dashboard : {}), locale }),
     };
     const suiteRoutes = buildSoftwareSuiteRoutes(
         locale,
@@ -2424,6 +2526,14 @@ function hydrateV6ServiceMedia(service, locale) {
     };
 }
 
+export function getV6CommercialConfig() {
+    return readJson(path.join('data', 'flow-os', 'commercial-config.json')) || {};
+}
+
+export function getV6ProofLedger() {
+    return readJson(path.join('data', 'flow-os', 'proof-ledger.json')) || {};
+}
+
 export function getV6SoftwareData(locale) {
     return sanitizeSoftwareData(
         normalizeLocale(locale),
@@ -2602,7 +2712,9 @@ export function getV6SoftwareNavigationModel(locale, pathname = '/') {
             policies: Array.isArray(baseNavModel?.footer?.policies)
                 ? baseNavModel.footer.policies
                 : [],
-            copyright: normalizeText(baseNavModel?.footer?.copyright),
+            copyright:
+                normalizeText(softwareFooter.copyright) ||
+                normalizeText(baseNavModel?.footer?.copyright),
         },
     };
 }

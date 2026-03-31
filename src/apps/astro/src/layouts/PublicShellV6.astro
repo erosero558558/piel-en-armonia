@@ -150,7 +150,7 @@ const flagsJson = JSON.stringify(flags);
         <link rel="alternate" href={canonical} hreflang={safeLocale} />
         <link rel="alternate" href={xDefault} hreflang="x-default" />
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Aurora Derm" />
+        <meta property="og:site_name" content={navModel?.brand?.logo || 'Aurora Derm'} />
         <meta property="og:title" content={safeTitle} />
         <meta property="og:description" content={safeDescription} />
         <meta property="og:url" content={canonical} />

@@ -186,7 +186,7 @@ const actionClass = (variant = 'secondary') => [
                 heroActions.length ? (
                     <div class="v6-suite-actions">
                         {heroActions.map((action) => (
-                            <a class:list={actionClass(action.variant)} href={action.href}>
+                            <a class:list={actionClass(action.variant)} href={action.href} data-commercial-cta={action.commercialCta}>
                                 {action.label}
                             </a>
                         ))}
@@ -202,9 +202,11 @@ const actionClass = (variant = 'secondary') => [
                         <div class="v6-suite-metrics">
                             {heroMetrics.map((metric) => (
                                 <article class="v6-suite-metric">
+                                    {metric.status ? <span class="v6-suite-metric__status" data-v6-suite-status={metric.status}>{metric.status}</span> : null}
                                     <strong>{metric.value}</strong>
                                     <h3>{metric.label}</h3>
                                     {metric.detail ? <p>{metric.detail}</p> : null}
+                                    {metric.capturedAt ? <time class="v6-suite-metric__time" datetime={metric.capturedAt}>VERIFIED • {metric.capturedAt.split('T')[0]}</time> : null}
                                 </article>
                             ))}
                         </div>
@@ -242,9 +244,11 @@ const actionClass = (variant = 'secondary') => [
                     <div class="v6-suite-proof__grid">
                         {proofItems.map((item) => (
                             <article class="v6-suite-proof__card" data-v6-turnero-proof-card={item.id}>
+                                {item.status ? <span class="v6-suite-proof__status" data-v6-suite-status={item.status}>{item.status}</span> : null}
                                 <p>{item.label}</p>
                                 <strong>{item.value}</strong>
                                 {item.detail ? <span>{item.detail}</span> : null}
+                                {item.capturedAt ? <time class="v6-suite-proof__time" datetime={item.capturedAt}>VERIFIED • {item.capturedAt.split('T')[0]}</time> : null}
                             </article>
                         ))}
                     </div>
@@ -645,6 +649,11 @@ const actionClass = (variant = 'secondary') => [
                                 ) : null}
                             </div>
                             <h3>{card.title}</h3>
+                            {card.readinessBadge ? (
+                                <span class="v6-suite-badge v6-suite-badge--readiness" data-v6-suite-status={card.readinessBadge}>
+                                    {card.readinessBadge}
+                                </span>
+                            ) : null}
                             {card.copy ? <span>{card.copy}</span> : null}
                             {Array.isArray(card.bullets) && card.bullets.length ? (
                                 <ul>
@@ -718,7 +727,7 @@ const actionClass = (variant = 'secondary') => [
                                     {plan.features.map((feature) => <li>{feature}</li>)}
                                 </ul>
                             ) : null}
-                            <a class:list={actionClass(plan.highlight ? 'primary' : 'secondary')} href={plan.ctaHref}>
+                            <a class:list={actionClass(plan.highlight ? 'primary' : 'secondary')} href={plan.ctaHref} data-commercial-cta={plan.commercialCta}>
                                 {plan.ctaLabel}
                             </a>
                         </article>
@@ -788,7 +797,7 @@ const actionClass = (variant = 'secondary') => [
                     finalActions.length ? (
                         <div class="v6-suite-actions">
                             {finalActions.map((action) => (
-                                <a class:list={actionClass(action.variant)} href={action.href}>
+                                <a class:list={actionClass(action.variant)} href={action.href} data-commercial-cta={action.commercialCta}>
                                     {action.label}
                                 </a>
                             ))}

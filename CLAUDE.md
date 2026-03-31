@@ -259,3 +259,5 @@ data/drug-interactions.json ← interacciones medicamentosas
 js/openclaw-chat.js     ← UI del chat clínico (embebido en admin)
 openapi-openclaw.yaml   ← spec para Custom GPT de ChatGPT
 ```
+
+SOURCE_OF_TRUTH: AGENTS.md

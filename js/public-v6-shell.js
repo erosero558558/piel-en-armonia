@@ -2198,8 +2198,37 @@
         });
     }
 
+    function bootCommercialHydration() {
+        if (!document.querySelector('[data-commercial-cta], [data-commercial-price]')) {
+            return;
+        }
+        getPublicRuntimeConfigPromise().then(function (config) {
+            var commercial = config && config.commercialConfig ? config.commercialConfig : null;
+            if (!commercial) return;
+
+            if (commercial.cta_targets) {
+                document.querySelectorAll('[data-commercial-cta]').forEach(function (el) {
+                    var key = el.getAttribute('data-commercial-cta') || '';
+                    if (commercial.cta_targets[key]) {
+                        el.setAttribute('href', commercial.cta_targets[key]);
+                    }
+                });
+            }
+
+            if (commercial.pricing) {
+                document.querySelectorAll('[data-commercial-price]').forEach(function (el) {
+                    var key = el.getAttribute('data-commercial-price') || '';
+                    if (commercial.pricing[key] !== undefined) {
+                        el.textContent = commercial.pricing[key];
+                    }
+                });
+            }
+        });
+    }
+
     function bootstrap() {
         bootCookieConsent();
+        bootCommercialHydration();
         contextualizeWhatsAppLinks();
         bindWhatsAppTracking();
         bootMegaMenu();

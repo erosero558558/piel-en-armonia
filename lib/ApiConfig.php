@@ -132,6 +132,27 @@ class ApiConfig
 
             // Predictions
             'predictions:GET' => [20, 60],
+
+            // ── S7-04: OpenClaw AI endpoints (anteriormente sin rate limit) ───────
+            // CRÍTICO: chat llama a AI externa, cada req tiene costo de tokens
+            'openclaw-chat:POST'           => [20, 60],   // 20 mensajes/min por IP
+            'openclaw-patient:GET'         => [60, 60],   // 60 consultas/min (cache friendly)
+            'openclaw-cie10-suggest:GET'   => [60, 60],   // búsqueda rápida
+            'openclaw-protocol:GET'        => [60, 60],   // protocolos estáticos
+            'openclaw-save-diagnosis:POST' => [30, 60],   // escritura clínica
+            'openclaw-save-evolution:POST' => [30, 60],
+            'openclaw-prescription:POST'   => [20, 60],   // receta = documento oficial
+            'openclaw-prescription:GET'    => [60, 60],   // descarga PDF
+            'openclaw-certificate:POST'    => [10, 60],   // certificado = documento legal
+            'openclaw-certificate:GET'     => [60, 60],
+            'openclaw-check-interactions:POST' => [30, 60],
+            'openclaw-summarize-session:POST'  => [10, 60], // costoso en tokens
+            'openclaw-router-status:GET'       => [30, 60],
+
+            // ── S19: Push preferences y diagnostics ───────────────────────────────
+            'push-preferences:GET'   => [60, 60],
+            'push-preferences:POST'  => [15, 60],
+            'push-diagnostics:GET'   => [30, 60],
         ];
     }
 

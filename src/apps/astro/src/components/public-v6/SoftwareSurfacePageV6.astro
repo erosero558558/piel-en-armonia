@@ -417,9 +417,11 @@ const actionClass = (variant = 'secondary') => [
                                 <div class="v6-suite-metrics v6-suite-metrics--surface">
                                     {heroMetrics.map((metric) => (
                                         <article class="v6-suite-metric">
+                                            {metric.status ? <span class="v6-suite-metric__status" data-v6-suite-status={metric.status}>{metric.status}</span> : null}
                                             <strong>{metric.value}</strong>
                                             <h3>{metric.label}</h3>
                                             {metric.detail ? <p>{metric.detail}</p> : null}
+                                            {metric.capturedAt ? <time class="v6-suite-metric__time" datetime={metric.capturedAt}>VERIFIED • {metric.capturedAt.split('T')[0]}</time> : null}
                                         </article>
                                     ))}
                                 </div>
@@ -444,9 +446,11 @@ const actionClass = (variant = 'secondary') => [
                     <div class="v6-suite-proof__grid">
                         {proofItems.map((item) => (
                             <article class="v6-suite-proof__card" data-v6-turnero-proof-card={item.id}>
+                                {item.status ? <span class="v6-suite-proof__status" data-v6-suite-status={item.status}>{item.status}</span> : null}
                                 <p>{item.label}</p>
                                 <strong>{item.value}</strong>
                                 {item.detail ? <span>{item.detail}</span> : null}
+                                {item.capturedAt ? <time class="v6-suite-proof__time" datetime={item.capturedAt}>VERIFIED • {item.capturedAt.split('T')[0]}</time> : null}
                             </article>
                         ))}
                     </div>

@@ -289,6 +289,21 @@ final class OpenclawController
             json_response(['ok' => false, 'error' => 'case_id y cie10_code requeridos'], 400);
         }
 
+        // S10-02: log SuggestionAccepted antes de guardar
+        $aiSuggested = trim((string) ($payload['ai_suggested_code'] ?? ''));
+        $outcome = 'manual'; // sin sugerencia previa de IA
+        if ($aiSuggested !== '') {
+            $outcome = ($aiSuggested === $cie10Code) ? 'accepted_as_is' : 'edited';
+        }
+        self::logClinicalAiAction([
+            'action'       => 'openclaw-save-diagnosis',
+            'case_id'      => $caseId,
+            'outcome'      => $outcome,
+            'saved_value'  => $cie10Code . ' ' . $cie10Desc,
+            'ai_suggested' => $aiSuggested,
+            'diff'         => ($outcome === 'edited') ? ['from' => $aiSuggested, 'to' => $cie10Code] : null,
+        ]);
+
         require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
         $service = new ClinicalHistoryService();
         $result  = self::mutateStore(static function (array $store) use ($service, $caseId, $cie10Code, $cie10Desc, $payload): array {
@@ -353,6 +368,27 @@ final class OpenclawController
         if ($caseId === '' || empty($medications)) {
             json_response(['ok' => false, 'error' => 'case_id y medications requeridos'], 400);
         }
+
+        // S10-02: log SuggestionAccepted para recetas
+        $aiSuggestedMeds = $payload['ai_suggested_medications'] ?? [];
+        $rxOutcome = !empty($aiSuggestedMeds) ? 'accepted_as_is' : 'manual';
+        if (!empty($aiSuggestedMeds)) {
+            $savedNames    = array_map(static fn($m) => trim((string) ($m['medication'] ?? $m['name'] ?? '')), $medications);
+            $suggestedNames = array_map(static fn($m) => trim((string) ($m['medication'] ?? $m['name'] ?? '')), $aiSuggestedMeds);
+            sort($savedNames); sort($suggestedNames);
+            $rxOutcome = ($savedNames === $suggestedNames) ? 'accepted_as_is' : 'edited';
+        }
+        self::logClinicalAiAction([
+            'action'        => 'openclaw-prescription',
+            'case_id'       => $caseId,
+            'outcome'       => $rxOutcome,
+            'saved_value'   => implode(', ', array_map(static fn($m) => $m['medication'] ?? $m['name'] ?? '?', $medications)),
+            'ai_suggested'  => implode(', ', array_map(static fn($m) => $m['medication'] ?? $m['name'] ?? '?', $aiSuggestedMeds)),
+            'diff'          => ($rxOutcome === 'edited') ? [
+                'from' => $aiSuggestedMeds,
+                'to'   => $medications,
+            ] : null,
+        ]);
 
         require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryRepository.php';
         require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
@@ -1080,5 +1116,33 @@ final class OpenclawController
             'referral_criteria'  => 'Según criterio médico.',
             'patient_instructions'=> '',
         ];
+    }
+
+    // ── logClinicalAiAction (S10-02) ─────────────────────────────────────────
+
+    /**
+     * Escribe un evento de auditoría de IA clínica en data/clinical_ai_actions.jsonl
+     *
+     * Formato JSONL: un JSON por línea, append-only, nunca se modifica.
+     * Campos: action, case_id, outcome, saved_value, ai_suggested, diff, doctor, ts.
+     *
+     * outcome: 'accepted_as_is' | 'edited' | 'rejected' | 'manual'
+     */
+    private static function logClinicalAiAction(array $event): void
+    {
+        try {
+            $logPath = __DIR__ . '/../data/clinical_ai_actions.jsonl';
+            $doctor  = trim((string) ($_SESSION['admin_email'] ?? 'unknown'));
+            $entry   = json_encode(array_merge($event, [
+                'doctor' => $doctor,
+                'ts'     => gmdate('c'),
+                'ip'     => trim((string) ($_SERVER['REMOTE_ADDR'] ?? '')),
+            ]), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
+
+            // Atomic append — usa file_put_contents con LOCK_EX
+            file_put_contents($logPath, $entry, FILE_APPEND | LOCK_EX);
+        } catch (\Throwable) {
+            // El log de auditoría nunca debe interrumpir el flujo clínico
+        }
     }
 }

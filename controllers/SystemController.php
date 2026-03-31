@@ -82,6 +82,18 @@ class SystemController
             ? trim($clarityProjectIdRaw)
             : '';
 
+        $commercialConfigPath = __DIR__ . '/../data/flow-os/commercial-config.json';
+        $commercialConfig = [];
+        if (is_file($commercialConfigPath)) {
+            $rawConfig = file_get_contents($commercialConfigPath);
+            if (is_string($rawConfig)) {
+                $decoded = json_decode($rawConfig, true);
+                if (is_array($decoded)) {
+                    $commercialConfig = $decoded;
+                }
+            }
+        }
+
         json_response([
             'ok' => true,
             'data' => [
@@ -96,6 +108,7 @@ class SystemController
                 ],
                 'features' => $features,
                 'deployVersion' => (string) $deployVersion,
+                'commercialConfig' => $commercialConfig,
             ],
         ]);
     }

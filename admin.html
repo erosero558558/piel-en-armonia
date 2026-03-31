@@ -16,8 +16,8 @@
         />
         <title>Consola de control del turnero - Aurora Derm</title>
         
-        <!-- S13-10: DOMPurify para santización XSS -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+        <!-- S13-10: DOMPurify para sanitización XSS — local copy (no CDN dependency) -->
+        <script src="/js/vendor/purify.min.js"></script>
         
         <script src="js/theme-toggle.js"></script>
         <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -57,15 +57,9 @@
         <link rel="stylesheet" href="/styles/aurora-clinical.css">
         <link rel="stylesheet" href="/styles/aurora-openclaw.css">
         <link rel="stylesheet" href="/styles/aurora-kb.css">
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-2DWZ5PJ4MC');
-</script>
-</head>
+        <!-- GA4 belongs only in public pages, NOT in the clinical admin panel -->
+        <!-- patient data privacy: no analytics on admin surfaces (see SEC-02) -->
+    </head>
     <body
         class="admin-body"
         data-ops-family="command"
