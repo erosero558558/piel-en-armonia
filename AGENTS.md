@@ -1253,7 +1253,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S6-10** `[L]` Pricing SaaS — definir y publicar: Free (1 doctor, 50 citas/mes), Starter ($29/mes, 3 doctores), Pro ($79/mes, 10 doctores + IA), Enterprise (contactar). Comparativa en `es/software/turnero-clinicas/precios/index.html`.
 - [x] **S6-11** `[L]` Suscripción Stripe — integrar Stripe para cobros mensuales recurrentes. Admin puede ver su plan activo, fecha de renovación, facturas.
-- [ ] **S6-12** `[M]` Trial 14 días — toda clínica nueva empieza con 14 días de Pro gratis. Al día 12: recordatorio de renovación. Al día 14 si no renueva: downgrade a Free.
+- [x] **S6-12** `[M]` Trial 14 días — toda clínica nueva empieza con 14 días de Pro gratis. Al día 12: recordatorio de renovación. Al día 14 si no renueva: downgrade a Free.
 - [ ] **S6-13** `[M]` Revenue dashboard (owner) — vista interna para el dueño de Flow OS: MRR, churn, clínicas activas, conversión trial→pago. Solo visible con rol `superadmin`.
 
 #### 6.4 Crecimiento y distribución
@@ -2020,7 +2020,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 23.2 Integridad pública y narrativa de marca
 
-- [ ] **S23-02** `[M]` `codex_frontend` Integridad de CTAs públicas — eliminar links públicos a `/admin.html#queue` y `/admin.html#settings` en Flow OS. Reemplazar por rutas buyer-safe: propuesta, demo guiada, onboarding válido o waitlist. Verificable: `rg "/admin.html#" es/software/turnero-clinicas app-downloads es/ | wc -l` → `0` en superficies comerciales.
+- [x] **S23-02** `[M]` `codex_frontend` Integridad de CTAs públicas — eliminar links públicos a `/admin.html#queue` y `/admin.html#settings` en Flow OS. Reemplazar por rutas buyer-safe: propuesta, demo guiada, onboarding válido o waitlist. Verificable: `rg "/admin.html#" es/software/turnero-clinicas app-downloads es/ | wc -l` → `0` en superficies comerciales.
 - [ ] **S23-05** `[M]` `codex_frontend` Arquitectura de marca Flow OS vs Aurora Derm — corregir `og:site_name`, footer, copy y encabezados para que Flow OS sea el producto y Aurora Derm quede como `tenant de referencia`, no como identidad mezclada. Verificable: las páginas B2B tienen jerarquía consistente de marca en meta tags, header, hero y footer.
 
 #### 23.3 Proof, readiness y truth gate comercial
