@@ -19,6 +19,8 @@
     amount: 50,
     code: '',
     pdfUrl: '',
+    issuedAt: '',
+    expiresAt: '',
   };
 
   const fields = {
@@ -69,7 +71,7 @@
       { text: 'Para: ' + payload.recipient, x: 72, y: 664, size: 13 },
       { text: 'De parte de: ' + payload.sender, x: 72, y: 640, size: 13 },
       { text: 'Emitida: ' + payload.issuedAt, x: 72, y: 616, size: 12 },
-      { text: 'Vigencia sugerida: 90 dias', x: 72, y: 594, size: 12 },
+      { text: 'Vence: ' + payload.expiresAt, x: 72, y: 594, size: 12 },
       { text: 'Uso sujeto a servicios elegibles y criterio medico.', x: 72, y: 560, size: 12 },
     ];
 
@@ -129,6 +131,24 @@
     return '$' + Number(amount).toFixed(0);
   }
 
+  function formatDateLabel(value) {
+    if (!value) {
+      return 'Pendiente';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return date.toLocaleDateString('es-EC', {
+      timeZone: 'America/Guayaquil',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  }
+
   function updatePreview() {
     previewAmount.textContent = formatAmount(state.amount);
     previewRecipient.textContent = fields.recipient.value.trim() || 'Nombre pendiente';
@@ -148,6 +168,29 @@
       URL.revokeObjectURL(state.pdfUrl);
       state.pdfUrl = '';
     }
+  }
+
+  async function requestGiftCardIssue() {
+    const response = await fetch('/api.php?resource=gift-card-issue', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: state.amount,
+        recipient: fields.recipient.value.trim(),
+        sender: fields.sender.value.trim(),
+        note: fields.note.value.trim(),
+        email: fields.email.value.trim(),
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload || payload.ok !== true) {
+      throw new Error(payload && payload.error ? payload.error : 'No se pudo emitir la gift card.');
+    }
+
+    return payload.data || {};
   }
 
   function updateAmount(nextAmount) {
@@ -173,7 +216,7 @@
     }
   });
 
-  form.addEventListener('submit', function (event) {
+  form.addEventListener('submit', async function (event) {
     event.preventDefault();
 
     if (!form.checkValidity()) {
@@ -181,45 +224,60 @@
       return;
     }
 
-    state.code = generateCode();
-    updatePreview();
-    clearObjectUrl();
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
+    setActionState(false);
+    setFeedback('Generando gift card con código persistido...');
 
-    const issuedAt = new Date().toLocaleDateString('es-EC', {
-      timeZone: 'America/Guayaquil',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
+    try {
+      const data = await requestGiftCardIssue();
+      const giftCard = data.giftCard || {};
 
-    const pdfBlob = buildPdfBlob({
-      amount: state.amount,
-      code: state.code,
-      recipient: fields.recipient.value.trim(),
-      sender: fields.sender.value.trim(),
-      note: fields.note.value.trim(),
-      issuedAt,
-    });
+      state.code = data.code || giftCard.code || generateCode();
+      state.issuedAt = giftCard.issued_at || '';
+      state.expiresAt = giftCard.expires_at || '';
+      updatePreview();
+      clearObjectUrl();
 
-    state.pdfUrl = URL.createObjectURL(pdfBlob);
-    downloadLink.href = state.pdfUrl;
-    downloadLink.download = `${state.code}.pdf`;
+      const pdfBlob = buildPdfBlob({
+        amount: state.amount,
+        code: state.code,
+        recipient: fields.recipient.value.trim(),
+        sender: fields.sender.value.trim(),
+        note: fields.note.value.trim(),
+        issuedAt: formatDateLabel(state.issuedAt),
+        expiresAt: formatDateLabel(state.expiresAt),
+      });
 
-    const whatsappMessage = [
-      'Hola, te comparto una gift card de Aurora Derm.',
-      `Codigo: ${state.code}`,
-      `Saldo: ${formatAmount(state.amount)}`,
-      `Para: ${fields.recipient.value.trim()}`,
-      `De parte de: ${fields.sender.value.trim()}`,
-      fields.note.value.trim() ? `Mensaje: ${fields.note.value.trim()}` : '',
-      fields.email.value.trim() ? `Correo de referencia: ${fields.email.value.trim()}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n');
+      state.pdfUrl = URL.createObjectURL(pdfBlob);
+      downloadLink.href = state.pdfUrl;
+      downloadLink.download = `${state.code}.pdf`;
 
-    whatsappLink.href = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
-    setActionState(true);
-    setFeedback('Gift card lista. Ya puede descargar el PDF o enviarlo por WhatsApp.');
+      const whatsappMessage = [
+        'Hola, te comparto una gift card de Aurora Derm.',
+        `Codigo: ${state.code}`,
+        `Saldo: ${formatAmount(state.amount)}`,
+        `Para: ${fields.recipient.value.trim()}`,
+        `De parte de: ${fields.sender.value.trim()}`,
+        state.expiresAt ? `Vence: ${formatDateLabel(state.expiresAt)}` : '',
+        fields.note.value.trim() ? `Mensaje: ${fields.note.value.trim()}` : '',
+        fields.email.value.trim() ? `Correo de referencia: ${fields.email.value.trim()}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      whatsappLink.href = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
+      setActionState(true);
+      setFeedback('Gift card lista. Ya puede descargar el PDF o enviarlo por WhatsApp.');
+    } catch (error) {
+      setFeedback(error && error.message ? error.message : 'No se pudo emitir la gift card.');
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+      }
+    }
   });
 
   if (resetButton) {
@@ -227,6 +285,8 @@
       form.reset();
       clearObjectUrl();
       state.code = '';
+      state.issuedAt = '';
+      state.expiresAt = '';
       updateAmount(50);
       updatePreview();
       downloadLink.href = '#';

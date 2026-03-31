@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 11:22:46 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 12:07:46 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **53%** completado (236/449)
+`███████████░░░░░░░░░` **53%** completado (237/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -30,7 +30,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 14 | 2 | 12 | 14% |
 | ⏸ Sprint 15 | 1 | 12 | 8% |
 | ⏸ Sprint 16 | 9 | 4 | 69% |
-| ⏸ Sprint 17 | 0 | 12 | 0% |
+| ⏸ Sprint 17 | 1 | 11 | 8% |
 | ⏸ Sprint 18 | 0 | 4 | 0% |
 
 ## ✅ Sprint 0 — Completado
@@ -145,7 +145,7 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
 _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 
-### 🟢 Disponibles (24)
+### 🟢 Disponibles (23)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -153,8 +153,12 @@ _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 | **S9-02** | `[S9]` | M |
 | **S9-03** | `[S9]` | L |
 | **S9-04** | `[S9]` | M |
-| **S9-07** | `[S9]` | S |
-| ... | | _+19 más_ |
+| **S9-08** | `[S9]` | M |
+| ... | | _+18 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S9-07** `[S9]` → _Codex-erosero558558_ (expira en 75min)
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 29 tareas pendientes._
@@ -248,18 +252,18 @@ _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 | **S16-12** | `[S16]` | S |
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
-_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 
-### 🟢 Disponibles (12)
+### 🟢 Disponibles (11)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S17-01** | `[S17]` | M |
 | **S17-02** | `[S17]` | M |
 | **S17-03** | `[S17]` | S |
 | **S17-04** | `[S17]` | M |
 | **S17-05** | `[S17]` | M |
-| ... | | _+7 más_ |
+| **S17-06** | `[S17]` | M |
+| ... | | _+6 más_ |
 
 ## ⏸ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
 _Esperando que Sprint anterior esté completo. 4 tareas pendientes._

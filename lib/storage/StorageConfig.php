@@ -82,6 +82,7 @@ final class StorageConfig
             'callbacks' => [],
             'reviews' => [],
             'certificates' => [],
+            'gift_cards' => [],
             'prescriptions' => [],
             'checkout_orders' => [],
             'queue_tickets' => [],
@@ -185,6 +186,7 @@ final class StorageConfig
         $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
         $reviews = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
         $certificates = isset($store['certificates']) && is_array($store['certificates']) ? $store['certificates'] : [];
+        $giftCards = isset($store['gift_cards']) && is_array($store['gift_cards']) ? $store['gift_cards'] : [];
         $prescriptions = isset($store['prescriptions']) && is_array($store['prescriptions']) ? $store['prescriptions'] : [];
         $checkoutOrders = isset($store['checkout_orders']) && is_array($store['checkout_orders']) ? $store['checkout_orders'] : [];
         $queueTickets = isset($store['queue_tickets']) && is_array($store['queue_tickets']) ? $store['queue_tickets'] : [];
@@ -238,6 +240,7 @@ final class StorageConfig
         $appointments = self::normalizeStoreRecordsWithNumericId($appointments, 'appointments');
         $callbacks = self::normalizeStoreRecordsWithNumericId($callbacks, 'callbacks');
         $reviews = self::normalizeStoreRecordsWithNumericId($reviews, 'reviews');
+        $giftCards = self::normalizeStoreRecordsWithStringId($giftCards, 'gift_card');
         $prescriptions = self::normalizeStoreRecordsWithStringId($prescriptions, 'prescription');
         $queueTickets = self::normalizeStoreRecordsWithNumericId($queueTickets, 'queue_tickets');
         $queueHelpRequests = self::normalizeStoreRecordsWithNumericId($queueHelpRequests, 'queue_help_requests');
@@ -256,6 +259,7 @@ final class StorageConfig
             'callbacks' => array_values($callbacks),
             'reviews' => array_values($reviews),
             'certificates' => $certificates,
+            'gift_cards' => $giftCards,
             'prescriptions' => $prescriptions,
             'checkout_orders' => array_values($checkoutOrders),
             'queue_tickets' => array_values($queueTickets),
