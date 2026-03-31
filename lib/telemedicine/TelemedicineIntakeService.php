@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../audit.php';
+require_once __DIR__ . '/../LeadOpsService.php';
 require_once __DIR__ . '/../metrics.php';
 require_once __DIR__ . '/TelemedicineChannelMapper.php';
 require_once __DIR__ . '/TelemedicineRepository.php';
@@ -342,9 +343,19 @@ final class TelemedicineIntakeService
     private function buildBaseIntake(array $appointment, string $channel, ?array $existing): array
     {
         $base = is_array($existing) ? $existing : [];
+        $origin = LeadOpsService::normalizeLeadOrigin([
+            'source' => 'legacy_booking_bridge',
+            'campaign' => (string) ($appointment['campaign'] ?? ''),
+            'surface' => (string) ($appointment['surface'] ?? $channel),
+            'service_intent' => (string) ($appointment['service_intent'] ?? ($appointment['service'] ?? '')),
+            'channel' => $channel,
+        ], $appointment);
         return [
             'id' => (int) ($base['id'] ?? 0),
             'source' => 'legacy_booking_bridge',
+            'campaign' => $origin['campaign'],
+            'surface' => $origin['surface'],
+            'service_intent' => $origin['service_intent'],
             'legacyService' => (string) ($appointment['service'] ?? ''),
             'channel' => $channel,
             'requestedDoctor' => (string) ($appointment['doctor'] ?? ''),

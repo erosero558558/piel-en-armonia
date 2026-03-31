@@ -158,11 +158,15 @@ class PatientCaseController
                 'latestAppointmentId' => null,
                 'latestCallbackId' => null,
                 'serviceLine' => 'preconsulta_digital',
+                'service_intent' => 'preconsulta_digital',
                 'providerName' => null,
                 'scheduledStart' => null,
                 'scheduledEnd' => null,
                 'queueStatus' => null,
                 'lastChannel' => 'web_preconsulta',
+                'source' => 'public_preconsultation',
+                'campaign' => 'unknown',
+                'surface' => 'preconsulta_publica',
                 'openActionCount' => 1,
                 'pendingApprovalCount' => 0,
                 'latestTicketId' => null,
@@ -195,6 +199,10 @@ class PatientCaseController
                 $summary['privacyConsent'] = $privacyConsent;
                 $summary['privacyConsentAt'] = $now;
                 $summary['entrySurface'] = 'preconsulta_publica';
+                $summary['source'] = 'public_preconsultation';
+                $summary['campaign'] = 'unknown';
+                $summary['surface'] = 'preconsulta_publica';
+                $summary['service_intent'] = 'preconsulta_digital';
                 $summary['openActionCount'] = max(1, (int) ($summary['openActionCount'] ?? 0));
             }
 
@@ -230,7 +238,15 @@ class PatientCaseController
                 'status' => 'pendiente',
                 'patientCaseId' => $caseId,
                 'patientId' => $patientId,
+                'source' => 'public_preconsultation',
+                'campaign' => 'unknown',
+                'surface' => 'preconsulta_publica',
+                'service_intent' => 'preconsulta_digital',
                 'leadOps' => [
+                    'source' => 'public_preconsultation',
+                    'campaign' => 'unknown',
+                    'surface' => 'preconsulta_publica',
+                    'service_intent' => 'preconsulta_digital',
                     'priorityBand' => count($photoPaths) > 0 ? 'hot' : 'warm',
                     'reasonCodes' => ['preconsultation_form'],
                     'serviceHints' => ['Preconsulta digital'],

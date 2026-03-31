@@ -8,6 +8,7 @@ final class LeadOpsService
     private const AI_STATUSES = ['idle', 'requested', 'completed', 'accepted', 'failed'];
     private const OUTCOMES = ['', 'contactado', 'cita_cerrada', 'sin_respuesta', 'descartado'];
     private const PRIORITY_BANDS = ['hot', 'warm', 'cold'];
+    private const LEAD_ORIGIN_FIELDS = ['source', 'campaign', 'surface', 'service_intent'];
 
     /** @var array{path:string,mtime:int,services:array<int,array<string,mixed>>}|null */
     private static ?array $catalogCache = null;
@@ -639,7 +640,9 @@ final class LeadOpsService
 
     public static function enrichCallback(array $callback, array $store, ?array $funnelMetrics = null): array
     {
-        $leadOps = self::normalizeLeadOps($callback['leadOps'] ?? []);
+        $originContext = self::buildCallbackOriginContext($callback, $store);
+        $callback = self::applyLeadOrigin($callback, $originContext);
+        $leadOps = self::normalizeLeadOps($callback['leadOps'] ?? [], array_merge($originContext, $callback));
         $heuristic = self::buildHeuristic($callback, $store, $funnelMetrics);
 
         $callback['leadOps'] = array_merge($leadOps, [
@@ -653,14 +656,74 @@ final class LeadOpsService
         return $callback;
     }
 
-    public static function normalizeLeadOps($value): array
+    public static function normalizeLeadOrigin($value, array $context = []): array
+    {
+        $lead = is_array($value) ? $value : [];
+        $contextLead = isset($context['leadOps']) && is_array($context['leadOps']) ? $context['leadOps'] : [];
+        $explicitSource = self::resolveLeadOriginValue(['source'], $lead, $contextLead, $context);
+        $explicitCampaign = self::resolveLeadOriginValue(['campaign', 'utm_campaign', 'utmCampaign'], $lead, $contextLead, $context);
+        $explicitSurface = self::resolveLeadOriginValue(
+            ['surface', 'entrySurface', 'checkoutEntry', 'channel', 'lastChannel', 'public_surface'],
+            $lead,
+            $contextLead,
+            $context
+        );
+        $explicitServiceIntent = self::resolveLeadOriginValue(
+            ['service_intent', 'serviceIntent', 'service', 'legacyService', 'serviceLine'],
+            $lead,
+            $contextLead,
+            $context
+        );
+
+        $source = self::normalizeLeadOriginToken($explicitSource, '');
+        $campaign = self::normalizeLeadOriginToken($explicitCampaign, '');
+        $surface = self::normalizeLeadOriginToken($explicitSurface, '');
+        $serviceIntent = self::normalizeLeadOriginToken($explicitServiceIntent, '');
+
+        if ($source === '') {
+            $source = self::inferLeadOriginSource($surface, $serviceIntent);
+        }
+        if ($surface === '') {
+            $surface = self::inferLeadOriginSurface($source);
+        }
+        if ($serviceIntent === '' && $source === 'public_preconsultation') {
+            $serviceIntent = 'preconsulta_digital';
+        }
+
+        return [
+            'source' => $source !== '' ? $source : 'unknown',
+            'campaign' => $campaign !== '' ? $campaign : 'unknown',
+            'surface' => $surface !== '' ? $surface : 'unknown',
+            'service_intent' => $serviceIntent !== '' ? $serviceIntent : 'unknown',
+        ];
+    }
+
+    public static function applyLeadOrigin(array $record, array $context = []): array
+    {
+        $origin = self::normalizeLeadOrigin($record, $context);
+        foreach (self::LEAD_ORIGIN_FIELDS as $field) {
+            $record[$field] = $origin[$field];
+        }
+
+        if (array_key_exists('leadOps', $record)) {
+            $record['leadOps'] = self::normalizeLeadOps(
+                is_array($record['leadOps']) ? $record['leadOps'] : [],
+                array_merge($context, $record)
+            );
+        }
+
+        return $record;
+    }
+
+    public static function normalizeLeadOps($value, array $context = []): array
     {
         $leadOps = is_array($value) ? $value : [];
+        $origin = self::normalizeLeadOrigin($leadOps, $context);
         $aiObjective = self::normalizeObjective((string) ($leadOps['aiObjective'] ?? ''));
         $aiStatus = self::normalizeAiStatus((string) ($leadOps['aiStatus'] ?? 'idle'));
         $outcome = self::normalizeOutcome((string) ($leadOps['outcome'] ?? ''));
 
-        return [
+        return array_merge($origin, [
             'heuristicScore' => self::clampInt((int) ($leadOps['heuristicScore'] ?? 0), 0, 100),
             'priorityBand' => self::normalizePriorityBand((string) ($leadOps['priorityBand'] ?? 'cold')),
             'reasonCodes' => self::sanitizeList($leadOps['reasonCodes'] ?? [], 8, 60),
@@ -675,12 +738,12 @@ final class LeadOpsService
             'completedAt' => self::normalizeTimestamp((string) ($leadOps['completedAt'] ?? '')),
             'contactedAt' => self::normalizeTimestamp((string) ($leadOps['contactedAt'] ?? '')),
             'outcome' => $outcome,
-        ];
+        ]);
     }
 
     public static function mergeLeadOps(array $callback, array $incomingLeadOps, array $store = [], ?array $funnelMetrics = null): array
     {
-        $current = self::normalizeLeadOps($callback['leadOps'] ?? []);
+        $current = self::normalizeLeadOps($callback['leadOps'] ?? [], $callback);
         $merged = $current;
 
         foreach ([
@@ -694,6 +757,10 @@ final class LeadOpsService
             'contactedAt',
             'outcome',
             'nextAction',
+            'source',
+            'campaign',
+            'surface',
+            'service_intent',
         ] as $field) {
             if (!array_key_exists($field, $incomingLeadOps)) {
                 continue;
@@ -709,7 +776,7 @@ final class LeadOpsService
             $merged['serviceHints'] = $incomingLeadOps['serviceHints'];
         }
 
-        $normalized = self::normalizeLeadOps($merged);
+        $normalized = self::normalizeLeadOps($merged, $callback);
         $status = map_callback_status((string) ($callback['status'] ?? 'pendiente'));
         if ($status === 'contactado' && $normalized['contactedAt'] === '') {
             $normalized['contactedAt'] = local_date('c');
@@ -1778,6 +1845,168 @@ final class LeadOpsService
         return trim((string) ($parts[0] ?? 'Paciente'));
     }
 
+    private static function buildCallbackOriginContext(array $callback, array $store): array
+    {
+        $case = self::findLeadOriginCaseContext($store, $callback);
+        $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+        $appointment = self::findLeadOriginAppointmentContext($store, $callback, $case);
+
+        return [
+            'source' => self::firstNonEmptyString(
+                (string) ($summary['source'] ?? ''),
+                (string) ($appointment['source'] ?? '')
+            ),
+            'campaign' => self::firstNonEmptyString(
+                (string) ($summary['campaign'] ?? ''),
+                (string) ($appointment['campaign'] ?? '')
+            ),
+            'surface' => self::firstNonEmptyString(
+                (string) ($summary['surface'] ?? ''),
+                (string) ($summary['entrySurface'] ?? ''),
+                (string) ($appointment['surface'] ?? ''),
+                (string) ($appointment['checkoutEntry'] ?? ''),
+                (string) ($appointment['telemedicineChannel'] ?? ''),
+                (string) ($summary['lastChannel'] ?? '')
+            ),
+            'service_intent' => self::firstNonEmptyString(
+                (string) ($summary['service_intent'] ?? ''),
+                (string) ($appointment['service_intent'] ?? ''),
+                (string) ($appointment['service'] ?? ''),
+                (string) ($summary['serviceLine'] ?? '')
+            ),
+            'entrySurface' => (string) ($summary['entrySurface'] ?? ''),
+            'checkoutEntry' => (string) ($appointment['checkoutEntry'] ?? ''),
+            'channel' => self::firstNonEmptyString(
+                (string) ($appointment['telemedicineChannel'] ?? ''),
+                (string) ($summary['lastChannel'] ?? '')
+            ),
+            'serviceLine' => (string) ($summary['serviceLine'] ?? ''),
+        ];
+    }
+
+    private static function findLeadOriginCaseContext(array $store, array $callback): array
+    {
+        $callbacksCaseId = trim((string) ($callback['patientCaseId'] ?? ''));
+        $callbackPatientId = trim((string) ($callback['patientId'] ?? ''));
+        $callbackId = trim((string) ($callback['id'] ?? ''));
+        $callbackPhone = self::normalizeComparablePhone((string) ($callback['telefono'] ?? ''));
+        $cases = isset($store['patient_cases']) && is_array($store['patient_cases'])
+            ? array_values($store['patient_cases'])
+            : [];
+
+        $best = [];
+        $bestScore = -1;
+        $bestTimestamp = 0;
+
+        foreach ($cases as $case) {
+            if (!is_array($case)) {
+                continue;
+            }
+
+            $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+            $score = 0;
+            if ($callbacksCaseId !== '' && trim((string) ($case['id'] ?? '')) === $callbacksCaseId) {
+                $score += 12;
+            }
+            if ($callbackPatientId !== '' && trim((string) ($case['patientId'] ?? '')) === $callbackPatientId) {
+                $score += 8;
+            }
+            if (
+                $callbackId !== ''
+                && trim((string) ($summary['latestCallbackId'] ?? '')) !== ''
+                && trim((string) ($summary['latestCallbackId'] ?? '')) === $callbackId
+            ) {
+                $score += 4;
+            }
+
+            $casePhone = self::normalizeComparablePhone((string) ($summary['contactPhone'] ?? ''));
+            if ($callbackPhone !== '' && $casePhone !== '' && $casePhone === $callbackPhone) {
+                $score += 6;
+            }
+
+            if ($score <= 0) {
+                continue;
+            }
+
+            $timestamp = max(
+                self::timestampValue((string) ($case['latestActivityAt'] ?? '')),
+                self::timestampValue((string) ($case['openedAt'] ?? ''))
+            );
+
+            if ($best === [] || $score > $bestScore || ($score === $bestScore && $timestamp >= $bestTimestamp)) {
+                $best = $case;
+                $bestScore = $score;
+                $bestTimestamp = $timestamp;
+            }
+        }
+
+        return $best;
+    }
+
+    private static function findLeadOriginAppointmentContext(array $store, array $callback, array $case): array
+    {
+        $caseId = self::firstNonEmptyString(
+            trim((string) ($callback['patientCaseId'] ?? '')),
+            trim((string) ($case['id'] ?? ''))
+        );
+        $patientId = self::firstNonEmptyString(
+            trim((string) ($callback['patientId'] ?? '')),
+            trim((string) ($case['patientId'] ?? ''))
+        );
+        $callbackPhone = self::normalizeComparablePhone((string) ($callback['telefono'] ?? ''));
+        $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+        $latestAppointmentId = trim((string) ($summary['latestAppointmentId'] ?? ''));
+        $appointments = isset($store['appointments']) && is_array($store['appointments'])
+            ? array_values($store['appointments'])
+            : [];
+
+        $best = [];
+        $bestScore = -1;
+        $bestTimestamp = 0;
+
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $score = 0;
+            if ($latestAppointmentId !== '' && trim((string) ($appointment['id'] ?? '')) === $latestAppointmentId) {
+                $score += 4;
+            }
+            if (
+                $caseId !== ''
+                && trim((string) ($appointment['patientCaseId'] ?? $appointment['caseId'] ?? '')) === $caseId
+            ) {
+                $score += 12;
+            }
+            if ($patientId !== '' && trim((string) ($appointment['patientId'] ?? '')) === $patientId) {
+                $score += 8;
+            }
+
+            $appointmentPhone = self::normalizeComparablePhone((string) ($appointment['phone'] ?? ''));
+            if ($callbackPhone !== '' && $appointmentPhone !== '' && $appointmentPhone === $callbackPhone) {
+                $score += 6;
+            }
+
+            if ($score <= 0) {
+                continue;
+            }
+
+            $timestamp = max(
+                self::timestampValue((string) ($appointment['dateBooked'] ?? '')),
+                self::buildAppointmentScheduledAt($appointment)?->getTimestamp() ?? 0
+            );
+
+            if ($best === [] || $score > $bestScore || ($score === $bestScore && $timestamp >= $bestTimestamp)) {
+                $best = $appointment;
+                $bestScore = $score;
+                $bestTimestamp = $timestamp;
+            }
+        }
+
+        return $best;
+    }
+
     private static function buildBirthdayLegalName(array $identity): string
     {
         return trim(implode(' ', array_filter([
@@ -1914,6 +2143,63 @@ final class LeadOpsService
         return array_values(array_unique($list));
     }
 
+    private static function resolveLeadOriginValue(array $keys, array ...$sources): string
+    {
+        foreach ($sources as $source) {
+            foreach ($keys as $key) {
+                if (!array_key_exists($key, $source)) {
+                    continue;
+                }
+
+                $value = trim((string) ($source[$key] ?? ''));
+                if ($value !== '' && self::normalizeLeadOriginToken($value, '') !== 'unknown') {
+                    return $value;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private static function inferLeadOriginSource(string $surface, string $serviceIntent): string
+    {
+        if ($surface === 'unknown') {
+            $surface = '';
+        }
+        if ($serviceIntent === 'unknown') {
+            $serviceIntent = '';
+        }
+        if (str_contains($surface, 'whatsapp')) {
+            return 'whatsapp_openclaw';
+        }
+        if (str_contains($surface, 'preconsulta') || $serviceIntent === 'preconsulta_digital') {
+            return 'public_preconsultation';
+        }
+        if ($surface !== '' || $serviceIntent !== '') {
+            return 'booking';
+        }
+
+        return 'unknown';
+    }
+
+    private static function inferLeadOriginSurface(string $source): string
+    {
+        if ($source === 'unknown') {
+            $source = '';
+        }
+        if ($source === 'whatsapp_openclaw') {
+            return 'whatsapp_openclaw';
+        }
+        if ($source === 'public_preconsultation') {
+            return 'preconsulta_publica';
+        }
+        if ($source === 'booking') {
+            return 'booking';
+        }
+
+        return 'unknown';
+    }
+
     private static function extractTokens(string $value): array
     {
         $normalized = self::normalizeText($value);
@@ -1943,6 +2229,12 @@ final class LeadOpsService
         return trim(preg_replace('/[^a-z0-9_\\-]+/', '-', self::normalizeText($value)) ?? '', '-');
     }
 
+    private static function normalizeLeadOriginToken(string $value, string $fallback = 'unknown'): string
+    {
+        $normalized = trim(preg_replace('/[^a-z0-9]+/', '_', self::normalizeText($value)) ?? '', '_');
+        return $normalized !== '' ? $normalized : $fallback;
+    }
+
     private static function timestampValue(string $value): int
     {
         $timestamp = strtotime($value);
@@ -1952,5 +2244,15 @@ final class LeadOpsService
     private static function clampInt(int $value, int $min, int $max): int
     {
         return max($min, min($max, $value));
+    }
+
+    private static function normalizeComparablePhone(string $value): string
+    {
+        $digits = preg_replace('/\D+/', '', $value);
+        if (!is_string($digits)) {
+            return '';
+        }
+
+        return ltrim($digits, '0');
     }
 }

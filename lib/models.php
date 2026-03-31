@@ -110,8 +110,10 @@ function normalize_callback(array $callback): array
         'patientId' => truncate_field(trim((string) ($callback['patientId'] ?? '')), 80),
     ];
 
+    $normalized = LeadOpsService::applyLeadOrigin($normalized, $callback);
+
     if (isset($callback['leadOps']) && is_array($callback['leadOps'])) {
-        $normalized['leadOps'] = LeadOpsService::normalizeLeadOps($callback['leadOps']);
+        $normalized['leadOps'] = LeadOpsService::normalizeLeadOps($callback['leadOps'], array_merge($callback, $normalized));
     }
 
     return $normalized;
@@ -163,7 +165,7 @@ function normalize_appointment(array $appointment): array
         $checkinToken = 'CHK-' . strtoupper(bin2hex(random_bytes(12)));
     }
 
-    return [
+    return LeadOpsService::applyLeadOrigin([
         'id' => isset($appointment['id']) ? (int) $appointment['id'] : (int) round(microtime(true) * 1000),
         'tenantId' => isset($appointment['tenantId']) && is_string($appointment['tenantId']) && trim($appointment['tenantId']) !== ''
             ? trim($appointment['tenantId'])
@@ -230,7 +232,7 @@ function normalize_appointment(array $appointment): array
             : bin2hex(random_bytes(16)),
         'reminderSentAt' => truncate_field(trim((string) ($appointment['reminderSentAt'] ?? '')), 30),
         'followUpSentAt' => truncate_field(trim((string) ($appointment['followUpSentAt'] ?? '')), 30)
-    ];
+    ], $appointment);
 }
 
 function normalize_queue_ticket(array $ticket): array

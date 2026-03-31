@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
+require_once __DIR__ . '/../lib/LeadOpsService.php';
 require_once __DIR__ . '/../lib/PatientCaseService.php';
 require_once __DIR__ . '/../lib/email.php';
 require_once __DIR__ . '/../lib/storage.php';
@@ -89,6 +90,7 @@ class IntakeController
             $caseSummary = [
                 'patientLabel' => $nombre,
                 'serviceLine' => 'Preconsulta digital',
+                'service_intent' => 'preconsulta_digital',
                 'contactPhone' => $whatsapp,
                 'contactEmail' => '',
                 'intakeSkinType' => $tipoPiel,
@@ -99,6 +101,10 @@ class IntakeController
                 }, $storedPhotos)),
                 'intakeReceivedAt' => $now,
                 'source' => 'public_preconsultation',
+                'campaign' => 'unknown',
+                'surface' => 'preconsulta_publica',
+                'entrySurface' => 'preconsulta_publica',
+                'lastChannel' => 'web_preconsulta',
                 'milestones' => [],
             ];
 

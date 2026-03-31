@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../BookingService.php';
+require_once __DIR__ . '/../LeadOpsService.php';
 
 final class WhatsappOpenclawConversationOrchestrator
 {
@@ -85,12 +86,24 @@ final class WhatsappOpenclawConversationOrchestrator
         $draft = $this->applyDraftPatch($draft, is_array($plan['draftPatch'] ?? null) ? $plan['draftPatch'] : [], $event);
         $draft['conversationId'] = $conversationId;
         $draft['phone'] = $phone;
+        $draft = $this->applyLeadOriginToDraft($draft, [
+            'source' => (string) ($plan['source'] ?? 'whatsapp_openclaw'),
+            'campaign' => (string) ($draft['campaign'] ?? 'unknown'),
+            'surface' => 'whatsapp_openclaw',
+            'service_intent' => (string) ($draft['service_intent'] ?? ($draft['service'] ?? '')),
+        ]);
 
         $action = $this->applyIntent($store, $conversation, $draft, $plan);
         $draft = is_array($action['draft'] ?? null) ? $action['draft'] : $draft;
         $conversation = is_array($action['conversation'] ?? null) ? $action['conversation'] : $conversation;
         $store = is_array($action['store'] ?? null) ? $action['store'] : $store;
         $conversation['lastIntent'] = trim((string) ($plan['intent'] ?? ''));
+        $draft = $this->applyLeadOriginToDraft($draft, [
+            'source' => (string) ($plan['source'] ?? 'whatsapp_openclaw'),
+            'campaign' => (string) ($draft['campaign'] ?? 'unknown'),
+            'surface' => 'whatsapp_openclaw',
+            'service_intent' => (string) ($draft['service_intent'] ?? ($draft['service'] ?? '')),
+        ]);
 
         $reply = trim((string) ($action['reply'] ?? ($plan['reply'] ?? '')));
         $queued = [];
@@ -1163,6 +1176,11 @@ final class WhatsappOpenclawConversationOrchestrator
         return $draft;
     }
 
+    private function applyLeadOriginToDraft(array $draft, array $context): array
+    {
+        return LeadOpsService::applyLeadOrigin($draft, $context);
+    }
+
     private function mergeMediaProofRefs(array $current, array $incoming): array
     {
         $seen = [];
@@ -1209,6 +1227,10 @@ final class WhatsappOpenclawConversationOrchestrator
             'privacyConsent' => (bool) ($draft['privacyConsent'] ?? false),
             'privacyConsentAt' => (string) ($draft['privacyConsentAt'] ?? ''),
             'paymentMethod' => $paymentMethod,
+            'source' => (string) ($draft['source'] ?? 'whatsapp_openclaw'),
+            'campaign' => (string) ($draft['campaign'] ?? 'unknown'),
+            'surface' => (string) ($draft['surface'] ?? 'whatsapp_openclaw'),
+            'service_intent' => (string) ($draft['service_intent'] ?? ($draft['service'] ?? 'unknown')),
             'transferReference' => (string) ($draft['transferReference'] ?? ''),
             'reason' => 'WhatsApp OpenClaw',
         ];

@@ -140,6 +140,63 @@ try {
         $normalized['reasonCodes'],
         'Reason codes should be sanitized and deduped'
     );
+    leadops_assert_equals('unknown', $normalized['source'], 'Missing source should normalize to unknown');
+    leadops_assert_equals('unknown', $normalized['campaign'], 'Missing campaign should normalize to unknown');
+    leadops_assert_equals('unknown', $normalized['surface'], 'Missing surface should normalize to unknown');
+    leadops_assert_equals('unknown', $normalized['service_intent'], 'Missing service intent should normalize to unknown');
+
+    $callbackWithContext = normalize_callback([
+        'id' => 202,
+        'telefono' => '+593 98 111 2222',
+        'preferencia' => 'Seguimiento de preconsulta',
+        'fecha' => gmdate('c', $createdAt + 120),
+        'status' => 'pending',
+        'patientCaseId' => 'pc_pre_1',
+        'patientId' => 'pt_pre_1',
+        'leadOps' => [],
+    ]);
+    $contextStore = [
+        'callbacks' => [],
+        'patient_cases' => [
+            [
+                'id' => 'pc_pre_1',
+                'patientId' => 'pt_pre_1',
+                'latestActivityAt' => gmdate('c', $createdAt + 240),
+                'summary' => [
+                    'contactPhone' => '+593981112222',
+                    'source' => 'public_preconsultation',
+                    'campaign' => 'campana_acne_marzo',
+                    'surface' => 'preconsulta_publica',
+                    'service_intent' => 'preconsulta_digital',
+                    'entrySurface' => 'preconsulta_publica',
+                    'serviceLine' => 'preconsulta_digital',
+                ],
+            ],
+        ],
+        'appointments' => [
+            [
+                'id' => 303,
+                'patientCaseId' => 'pc_pre_1',
+                'patientId' => 'pt_pre_1',
+                'phone' => '+593981112222',
+                'service' => 'consulta',
+                'source' => 'booking',
+                'campaign' => 'remarketing_q2',
+                'surface' => 'booking_form',
+                'service_intent' => 'consulta',
+                'dateBooked' => gmdate('c', $createdAt + 360),
+            ],
+        ],
+    ];
+    $contextEnriched = LeadOpsService::enrichCallback($callbackWithContext, $contextStore, $funnelMetrics);
+    leadops_assert_equals('public_preconsultation', $contextEnriched['source'], 'Callback should inherit source from linked patient case');
+    leadops_assert_equals('campana_acne_marzo', $contextEnriched['campaign'], 'Callback should inherit campaign from linked patient case');
+    leadops_assert_equals('preconsulta_publica', $contextEnriched['surface'], 'Callback should inherit surface from linked patient case');
+    leadops_assert_equals('preconsulta_digital', $contextEnriched['service_intent'], 'Callback should inherit service intent from linked patient case');
+    leadops_assert_equals('public_preconsultation', $contextEnriched['leadOps']['source'], 'Lead ops should persist inherited source');
+    leadops_assert_equals('campana_acne_marzo', $contextEnriched['leadOps']['campaign'], 'Lead ops should persist inherited campaign');
+    leadops_assert_equals('preconsulta_publica', $contextEnriched['leadOps']['surface'], 'Lead ops should persist inherited surface');
+    leadops_assert_equals('preconsulta_digital', $contextEnriched['leadOps']['service_intent'], 'Lead ops should persist inherited service intent');
 
     $requestedLeadOps = LeadOpsService::requestLeadAi($enriched, 'whatsapp_draft', ['callbacks' => []], $funnelMetrics);
     $queuePayload = LeadOpsService::buildQueuePayload([

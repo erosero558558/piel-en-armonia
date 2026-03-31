@@ -42,6 +42,10 @@ assert_eq($output['casePhotoCount'], 0, "Default casePhotoCount should be 0");
 assert_eq($output['service'], '', "Default service should be empty string");
 assert_eq($output['status'], 'confirmed', "Default status should be 'confirmed'");
 assert_eq($output['tenantId'], 'pielarmonia', "Default tenantId should be 'pielarmonia'");
+assert_eq($output['source'], 'unknown', "Default source should be 'unknown'");
+assert_eq($output['campaign'], 'unknown', "Default campaign should be 'unknown'");
+assert_eq($output['surface'], 'unknown', "Default surface should be 'unknown'");
+assert_eq($output['service_intent'], 'unknown', "Default service_intent should be 'unknown'");
 
 // --- Test Case 2: Payment Method Normalization ---
 echo "\n--- Test Case 2: Payment Method Normalization ---\n";
@@ -121,5 +125,20 @@ foreach ($cases as $case) {
     $out = normalize_appointment(['status' => $case['input']]);
     assert_eq($out['status'], $case['expected'], "Status '{$case['input']}' -> '{$case['expected']}'");
 }
+
+// --- Test Case 7: Lead Origin Persistence ---
+echo "\n--- Test Case 7: Lead Origin Persistence ---\n";
+$out = normalize_appointment([
+    'service' => 'video',
+    'checkoutEntry' => 'booking_form',
+    'source' => 'booking',
+    'campaign' => 'utm_marzo_skin',
+    'surface' => 'landing_turnero_v6',
+    'service_intent' => 'video',
+]);
+assert_eq($out['source'], 'booking', "Appointment should persist normalized source");
+assert_eq($out['campaign'], 'utm_marzo_skin', "Appointment should persist normalized campaign");
+assert_eq($out['surface'], 'landing_turnero_v6', "Appointment should persist normalized surface");
+assert_eq($out['service_intent'], 'video', "Appointment should persist normalized service intent");
 
 echo "\n🎉 All tests passed!\n";

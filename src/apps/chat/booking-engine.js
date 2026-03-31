@@ -640,6 +640,11 @@ async function finalizeChatBooking() {
         phone: chatBooking.phone,
         privacyConsent: true,
         price: chatBooking.price,
+        checkoutEntry: 'chatbot',
+        source: 'booking',
+        campaign: 'unknown',
+        surface: 'chatbot',
+        service_intent: chatBooking.service || 'unknown',
     };
 
     if (deps && typeof deps.startCheckoutSession === 'function') {

@@ -85,6 +85,73 @@ function stripTransientAppointmentFields(appointment) {
     return payload;
 }
 
+function readBookingCookie(name) {
+    if (typeof document === 'undefined' || !document.cookie) {
+        return '';
+    }
+
+    const prefix = `${name}=`;
+    const parts = document.cookie.split(';');
+    for (const part of parts) {
+        const normalized = String(part || '').trim();
+        if (!normalized.startsWith(prefix)) {
+            continue;
+        }
+        try {
+            return decodeURIComponent(normalized.slice(prefix.length));
+        } catch (error) {
+            return normalized.slice(prefix.length);
+        }
+    }
+
+    return '';
+}
+
+function normalizeLeadToken(value, fallback = '') {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    return normalized || fallback;
+}
+
+function resolveAppointmentLeadOrigin(appointment) {
+    const current = appointment && typeof appointment === 'object' ? appointment : {};
+    const search =
+        typeof window !== 'undefined' && window.location
+            ? new URLSearchParams(window.location.search || '')
+            : new URLSearchParams('');
+    const campaign = normalizeLeadToken(
+        current.campaign ||
+            search.get('utm_campaign') ||
+            search.get('campaign') ||
+            '',
+        'unknown'
+    );
+    const surface = normalizeLeadToken(
+        current.surface ||
+            current.checkoutEntry ||
+            readBookingCookie('pa_public_surface') ||
+            '',
+        'unknown'
+    );
+    const serviceIntent = normalizeLeadToken(
+        current.service_intent || current.service || '',
+        'unknown'
+    );
+    const source = normalizeLeadToken(current.source || 'booking', 'booking');
+
+    return {
+        source,
+        campaign,
+        surface,
+        service_intent: serviceIntent,
+    };
+}
+
 async function ensureCasePhotosUploaded(appointment) {
     const files = Array.isArray(appointment?.casePhotoFiles)
         ? appointment.casePhotoFiles
@@ -146,6 +213,7 @@ async function ensureCasePhotosUploaded(appointment) {
 async function buildAppointmentPayload(appointment) {
     const payload = stripTransientAppointmentFields(appointment || {});
     const uploadedPhotos = await ensureCasePhotosUploaded(appointment || {});
+    Object.assign(payload, resolveAppointmentLeadOrigin(appointment || {}));
     payload.casePhotoCount = uploadedPhotos.urls.length;
     payload.casePhotoNames = uploadedPhotos.names;
     payload.casePhotoUrls = uploadedPhotos.urls;
