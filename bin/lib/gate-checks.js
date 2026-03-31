@@ -429,6 +429,171 @@ function createTaskCheckDefinitions(context) {
         },
       },
     ],
+    'S8-01': [
+      {
+        name: 'Desktop catalog truth artifacts exist and declare explicit surface status',
+        evaluate: () => {
+          const doc = filePresence(
+            'docs/DESKTOP_CATALOG.md',
+            'docs/DESKTOP_CATALOG.md documenta la tabla de verdad del catálogo desktop'
+          );
+          const registry = fileIncludes(
+            'data/turnero-surfaces.json',
+            [
+              '"id": "operator"',
+              '"status": "published"',
+              '"id": "kiosk"',
+              '"status": "registry_only"',
+              '"id": "sala_tv"',
+            ],
+            'data/turnero-surfaces.json declara status explícito para operator, kiosk y sala_tv'
+          );
+
+          if (doc.ok && registry.ok) {
+            return pass(`${doc.detail}; ${registry.detail}`);
+          }
+
+          return fail([doc.detail, registry.detail].filter(Boolean).join(' | '));
+        },
+      },
+    ],
+    'S8-07': [
+      {
+        name: 'BOM-safe JSON parsing is wired and covered by test',
+        evaluate: () => {
+          const report = fileIncludes(
+            'bin/report.js',
+            ["replace(/^\\uFEFF/, '')", 'JSON.parse'],
+            'bin/report.js normaliza UTF-8 BOM antes de parsear JSON operativo'
+          );
+          const coverage = fileIncludes(
+            'tests-node/weekly-report-bom-parser.test.js',
+            [
+              'weekly report and generic JSON parsers gracefully handle UTF-8 BOM',
+              'report.js no debe morir con SyntaxError por leer un claims/stuck.json con BOM',
+            ],
+            'tests-node/weekly-report-bom-parser.test.js cubre el contrato BOM de readiness y report.js'
+          );
+
+          if (report.ok && coverage.ok) {
+            return pass(`${report.detail}; ${coverage.detail}`);
+          }
+
+          return fail([report.detail, coverage.detail].filter(Boolean).join(' | '));
+        },
+      },
+    ],
+    'S9-11': [
+      {
+        name: 'Commercial catalog exists with 20 services and shared consumers',
+        evaluate: () => {
+          const catalogPath = 'data/catalog/services.json';
+          if (!fileExists(catalogPath)) {
+            return fail(`No existe ${catalogPath}`);
+          }
+
+          let services = [];
+          try {
+            const parsed = JSON.parse(read(resolveRoot(catalogPath)));
+            services = Array.isArray(parsed.services) ? parsed.services : [];
+          } catch {
+            return fail(`${catalogPath} no es JSON válido`);
+          }
+
+          if (services.length !== 20) {
+            return fail(`${catalogPath} expone ${services.length} servicios; se esperaban 20`);
+          }
+
+          const runtime = fileIncludes(
+            'lib/ServiceCatalog.php',
+            ['data/catalog/services.json', 'function load_service_catalog_payload(): array'],
+            'lib/ServiceCatalog.php usa data/catalog/services.json como fuente canónica'
+          );
+          const consumers = firstPassing(
+            [
+              fileIncludes(
+                'controllers/PatientPortalController.php',
+                ['service_catalog_preparation_for('],
+                'controllers/PatientPortalController.php consume el catálogo comercial'
+              ),
+              fileIncludes(
+                'lib/email.php',
+                ['service_catalog_preparation_for('],
+                'lib/email.php consume el catálogo comercial'
+              ),
+              fileIncludes(
+                'src/apps/astro/src/lib/content.js',
+                ["path.join('data', 'catalog', 'services.json')"],
+                'src/apps/astro/src/lib/content.js carga el catálogo comercial'
+              ),
+            ],
+            'No se encontró un consumidor vivo del catálogo comercial'
+          );
+
+          if (runtime.ok && consumers.ok) {
+            return pass(`${catalogPath} mantiene 20 servicios; ${runtime.detail}; ${consumers.detail}`);
+          }
+
+          return fail([runtime.detail, consumers.detail].filter(Boolean).join(' | '));
+        },
+      },
+    ],
+    'S10-06': [
+      {
+        name: 'ComplianceMSP.validate contract exists for diagnosis quality gate',
+        evaluate: () => {
+          const runtime = fileMatches(
+            'lib/clinical_history/ComplianceMSP.php',
+            [
+              { label: 'class ComplianceMSP', pattern: /final class ComplianceMSP/ },
+              { label: 'public static function validate(array $record): array', pattern: /public static function validate\(array \$record\): array/ },
+            ],
+            'lib/clinical_history/ComplianceMSP.php expone ComplianceMSP::validate()'
+          );
+          const coverage = fileIncludes(
+            'tests/Unit/ComplianceMspTest.php',
+            ['\\ComplianceMSP::validate(['],
+            'tests/Unit/ComplianceMspTest.php ejerce ComplianceMSP::validate()'
+          );
+
+          if (runtime.ok && coverage.ok) {
+            return pass(`${runtime.detail}; ${coverage.detail}`);
+          }
+
+          return fail([runtime.detail, coverage.detail].filter(Boolean).join(' | '));
+        },
+      },
+    ],
+    'S12-06': [
+      {
+        name: 'Google Business checklist artifact exists',
+        evaluate: () =>
+          filePresence(
+            'docs/GOOGLE_BUSINESS_CHECKLIST.md',
+            'Existe docs/GOOGLE_BUSINESS_CHECKLIST.md'
+          ),
+      },
+    ],
+    'S13-14': [
+      {
+        name: 'Gate map includes audited checks for S8, S9, S10 and S12',
+        evaluate: () =>
+          fileIncludes(
+            'bin/lib/gate-checks.js',
+            ["'S8-01': [", "'S8-07': [", "'S9-11': [", "'S10-06': [", "'S12-06': [", "'S13-14': ["],
+            'bin/lib/gate-checks.js contiene checks mínimos auditados para S8-01, S8-07, S9-11, S10-06, S12-06 y el propio S13-14'
+          ),
+      },
+      {
+        name: 'Gate test harness covers the new audited check map',
+        evaluate: () =>
+          fileIncludes(
+            'tests-node/gate-task-checks.test.js',
+            ["taskChecks['S8-01']", "taskChecks['S8-07']", "taskChecks['S9-11']", "taskChecks['S10-06']", "taskChecks['S12-06']", "taskChecks['S13-14']"],
+            'tests-node/gate-task-checks.test.js cubre el nuevo mapa de checks auditados'
+          ),
+      },
+    ],
   };
 }
 

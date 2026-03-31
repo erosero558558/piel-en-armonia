@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 12:24:21 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 12:26:32 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████░░░░░░░` **66%** completado (334/504)
+`█████████████░░░░░░░` **66%** completado (335/504)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -26,7 +26,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 9 | 9 | 18 | 33% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
-| ⏸ Sprint 13 | 17 | 4 | 81% |
+| ⏸ Sprint 13 | 18 | 3 | 86% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
 | ⏸ Sprint 14 | 3 | 11 | 21% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
@@ -165,13 +165,12 @@ _Esperando que Sprint anterior esté completo. 22 tareas pendientes._
 | ... | | _+17 más_ |
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 
-### 🟢 Disponibles (4)
+### 🟢 Disponibles (3)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S13-14** | `[S13]` | M |
 | **S13-15** | `[S13]` | M |
 | **S13-18** | `[S13]` | M |
 | **S13-20** | `[S13]` | M |
