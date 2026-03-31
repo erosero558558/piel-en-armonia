@@ -934,6 +934,10 @@ body.admin-v3-mode .callbacks-next-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+body.admin-v3-mode .callbacks-next-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 body.admin-v3-mode .dashboard-hero-metric,
 body.admin-v3-mode .dashboard-home-card,
 body.admin-v3-mode .dashboard-signal-card,
@@ -2507,6 +2511,13 @@ body.admin-v3-mode .toolbar-row:not(.slim) {
 body.admin-v3-mode .appointments-toolbar label,
 body.admin-v3-mode .callbacks-toolbar label {
     min-width: 180px;
+}
+
+body.admin-v3-mode .callbacks-toolbar label span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+    color: var(--admin3-muted);
 }
 
 body.admin-v3-mode .appointments-toolbar input,

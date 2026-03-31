@@ -1,6 +1,7 @@
 import { getState } from '../../../shared/core/store.js';
 import { setHtml, setText } from '../../../shared/ui/render.js';
 import {
+    applyDayFilter,
     applyFilter,
     applySearch,
     computeOps,
@@ -20,7 +21,8 @@ export function renderCallbacksSection() {
             ? state.data.leadOpsMeta
             : null;
     const callbacksState = state.callbacks;
-    const filtered = applyFilter(source, callbacksState.filter);
+    const dayScoped = applyDayFilter(source, callbacksState.day);
+    const filtered = applyFilter(dayScoped, callbacksState.filter);
     const searched = applySearch(
         filtered,
         callbacksState.search,
@@ -30,7 +32,7 @@ export function renderCallbacksSection() {
     const selectedSet = new Set(
         (callbacksState.selected || []).map((value) => Number(value || 0))
     );
-    const ops = computeOps(source, leadOpsMeta);
+    const ops = computeOps(dayScoped, leadOpsMeta);
 
     setHtml(
         '#callbacksGrid',
@@ -46,13 +48,24 @@ export function renderCallbacksSection() {
                   .join('')
             : '<p class="callbacks-grid-empty" data-admin-empty-state="callbacks">No hay callbacks para el filtro actual.</p>'
     );
-    syncCallbackControls(callbacksState, sorted.length, source.length);
+    syncCallbackControls(
+        callbacksState,
+        sorted.length,
+        dayScoped.length,
+        source.length
+    );
 
     setText('#callbacksOpsPendingCount', ops.pendingCount);
     setText('#callbacksOpsUrgentCount', ops.hotCount);
-    setText('#callbacksOpsTodayCount', ops.todayCount);
+    setText('#callbacksOpsNoContactCount', ops.withoutContactCount);
     setText('#callbacksOpsQueueHealth', ops.queueHealth);
 
     syncCallbackBulkActions(sorted.length, selectedSet.size);
-    renderCallbackDeck(ops, sorted.length, source.length, selectedSet.size);
+    renderCallbackDeck(
+        ops,
+        sorted.length,
+        dayScoped.length,
+        source.length,
+        selectedSet.size
+    );
 }

@@ -308,11 +308,22 @@ async function setupLeadOpsAdminApiMocks(page) {
 
             if (callback) {
                 callback.status = String(payload.status || callback.status);
+                const contactedAt =
+                    callback.status === 'contacted' ||
+                    Boolean(payload?.leadOps?.outcome)
+                        ? new Date().toISOString()
+                        : callback.leadOps?.contactedAt || '';
                 callback.leadOps = {
                     ...(callback.leadOps || {}),
                     ...(payload.leadOps && typeof payload.leadOps === 'object'
                         ? payload.leadOps
                         : {}),
+                    contactedAt: String(
+                        payload?.leadOps?.contactedAt ||
+                            contactedAt ||
+                            callback.leadOps?.contactedAt ||
+                            ''
+                    ),
                 };
             }
 
@@ -382,7 +393,7 @@ async function openCallbacksSection(page) {
     await setupAdminApiMocks(page);
     await page.goto('/admin.html');
     await expect(page.locator('#adminDashboard')).toBeVisible();
-    await page.keyboard.press('Alt+Shift+Digit3');
+    await page.locator('a.nav-item[data-section="callbacks"]').click();
     await expect(page.locator('#callbacks')).toHaveClass(/active/);
     await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(4);
 }
@@ -455,6 +466,32 @@ test.describe('Admin callbacks triage', () => {
         );
     });
 
+    test('filtra el cockpit por dia y permite limpiar la cola filtrada', async ({
+        page,
+    }) => {
+        await openCallbacksSection(page);
+
+        const emptyDayKey = '1999-01-01';
+
+        await page.locator('#callbackDayFilter').evaluate((element, value) => {
+            element.value = String(value || '');
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+        }, emptyDayKey);
+        await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(0);
+        await expect(
+            page.locator('[data-admin-empty-state="callbacks"]')
+        ).toContainText('No hay callbacks');
+        await expect(page.locator('#callbacksToolbarState')).toContainText('Dia:');
+        await expect(page.locator('#callbacksToolbarMeta')).toContainText(
+            'Mostrando 0 de 0 · 4 total'
+        );
+
+        await page.locator('#clearCallbacksFiltersBtn').click();
+        await expect(page.locator('#callbackDayFilter')).toHaveValue('');
+        await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(4);
+    });
+
     test('lead ops prioriza la cola comercial y permite pedir IA y cerrar outcome', async ({
         page,
     }) => {
@@ -475,6 +512,9 @@ test.describe('Admin callbacks triage', () => {
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
 
         const firstCard = page.locator('#callbacksGrid .callback-card').first();
+        const primaryLeadCard = page.locator(
+            '#callbacksGrid .callback-card[data-callback-id="301"]'
+        );
         await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(
             3
         );
@@ -485,6 +525,14 @@ test.describe('Admin callbacks triage', () => {
         );
         await expect(firstCard).toContainText('Hot');
         await expect(firstCard).toContainText('Sin IA');
+        await expect(page.locator('#callbacksOpsNext')).toHaveText(
+            '+593 99 111 0001'
+        );
+        await expect(page.locator('#callbacksNextScore')).toHaveText('88');
+        await expect(page.locator('#callbacksNextLastContact')).toHaveText(
+            'Sin contacto'
+        );
+        await expect(page.locator('#callbacksOpsNoContactCount')).toHaveText('2');
         await expect(page.locator('#callbacksOpsQueueHealth')).toHaveText(
             'Cola estable, IA degradada'
         );
@@ -499,6 +547,7 @@ test.describe('Admin callbacks triage', () => {
                 'button[data-action="callback-outcome"][data-outcome="cita_cerrada"]'
             )
             .click();
-        await expect(firstCard).toContainText('Cita cerrada');
+        await expect(primaryLeadCard).toContainText('Cita cerrada');
+        await expect(primaryLeadCard).not.toContainText('Sin contacto');
     });
 });

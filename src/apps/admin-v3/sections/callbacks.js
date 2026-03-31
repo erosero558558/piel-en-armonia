@@ -11,6 +11,7 @@ export {
     requestCallbackAiDraft,
     selectVisibleCallbacks,
     setCallbackOutcome,
+    setCallbacksDay,
     setCallbacksFilter,
     setCallbacksSearch,
     setCallbacksSort,

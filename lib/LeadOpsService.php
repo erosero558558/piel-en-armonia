@@ -653,6 +653,8 @@ final class LeadOpsService
             'reasonCodes' => $heuristic['reasonCodes'],
             'serviceHints' => $heuristic['serviceHints'],
             'nextAction' => $heuristic['nextAction'],
+            'scoreSummary' => $heuristic['scoreSummary'],
+            'scoreFactors' => $heuristic['scoreFactors'],
         ]);
 
         return $callback;
@@ -731,6 +733,8 @@ final class LeadOpsService
             'reasonCodes' => self::sanitizeList($leadOps['reasonCodes'] ?? [], 8, 60),
             'serviceHints' => self::sanitizeList($leadOps['serviceHints'] ?? [], 3, 80),
             'nextAction' => truncate_field(sanitize_xss((string) ($leadOps['nextAction'] ?? '')), 180),
+            'scoreSummary' => truncate_field(sanitize_xss((string) ($leadOps['scoreSummary'] ?? '')), 220),
+            'scoreFactors' => self::sanitizeList($leadOps['scoreFactors'] ?? [], 4, 80),
             'aiStatus' => $aiStatus,
             'aiObjective' => $aiObjective,
             'aiSummary' => truncate_field(sanitize_xss((string) ($leadOps['aiSummary'] ?? '')), 1600),

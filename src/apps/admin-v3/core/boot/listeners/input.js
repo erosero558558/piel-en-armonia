@@ -4,6 +4,7 @@ import {
     setAppointmentSort,
 } from '../../../sections/appointments.js';
 import {
+    setCallbacksDay,
     setCallbacksFilter,
     setCallbacksSearch,
     setCallbacksSort,
@@ -59,6 +60,15 @@ export function attachInputListeners() {
         callbackSort.addEventListener('change', () => {
             setCallbacksSort(callbackSort.value);
         });
+    }
+
+    const callbackDayFilter = document.getElementById('callbackDayFilter');
+    if (callbackDayFilter instanceof HTMLInputElement) {
+        const syncCallbackDayFilter = () => {
+            setCallbacksDay(callbackDayFilter.value);
+        };
+        callbackDayFilter.addEventListener('input', syncCallbackDayFilter);
+        callbackDayFilter.addEventListener('change', syncCallbackDayFilter);
     }
 
     const searchCallbacks = document.getElementById('searchCallbacks');

@@ -6,6 +6,10 @@ export function leadOps(item) {
         : {};
 }
 
+export function lastContactAt(item) {
+    return String(leadOps(item).contactedAt || '').trim();
+}
+
 export function priorityBand(item) {
     const value = normalize(leadOps(item).priorityBand);
     return value === 'hot' || value === 'warm' ? value : 'cold';

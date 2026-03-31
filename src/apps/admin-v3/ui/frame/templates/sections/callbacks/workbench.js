@@ -45,8 +45,8 @@ export function renderCallbacksWorkbench() {
         <div class="sony-panel callbacks-workbench">
             <header class="section-header callbacks-workbench-head">
                 <div>
-                    <h3>Workbench</h3>
-                    <p>Ordena por prioridad comercial, genera borradores IA y registra el outcome sin salir del panel.</p>
+                    <h3>Callbacks pendientes</h3>
+                    <p>Recepcion ve la cola en orden de score, filtra por dia y decide el siguiente paso sin salir del panel.</p>
                 </div>
             </header>
             <div class="toolbar-row">
@@ -67,7 +67,11 @@ export function renderCallbacksWorkbench() {
                         ${sortOptions}
                     </select>
                 </label>
-                <input type="search" id="searchCallbacks" placeholder="Buscar telefono o servicio" />
+                <label>
+                    <span class="sr-only">Dia callbacks</span>
+                    <input type="date" id="callbackDayFilter" />
+                </label>
+                <input type="search" id="searchCallbacks" placeholder="Buscar telefono, servicio o accion" />
                 <button type="button" id="clearCallbacksFiltersBtn" data-action="clear-callback-filters">Limpiar</button>
             </div>
             <div class="toolbar-row slim">

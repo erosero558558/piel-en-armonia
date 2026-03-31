@@ -90,6 +90,7 @@ const initialState = {
     callbacks: {
         filter: 'all',
         sort: 'priority_desc',
+        day: '',
         search: '',
         selected: [],
     },

@@ -125,12 +125,22 @@ try {
         $enriched['leadOps']['nextAction'],
         'Price intent should force closing next action'
     );
+    leadops_assert_true(
+        trim((string) ($enriched['leadOps']['scoreSummary'] ?? '')) !== '',
+        'Scored callback should expose a short score summary'
+    );
+    leadops_assert_true(
+        is_array($enriched['leadOps']['scoreFactors'] ?? null) && count($enriched['leadOps']['scoreFactors']) >= 1,
+        'Scored callback should expose visible score factors'
+    );
 
     $normalized = LeadOpsService::normalizeLeadOps([
         'aiStatus' => 'weird_status',
         'aiObjective' => 'bad objective',
         'outcome' => 'invalid-outcome',
         'reasonCodes' => ['ok', '', 'ok', '<b>x</b>'],
+        'scoreSummary' => '<b>Urgente</b>',
+        'scoreFactors' => ['Urgencia clinica', '', 'Urgencia clinica'],
     ]);
     leadops_assert_equals('idle', $normalized['aiStatus'], 'Invalid aiStatus should fallback to idle');
     leadops_assert_equals('', $normalized['aiObjective'], 'Invalid aiObjective should be dropped');
@@ -139,6 +149,16 @@ try {
         ['ok', '&lt;b&gt;x&lt;/b&gt;'],
         $normalized['reasonCodes'],
         'Reason codes should be sanitized and deduped'
+    );
+    leadops_assert_equals(
+        '&lt;b&gt;Urgente&lt;/b&gt;',
+        $normalized['scoreSummary'],
+        'Score summary should be sanitized'
+    );
+    leadops_assert_equals(
+        ['Urgencia clinica'],
+        $normalized['scoreFactors'],
+        'Score factors should be sanitized and deduped'
     );
     leadops_assert_equals('unknown', $normalized['source'], 'Missing source should normalize to unknown');
     leadops_assert_equals('unknown', $normalized['campaign'], 'Missing campaign should normalize to unknown');

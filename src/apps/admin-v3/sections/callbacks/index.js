@@ -5,6 +5,7 @@ export {
     clearCallbacksSelection,
     mutateCallbackRecord,
     selectVisibleCallbacks,
+    setCallbacksDay,
     setCallbacksFilter,
     setCallbacksSearch,
     setCallbacksSort,
