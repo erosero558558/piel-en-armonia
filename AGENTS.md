@@ -1700,7 +1700,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 13.1 Fundamentos de producción — nadie los auditó
 
 - [ ] **S13-01** `[M]` robots.txt hardening — el archivo actual expone `/lib/` y `/templates/` al crawling. Añadir: `Disallow: /lib/`, `Disallow: /templates/`, `Disallow: /backup/`, `Disallow: /bin/`, `Disallow: /store/` (si existe directorio). `/data/` ya está bloqueada (✅). El riesgo: Google puede indexar código PHP o templates HTML internos. Verificable: `curl https://aurora-derm.com/robots.txt | grep "/lib/"` → Disallow.
-- [ ] **S13-02** `[M]` sitemap.xml — actualización y cobertura completa — sitemap tiene 73 URLs pero falta: `/es/paquetes/` (recién creada S4-13), todas las URLs nuevas de Sprint 2/3/UI. `lastmod` desactualizado en muchas. Añadir generación automática al `sync-backlog.js` o crear `bin/gen-sitemap.js`. Verificable: `grep "paquetes" sitemap.xml` → existe.
+- [x] **S13-02** `[M]` sitemap.xml — actualización y cobertura completa — sitemap tiene 73 URLs pero falta: `/es/paquetes/` (recién creada S4-13), todas las URLs nuevas de Sprint 2/3/UI. `lastmod` desactualizado en muchas. Añadir generación automática al `sync-backlog.js` o crear `bin/gen-sitemap.js`. Verificable: `grep "paquetes" sitemap.xml` → existe.
 - [x] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
 - [ ] **S13-04** `[M]` Security headers en nginx — `nginx-pielarmonia.conf` no tiene `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Sin estos headers, la clínica es vulnerable a clickjacking y XSS reflejado. Verificable: `curl -I https://aurora-derm.com | grep -i "x-frame"` → match.
 - [x] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
@@ -1980,6 +1980,34 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S19-17** `[M]` Dead endpoints en routes.php — auditoría identificó rutas que apuntan a controllers inexistentes. Crear suite `tests/Unit/RoutesIntegrityTest.php` que para cada ruta registrada verifique que el controller::method existe. Verificable: 0 rutas huérfanas en PHPUnit.
 - [x] **S19-18** `[S]` Métricas de WhatsApp OpenClaw en dashboard — `GET /api.php?resource=whatsapp-openclaw-metrics` con `{conversations_total, holds_active, handoff_pending, outbox_failed, conversion_rate}`. Verificable: el endpoint devuelve JSON con todos los campos aunque sean 0.
 
+---
+
+### 🧭 Sprint 22 — Product Truth, Referidos y Contratos Comerciales
+
+> **Criterio de inclusión:** cerrar superficies publicadas que hoy parecen producto terminado, pero todavía operan con mocks, identidad débil o contenido estático desconectado del backend.
+> **No reabre:** `document-verify`, `portal historial`, `portal receta` ni `portal fotos`, porque ya tienen mejor cierre funcional y cobertura que las surfaces auditadas aquí.
+
+#### 22.1 Clínica interna — verdad operativa
+
+- [ ] **S22-01** `[M]` `codex_backend_ops` Búsqueda clínica real de pacientes/casos — reemplazar la respuesta mock de `PatientCaseController::search` por una consulta real sobre pacientes, casos y citas. Debe buscar por nombre, documento, teléfono, `case_id` y última visita, con resultados ordenados, estables y sin pacientes inventados. Verificable: desaparecen `Juan Garcia` y `Maria Silva` del API y una búsqueda real devuelve datos del store.
+
+#### 22.2 Referidos — identidad, sesión y verdad pública
+
+- [ ] **S22-02** `[S]` `codex_frontend` Contrato de sesión para `portal/referidos` — normalizar la lectura de sesión a `patientId` y dejar `/es/portal/referidos/` funcional con la sesión canónica del portal. Si no hay paciente elegible, mostrar estado vacío útil, no error silencioso. Verificable: la vista carga con sesión real y ya no depende de `session.patient.id`.
+- [ ] **S22-03** `[M]` `codex_backend_ops` Harden de identidad en referidos — `referral-link` y `referral-stats` deben dejar de aceptar `patient_id` público sin validación. La generación del link propietario debe venir de sesión portal o identidad firmada; el público solo puede consumir `?ref=...`, no crear dueño nuevo. Verificable: sin sesión válida no se emite link propietario ni stats privadas.
+- [ ] **S22-04** `[M]` `codex_frontend` Truth pass de referidos públicos — quitar el fallback `demo_p_*` y cualquier generación creativa de dueño en `/es/referidos/`. La página debe compartir un link real si hay contexto válido y, si no lo hay, redirigir a portal/login o a CTA de soporte. Verificable: sin sesión válida ya no existe fallback aleatorio ni share URL ficticia.
+
+#### 22.3 Comercial — páginas vivas, no templates
+
+- [ ] **S22-05** `[L]` `codex_backend_ops` Gift card pública con emisión real — `/es/gift-cards/` deja de generar códigos y PDFs locales. El flujo canónico pasa a `solicitud/checkout -> emisión backend persistida -> PDF/QR reales -> validación/redeem`. Antes de la emisión no se muestra un código operativo. Verificable: la surface pública usa `gift-card-issue`/`gift-card-validate` reales y no fabrica códigos válidos en frontend.
+- [ ] **S22-06** `[M]` `codex_transversal` Catálogo vivo de promociones — `/es/promociones/` debe leer campañas activas/próximas desde backend/store, sin `3 campañas`, `campaña destacada` ni copy duro como fuente de verdad. La elegibilidad tiene que salir de contexto real, no de un mock basado solo en `ci`. Verificable: la página refleja campañas reales y cambia cuando cambia el store.
+- [ ] **S22-07** `[M]` `codex_backend_ops` Contrato real de membresía — eliminar perks hardcodeados y resolver precio, vigencia, perks y renovación desde una fuente canónica. `/es/membresia/`, el portal y admin deben mostrar el mismo estado/beneficios. Verificable: membership/portal/admin no divergen en status ni perks.
+- [ ] **S22-08** `[M]` `codex_frontend` Catálogo vivo de paquetes — `/es/paquetes/` debe resolver combos, precio, sesiones incluidas, duración y CTA desde fuente canónica, no desde cards HTML fijas. Debe quedar alineado con el saldo/consumo de paquetes del backend. Verificable: los paquetes visibles coinciden con el balance/consumo y no dependen de números estáticos embebidos en la landing.
+
+#### 22.4 Calidad — pruebas de producto directas
+
+- [ ] **S22-09** `[M]` `codex_transversal` QA pack comercial y de referidos — agregar integración y Playwright para `referral-link`, `referral-stats`, `membership-status`, `active-promotions`, `gift-card-validate/issue/redeem`, `/es/referidos/`, `/es/gift-cards/`, `/es/promociones/`, `/es/membresia/`, `/es/paquetes/` y `/es/portal/referidos/`. Las pruebas de analytics ya no cuentan como cobertura suficiente. Verificable: existen tests directos de endpoints y surfaces, no solo de funnel/events.
+
 
 ---
 
@@ -2035,4 +2063,3 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **UI4-17** `[M]` `[UI]` Timeline de historial glass — `es/portal/historial/`: eventos clínicos como stepper vertical, cada nodo con circle glass dorado, línea conectora translúcida, cards expandibles al clic con `height: 0 → auto` spring. Verificable: `grep "lg-surface.*timeline\|glass.*stepper" es/portal/historial/index.html` → match.
 
 - [ ] **UI4-18** `[M]` `[UI]` Kiosk glass skin — `kiosk.html`: la pantalla del kiosco en sala de espera debe tener: fondo de video/animación sutil de partículas en navy, panel central glass para registro de turno, contadores en glass pill. Pacientes que esperan ven algo premium, no una pantalla de admin. Verificable: `grep "lg-surface\|kiosk.*glass" kiosk.html` → match.
-

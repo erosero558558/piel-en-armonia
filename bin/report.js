@@ -94,7 +94,10 @@ function loadStuck() {
 const stuckData = loadStuck();
 const stuckTasks = Object.entries(stuckData).filter(([, s]) => !s.resolved);
 
-
+// --- NEW: S15-10 Regresiones sospechosas ---
+const regStr = run(`node bin/regression-watch.js --json`);
+let regressionsJson = [];
+try { regressionsJson = JSON.parse(regStr).regressions || []; } catch {}
 
 // Sprint velocity
 const sprintSections = {
@@ -195,6 +198,15 @@ if (asMarkdown) {
     ``,
   ];
 
+  if (regressionsJson.length > 0) {
+    lines.push(`## ⚠️ Regresiones Sospechosas`);
+    lines.push(``);
+    regressionsJson.forEach(r => {
+      lines.push(`- **${r.task}**: \`${r.file}\` fue modificado recientemente.`);
+    });
+    lines.push(``);
+  }
+
   if (humanBlockers.length > 0) {
     lines.push(`## 🚨 Blockers — Requieren respuesta del dueño`);
     lines.push(``);
@@ -281,6 +293,13 @@ if (asMarkdown) {
     console.log(`   → Responde en BLOCKERS.md y haz commit`);
   } else {
     console.log(`\n✅ Sin blockers humanos`);
+  }
+
+  if (regressionsJson.length > 0) {
+    console.log(`\n⚠️  REGRESIONES SOSPECHOSAS (${regressionsJson.length}):`);
+    regressionsJson.forEach(r => {
+      console.log(`   ${r.task}: ${r.file} modificado recientemente.`);
+    });
   }
 
   if (activeClaims.length > 0) {

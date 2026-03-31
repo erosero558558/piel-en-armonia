@@ -44,6 +44,11 @@ node bin/gate.js <TASK-ID>   # debe PASS antes de marcar done
 
 ## Estado actual del proyecto
 
+<!-- STATS_START -->
+> **Progreso Global del Proyecto:** 310/476 tareas (65%)
+> `█████████████░░░░░░░`
+<!-- STATS_END -->
+
 Ver `npm run report` para el estado en tiempo real.
 
 Ver `AGENTS.md` sección "Acceptance Criteria" para saber cuándo cada sprint está done.

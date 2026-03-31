@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 11:57:24 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 12:02:00 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████░░░░░░░` **67%** completado (327/485)
+`█████████████░░░░░░░` **66%** completado (328/494)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -26,7 +26,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 9 | 9 | 18 | 33% |
 | ⏸ Sprint 10 | 1 | 29 | 3% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
-| ⏸ Sprint 13 | 10 | 11 | 48% |
+| ⏸ Sprint 13 | 11 | 10 | 52% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
 | ⏸ Sprint 14 | 3 | 11 | 21% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
@@ -34,6 +34,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 17 | 12 | 0 | 100% |
 | ✅ Sprint 18 | 4 | 0 | 100% |
 | ✅ Sprint 19 | 18 | 0 | 100% |
+| ⏸ Sprint 22 | 0 | 9 | 0% |
 | ⏸ Sprint UI | 12 | 6 | 67% |
 
 ## ✅ Sprint 0 — Completado
@@ -163,18 +164,22 @@ _Esperando que Sprint anterior esté completo. 22 tareas pendientes._
 | ... | | _+17 más_ |
 
 ## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 10 tareas pendientes._
 
-### 🟢 Disponibles (11)
+### 🟢 Disponibles (9)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S13-01** | `[S13]` | M |
 | **S13-02** | `[S13]` | M |
 | **S13-04** | `[S13]` | M |
 | **S13-06** | `[S13]` | M |
 | **S13-09** | `[S13]` | L |
-| ... | | _+6 más_ |
+| **S13-10** | `[S13]` | M |
+| ... | | _+4 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S13-01** `[S13]` → _Codex-erosero558558_ (expira en 235min)
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
@@ -224,6 +229,20 @@ _Sprint completado. 4/4 tareas._
 
 ## ✅ Sprint 19 — Notificaciones, WhatsApp Ops y Android TV
 _Sprint completado. 18/18 tareas._
+
+## ⏸ Sprint 22 — Product Truth, Referidos y Contratos Comerciales
+_Esperando que Sprint anterior esté completo. 9 tareas pendientes._
+
+### 🟢 Disponibles (9)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S22-01** | `[S22]` | M |
+| **S22-02** | `[S22]` | S |
+| **S22-03** | `[S22]` | M |
+| **S22-04** | `[S22]` | M |
+| **S22-05** | `[S22]` | L |
+| ... | | _+4 más_ |
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
 _Esperando que Sprint anterior esté completo. 6 tareas pendientes._

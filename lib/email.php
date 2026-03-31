@@ -118,12 +118,14 @@ function send_mail(string $to, string $subject, string $body, bool $isHtml = fal
         $GLOBALS['__TEST_EMAIL_OUTBOX'][] = [
             'to' => $to,
             'subject' => $subject,
+            'body' => $body,
             'isHtml' => $isHtml,
+            'attachments' => $attachments,
             'attachmentsCount' => count($attachments),
             'altBody' => $altBody,
         ];
         error_log('Aurora Derm: envio de email omitido en TESTING_ENV para evitar dependencia de sendmail');
-        return false;
+        return true;
     }
 
     // Fallback a mail() nativo
@@ -574,6 +576,390 @@ function build_reschedule_email_text(array $appointment): string
         build_reschedule_notification_rows($context),
         build_reschedule_notification_footer($context)
     );
+}
+
+/**
+ * Builds the responsive HTML body for a rescheduled appointment email.
+ *
+ * @param array<string,mixed> $appointment
+ */
+function build_reschedule_email_html(array $appointment): string
+{
+    $context = build_appointment_email_context($appointment);
+    $name = htmlspecialchars($context['name'], ENT_QUOTES, 'UTF-8');
+    $dateLabel = htmlspecialchars($context['dateLabel'], ENT_QUOTES, 'UTF-8');
+
+    $rows = build_reschedule_notification_rows($context);
+    $content = '<h2 style="margin:0 0 20px;color:#0d1a2f;font-size:20px;">Cita Reprogramada</h2>'
+        . '<p style="margin:0 0 15px;line-height:1.6;color:#555;">Hola <strong>' . $name . '</strong>,</p>'
+        . '<p style="margin:0 0 20px;line-height:1.6;color:#555;">Tu cita fue reprogramada exitosamente. Estos son los nuevos datos:</p>'
+        . '<table style="width:100%;border-collapse:separate;border-spacing:0;background-color:#f8fafc;border-radius:8px;padding:15px;margin-bottom:25px;">'
+        . build_email_detail_rows(
+            array_map(static function (array $row): array {
+                return [
+                    'label' => (string) ($row['label'] ?? ''),
+                    'value' => (string) ($row['value'] ?? ''),
+                ];
+            }, $rows),
+            'padding:8px 0;color:#64748b;font-weight:bold;width:140px;',
+            'padding:8px 0;color:#334155;'
+        )
+        . '</table>'
+        . build_email_cta_button($context['rescheduleUrl'], 'Gestionar cita')
+        . '<p style="margin:0;font-size:13px;color:#94a3b8;text-align:center;">Si necesitas ayuda, responde a este correo.</p>';
+
+    return get_email_template(
+        'Cita Reprogramada',
+        $content,
+        'Tu cita fue reprogramada para el ' . $dateLabel
+    );
+}
+
+/**
+ * Splits a display name into first and last name components for document payloads.
+ *
+ * @return array{firstName:string,lastName:string}
+ */
+function split_patient_name(string $fullName): array
+{
+    $normalized = trim(preg_replace('/\s+/', ' ', $fullName) ?? '');
+    if ($normalized === '') {
+        return [
+            'firstName' => 'Paciente',
+            'lastName' => '',
+        ];
+    }
+
+    $parts = preg_split('/\s+/', $normalized) ?: [];
+    $firstName = trim((string) array_shift($parts));
+
+    return [
+        'firstName' => $firstName !== '' ? $firstName : 'Paciente',
+        'lastName' => trim(implode(' ', $parts)),
+    ];
+}
+
+/**
+ * Resolves patient-facing contact details for a case.
+ *
+ * @param array<string,mixed> $store
+ * @param array<string,mixed> $session
+ * @return array{
+ *   name:string,
+ *   email:string,
+ *   phone:string,
+ *   patient:array<string,mixed>,
+ *   appointment:array<string,mixed>
+ * }
+ */
+function resolve_case_contact_context(array $store, string $caseId, array $session = []): array
+{
+    $sessionPatient = isset($session['patient']) && is_array($session['patient'])
+        ? $session['patient']
+        : [];
+    $caseSummary = [];
+    foreach (($store['patient_cases'] ?? []) as $candidateCase) {
+        if (!is_array($candidateCase) || trim((string) ($candidateCase['id'] ?? '')) !== $caseId) {
+            continue;
+        }
+
+        $caseSummary = isset($candidateCase['summary']) && is_array($candidateCase['summary'])
+            ? $candidateCase['summary']
+            : [];
+        break;
+    }
+
+    $matchedAppointment = [];
+    $sessionAppointmentId = (int) ($session['appointmentId'] ?? 0);
+    foreach (($store['appointments'] ?? []) as $appointment) {
+        if (!is_array($appointment)) {
+            continue;
+        }
+
+        $appointmentId = (int) ($appointment['id'] ?? 0);
+        $appointmentCaseId = trim((string) ($appointment['patientCaseId'] ?? ''));
+        if ($sessionAppointmentId > 0 && $appointmentId === $sessionAppointmentId) {
+            $matchedAppointment = $appointment;
+            break;
+        }
+        if ($appointmentCaseId !== '' && $appointmentCaseId === $caseId) {
+            $matchedAppointment = $appointment;
+        }
+    }
+
+    $patientRecord = isset($store['patients'][$caseId]) && is_array($store['patients'][$caseId])
+        ? $store['patients'][$caseId]
+        : [];
+    $nameParts = split_patient_name(
+        (string) ($sessionPatient['name'] ?? $caseSummary['patientLabel'] ?? $matchedAppointment['name'] ?? '')
+    );
+    $firstName = trim((string) ($patientRecord['firstName'] ?? $nameParts['firstName']));
+    $lastName = trim((string) ($patientRecord['lastName'] ?? $nameParts['lastName']));
+
+    return [
+        'name' => trim(implode(' ', array_filter([$firstName, $lastName], static fn (string $value): bool => $value !== ''))),
+        'email' => email_recipient_or_empty((string) ($sessionPatient['email'] ?? $caseSummary['contactEmail'] ?? $matchedAppointment['email'] ?? '')),
+        'phone' => trim((string) ($sessionPatient['phone'] ?? $caseSummary['contactPhone'] ?? $matchedAppointment['phone'] ?? '')),
+        'patient' => array_merge($patientRecord, [
+            'firstName' => $firstName !== '' ? $firstName : 'Paciente',
+            'lastName' => $lastName,
+            'ci' => (string) ($patientRecord['ci'] ?? $patientRecord['cedula'] ?? $sessionPatient['documentNumber'] ?? ''),
+            'birthDate' => (string) ($patientRecord['birthDate'] ?? ''),
+        ]),
+        'appointment' => $matchedAppointment,
+    ];
+}
+
+/**
+ * Normalizes medication rows coming from either document items or stored prescriptions.
+ *
+ * @param array<string,mixed> $prescription
+ * @return array<int,array<string,string>>
+ */
+function normalize_prescription_email_items(array $prescription): array
+{
+    $rawItems = [];
+    if (isset($prescription['medications']) && is_array($prescription['medications'])) {
+        $rawItems = $prescription['medications'];
+    } elseif (isset($prescription['items']) && is_array($prescription['items'])) {
+        $rawItems = $prescription['items'];
+    }
+
+    $items = [];
+    foreach ($rawItems as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $label = trim((string) ($item['medication'] ?? $item['name'] ?? ''));
+        if ($label === '') {
+            continue;
+        }
+
+        $items[] = [
+            'medication' => $label,
+            'dose' => trim((string) ($item['dose'] ?? '')),
+            'frequency' => trim((string) ($item['frequency'] ?? '')),
+            'duration' => trim((string) ($item['duration'] ?? '')),
+            'instructions' => trim((string) ($item['instructions'] ?? '')),
+        ];
+    }
+
+    return $items;
+}
+
+/**
+ * Builds a branded HTML email for post-consultation follow-up.
+ *
+ * @param array<string,mixed> $appointment
+ */
+function build_post_consultation_followup_email_html(array $appointment): string
+{
+    $context = build_appointment_email_context($appointment);
+    $portalUrl = AppConfig::BASE_URL . '/es/portal/';
+    $name = htmlspecialchars($context['name'], ENT_QUOTES, 'UTF-8');
+    $whatsapp = htmlspecialchars((string) ((read_turnero_clinic_profile()['branding']['whatsapp'] ?? AppConfig::WHATSAPP_NUMBER)), ENT_QUOTES, 'UTF-8');
+
+    $content = '<h2 style="margin:0 0 20px;color:#0d1a2f;font-size:20px;">Seguimiento de tu consulta</h2>'
+        . '<p style="margin:0 0 15px;line-height:1.6;color:#555;">Hola <strong>' . $name . '</strong>,</p>'
+        . '<p style="margin:0 0 20px;line-height:1.6;color:#555;">Queremos saber cómo te has sentido después de tu consulta. Si sigues con molestias o tienes dudas sobre tus indicaciones, estamos para ayudarte.</p>'
+        . build_appointment_detail_table(
+            $context,
+            'width:100%;border-collapse:separate;border-spacing:0;background-color:#f8fafc;border-radius:8px;padding:15px;margin-bottom:25px;',
+            'padding:8px 0;color:#64748b;font-weight:bold;width:120px;',
+            'padding:8px 0;color:#334155;'
+        )
+        . build_email_cta_button($portalUrl, 'Abrir portal del paciente')
+        . '<p style="margin:0;line-height:1.6;color:#555;">También puedes responder este correo o escribirnos por WhatsApp: <strong>' . $whatsapp . '</strong>.</p>';
+
+    return get_email_template('Seguimiento de tu consulta', $content, 'Queremos saber cómo te has sentido después de tu consulta');
+}
+
+/**
+ * Builds a plain-text email for post-consultation follow-up.
+ *
+ * @param array<string,mixed> $appointment
+ */
+function build_post_consultation_followup_email_text(array $appointment): string
+{
+    $context = build_appointment_email_context($appointment);
+    $portalUrl = AppConfig::BASE_URL . '/es/portal/';
+
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+    $whatsapp = !empty($profile['branding']['whatsapp']) ? $profile['branding']['whatsapp'] : AppConfig::WHATSAPP_NUMBER;
+
+    $body = "Hola " . $context['name'] . ",\n\n";
+    $body .= "Queremos saber como te has sentido despues de tu consulta.\n\n";
+    $body .= build_appointment_detail_text($context, false);
+    $body .= "Si sigues con molestias o tienes dudas, puedes responder este correo.\n";
+    $body .= "Portal del paciente: " . $portalUrl . "\n";
+    $body .= "WhatsApp: " . $whatsapp . "\n\n";
+    $body .= "- Equipo " . $brandName;
+
+    return $body;
+}
+
+/**
+ * Sends the branded post-consultation follow-up email.
+ *
+ * @param array<string,mixed> $appointment
+ */
+function maybe_send_post_consultation_followup_email(array $appointment): bool
+{
+    $recipient = (string) ($appointment['email'] ?? '');
+    if (email_recipient_or_empty($recipient) === '') {
+        return false;
+    }
+
+    $subject = build_email_subject('Seguimiento de tu consulta');
+    $htmlBody = build_post_consultation_followup_email_html($appointment);
+    $textBody = build_post_consultation_followup_email_text($appointment);
+
+    return send_mail_to_recipient($recipient, $subject, $htmlBody, true, [], $textBody);
+}
+
+/**
+ * Builds the branded HTML email for a ready prescription.
+ *
+ * @param array<string,mixed> $contact
+ * @param array<string,mixed> $prescription
+ */
+function build_prescription_ready_email_html(array $contact, array $prescription, string $portalUrl): string
+{
+    $medications = normalize_prescription_email_items($prescription);
+    $name = htmlspecialchars((string) ($contact['name'] ?? 'Paciente'), ENT_QUOTES, 'UTF-8');
+    $issuedAt = trim((string) ($prescription['issued_at'] ?? $prescription['issuedAt'] ?? ''));
+    $issuedLabel = $issuedAt !== '' ? htmlspecialchars(format_date_label(substr($issuedAt, 0, 10)), ENT_QUOTES, 'UTF-8') : 'Hoy';
+    $doctor = function_exists('doctor_profile_document_fields')
+        ? doctor_profile_document_fields(isset($prescription['doctor']) && is_array($prescription['doctor']) ? $prescription['doctor'] : [])
+        : [];
+    $doctorLabel = htmlspecialchars((string) ($doctor['name'] ?? $prescription['issued_by'] ?? 'Medico tratante'), ENT_QUOTES, 'UTF-8');
+
+    $listItems = '';
+    foreach (array_slice($medications, 0, 4) as $item) {
+        $detail = htmlspecialchars((string) ($item['medication'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $support = trim(implode(' · ', array_filter([
+            (string) ($item['dose'] ?? ''),
+            (string) ($item['frequency'] ?? ''),
+            (string) ($item['duration'] ?? ''),
+        ], static fn (string $value): bool => $value !== '')));
+        $supportHtml = $support !== ''
+            ? '<span style="display:block;font-size:13px;color:#64748b;">' . htmlspecialchars($support, ENT_QUOTES, 'UTF-8') . '</span>'
+            : '';
+        $listItems .= '<li style="margin-bottom:10px;color:#334155;">' . $detail . $supportHtml . '</li>';
+    }
+
+    $content = '<h2 style="margin:0 0 20px;color:#0d1a2f;font-size:20px;">Tu receta ya está lista</h2>'
+        . '<p style="margin:0 0 15px;line-height:1.6;color:#555;">Hola <strong>' . $name . '</strong>,</p>'
+        . '<p style="margin:0 0 20px;line-height:1.6;color:#555;">Ya dejamos lista tu receta médica. También adjuntamos el PDF para que puedas guardarlo o compartirlo cuando lo necesites.</p>'
+        . '<table style="width:100%;border-collapse:separate;border-spacing:0;background-color:#f8fafc;border-radius:8px;padding:15px;margin-bottom:25px;">'
+        . build_email_detail_rows([
+            ['label' => 'Profesional', 'value' => $doctorLabel],
+            ['label' => 'Emitida', 'value' => $issuedLabel],
+            ['label' => 'Items', 'value' => (string) count($medications)],
+        ], 'padding:8px 0;color:#64748b;font-weight:bold;width:120px;', 'padding:8px 0;color:#334155;')
+        . '</table>'
+        . ($listItems !== ''
+            ? '<div style="margin:0 0 24px;padding:16px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;"><p style="margin:0 0 12px;font-weight:700;color:#0f172a;">Resumen de la receta</p><ul style="margin:0;padding-left:20px;">' . $listItems . '</ul></div>'
+            : '')
+        . build_email_cta_button($portalUrl, 'Abrir portal del paciente')
+        . '<p style="margin:0;font-size:13px;color:#94a3b8;text-align:center;">Si tienes dudas sobre la indicación o la dosis, responde este correo.</p>';
+
+    return get_email_template('Tu receta esta lista', $content, 'Tu receta medica ya esta disponible');
+}
+
+/**
+ * Builds the plain-text email for a ready prescription.
+ *
+ * @param array<string,mixed> $contact
+ * @param array<string,mixed> $prescription
+ */
+function build_prescription_ready_email_text(array $contact, array $prescription, string $portalUrl): string
+{
+    $medications = normalize_prescription_email_items($prescription);
+    $doctor = function_exists('doctor_profile_document_fields')
+        ? doctor_profile_document_fields(isset($prescription['doctor']) && is_array($prescription['doctor']) ? $prescription['doctor'] : [])
+        : [];
+
+    $body = "Hola " . (string) ($contact['name'] ?? 'Paciente') . ",\n\n";
+    $body .= "Tu receta medica ya esta lista.\n";
+    $body .= "Adjuntamos el PDF y tambien puedes revisarla desde el portal del paciente.\n\n";
+    $body .= "Profesional: " . (string) ($doctor['name'] ?? $prescription['issued_by'] ?? 'Medico tratante') . "\n";
+    $body .= "Portal del paciente: " . $portalUrl . "\n";
+
+    if ($medications !== []) {
+        $body .= "\nResumen:\n";
+        foreach ($medications as $item) {
+            $row = '- ' . (string) ($item['medication'] ?? '');
+            $support = trim(implode(' · ', array_filter([
+                (string) ($item['dose'] ?? ''),
+                (string) ($item['frequency'] ?? ''),
+                (string) ($item['duration'] ?? ''),
+            ], static fn (string $value): bool => $value !== '')));
+            if ($support !== '') {
+                $row .= ' (' . $support . ')';
+            }
+            $body .= $row . "\n";
+        }
+    }
+
+    $body .= "\nSi tienes dudas, responde este correo.\n";
+    return $body;
+}
+
+/**
+ * Sends the branded prescription-ready email using the patient contact resolved from store data.
+ *
+ * @param array<string,mixed> $store
+ * @param array<string,mixed> $prescription
+ * @param array<string,mixed> $session
+ */
+function maybe_send_prescription_ready_email(array $store, array $prescription, array $session = [], array $options = []): bool
+{
+    $caseId = trim((string) ($prescription['caseId'] ?? ''));
+    if ($caseId === '') {
+        return false;
+    }
+
+    $contact = resolve_case_contact_context($store, $caseId, $session);
+    $recipient = email_recipient_or_empty((string) ($contact['email'] ?? ''));
+    if ($recipient === '') {
+        return false;
+    }
+
+    $portalUrl = trim((string) ($options['portalUrl'] ?? (AppConfig::BASE_URL . '/es/portal/receta/')));
+    $normalizedPrescription = $prescription;
+    $normalizedPrescription['caseId'] = $caseId;
+    $normalizedPrescription['medications'] = normalize_prescription_email_items($prescription);
+
+    $attachments = [];
+    try {
+        require_once __DIR__ . '/ClinicProfileStore.php';
+        require_once __DIR__ . '/openclaw/PrescriptionPdfRenderer.php';
+
+        $pdfBytes = PrescriptionPdfRenderer::generatePdfBytes(
+            $normalizedPrescription,
+            isset($contact['patient']) && is_array($contact['patient']) ? $contact['patient'] : [],
+            read_clinic_profile()
+        );
+        if ($pdfBytes !== '') {
+            $attachments[] = [
+                'content' => $pdfBytes,
+                'name' => 'receta-' . trim((string) ($prescription['id'] ?? 'documento')) . '.pdf',
+                'type' => 'application/pdf',
+                'encoding' => 'base64',
+            ];
+        }
+    } catch (Throwable $exception) {
+        error_log('Aurora Derm: no se pudo adjuntar PDF de receta al email - ' . $exception->getMessage());
+    }
+
+    $subject = build_email_subject('Tu receta esta lista');
+    $htmlBody = build_prescription_ready_email_html($contact, $normalizedPrescription, $portalUrl);
+    $textBody = build_prescription_ready_email_text($contact, $normalizedPrescription, $portalUrl);
+
+    return send_mail_to_recipient($recipient, $subject, $htmlBody, true, $attachments, $textBody);
 }
 
 /**
