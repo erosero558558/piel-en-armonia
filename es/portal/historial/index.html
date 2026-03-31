@@ -36,6 +36,82 @@
                 background: linear-gradient(180deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.92));
                 box-shadow: 0 22px 70px rgba(2, 6, 23, 0.45);
             }
+
+            /* UI4-17 Glass Stepper Timeline */
+            .lg-surface-timeline {
+                cursor: pointer;
+                transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+                border-radius: 16px;
+                position: relative;
+                padding: 16px;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.04);
+                backdrop-filter: blur(16px);
+                margin-left: 36px; /* Space for the left-aligned stepper */
+                margin-bottom: 24px;
+            }
+            .lg-surface-timeline:hover {
+                background: rgba(255, 255, 255, 0.05);
+                border-color: rgba(199, 163, 109, 0.3);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            }
+
+            .glass-stepper .portal-timeline-dot {
+                position: absolute;
+                left: -28px; /* Move dot outside the card */
+                top: 24px;
+                width: 14px;
+                height: 14px;
+                border-radius: 999px;
+                background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.8), transparent 30%),
+                            linear-gradient(135deg, #fcebb6 0%, #c7a36d 100%);
+                box-shadow: 0 0 12px rgba(199, 163, 109, 0.6);
+                z-index: 2;
+            }
+
+            /* Translucent connector line */
+            .glass-stepper::before {
+                content: '';
+                position: absolute;
+                left: -22px; /* Center with the dot */
+                top: 48px; 
+                bottom: -36px; /* Connect to next item over margins */
+                width: 2px;
+                background: linear-gradient(to bottom, rgba(199, 163, 109, 0.4), rgba(255, 255, 255, 0.05));
+                z-index: 1;
+            }
+            .glass-stepper:last-child::before {
+                display: none;
+            }
+
+            /* Expandable Cards CSS Grid Spring Trick */
+            .portal-timeline-content-body-wrap {
+                display: grid;
+                grid-template-rows: 0fr;
+                transition: grid-template-rows 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .lg-surface-timeline.is-expanded .portal-timeline-content-body-wrap {
+                grid-template-rows: 1fr;
+            }
+            .portal-timeline-content-body {
+                overflow: hidden;
+                padding-top: 0;
+            }
+            .lg-surface-timeline.is-expanded .portal-timeline-content-body {
+                padding-top: 16px;
+            }
+
+            /* Chevron indicating expansible state */
+            .portal-timeline-chevron {
+                position: absolute;
+                right: 16px;
+                top: 22px;
+                color: rgba(255, 255, 255, 0.4);
+                transition: transform 300ms ease;
+            }
+            .lg-surface-timeline.is-expanded .portal-timeline-chevron {
+                transform: rotate(180deg);
+            }
         </style>
     <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>

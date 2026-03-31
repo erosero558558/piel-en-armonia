@@ -135,22 +135,12 @@
 
     function renderSkeletonItem() {
         return `
-            <article class="portal-timeline-item" style="opacity:0.82;">
+            <article class="portal-timeline-item lg-surface-timeline glass-stepper" style="opacity:0.82;">
                 <span class="portal-timeline-dot" aria-hidden="true"></span>
                 <div class="portal-timeline-content">
                     <div class="skeleton" style="width: 42%; height: 18px; margin-bottom: 12px;"></div>
                     <div class="skeleton" style="width: 64%; height: 14px; margin-bottom: 10px;"></div>
                     <div class="skeleton" style="width: 48%; height: 14px;"></div>
-                    <div class="portal-timeline-document-grid">
-                        <div class="portal-timeline-document">
-                            <div class="skeleton" style="width: 46%; height: 14px;"></div>
-                            <div class="skeleton" style="width: 100%; height: 36px;"></div>
-                        </div>
-                        <div class="portal-timeline-document">
-                            <div class="skeleton" style="width: 52%; height: 14px;"></div>
-                            <div class="skeleton" style="width: 100%; height: 36px;"></div>
-                        </div>
-                    </div>
                 </div>
             </article>
         `;
@@ -364,24 +354,33 @@
         const timeLabel = String(safeItem.timeLabel || '').trim();
 
         return `
-            <article class="portal-timeline-item" data-portal-consultation-item>
+            <article class="portal-timeline-item lg-surface-timeline glass-stepper" data-portal-consultation-item>
                 <span class="portal-timeline-dot" aria-hidden="true"></span>
+                
+                <svg class="portal-timeline-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+
                 <div class="portal-timeline-content">
                     <span class="portal-timeline-date">${escapeHtml(safeItem.dateLabel || 'Fecha por confirmar')}</span>
                     <div class="portal-timeline-meta">
                         <span class="${statusChipClass(safeItem.status || 'completed')}">${escapeHtml(safeItem.statusLabel || 'Consulta registrada')}</span>
                         ${timeLabel ? `<span class="portal-inline-label portal-inline-label--muted">${escapeHtml(timeLabel)}</span>` : ''}
                     </div>
-                    <p class="portal-timeline-reason">${escapeHtml(serviceName)}</p>
-                    <div class="portal-timeline-doctor">
+                    <p class="portal-timeline-reason" style="margin-top: 12px; margin-bottom: 4px;">${escapeHtml(serviceName)}</p>
+                    <div class="portal-timeline-doctor" style="color: var(--reborn-color-muted); font-size: 0.85em;">
                         <span>${escapeHtml(doctorName)}</span>
-                        ${appointmentTypeLabel ? `<span>· ${escapeHtml(appointmentTypeLabel)}</span>` : ''}
                         ${locationLabel ? `<span>· ${escapeHtml(locationLabel)}</span>` : ''}
                     </div>
-                    ${renderHistoryEvents(safeItem.events)}
-                    <div class="portal-timeline-document-grid">
-                        ${renderDocumentCard(documents.prescription)}
-                        ${renderDocumentCard(documents.certificate)}
+                    
+                    <div class="portal-timeline-content-body-wrap">
+                        <div class="portal-timeline-content-body">
+                            ${renderHistoryEvents(safeItem.events)}
+                            <div class="portal-timeline-document-grid" style="margin-top: 16px;">
+                                ${renderDocumentCard(documents.prescription)}
+                                ${renderDocumentCard(documents.certificate)}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </article>
@@ -545,9 +544,18 @@
         }
     }
 
+    function handleTimelineExpand(event) {
+        const item = event.target instanceof Element ? event.target.closest('.lg-surface-timeline') : null;
+        if (!item || event.target.closest('a, button')) {
+            return;
+        }
+        item.classList.toggle('is-expanded');
+    }
+
     document.addEventListener('click', (event) => {
         void handleDocumentClick(event);
         void handleHistoryDownloadClick(event);
+        handleTimelineExpand(event);
     });
 
     document.addEventListener('DOMContentLoaded', () => {

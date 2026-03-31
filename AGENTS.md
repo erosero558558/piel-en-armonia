@@ -2087,9 +2087,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI4-16** `[L]` `[UI]` Portal dashboard glass — `es/portal/index.html`: cada card del dashboard (próxima cita, balance, documentos) con `.lg-surface--dark`, número/dato principal en tipografía grande (clamp 32→48px), borde gold al hover. El dashboard debe sentirse como una app financiera premium. Verificable: `grep "lg-surface--dark.*portal\|portal.*glass" es/portal/index.html` → match.
 
-- [ ] **UI4-17** `[M]` `[UI]` Timeline de historial glass — `es/portal/historial/`: eventos clínicos como stepper vertical, cada nodo con circle glass dorado, línea conectora translúcida, cards expandibles al clic con `height: 0 → auto` spring. Verificable: `grep "lg-surface.*timeline\|glass.*stepper" es/portal/historial/index.html` → match.
+- [x] **UI4-17** `[M]` `[UI]` Timeline de historial glass — `es/portal/historial/`: eventos clínicos como stepper vertical, cada nodo con circle glass dorado, línea conectora translúcida, cards expandibles al clic con `height: 0 → auto` spring. Verificable: `grep "lg-surface.*timeline\|glass.*stepper" es/portal/historial/index.html` → match.
 
-- [ ] **UI4-18** `[M]` `[UI]` Kiosk glass skin — `kiosk.html`: la pantalla del kiosco en sala de espera debe tener: fondo de video/animación sutil de partículas en navy, panel central glass para registro de turno, contadores en glass pill. Pacientes que esperan ven algo premium, no una pantalla de admin. Verificable: `grep "lg-surface\|kiosk.*glass" kiosk.html` → match.
+- [x] **UI4-18** `[M]` `[UI]` Kiosk glass skin — `kiosk.html`: la pantalla del kiosco en sala de espera debe tener: fondo de video/animación sutil de partículas en navy, panel central glass para registro de turno, contadores en glass pill. Pacientes que esperan ven algo premium, no una pantalla de admin. Verificable: `grep "lg-surface\|kiosk.*glass" kiosk.html` → match.
 
 ---
 

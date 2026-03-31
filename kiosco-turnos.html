@@ -28,6 +28,19 @@
 <!-- Liquid Reborn Convergence -->
 <link rel="stylesheet" href="/styles/reborn-tokens.css">
 <link rel="stylesheet" href="/styles/reborn-typo.css">
+<!-- UI4-18 Liquid Glass System -->
+<link rel="stylesheet" href="/src/apps/astro/src/styles/public-v6/liquid-glass.css">
+<style>
+  /* Ambient navy gradient background for Kiosk */
+  .queue-kiosk-body {
+    background: radial-gradient(circle at 50% -10%, #0d1627 0%, #030812 80%) !important;
+    background-attachment: fixed !important;
+  }
+  .kiosk-card {
+    border: none !important;
+    background: transparent !important;
+  }
+</style>
 <link rel="stylesheet" href="/styles/aurora-kiosk.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>
@@ -152,7 +165,7 @@
         ></section>
 
         <main class="kiosk-layout">
-            <section class="kiosk-card kiosk-checkin-card">
+            <section class="kiosk-card kiosk-checkin-card lg-surface--deep" style="border-radius: 24px; padding: 40px; margin-top: 24px;">
                 <p class="kiosk-stage-kicker">Paso 1</p>
                 <h1>Elige cómo quieres sacar tu turno</h1>
                 <p class="kiosk-intro-copy">
@@ -377,7 +390,7 @@
             </section>
 
             <aside class="kiosk-side">
-                <section class="kiosk-card kiosk-card--queue">
+                <section class="kiosk-card kiosk-card--queue lg-surface" style="border-radius: 24px; padding: 24px; margin-top: 24px; margin-bottom: 24px;">
                     <h2>Cola y pantalla</h2>
                     <p
                         id="queueConnectionState"
@@ -396,18 +409,18 @@
                         class="turnero-surface-sync-host turnero-surface-sync-host--kiosk"
                         aria-live="polite"
                     ></div>
-                    <div class="queue-kpi-row">
+                    <div class="queue-kpi-row" style="gap:12px; display:flex;">
                         <article>
                             <span>En espera</span>
-                            <strong id="queueWaitingCount">0</strong>
+                            <strong id="queueWaitingCount" class="glass-pill glass-pill--gold">0</strong>
                         </article>
                         <article>
                             <span>Llamados</span>
-                            <strong id="queueCalledCount">0</strong>
+                            <strong id="queueCalledCount" class="glass-pill">0</strong>
                         </article>
                         <article>
                             <span>Espera est.</span>
-                            <strong id="queueEstimatedWait">Ahora</strong>
+                            <strong id="queueEstimatedWait" class="glass-pill">Ahora</strong>
                         </article>
                     </div>
                     <p id="queueWaitContext" class="queue-wait-context">
@@ -434,7 +447,7 @@
                     </ol>
                 </section>
 
-                <section class="kiosk-card kiosk-card--assistant">
+                <section class="kiosk-card kiosk-card--assistant lg-surface" style="border-radius: 24px; padding: 24px;">
                     <h2>Asistente de orientación</h2>
                     <p class="assistant-note">
                         Solo orienta sobre turnos y sala de espera. No da
