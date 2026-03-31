@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 6:21:34 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 9:04:46 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **57%** completado (268/467)
+`████████████░░░░░░░░` **58%** completado (270/467)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -16,7 +16,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 2 | 24 | 0 | 100% |
 | 🎯 Sprint 3 | 66 | 1 | 99% |
 | ⏸ Sprint 4 | 25 | 1 | 96% |
-| ⏸ Sprint 5 | 17 | 5 | 77% |
+| ⏸ Sprint 5 | 18 | 4 | 82% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 8 | 29 | 22% |
 | ✅ Sprint UI | 19 | 0 | 100% |
@@ -57,13 +57,12 @@ _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 - **S4-11** `[S4]` — necesita: S4-06 primero
 
 ## ⏸ Sprint 5 — Portal del Paciente (PWA)
-_Esperando que Sprint anterior esté completo. 5 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 
-### 🟢 Disponibles (4)
+### 🟢 Disponibles (3)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S5-16** | `[S5]` | M |
 | **S5-17** | `[S5]` | M |
 | **S5-20** | `[S5]` | L |
 | **S5-22** | `[S5]` | S |
@@ -245,13 +244,6 @@ _Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 | **S17-16** | `[S17]` | M |
 | **S17-17** | `[S17]` | M |
 
-<<<<<<< HEAD
-=======
-### 🔒 En progreso — NO tomar
-
-- **S17-10** `[S17]` → _Antigravity_ (expira en 199min)
-
->>>>>>> 23adc2af (feat(S4-10): add multi-clinic admin dashboard)
 ## ✅ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
 _Sprint completado. 4/4 tareas._
 
