@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-31T11:10:26.823Z",
+  "generatedAt": "2026-03-31T15:53:04.953Z",
   "releaseVersion": "unknown",
   "releaseChannel": "unknown",
   "allSurfacesReady": false,
@@ -10,7 +10,7 @@
       "label": "Consola Admin",
       "file": "admin.html",
       "exists": true,
-      "sizeKb": 33,
+      "sizeKb": 63,
       "hasAuth": true,
       "ready": true
     },
@@ -46,7 +46,7 @@
     {
       "path": "js/queue-operator.js",
       "exists": true,
-      "sizeKb": 3182
+      "sizeKb": 3193
     },
     {
       "path": "js/queue-kiosk.js",

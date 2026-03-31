@@ -18,7 +18,7 @@ const navModel = getV6NavigationModel(locale, pathname);
 ---
 
 <PublicShellV6
-    title={page.title}
+    title="Aurora Derm | Clínica Dermatológica"
     description={page.description}
     locale={locale}
     canonicalPath={pathname}
@@ -26,17 +26,45 @@ const navModel = getV6NavigationModel(locale, pathname);
     pathname={pathname}
     navModel={navModel}
     templateId="home_v6"
-    ogImageSrc={page?.preloadImage?.src}
-    preloadImageSrc={page?.preloadImage?.src}
-    preloadImageSrcSet={page?.preloadImage?.srcset}
-    preloadImageSizes="(max-width: 900px) 100vw, 32vw"
+    ogImageSrc="/images/optimized/v6-clinic-brand-hero-wide.jpg"
 >
-    <HeroShowcaseV6 hero={page.hero} locale={locale} />
-    <NewsStripV6 item={page.newsStrip} navModel={navModel} locale={locale} />
-    <EditorialGridV6 section={page.editorial} locale={locale} />
-    <TrustSignalsV6 section={page.trustSignals} />
-    <GoogleReviewsV6 section={page.googleReviews} locale={locale} />
-    <CaseStoriesV6 locale={locale} />
-    <BookingStatusV6 status={page.bookingStatus} locale={locale} />
-    <CorporateMatrixV6 section={page.corporateMatrix} locale={locale} />
+    <!-- RB-05: Hero Cinemático -->
+    <header class="reborn-hero">
+        <picture class="reborn-hero__media">
+            <source srcset="/images/optimized/v6-clinic-brand-hero-wide.webp" type="image/webp" />
+            <img 
+                src="/images/optimized/v6-clinic-brand-hero-wide.jpg" 
+                alt="Clínica Aurora Derm - Dermatología Avanzada" 
+                fetchpriority="high"
+                decoding="sync"
+            />
+        </picture>
+        <div class="reborn-hero__scrim"></div>
+        <div class="reborn-hero__content">
+            <h1 class="reborn-hero__title reborn-display">La ciencia detrás de tu piel</h1>
+            <a href="/portal/agendar" class="reborn-hero__ghost">Agendar ahora</a>
+        </div>
+    </header>
+
+    <!-- RB-06: Bento Grid Layout -->
+    <section class="reborn-bento">
+        <a href="/es/servicios/diagnostico-integral/" class="reborn-bento__item reborn-bento__item--tall">
+            <img class="reborn-bento__media" src="/images/optimized/v6-services-acne.webp" alt="Diagnóstico" loading="lazy" />
+            <h3 class="reborn-bento__title">Diagnóstico Integral</h3>
+            <p class="reborn-bento__desc">Evaluación dermatológica clínica completa con dermatoscopia.</p>
+        </a>
+        <a href="/es/servicios/laser-dermatologico/" class="reborn-bento__item reborn-bento__item--wide">
+            <img class="reborn-bento__media" src="/images/optimized/v6-services-laser.webp" alt="Láser" loading="lazy" />
+            <h3 class="reborn-bento__title">Láser Dermatológico</h3>
+            <p class="reborn-bento__desc">Tratamientos avanzados con plataforma multi-láser de última generación.</p>
+        </a>
+        <a href="/es/servicios/botox/" class="reborn-bento__item">
+            <h3 class="reborn-bento__title">Toxina Botulínica</h3>
+            <p class="reborn-bento__desc">Rejuvenecimiento facial avalado clínicamente.</p>
+        </a>
+        <a href="/es/telemedicina/" class="reborn-bento__item">
+            <h3 class="reborn-bento__title">Teledermatología</h3>
+            <p class="reborn-bento__desc">Consulta remota HD.</p>
+        </a>
+    </section>
 </PublicShellV6>

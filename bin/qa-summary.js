@@ -79,32 +79,41 @@ function checkVerifyScripts() {
 }
 
 function checkGovAudit() {
-  const r = run('bin/audit.js', ['--json']);
-  if (r.exitCode === 0 && r.stdout) {
+  // Use gov:audit:json which runs governance-specific checks (10 steps)
+  const { spawnSync: sp } = require('child_process');
+  const r = sp('npm', ['run', 'gov:audit:json', '--silent'], {
+    cwd: ROOT, timeout: 20000, encoding: 'utf8',
+  });
+  const stdout = (r.stdout || '').trim();
+  if (stdout) {
     try {
-      const d = JSON.parse(r.stdout);
-      // audit.js returns { ok, passedCount, failedCount, stepCount, steps }
-      const total   = d.stepCount   ?? (Array.isArray(d.steps) ? d.steps.length : 0);
-      const passing = d.passedCount ?? (Array.isArray(d.steps) ? d.steps.filter(s => s.ok).length : 0);
-      const failed  = d.failedCount ?? 0;
-      return {
-        name:     'gov-audit',
-        label:    'Governance audit',
-        pass:     d.ok === true && failed === 0,
-        critical: true,
-        detail:   total > 0 ? `${passing}/${total} checks` : (d.ok ? 'PASS' : 'FAIL'),
-      };
-    } catch (_) {
-      // Not JSON — text fallback
-    }
+      // The JSON may be truncated due to long verificable regex strings — extract header
+      // Find the first closing of the top-level keys before the first step
+      const headerMatch = stdout.match(/\{[\s\S]*?"failedCount"\s*:\s*(\d+)[\s\S]*?"passedCount"\s*:\s*(\d+)[\s\S]*?"stepCount"\s*:\s*(\d+)/);
+      const headerMatch2 = stdout.match(/\{[\s\S]*?"passedCount"\s*:\s*(\d+)[\s\S]*?"failedCount"\s*:\s*(\d+)[\s\S]*?"stepCount"\s*:\s*(\d+)/);
+      const okMatch = stdout.match(/"ok"\s*:\s*(true|false)/);
+      if (headerMatch || headerMatch2 || okMatch) {
+        const failed  = headerMatch ? parseInt(headerMatch[1]) : (headerMatch2 ? parseInt(headerMatch2[2]) : 0);
+        const passing = headerMatch ? parseInt(headerMatch[2]) : (headerMatch2 ? parseInt(headerMatch2[1]) : 0);
+        const total   = headerMatch ? parseInt(headerMatch[3]) : (headerMatch2 ? parseInt(headerMatch2[3]) : 0);
+        const ok      = okMatch ? okMatch[1] === 'true' : failed === 0;
+        return {
+          name:     'gov-audit',
+          label:    'Governance audit',
+          pass:     ok && failed === 0,
+          critical: true,
+          detail:   total > 0 ? `${passing}/${total} gov checks` : (ok ? 'PASS' : 'FAIL'),
+        };
+      }
+    } catch (_) {}
   }
   // Fallback: derive from exit code
   return {
     name:     'gov-audit',
     label:    'Governance audit',
-    pass:     r.exitCode === 0,
+    pass:     r.status === 0,
     critical: true,
-    detail:   r.exitCode === 0 ? 'PASS' : 'FAIL (ver bin/audit.js)',
+    detail:   r.status === 0 ? 'PASS' : 'FAIL (ver npm run gov:audit:json)',
   };
 }
 

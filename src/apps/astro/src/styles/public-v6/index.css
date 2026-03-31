@@ -1,5 +1,8 @@
 @import '../../../../../../styles/reborn-tokens.css';
 @import '../../../../../../styles/reborn-typo.css';
+@import '../../../../../../styles/reborn-nav.css';
+@import '../../../../../../styles/reborn-hero.css';
+@import '../../../../../../styles/reborn-layout.css';
 @import './primitives.css';
 @import './layout.css';
 @import './liquid-glass.css';

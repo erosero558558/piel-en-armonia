@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-03-31T11:10:25.392Z",
-  "gate": "GREEN",
-  "criticalsFailed": 0,
+  "generatedAt": "2026-03-31T15:53:03.994Z",
+  "gate": "RED",
+  "criticalsFailed": 1,
   "allPassed": false,
   "checks": [
     {
@@ -10,14 +10,14 @@
       "pass": true,
       "critical": true,
       "detail": "0 referencias rotas",
-      "raw": "✅ verify:scripts — 0 referencias rotas en package.json"
+      "raw": "✅ verify:scripts — 0 referencias rotas en package.json\n📄 Reporte actualizado en governance/broken-scripts.json"
     },
     {
       "name": "gov-audit",
       "label": "Governance audit",
-      "pass": true,
+      "pass": false,
       "critical": true,
-      "detail": "8/8 checks"
+      "detail": "FAIL"
     },
     {
       "name": "broken-scripts-report",

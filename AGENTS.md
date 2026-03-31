@@ -1465,9 +1465,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### RB-1 Shell Inmersivo y Navegación "Invisible"
 
-- [ ] **RB-04** `[L]` `[UI]` Navbar Glassmorphism Píldora — píldora flotante `border-radius: 999px`, `max-width: 600px`, centrada, `backdrop-filter: blur(20px)`, NO full-width. Logo 24px, hamburguesa SVG, CTA "Agendar" como pill dorado. Verificable: `grep "border-radius.*999px\|navbar.*pill\|RB-04" styles/reborn-nav.css` → match; `grep "v6-header" es/index.html | wc -l` → 0 (reemplazado).
-- [ ] **RB-05** `[XL]` `[UI]` Hero Screen Cinemático — imagen HD en `<picture>` con `object-fit: cover`, `filter: brightness(0.3)`, overlay gradient `#050810 → transparent`. Texto único h1 con tipografía RB-03. Ghost button CTA. **Restricción LCP ≤2.5s**: imagen con `fetchpriority="high"`, NO video autoplay en desktop. Verificable: `grep "fetchpriority.*high\|RB-05" es/index.html` → match; Lighthouse LCP score ≥85.
-- [ ] **RB-06** `[XL]` `[UI]` Layout Bento Grid — grid CSS `grid-template-columns: repeat(3, 1fr)` con celdas de distintos tamaños (`grid-row: span 2`), `border-radius: 24px`, `background: rgba(28,28,30,0.65)`, `border: 1px solid rgba(255,255,255,0.06)`. Verificable: `grep "border-radius.*24px\|grid-row.*span\|bento" styles/reborn-layout.css` → match ≥3.
+- [x] **RB-04** `[L]` `[UI]` Navbar Glassmorphism Píldora — píldora flotante `border-radius: 999px`, `max-width: 600px`, centrada, `backdrop-filter: blur(20px)`, NO full-width. Logo 24px, hamburguesa SVG, CTA "Agendar" como pill dorado. Verificable: `grep "border-radius.*999px\|navbar.*pill\|RB-04" styles/reborn-nav.css` → match; `grep "v6-header" es/index.html | wc -l` → 0 (reemplazado).
+- [x] **RB-05** `[XL]` `[UI]` Hero Screen Cinemático — imagen HD en `<picture>` con `object-fit: cover`, `filter: brightness(0.3)`, overlay gradient `#050810 → transparent`. Texto único h1 con tipografía RB-03. Ghost button CTA. **Restricción LCP ≤2.5s**: imagen con `fetchpriority="high"`, NO video autoplay en desktop. Verificable: `grep "fetchpriority.*high\|RB-05" es/index.html` → match; Lighthouse LCP score ≥85.
+- [x] **RB-06** `[XL]` `[UI]` Layout Bento Grid — grid CSS `grid-template-columns: repeat(3, 1fr)` con celdas de distintos tamaños (`grid-row: span 2`), `border-radius: 24px`, `background: rgba(28,28,30,0.65)`, `border: 1px solid rgba(255,255,255,0.06)`. Verificable: `grep "border-radius.*24px\|grid-row.*span\|bento" styles/reborn-layout.css` → match ≥3.
 
 #### RB-2 Interacción de Diagnóstico (ChatGPT-like UI)
 
@@ -2005,7 +2005,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI4-11** `[S]` `[UI]` Hover glass ripple — al hacer hover en cualquier `.lg-surface`, agregar efecto de "ondulación interna": pseudo `::after` circular que hace `transform: scale(0) → scale(2.5)`, `opacity: 0.06 → 0`, `background: radial-gradient(rgba(255,255,255,0.4))`. Duración `600ms ease-out`. Verificable: `grep "ripple\|scale.*2.5.*glass" liquid-glass.css` → match.
 
-- [ ] **UI4-12** `[M]` `[UI]` Page transition glass morphing — al navegar entre páginas, en lugar de flash blanco, implementar: overlay glass que hace `opacity 0→1→0` con `blur(0→8px→0)` en `200ms+200ms`. Aprovechar `aurora-nprogress.js` para sincronizar. El efecto es idéntico al "Sheet" de UIKit en iOS. Verificable: `grep "page-transition.*glass\|blur.*transition.*nav" js/aurora-nprogress.js` → match.
+- [x] **UI4-12** `[M]` `[UI]` Page transition glass morphing — al navegar entre páginas, en lugar de flash blanco, implementar: overlay glass que hace `opacity 0→1→0` con `blur(0→8px→0)` en `200ms+200ms`. Aprovechar `aurora-nprogress.js` para sincronizar. El efecto es idéntico al "Sheet" de UIKit en iOS. Verificable: `grep "page-transition.*glass\|blur.*transition.*nav" js/aurora-nprogress.js` → match.
 
 #### 20.4 Superficie pública — Lavado de cara total
 
