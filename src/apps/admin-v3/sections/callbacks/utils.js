@@ -15,6 +15,7 @@ export {
     priorityBand,
     priorityLabel,
     priorityRank,
+    scoreSummary,
     serviceHint,
     waitBand,
     waitingLabel,

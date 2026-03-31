@@ -21,6 +21,7 @@ export {
     priorityBand,
     priorityLabel,
     priorityRank,
+    scoreSummary,
     serviceHint,
 } from './lead-ops.js';
 export { phoneLabel } from './contact.js';

@@ -125,6 +125,8 @@ async function setupLeadOpsAdminApiMocks(page) {
             status: 'pending',
             leadOps: {
                 heuristicScore: 88,
+                scoreSummary:
+                    'Tiempo en cola + Urgencia clinica · Ajuste: Servicio premium',
                 priorityBand: 'hot',
                 reasonCodes: ['keyword_precio', 'keyword_urgencia'],
                 serviceHints: ['Botox medico'],
@@ -149,6 +151,7 @@ async function setupLeadOpsAdminApiMocks(page) {
             status: 'pending',
             leadOps: {
                 heuristicScore: 56,
+                scoreSummary: 'Tiempo en cola + Valor estimado',
                 priorityBand: 'warm',
                 reasonCodes: ['waiting_queue'],
                 serviceHints: ['Acne y rosacea'],
@@ -172,6 +175,7 @@ async function setupLeadOpsAdminApiMocks(page) {
             status: 'contactado',
             leadOps: {
                 heuristicScore: 24,
+                scoreSummary: 'Canal',
                 priorityBand: 'cold',
                 reasonCodes: [],
                 serviceHints: [],
@@ -467,7 +471,7 @@ test.describe('Admin callbacks triage', () => {
         });
         await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.keyboard.press('Alt+Shift+Digit3');
+        await page.locator('a.nav-item[data-section="callbacks"]').click();
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
 
         const firstCard = page.locator('#callbacksGrid .callback-card').first();
@@ -475,6 +479,10 @@ test.describe('Admin callbacks triage', () => {
             3
         );
         await expect(firstCard).toContainText('+593 99 111 0001');
+        await expect(firstCard).toContainText('Score 88');
+        await expect(firstCard).toContainText(
+            'Tiempo en cola + Urgencia clinica'
+        );
         await expect(firstCard).toContainText('Hot');
         await expect(firstCard).toContainText('Sin IA');
         await expect(page.locator('#callbacksOpsQueueHealth')).toHaveText(

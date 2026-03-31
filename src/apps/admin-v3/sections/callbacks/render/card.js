@@ -8,6 +8,7 @@ import {
     phoneLabel,
     priorityBand,
     priorityLabel,
+    scoreSummary,
     serviceHint,
     waitingLabel,
     waitingMinutes,
@@ -47,6 +48,8 @@ export function callbackCard(
     const ageMinutes = waitingMinutes(item);
     const band = priorityBand(item);
     const draft = aiDraftText(item);
+    const score = heuristicScore(item);
+    const scoreMeta = scoreSummary(item);
 
     return `
         <article class="callback-card ${escapeHtml(band)} ${status === 'pending' ? 'pendiente' : 'contactado'}${selected ? ' is-selected' : ''}" data-callback-id="${id}" data-callback-status="${status === 'pending' ? 'pendiente' : 'contactado'}">
@@ -56,8 +59,8 @@ export function callbackCard(
                         <span class="callback-status-pill" data-tone="${escapeHtml(band)}">${escapeHtml(priorityLabel(item))}</span>
                         <span class="callback-status-pill subtle">${escapeHtml(aiStatusLabel(item, workerMode))}</span>
                     </div>
-                    <h4>${escapeHtml(phone)}</h4>
-                    <p class="callback-card-subtitle">${escapeHtml(position === 1 ? 'Siguiente lead sugerido' : 'Lead interno')}${heuristicScore(item) ? ` · Score ${escapeHtml(String(heuristicScore(item)))}` : ''}</p>
+                    <h4>${escapeHtml(phone)}${score ? ` · Score ${escapeHtml(String(score))}` : ''}</h4>
+                    <p class="callback-card-subtitle">${escapeHtml(position === 1 ? 'Siguiente lead sugerido' : 'Lead interno')}${scoreMeta ? ` · ${escapeHtml(scoreMeta)}` : ''}</p>
                 </div>
                 <span class="callback-card-wait" data-tone="${escapeHtml(status === 'pending' ? band : 'success')}">${escapeHtml(waitingLabel(ageMinutes))}</span>
             </header>

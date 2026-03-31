@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/lead/LeadScoringService.php';
+
 final class LeadOpsService
 {
     private const OBJECTIVES = ['service_match', 'call_opening', 'whatsapp_draft'];
@@ -1153,38 +1155,30 @@ final class LeadOpsService
         $ageMinutes = $createdAt > 0
             ? max(0, (int) round((time() - $createdAt) / 60))
             : 0;
-        $score = $status === 'pendiente' ? 18 : 6;
-        $reasonCodes = [];
-
-        if ($ageMinutes >= 180) {
-            $score += 26;
-            $reasonCodes[] = 'sla_overdue';
-        } elseif ($ageMinutes >= 60) {
-            $score += 16;
-            $reasonCodes[] = 'waiting_queue';
-        } elseif ($ageMinutes >= 20) {
-            $score += 8;
-        }
+        [$serviceHints, , $serviceReasons] = self::resolveServiceHints($preference, $funnelMetrics);
+        $scoring = LeadScoringService::scoreCallback($callback, $store, [
+            'preference' => $preference,
+            'ageMinutes' => $ageMinutes,
+            'serviceHints' => $serviceHints,
+        ]);
+        $score = (int) ($scoring['score'] ?? 0);
+        $reasonCodes = array_merge(
+            is_array($scoring['reasonCodes'] ?? null) ? $scoring['reasonCodes'] : [],
+            $serviceReasons
+        );
 
         foreach ([
-            'urgencia' => ['urgente', 'ahora', 'hoy', 'ya', 'pronto', 'asap'],
             'precio' => ['precio', 'costo', 'cuanto', 'valor', 'tarifa'],
             'agenda' => ['agenda', 'cita', 'turno', 'hora', 'disponible', 'manana', 'tarde'],
-            'clinical' => ['lesion', 'lunar', 'sangra', 'ardor', 'dolor', 'cancer', 'mancha'],
         ] as $code => $tokens) {
             foreach ($tokens as $token) {
                 if (!str_contains($preference, $token)) {
                     continue;
                 }
-                $score += $code === 'urgencia' ? 14 : ($code === 'clinical' ? 12 : 8);
                 $reasonCodes[] = 'keyword_' . $code;
                 break;
             }
         }
-
-        [$serviceHints, $serviceScore, $serviceReasons] = self::resolveServiceHints($preference, $funnelMetrics);
-        $score += $serviceScore;
-        $reasonCodes = array_merge($reasonCodes, $serviceReasons);
 
         if (($funnelMetrics['summary']['checkoutAbandon'] ?? 0) > 0) {
             $score += 4;
@@ -1192,7 +1186,12 @@ final class LeadOpsService
         }
 
         $score = self::clampInt($score, 0, 100);
-        $priorityBand = $score >= 72 ? 'hot' : ($score >= 45 ? 'warm' : 'cold');
+        $priorityBand = (string) ($scoring['priorityBand'] ?? '');
+        if ($priorityBand === '') {
+            $priorityBand = $score >= 72 ? 'hot' : ($score >= 45 ? 'warm' : 'cold');
+        } elseif (($priorityBand === 'hot' && $score < 72) || ($priorityBand === 'warm' && $score < 45)) {
+            $priorityBand = $score >= 72 ? 'hot' : ($score >= 45 ? 'warm' : 'cold');
+        }
 
         $nextAction = $priorityBand === 'hot'
             ? 'Llamar en menos de 10 min'
@@ -1214,6 +1213,8 @@ final class LeadOpsService
             'reasonCodes' => array_slice(array_values(array_unique($reasonCodes)), 0, 8),
             'serviceHints' => array_slice($serviceHints, 0, 3),
             'nextAction' => $nextAction,
+            'scoreSummary' => truncate_field(sanitize_xss((string) ($scoring['summary'] ?? '')), 220),
+            'scoreFactors' => self::sanitizeList($scoring['factorLabels'] ?? [], 4, 80),
         ];
     }
 

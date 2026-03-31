@@ -63,3 +63,7 @@ export function heuristicScore(item) {
     const score = Number(leadOps(item).heuristicScore || 0);
     return Number.isFinite(score) ? score : 0;
 }
+
+export function scoreSummary(item) {
+    return String(leadOps(item).scoreSummary || '').trim();
+}
