@@ -6,6 +6,16 @@ require_once __DIR__ . '/../lib/PushService.php';
 
 class PushController
 {
+    public static function diagnostics(array $context): void
+    {
+        self::ensureAdmin($context);
+
+        $service = new PushService();
+        json_response(array_merge([
+            'ok' => true
+        ], $service->getDiagnostics()));
+    }
+
     public static function config(array $context): void
     {
         self::ensureAdmin($context);
@@ -83,6 +93,7 @@ class PushController
 
         $service = new PushService();
         $result = $service->sendNotification($payload);
+        $service->recordTestMetric($result);
 
         json_response([
             'ok' => true,

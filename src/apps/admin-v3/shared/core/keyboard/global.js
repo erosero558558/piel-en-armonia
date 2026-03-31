@@ -83,9 +83,8 @@ export function handleGlobalKeyboardShortcut(event, options) {
         return false;
     }
 
-    if (
-        document.documentElement.getAttribute('data-admin-ready') !== 'true'
-    ) {
+    const readyAttr = document.documentElement?.getAttribute('data-admin-ready');
+    if (readyAttr !== undefined && readyAttr !== null && readyAttr !== 'true') {
         return false;
     }
 

@@ -32,6 +32,7 @@ class ApiConfig
             'lead-ai-queue:GET' => [60, 60],
             'whatsapp-openclaw-outbox:GET' => [120, 60],
             'whatsapp-openclaw-ops:GET' => [60, 60],
+            'whatsapp-openclaw-metrics:GET' => [60, 60],
             'operator-auth-status:GET' => [90, 60],
             'operator-pin-status:GET' => [120, 60],
             'operator-session-status:GET' => [120, 60],

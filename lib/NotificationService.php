@@ -274,4 +274,112 @@ final class NotificationService
         $digits = preg_replace('/\D+/', '', $value);
         return is_string($digits) ? $digits : '';
     }
+
+    public static function sendAppointmentCreatedPush(array $appointment): void
+    {
+        $criteria = self::criteriaForAppointment($appointment);
+        if ($criteria === []) {
+            return;
+        }
+
+        $context = function_exists('build_appointment_email_context')
+            ? build_appointment_email_context($appointment)
+            : [
+                'doctorLabel' => (string) ($appointment['doctor'] ?? 'su especialista'),
+                'timeLabel'   => (string) ($appointment['time'] ?? ''),
+                'dateLabel'   => (string) ($appointment['date'] ?? ''),
+            ];
+
+        $doctor = trim((string) ($context['doctorLabel'] ?? 'su especialista'));
+        $time = trim((string) ($context['timeLabel'] ?? ($appointment['time'] ?? '')));
+        $date = trim((string) ($context['dateLabel'] ?? ($appointment['date'] ?? '')));
+
+        $payload = [
+            'category' => 'appointments',
+            'title' => 'Cita Reservada',
+            'body' => "Hemos confirmado tu cita con {$doctor} el {$date} a las {$time}.",
+            'data' => [
+                'type' => 'appointment_created',
+                'appointmentId' => $appointment['id'] ?? null,
+                'url' => '/patient/appointments'
+            ]
+        ];
+
+        self::push($payload, $criteria);
+    }
+
+    public static function sendQueueCallNextPush(array $ticket, int $room): void
+    {
+        $patientId = trim((string) ($ticket['patientId'] ?? $ticket['patient_id'] ?? ''));
+        if ($patientId === '') {
+            return;
+        }
+
+        $code = trim((string) ($ticket['code'] ?? ''));
+        $criteria = [
+            'patientId' => $patientId,
+            'channel' => 'patient_portal',
+        ];
+
+        $payload = [
+            'category' => 'queue_updates',
+            'title' => '¡Es tu turno!',
+            'body' => "Turno {$code}, por favor acércate al consultorio {$room}.",
+            'data' => [
+                'type' => 'queue_call_next',
+                'ticketCode' => $code,
+                'room' => $room,
+                'url' => '/patient/queue'
+            ]
+        ];
+
+        self::push($payload, $criteria);
+    }
+
+    public static function sendDocumentReadyPush(array $patient, string $docType, string $docId): void
+    {
+        $patientId = trim((string) ($patient['id'] ?? ''));
+        if ($patientId === '') {
+            $phone = self::normalizePhone((string) ($patient['phone'] ?? ''));
+            if ($phone === '') {
+                return; // no target
+            }
+            $criteria = [
+                'phone' => $phone,
+                'channel' => 'patient_portal',
+            ];
+        } else {
+            $criteria = [
+                'patientId' => $patientId,
+                'channel' => 'patient_portal',
+            ];
+        }
+
+        $typeLabel = match($docType) {
+            'prescription' => 'receta médica',
+            'certificate' => 'certificado médico',
+            'order' => 'orden de laboratorio',
+            default => 'documento',
+        };
+
+        $payload = [
+            'category' => 'documents_ready',
+            'title' => 'Documento Listo',
+            'body' => "Tu {$typeLabel} ya está disponible en el portal.",
+            'data' => [
+                'type' => 'document_ready',
+                'docType' => $docType,
+                'docId' => $docId,
+                'url' => '/patient/documents'
+            ]
+        ];
+
+        self::push($payload, $criteria);
+    }
+
+    private static function push(array $payload, array $criteria): void
+    {
+        require_once __DIR__ . '/PushService.php';
+        (new PushService())->sendNotification($payload, $criteria);
+    }
 }

@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 6:00:21 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 6:58:14 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **57%** completado (268/467)
+`█████████████░░░░░░░` **63%** completado (292/467)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -15,8 +15,8 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
 | 🎯 Sprint 3 | 66 | 1 | 99% |
-| ⏸ Sprint 4 | 24 | 2 | 92% |
-| ⏸ Sprint 5 | 17 | 5 | 77% |
+| ✅ Sprint 4 | 26 | 0 | 100% |
+| ⏸ Sprint 5 | 21 | 1 | 95% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 8 | 29 | 22% |
 | ✅ Sprint UI | 19 | 0 | 100% |
@@ -30,9 +30,9 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 14 | 3 | 11 | 21% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
-| ⏸ Sprint 17 | 8 | 4 | 67% |
+| ⏸ Sprint 17 | 9 | 3 | 75% |
 | ✅ Sprint 18 | 4 | 0 | 100% |
-| ⏸ Sprint 19 | 1 | 17 | 6% |
+| ✅ Sprint 19 | 18 | 0 | 100% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -49,32 +49,15 @@ _Sprint completado. 24/24 tareas._
 
 - **S3-35** `[S3]` L...
 
-## ⏸ Sprint 4 — Escalar el negocio
-_Esperando que Sprint anterior esté completo. 2 tareas pendientes._
+## ✅ Sprint 4 — Escalar el negocio
+_Sprint completado. 26/26 tareas._
+
+## ⏸ Sprint 5 — Portal del Paciente (PWA)
+_Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S4-10** `[S4]` → _Antigravity_ (expira en 480min)
-
-### 🔗 Bloqueadas (necesitan prerequisito)
-
-- **S4-11** `[S4]` — necesita: S4-06 primero
-
-## ⏸ Sprint 5 — Portal del Paciente (PWA)
-_Esperando que Sprint anterior esté completo. 5 tareas pendientes._
-
-### 🟢 Disponibles (4)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S5-16** | `[S5]` | M |
-| **S5-17** | `[S5]` | M |
-| **S5-20** | `[S5]` | L |
-| **S5-22** | `[S5]` | S |
-
-### 🔗 Bloqueadas (necesitan prerequisito)
-
-- **S5-21** `[S5]` — necesita: S5-04 primero
+- **S5-20** `[S5]` → _Antigravity_ (expira en 477min)
 
 ## ⏸ Sprint 6 — Plataforma SaaS para Clínicas
 _Esperando que Sprint anterior esté completo. 24 tareas pendientes._
@@ -131,16 +114,20 @@ _Sprint completado. 20/20 tareas._
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
 _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 
-### 🟢 Disponibles (9)
+### 🟢 Disponibles (8)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S8-10** | `[S8]` | M |
 | **S8-11** | `[S8]` | M |
-| **S8-12** | `[S8]` | M |
 | **S8-13** | `[S8]` | M |
 | **S8-14** | `[S8]` | M |
-| ... | | _+4 más_ |
+| **S8-16** | `[S8]` | S |
+| ... | | _+3 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S8-12** `[S8]` → _Antigravity_ (expira en 238min)
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
 _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
@@ -239,7 +226,7 @@ _Esperando que Sprint anterior esté completo. 10 tareas pendientes._
 _Sprint completado. 13/13 tareas._
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
-_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 
 ### 🟢 Disponibles (3)
 
@@ -249,26 +236,11 @@ _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 | **S17-16** | `[S17]` | M |
 | **S17-17** | `[S17]` | M |
 
-### 🔒 En progreso — NO tomar
-
-- **S17-10** `[S17]` → _Antigravity_ (expira en 220min)
-
 ## ✅ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
 _Sprint completado. 4/4 tareas._
 
-## ⏸ Sprint 19 — Notificaciones, WhatsApp Ops y Android TV
-_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
-
-### 🟢 Disponibles (17)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S19-02** | `[S19]` | M |
-| **S19-03** | `[S19]` | S |
-| **S19-04** | `[S19]` | M |
-| **S19-05** | `[S19]` | M |
-| **S19-06** | `[S19]` | M |
-| ... | | _+12 más_ |
+## ✅ Sprint 19 — Notificaciones, WhatsApp Ops y Android TV
+_Sprint completado. 18/18 tareas._
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

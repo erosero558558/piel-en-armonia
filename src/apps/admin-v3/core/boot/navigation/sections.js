@@ -15,6 +15,9 @@ import { renderAppointmentsSection } from '../../../sections/appointments.js';
 import { hasPendingAvailabilityChanges } from '../../../sections/availability.js';
 import { openClinicalHistorySession } from '../../../sections/clinical-history.js';
 import { renderGiftCardsSection } from '../../../sections/gift-cards.js';
+import { renderSettingsSection } from '../../../sections/settings.js';
+import { renderMultiClinicDashboard } from '../../../sections/multi-clinic.js';
+import { renderWhatsappOpsDashboard } from '../../../sections/whatsapp-ops.js';
 import {
     persistUiPrefs,
     readInitialThemeMode,
@@ -85,6 +88,16 @@ export async function navigateToSection(section, options = {}) {
     }
     if (normalized === 'gift-cards') {
         renderGiftCardsSection();
+    }
+    if (normalized === 'multi-clinic') {
+        renderMultiClinicDashboard(getState());
+        focusFirstElement('multiClinicTableContainer');
+        return;
+    }
+    if (normalized === 'whatsapp-ops') {
+        renderWhatsappOpsDashboard();
+        focusFirstElement('whatsappOpsContainer');
+        return;
     }
     if (normalized === 'queue') {
         applyQueueRuntimeDefaults();

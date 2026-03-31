@@ -546,7 +546,13 @@ final class WhatsappOpenclawRepository
     {
         $bridge = $this->getBridgeStatus();
         $drafts = $this->readSection('drafts');
-        $activeHolds = $this->listSlotHolds(['status' => 'active']);
+        $allHolds = $this->listSlotHolds([]);
+        $activeHolds = [];
+        foreach ($allHolds as $hold) {
+            if (($hold['status'] ?? '') === 'active') {
+                $activeHolds[] = $hold;
+            }
+        }
         $pendingOutbox = $this->listPendingOutbox(200);
         $failedOutbox = $this->listOutbox(['status' => 'failed'], 50);
         $messages = $this->readSection('messages');
@@ -559,12 +565,35 @@ final class WhatsappOpenclawRepository
         }
 
         $activeConversations = 0;
+        $pendingHandoffs = [];
         foreach ($this->readSection('conversations') as $conversation) {
             $updatedAt = strtotime((string) ($conversation['updatedAt'] ?? ''));
             if ($updatedAt !== false && $updatedAt >= (time() - 86400)) {
                 $activeConversations++;
             }
+            if (($conversation['status'] ?? '') === 'human_followup') {
+                $meta = is_array($conversation['meta'] ?? null) ? $conversation['meta'] : [];
+                $humanFollowUpRequestedAt = (string) ($meta['humanFollowUpRequestedAt'] ?? $conversation['updatedAt']);
+                $draft = $this->getBookingDraft((string) $conversation['id'], (string) $conversation['phone']);
+                
+                $service = trim((string) ($draft['service'] ?? ''));
+                $doctor = trim((string) ($draft['doctor'] ?? ''));
+                $latestDraftSummary = $service !== '' ? ($service . ($doctor !== '' ? ' con ' . $doctor : '')) : 'Sin detalle';
+                
+                $pendingHandoffs[] = [
+                    'conversationId' => (string) $conversation['id'],
+                    'phone' => (string) $conversation['phone'],
+                    'reason' => (string) ($meta['humanFollowUpReason'] ?? 'unknown'),
+                    'latestDraftSummary' => $latestDraftSummary,
+                    'sla_due_at' => date('c', strtotime($humanFollowUpRequestedAt) + 3600),
+                    'requestedAt' => $humanFollowUpRequestedAt,
+                ];
+            }
         }
+        
+        usort($pendingHandoffs, static function (array $left, array $right): int {
+            return strtotime((string) ($left['sla_due_at'] ?? '')) <=> strtotime((string) ($right['sla_due_at'] ?? ''));
+        });
 
         $bookingsClosed = 0;
         $paymentsStarted = 0;
@@ -641,9 +670,75 @@ final class WhatsappOpenclawRepository
             'pendingOutboxItems' => array_slice($pendingOutbox, 0, 25),
             'failedOutboxItems' => array_slice($failedOutbox, 0, 25),
             'activeHolds' => array_slice($activeHolds, 0, 25),
+            'recentHolds' => array_slice($allHolds, 0, 50),
             'pendingCheckouts' => $pendingCheckouts,
+            'pendingHandoffs' => $pendingHandoffs,
             'conversations' => $this->listConversations(50),
         ];
+    }
+
+    public function generateFunnelArtifact(): array
+    {
+        $funnelDir = dirname($this->baseDir) . DIRECTORY_SEPARATOR . 'funnel';
+        if (!is_dir($funnelDir)) {
+            @mkdir($funnelDir, 0775, true);
+        }
+        $artifactPath = $funnelDir . DIRECTORY_SEPARATOR . 'whatsapp-openclaw-latest.json';
+
+        $inbound = 0;
+        foreach ($this->readSection('messages') as $message) {
+            if (($message['direction'] ?? '') === 'inbound') {
+                $inbound++;
+            }
+        }
+
+        $availabilityLookup = 0;
+        $handoff = 0;
+        foreach ($this->readSection('conversations') as $conversation) {
+            $intent = (string) ($conversation['lastIntent'] ?? '');
+            $status = (string) ($conversation['status'] ?? '');
+            if ($intent === 'availability' || $status === 'booking_collect') {
+                $availabilityLookup++;
+            }
+            if ($status === 'human_followup') {
+                $handoff++;
+            }
+        }
+
+        $holdsCreated = count($this->readSection('holds'));
+        
+        $checkoutReady = 0;
+        $appointmentCreated = 0;
+        foreach ($this->readSection('drafts') as $draft) {
+            if (trim((string) ($draft['paymentSessionId'] ?? '')) !== '') {
+                $checkoutReady++;
+            }
+            if ((int) ($draft['appointmentId'] ?? 0) > 0 || ($draft['status'] ?? '') === 'booked') {
+                $appointmentCreated++;
+            }
+        }
+
+        $funnel = [
+            'inbound' => $inbound,
+            'availability_lookup' => $availabilityLookup,
+            'hold_created' => $holdsCreated,
+            'checkout_ready' => $checkoutReady,
+            'appointment_created' => $appointmentCreated,
+            'handoff' => $handoff,
+            'generatedAt' => local_date('c')
+        ];
+
+        $handle = @fopen($artifactPath, 'c+');
+        if ($handle && flock($handle, LOCK_EX)) {
+            ftruncate($handle, 0);
+            rewind($handle);
+            fwrite($handle, json_encode($funnel, JSON_PRETTY_PRINT));
+            fflush($handle);
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+
+        return $funnel;
     }
 
     public function buildHealthSnapshot(array $store = []): array

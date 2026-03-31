@@ -124,6 +124,7 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'whatsapp-openclaw-ack', [WhatsappOpenclawController::class, 'ack']);
     $router->add('GET', 'whatsapp-openclaw-ops', [WhatsappOpenclawController::class, 'ops']);
     $router->add('POST', 'whatsapp-openclaw-ops', [WhatsappOpenclawController::class, 'ops']);
+    $router->add('GET', 'whatsapp-openclaw-metrics', [WhatsappOpenclawController::class, 'metrics']);
 
     // OpenClaw — Copiloto clínico (endpoints para openclaw-chat.js y Custom GPT Actions)
     $router->add('GET', 'openclaw-patient', [OpenclawController::class, 'patient']);

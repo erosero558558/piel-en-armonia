@@ -24,6 +24,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import android.provider.Settings
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
@@ -31,8 +39,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var retryButton: Button
 
+    private lateinit var diagHost: TextView
+    private lateinit var diagNetwork: TextView
+    private lateinit var diagLastAttempt: TextView
+    private lateinit var diagNextAttempt: TextView
+
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val reconnectRunnable = Runnable { loadSurface("retry") }
+    private val reconnectRunnable = object : Runnable {
+        override fun run() {
+            var remaining = nextAttemptTime - System.currentTimeMillis()
+            if (remaining <= 0) {
+                loadSurface("retry")
+            } else {
+                updateCountdown(remaining)
+                mainHandler.postDelayed(this, 1000)
+            }
+        }
+    }
+    private var nextAttemptTime = 0L
+    private var deviceId: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +71,13 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.offlineStatusText)
         retryButton = findViewById(R.id.retryButton)
 
+        diagHost = findViewById(R.id.diagHost)
+        diagNetwork = findViewById(R.id.diagNetwork)
+        diagLastAttempt = findViewById(R.id.diagLastAttempt)
+        diagNextAttempt = findViewById(R.id.diagNextAttempt)
+
+        deviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "UNKNOWN_TV"
+
         configureWebView()
         retryButton.setOnClickListener { loadSurface("manual") }
 
@@ -58,10 +90,15 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        if (savedInstanceState != null) {
-            webView.restoreState(savedInstanceState)
-        } else {
-            loadSurface("boot")
+        TurneroConfig.fetchRemoteConfig { updated ->
+            mainHandler.post {
+                if (savedInstanceState != null) {
+                    webView.restoreState(savedInstanceState)
+                } else {
+                    loadSurface("boot")
+                }
+                startHeartbeat()
+            }
         }
     }
 
@@ -195,6 +232,12 @@ class MainActivity : AppCompatActivity() {
     private fun showOfflineState(message: String) {
         offlineState.isVisible = true
         statusText.text = message
+        
+        val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        diagHost.text = "Host: ${TurneroConfig.baseUrl}"
+        diagNetwork.text = "Estado de Red: ${if (isNetworkConnected()) "Conectado, pero sin acceso al host" else "Sin Internet"}"
+        diagLastAttempt.text = "Último Intento: ${sdf.format(Date())}"
+        
         scheduleReconnect()
     }
 
@@ -204,9 +247,44 @@ class MainActivity : AppCompatActivity() {
         statusText.text = getString(R.string.state_connected)
     }
 
+    private fun updateCountdown(remainingMs: Long) {
+        val seconds = remainingMs / 1000
+        diagNextAttempt.text = "Próximo Reintento: en $seconds s"
+    }
+
     private fun scheduleReconnect() {
         mainHandler.removeCallbacks(reconnectRunnable)
-        mainHandler.postDelayed(reconnectRunnable, TurneroConfig.RECONNECT_DELAY_MS)
+        nextAttemptTime = System.currentTimeMillis() + TurneroConfig.RECONNECT_DELAY_MS
+        updateCountdown(TurneroConfig.RECONNECT_DELAY_MS)
+        mainHandler.postDelayed(reconnectRunnable, 1000)
+    }
+
+    private fun startHeartbeat() {
+        thread {
+            while (true) {
+                try {
+                    val status = if (offlineState.isVisible) "offline" else "online"
+                    val payload = JSONObject().apply {
+                        put("device_id", deviceId)
+                        put("version", BuildConfig.VERSION_NAME)
+                        put("surface_url", TurneroConfig.surfaceUrl())
+                        put("status", status)
+                    }
+
+                    val hpUrl = "${TurneroConfig.baseUrl.trimEnd('/')}/api.php?resource=tv-heartbeat"
+                    val conn = URL(hpUrl).openConnection() as HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.doOutput = true
+                    conn.outputStream.use { os ->
+                        os.write(payload.toString().toByteArray())
+                    }
+                    conn.responseCode // Just consume the response
+                } catch (ignore: Exception) {}
+                
+                Thread.sleep(TurneroConfig.HEARTBEAT_INTERVAL_MS)
+            }
+        }
     }
 
     private fun hideSystemUi() {

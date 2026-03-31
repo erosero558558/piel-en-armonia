@@ -33,6 +33,8 @@ final class TelemedicinePublicPreConsultationTest extends TestCase
         putenv('AURORADERM_SKIP_ENV_FILE=1');
         putenv('PIELARMONIA_SKIP_ENV_FILE=1');
         putenv('PIELARMONIA_TELEMED_V2_SHADOW=true');
+        ini_set('log_errors', '1');
+        ini_set('error_log', $this->tempDir . DIRECTORY_SEPARATOR . 'php-error.log');
 
         if (!defined('TESTING_ENV')) {
             define('TESTING_ENV', true);

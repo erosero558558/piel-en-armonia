@@ -9,6 +9,10 @@ const VALID_SECTIONS = new Set([
     'callbacks',
     'reviews',
     'availability',
+    'gift-cards',
+    'daily-agenda',
+    'multi-clinic',
+    'whatsapp-ops',
 ]);
 
 export function normalizeSection(value, fallback = 'queue') {

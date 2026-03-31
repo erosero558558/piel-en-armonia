@@ -262,7 +262,10 @@
     "verify:scripts": "node bin/verify-scripts.js",
     "gen:sitemap": "node bin/gen-sitemap.js",
     "inject:css": "node bin/inject-css.js",
-    "inject:css:dry": "node bin/inject-css.js --dry-run"
+    "inject:css:dry": "node bin/inject-css.js --dry-run",
+    "qa:summary": "node bin/qa-summary.js",
+    "qa:summary:json": "node bin/qa-summary.js --json",
+    "qa:summary:prod": "node bin/qa-summary.js --domain https://pielarmonia.com"
   },
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",

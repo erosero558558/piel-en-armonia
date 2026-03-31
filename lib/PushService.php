@@ -19,6 +19,56 @@ class PushService
         return $config['publicKey'] !== '' && $config['privateKey'] !== '';
     }
 
+    public function getDiagnostics(): array
+    {
+        $store = $this->readSubscriptions();
+        $items = is_array($store['items'] ?? null) ? $store['items'] : [];
+        $bySurface = [];
+
+        foreach ($items as $item) {
+            $channel = trim((string) ($item['channel'] ?? 'unknown'));
+            if ($channel === '') {
+                $channel = 'unknown';
+            }
+            $bySurface[$channel] = ($bySurface[$channel] ?? 0) + 1;
+        }
+
+        $metrics = $this->readMetrics();
+
+        return [
+            'configured' => $this->isConfigured(),
+            'publicKeyPresent' => $this->getPublicKey() !== '',
+            'subscriptionsTotal' => count($items),
+            'subscriptionsBySurface' => $bySurface,
+            'lastTestAt' => $metrics['lastTestAt'] ?? null,
+            'lastSendStatus' => $metrics['lastSendStatus'] ?? null,
+        ];
+    }
+
+    public function recordTestMetric(array $result): void
+    {
+        $metrics = $this->readMetrics();
+        $metrics['lastTestAt'] = local_date('c');
+        $metrics['lastSendStatus'] = ((int) ($result['success'] ?? 0)) > 0 ? 'success' : 'failed';
+        $this->writeMetrics($metrics);
+    }
+
+    private function readMetrics(): array
+    {
+        $path = data_dir_path() . DIRECTORY_SEPARATOR . 'push-metrics.json';
+        if (!is_file($path)) return [];
+        $raw = @file_get_contents($path);
+        if (!$raw) return [];
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function writeMetrics(array $data): void
+    {
+        $path = data_dir_path() . DIRECTORY_SEPARATOR . 'push-metrics.json';
+        @file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
+    }
+
     public function canSendNotifications(): bool
     {
         if ($this->hasTestTransport()) {

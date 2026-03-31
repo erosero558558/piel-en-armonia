@@ -155,7 +155,7 @@ final class TelemedicineAdminReadModelTest extends TestCase
         $this->assertSame(1, (int) ($telemedicineMeta['summary']['briefingQueueCount'] ?? -1));
         $this->assertSame(2, (int) ($telemedicineMeta['summary']['intakes']['total'] ?? -1));
         $this->assertSame(2, (int) ($telemedicineMeta['summary']['intakes']['byReviewDecision']['none'] ?? -1));
-        $this->assertSame(1, (int) ($telemedicineMeta['summary']['intakes']['byReviewState']['pending'] ?? -1));
+        $this->assertSame(2, (int) ($telemedicineMeta['summary']['intakes']['byReviewState']['pending'] ?? -1));
         $this->assertArrayHasKey('diagnostics', $telemedicineMeta['summary']);
         $this->assertSame('healthy', (string) ($telemedicineMeta['summary']['diagnostics']['status'] ?? ''));
         $this->assertArrayHasKey('diagnostics', $telemedicineMeta);

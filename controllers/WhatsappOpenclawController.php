@@ -230,6 +230,10 @@ class WhatsappOpenclawController
             [self::class, 'sanitizeHold'],
             is_array($snapshot['activeHolds'] ?? null) ? $snapshot['activeHolds'] : []
         );
+        $snapshot['recentHolds'] = array_map(
+            [self::class, 'sanitizeHold'],
+            is_array($snapshot['recentHolds'] ?? null) ? $snapshot['recentHolds'] : []
+        );
         $snapshot['pendingCheckouts'] = array_map(
             [self::class, 'sanitizeDraft'],
             is_array($snapshot['pendingCheckouts'] ?? null) ? $snapshot['pendingCheckouts'] : []
@@ -251,6 +255,9 @@ class WhatsappOpenclawController
         }
         if ($action === 'sweep_stale') {
             return self::handleSweepStaleAction($store, $payload);
+        }
+        if ($action === 'resolve_handoff') {
+            return self::handleResolveHandoffAction($store, $payload);
         }
 
         return [
@@ -289,6 +296,33 @@ class WhatsappOpenclawController
         }
 
         return whatsapp_openclaw_orchestrator()->expireCheckoutForOps($store, $draft);
+    }
+
+    private static function handleResolveHandoffAction(array $store, array $payload): array
+    {
+        $conversationId = trim((string) ($payload['conversationId'] ?? ''));
+        if ($conversationId === '') {
+            return ['ok' => false, 'error' => 'conversationId es obligatorio', 'code' => 400];
+        }
+
+        $conversation = whatsapp_openclaw_repository()->getConversation($conversationId, '');
+        if (($conversation['status'] ?? '') !== 'human_followup') {
+             return ['ok' => false, 'error' => 'El handoff ya no esta pendiente', 'code' => 409];
+        }
+
+        $conversation['status'] = 'active';
+        $meta = is_array($conversation['meta'] ?? null) ? $conversation['meta'] : [];
+        $meta['humanFollowUpResolvedAt'] = local_date('c');
+        $conversation['meta'] = $meta;
+        whatsapp_openclaw_repository()->saveConversation($conversation);
+
+        return [
+            'ok' => true,
+            'store' => $store,
+            'storeDirty' => false,
+            'status' => 'resolved',
+            'conversation' => $conversation,
+        ];
     }
 
     private static function handleReleaseHoldAction(array $store, array $payload): array
@@ -618,5 +652,52 @@ class WhatsappOpenclawController
             'requeuedAt' => (string) ($record['requeuedAt'] ?? ''),
             'meta' => isset($record['meta']) && is_array($record['meta']) ? $record['meta'] : [],
         ];
+    }
+
+    public static function metrics(array $context): void
+    {
+        self::ensureEnabled();
+        if (($context['isAdmin'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => 'No autorizado',
+            ], 401);
+        }
+
+        $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
+        $snapshot = whatsapp_openclaw_repository()->buildOpsSnapshot($store);
+        
+        $conversationsTotal = is_array($snapshot['conversations'] ?? null) ? count($snapshot['conversations']) : 0;
+        $holdsActive = is_array($snapshot['activeHolds'] ?? null) ? count($snapshot['activeHolds']) : 0;
+        
+        // Handoff is a state that requires human assistance.
+        $handoffPending = 0;
+        if (is_array($snapshot['conversations'] ?? null)) {
+            foreach ($snapshot['conversations'] as $conv) {
+                if (($conv['requiresHuman'] ?? false) === true) {
+                    $handoffPending++;
+                }
+            }
+        }
+        
+        $outboxFailed = is_array($snapshot['failedOutboxItems'] ?? null) ? count($snapshot['failedOutboxItems']) : 0;
+        
+        // Dummy conversion rate for now (could be derived from funnel data)
+        $conversionRate = 0.0;
+        $funnelFile = getenv('AURORADERM_DATA_DIR') . '/funnel/whatsapp-openclaw-latest.json';
+        if (file_exists($funnelFile)) {
+            $funnelData = json_decode(file_get_contents($funnelFile), true);
+            if (is_array($funnelData) && isset($funnelData['appointment_created'], $funnelData['inbound']) && $funnelData['inbound'] > 0) {
+                $conversionRate = round(($funnelData['appointment_created'] / $funnelData['inbound']) * 100, 2);
+            }
+        }
+
+        json_response([
+            'conversations_total' => $conversationsTotal,
+            'holds_active' => $holdsActive,
+            'handoff_pending' => $handoffPending,
+            'outbox_failed' => $outboxFailed,
+            'conversion_rate' => $conversionRate,
+        ]);
     }
 }

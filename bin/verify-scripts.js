@@ -35,8 +35,17 @@ for (const [name, cmd] of scripts) {
 
 // ── Reporte ────────────────────────────────────────────────────────────────────
 
+// Guardar reporte JSON para audit.js
+const { writeFileSync, mkdirSync } = require('fs');
+mkdirSync(resolve(ROOT, 'governance'), { recursive: true });
+writeFileSync(
+  resolve(ROOT, 'governance/broken-scripts.json'),
+  JSON.stringify({ generatedAt: new Date().toISOString(), count: BROKEN.length, broken: BROKEN, domains: DOMAINS }, null, 2)
+);
+
 if (BROKEN.length === 0) {
   console.log('✅ verify:scripts — 0 referencias rotas en package.json');
+  console.log(`📄 Reporte actualizado en governance/broken-scripts.json\n`);
   process.exit(0);
 }
 
@@ -62,13 +71,6 @@ Acciones sugeridas por script:
 Ver: docs/SCRIPTS_AUDIT.md para el plan de remediación (S14-06).
 `);
 
-// Guardar reporte JSON para audit.js
-const { writeFileSync, mkdirSync } = require('fs');
-mkdirSync(resolve(ROOT, 'governance'), { recursive: true });
-writeFileSync(
-  resolve(ROOT, 'governance/broken-scripts.json'),
-  JSON.stringify({ generatedAt: new Date().toISOString(), count: BROKEN.length, broken: BROKEN, domains: DOMAINS }, null, 2)
-);
-console.log(`📄 Reporte guardado en governance/broken-scripts.json\n`);
+console.log(`📄 Reporte actualizado en governance/broken-scripts.json\n`);
 
 process.exit(BROKEN.length > 0 ? 1 : 0);

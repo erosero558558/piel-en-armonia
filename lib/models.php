@@ -171,6 +171,7 @@ function normalize_appointment(array $appointment): array
             ? trim($appointment['tenantId'])
             : get_current_tenant_id(),
         'service' => truncate_field($service, 50),
+        'serviceName' => truncate_field(sanitize_xss(trim((string) ($appointment['serviceName'] ?? ''))), 150),
         'doctor' => truncate_field(sanitize_xss((string) ($appointment['doctor'] ?? '')), 100),
         'date' => truncate_field((string) ($appointment['date'] ?? ''), 20),
         'time' => truncate_field((string) ($appointment['time'] ?? ''), 10),

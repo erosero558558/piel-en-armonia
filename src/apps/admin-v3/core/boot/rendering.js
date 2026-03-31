@@ -24,6 +24,8 @@ import {
 import { renderDashboard } from '../../sections/dashboard.js';
 import { renderReviewsSection } from '../../sections/reviews.js';
 import { renderSettingsSection } from '../../sections/settings.js';
+import { renderMultiClinicDashboard } from '../../sections/multi-clinic.js';
+import { renderWhatsappOpsDashboard } from '../../sections/whatsapp-ops.js';
 import { renderAdminChrome } from '../../ui/frame.js';
 
 export function refreshHeaderStatus() {
@@ -48,6 +50,8 @@ export function renderAllSections() {
     renderAvailabilitySection();
     renderQueuePilotSection(appendQueueActivity);
     renderSettingsSection();
+    renderMultiClinicDashboard(getState());
+    renderWhatsappOpsDashboard();
     refreshHeaderStatus();
     renderAgentPanel();
 }
