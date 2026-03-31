@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 6:09:49 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 10:33:18 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **51%** completado (227/449)
+`██████████░░░░░░░░░░` **51%** completado (228/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -29,7 +29,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint UI | 18 | 2 | 90% |
 | ⏸ Sprint 14 | 3 | 11 | 21% |
 | ⏸ Sprint 15 | 2 | 11 | 15% |
-| ⏸ Sprint 16 | 1 | 12 | 8% |
+| ⏸ Sprint 16 | 2 | 11 | 15% |
 | ⏸ Sprint 17 | 0 | 12 | 0% |
 | ⏸ Sprint 18 | 0 | 4 | 0% |
 
@@ -207,15 +207,12 @@ _Esperando que Sprint anterior esté completo. 8 tareas pendientes._
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 
-### 🟢 Disponibles (1)
+### 🟢 Disponibles (2)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
+| **UI3-15** | `[UI3]` | M |
 | **UI3-20** | `[UI3]` | M |
-
-### 🔒 En progreso — NO tomar
-
-- **UI3-15** `[UI3]` → _codex_ (expira en 63min)
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 11 tareas pendientes._
@@ -246,18 +243,18 @@ _Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 | ... | | _+6 más_ |
 
 ## ⏸ Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
-_Esperando que Sprint anterior esté completo. 12 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 
-### 🟢 Disponibles (12)
+### 🟢 Disponibles (11)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S16-02** | `[S16]` | M |
 | **S16-03** | `[S16]` | M |
 | **S16-04** | `[S16]` | S |
 | **S16-05** | `[S16]` | M |
 | **S16-06** | `[S16]` | M |
-| ... | | _+7 más_ |
+| **S16-13** | `[S16]` | S |
+| ... | | _+6 más_ |
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
