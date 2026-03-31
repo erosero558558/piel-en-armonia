@@ -58,6 +58,36 @@ class ApiKernel
             $resource = $action;
         }
 
+        // OpenClaw REST path bridge
+        // Translates /api/openclaw/patient/123 → resource=openclaw-patient + patient_id=123
+        // This allows ChatGPT Custom GPT Actions (REST style) to work with the query-string router
+        if ($resource === '') {
+            $uri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
+            if (preg_match('#/api/openclaw/([^/]+)(?:/([^/?]+))?#', (string) $uri, $m)) {
+                $segment  = $m[1];  // e.g. "patient", "cie10", "protocol"
+                $pathParam = $m[2] ?? ''; // e.g. "123", "L20.0"
+                $map = [
+                    'patient'      => ['resource' => 'openclaw-patient',       'param' => 'patient_id'],
+                    'cie10'        => ['resource' => 'openclaw-cie10-suggest',  'param' => ''],
+                    'protocol'     => ['resource' => 'openclaw-protocol',       'param' => 'code'],
+                    'evolution'    => ['resource' => 'openclaw-save-evolution',  'param' => ''],
+                    'prescription' => ['resource' => 'openclaw-prescription',   'param' => 'id'],
+                    'certificate'  => ['resource' => 'openclaw-certificate',    'param' => 'id'],
+                    'interactions' => ['resource' => 'openclaw-interactions',   'param' => ''],
+                    'summarize'    => ['resource' => 'openclaw-summarize',      'param' => ''],
+                    'diagnosis'    => ['resource' => 'openclaw-save-diagnosis', 'param' => ''],
+                    'status'       => ['resource' => 'openclaw-router-status',  'param' => ''],
+                    'next-patient' => ['resource' => 'openclaw-next-patient',   'param' => ''],
+                ];
+                if (isset($map[$segment])) {
+                    $resource = $map[$segment]['resource'];
+                    if ($pathParam !== '' && $map[$segment]['param'] !== '') {
+                        $_GET[$map[$segment]['param']] = $pathParam;
+                    }
+                }
+            }
+        }
+
         // Rate Limiting
         $limitKey = $resource . ':' . $method;
         $rateLimits = ApiConfig::getRateLimits();
@@ -180,7 +210,7 @@ class ApiKernel
             }
         } elseif (!$isPublic) {
             start_secure_session();
-            $isAdmin = legacy_admin_is_authenticated() || operator_auth_is_authenticated();
+            $isAdmin = legacy_admin_is_authenticated() || operator_auth_is_authenticated() || openclaw_gpt_api_key_is_valid();
             $queueOperatorSession = turnero_operator_session_current();
             $isQueueOperator = is_array($queueOperatorSession);
             $queueOperatorAllowed = $isQueueOperator && in_array($queueOperatorScope, $queueOperatorAllowedEndpoints, true);
@@ -230,7 +260,9 @@ class ApiKernel
         }
 
         // CSRF: validar token en mutaciones autenticadas (no publicas)
-        if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && ($isAdmin || $isQueueOperator)) {
+        // Se omite si la autenticacion es via API Key de OpenClaw GPT (no hay sesion de browser)
+        $isGptApiKeyRequest = openclaw_gpt_api_key_is_valid();
+        if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && ($isAdmin || $isQueueOperator) && !$isGptApiKeyRequest) {
             require_csrf();
         }
 

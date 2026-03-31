@@ -1486,7 +1486,90 @@ final class OpenclawController
     {
         self::requireAuth();
         $router = new OpenclawAIRouter();
-        json_response(['ok' => true, 'router' => $router->getStatus()]);
+        $status = $router->getStatus();
+
+        // Simplify for the Custom GPT — just tell it if AI chat is available
+        $aiAvailable = ($status['active_provider'] ?? 'local_heuristic') !== 'local_heuristic';
+        json_response([
+            'ok'           => true,
+            'ai_available' => $aiAvailable,
+            'mode'         => $status['router_mode'] ?? 'auto',
+            'provider'     => $status['active_provider'] ?? 'local_heuristic',
+            'note'         => $aiAvailable
+                ? 'IA conectada. Todas las funciones disponibles.'
+                : 'Modo local activo. Puedes cargar pacientes, buscar CIE-10, guardar diagnósticos y recetas normalmente. Solo el chat IA directo usa modo offline.',
+            'router'       => $status,
+        ]);
+    }
+
+    // ── nextPatient ───────────────────────────────────────────────────────────
+
+    /**
+     * GET /api/openclaw/next-patient
+     * Devuelve el paciente que está actualmente en consulta (o el siguiente en cola).
+     * Permite al Custom GPT auto-cargar al paciente sin que el médico escriba el ID.
+     */
+    public static function nextPatient(array $context): void
+    {
+        self::requireAuth();
+
+        $store = self::readStore();
+
+        // Buscar ticket en estado 'in_consultation' o 'called'
+        $tickets = $store['queue']['tickets'] ?? [];
+        $currentTicket = null;
+
+        foreach ($tickets as $ticket) {
+            $status = $ticket['status'] ?? '';
+            if (in_array($status, ['in_consultation', 'called'], true)) {
+                $currentTicket = $ticket;
+                break;
+            }
+        }
+
+        // Si no hay ninguno en consulta, tomar el primero en espera
+        if ($currentTicket === null) {
+            foreach ($tickets as $ticket) {
+                if (($ticket['status'] ?? '') === 'waiting') {
+                    $currentTicket = $ticket;
+                    break;
+                }
+            }
+        }
+
+        if ($currentTicket === null) {
+            json_response([
+                'ok'      => false,
+                'error'   => 'No hay pacientes en cola en este momento.',
+                'queue_empty' => true,
+            ], 404);
+        }
+
+        $patientId = trim((string) ($currentTicket['patientId'] ?? $currentTicket['patient_id'] ?? ''));
+        $caseId    = trim((string) ($currentTicket['caseId'] ?? $currentTicket['case_id'] ?? ''));
+
+        if ($patientId === '' && $caseId === '') {
+            json_response([
+                'ok'     => false,
+                'error'  => 'Ticket en cola sin ID de paciente asociado.',
+                'ticket' => $currentTicket,
+            ], 422);
+        }
+
+        // Reusar la lógica de patient() inyectando los parámetros
+        if ($patientId !== '') {
+            $_GET['patient_id'] = $patientId;
+        }
+        if ($caseId !== '') {
+            $_GET['case_id'] = $caseId;
+        }
+
+        // Adjuntar info del ticket para contexto
+        $_GET['_ticket_status'] = $currentTicket['status'] ?? '';
+        $_GET['_queue_position'] = (string) ($currentTicket['position'] ?? '');
+
+        // Llamar directamente al método patient con el contexto ya configurado
+        self::patient($context);
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────

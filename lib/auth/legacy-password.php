@@ -141,35 +141,67 @@ function legacy_admin_is_authenticated(): bool
     return $isAuth;
 }
 
+function openclaw_gpt_api_key_is_valid(): bool
+{
+    $configuredKey = trim((string) app_env('OPENCLAW_GPT_API_KEY', ''));
+    if ($configuredKey === '') {
+        return false;
+    }
+
+    $provided = '';
+
+    // 1. Authorization: Bearer <key>  (preferred)
+    //    php -S en Windows a veces expone el header aqui:
+    $candidates = [
+        $_SERVER['HTTP_AUTHORIZATION'] ?? '',
+        $_SERVER['Authorization'] ?? '',
+        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '',
+    ];
+    foreach ($candidates as $raw) {
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            continue;
+        }
+        $provided = (stripos($raw, 'Bearer ') === 0) ? trim(substr($raw, 7)) : $raw;
+        break;
+    }
+
+    // 2. getallheaders() — funciona en Apache y en php -S en Linux/Mac
+    if ($provided === '' && function_exists('getallheaders')) {
+        foreach ((array) getallheaders() as $name => $value) {
+            $n = strtolower((string) $name);
+            if ($n === 'authorization') {
+                $v = trim((string) $value);
+                $provided = (stripos($v, 'Bearer ') === 0) ? trim(substr($v, 7)) : $v;
+                break;
+            }
+            if ($n === 'x-api-key') {
+                $provided = trim((string) $value);
+                break;
+            }
+        }
+    }
+
+    // 3. X-API-Key header via $_SERVER
+    if ($provided === '') {
+        $provided = trim((string) ($_SERVER['HTTP_X_API_KEY'] ?? ''));
+    }
+
+    // 4. Query param ?api_key=  (ultimo recurso — util cuando el proxy filtra headers)
+    if ($provided === '') {
+        $provided = trim((string) ($_GET['api_key'] ?? ''));
+    }
+
+    if ($provided === '') {
+        return false;
+    }
+
+    return hash_equals($configuredKey, $provided);
+}
+
 function require_admin_auth(): void
 {
-    if (legacy_admin_is_authenticated() || operator_auth_is_authenticated()) {
-        $strict = false;
-        $profilePath = dirname(__DIR__) . '/data/config/clinic-profile.json';
-        if (is_file($profilePath)) {
-            $raw = @file_get_contents($profilePath);
-            if (is_string($raw)) {
-                $data = json_decode($raw, true);
-                $strict = !empty($data['operatorConcurrencyStrict']);
-            }
-        }
-
-        if ($strict) {
-            $tabId = $_SERVER['HTTP_X_TAB_SESSION_ID'] ?? '';
-            if ($tabId !== '') {
-                if (!isset($_SESSION['active_tab_session_id'])) {
-                    $_SESSION['active_tab_session_id'] = $tabId;
-                } elseif ($_SESSION['active_tab_session_id'] !== $tabId) {
-                    json_response([
-                        'ok'    => false,
-                        'error' => 'session_transferred',
-                        'code'  => 'session_transferred',
-                        'message' => 'Sesión transferida a otra ventana o dispositivo.'
-                    ], 409);
-                }
-            }
-        }
-
+    if (legacy_admin_is_authenticated() || operator_auth_is_authenticated() || openclaw_gpt_api_key_is_valid()) {
         return;
     }
 

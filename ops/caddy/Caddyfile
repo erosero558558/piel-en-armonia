@@ -85,6 +85,9 @@ http://pielarmonia.com, http://aurora-derm.com, http://127.0.0.1, http://localho
 	}
 	@publicPhp path /index.php /api.php /admin-auth.php /figo-chat.php /figo-backend.php /figo-ai-bridge.php /backup-receiver.php /cron.php /hosting-runtime.php /legacy.php /verify-backup.php /check-ai-response.php /app-downloads/index.php
 
+	# OpenClaw REST API bridge — /api/openclaw/* se reescribe a api.php
+	@openclawApi path_regexp openclawApi ^/api/openclaw(?:/.*)?$
+
 	route {
 		respond @health "ok" 200
 		respond @blockedFiles 403
@@ -92,6 +95,7 @@ http://pielarmonia.com, http://aurora-derm.com, http://127.0.0.1, http://localho
 		respond @blockedDirs 403
 		respond @hostingRuntimeBlocked 403
 		rewrite @hostingRuntimeLocal /hosting-runtime.php
+		rewrite @openclawApi /api.php
 
 		redir @root https://pielarmonia.com/es/{?query} permanent
 		redir @legacyIndex https://pielarmonia.com/es/{?query} permanent
@@ -110,6 +114,10 @@ http://pielarmonia.com, http://aurora-derm.com, http://127.0.0.1, http://localho
 		redir @legacyRoot https://pielarmonia.com/es/{re.legacyRoot.1}/{?query} permanent
 
 		php_fastcgi @publicPhp 127.0.0.1:9000 {
+			try_files {path} =404
+			capture_stderr
+		}
+		php_fastcgi @openclawApi 127.0.0.1:9000 {
 			try_files {path} =404
 			capture_stderr
 		}
