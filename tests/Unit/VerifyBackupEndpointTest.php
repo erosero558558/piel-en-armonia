@@ -34,10 +34,12 @@ final class VerifyBackupEndpointTest extends TestCase
             'PIELARMONIA_DATA_DIR',
             'AURORADERM_SKIP_ENV_FILE',
             'PIELARMONIA_SKIP_ENV_FILE',
+            'AURORADERM_BACKUP_VERIFY_TOKEN',
             'AURORADERM_BACKUP_RECEIVER_TOKEN',
             'AURORADERM_BACKUP_OFFSITE_TOKEN',
             'AURORADERM_BACKUP_WEBHOOK_TOKEN',
             'AURORADERM_CRON_SECRET',
+            'AURORADERM_DIAGNOSTICS_ACCESS_TOKEN',
             'AURORADERM_BACKUP_RECEIVER_ENCRYPTION_KEY',
             'AURORADERM_DATA_ENCRYPTION_KEY',
             'AURORADERM_DATA_KEY',
@@ -48,10 +50,12 @@ final class VerifyBackupEndpointTest extends TestCase
         putenv('PIELARMONIA_DATA_DIR=' . $this->tempDir);
         putenv('AURORADERM_SKIP_ENV_FILE=1');
         putenv('PIELARMONIA_SKIP_ENV_FILE=1');
-        putenv('AURORADERM_BACKUP_RECEIVER_TOKEN=backup-token');
+        putenv('AURORADERM_BACKUP_VERIFY_TOKEN=backup-verify-token');
+        putenv('AURORADERM_BACKUP_RECEIVER_TOKEN');
         putenv('AURORADERM_BACKUP_OFFSITE_TOKEN');
         putenv('AURORADERM_BACKUP_WEBHOOK_TOKEN');
-        putenv('AURORADERM_CRON_SECRET');
+        putenv('AURORADERM_CRON_SECRET=cron-secret');
+        putenv('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN=diagnostics-secret');
         putenv('AURORADERM_BACKUP_RECEIVER_ENCRYPTION_KEY=verify-backup-test-key');
         putenv('AURORADERM_DATA_ENCRYPTION_KEY');
         putenv('AURORADERM_DATA_KEY');
@@ -95,6 +99,24 @@ final class VerifyBackupEndpointTest extends TestCase
         self::assertSame(403, $response['status']);
         self::assertFalse((bool) ($response['payload']['ok'] ?? true));
         self::assertSame('auth_invalid', $response['payload']['code'] ?? null);
+    }
+
+    public function testCronSecretReturns403(): void
+    {
+        $response = $this->invokeEndpoint([], 'Bearer cron-secret');
+
+        self::assertSame(403, $response['status']);
+        self::assertFalse((bool) ($response['payload']['ok'] ?? true));
+        self::assertSame('auth_forbidden_cron_secret', $response['payload']['code'] ?? null);
+    }
+
+    public function testDiagnosticsTokenReturns403(): void
+    {
+        $response = $this->invokeEndpoint([], 'Bearer diagnostics-secret');
+
+        self::assertSame(403, $response['status']);
+        self::assertFalse((bool) ($response['payload']['ok'] ?? true));
+        self::assertSame('auth_forbidden_diagnostics_token', $response['payload']['code'] ?? null);
     }
 
     public function testPathTraversalReturns400(): void
@@ -157,7 +179,7 @@ final class VerifyBackupEndpointTest extends TestCase
      * @param array<string,string> $query
      * @return array{status:int,payload:array<string,mixed>}
      */
-    private function invokeEndpoint(array $query = [], ?string $authorization = 'Bearer backup-token'): array
+    private function invokeEndpoint(array $query = [], ?string $authorization = 'Bearer backup-verify-token'): array
     {
         $_GET = $query;
         $_SERVER = [
