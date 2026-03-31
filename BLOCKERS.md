@@ -33,21 +33,6 @@ motivo, antecedentes, medicamentos, alergias, examen físico, diagnóstico, plan
 El compliance formal con MSP-0457 se hará cuando la clínica esté operativa.
 ```
 → **Agentes:** implementar S3-23 con campos clínicos estándar, sin esperar validación MSP.
-
----
-
-## ✅ S3-35 — Factura SRI — APLAZADO (MVP)
-
-**Respuesta del dueño:**
-```
-El proyecto aún no tiene RUC ni certificado SRI. Es una idea en desarrollo.
-Para el MVP: generar comprobantes de pago internos (PDF con logo, datos del
-paciente, monto, concepto, número de recibo). Sin integración SRI por ahora.
-La integración SRI formal es Sprint futuro cuando el negocio esté constituido.
-```
-→ **Agentes:** S3-35 convertido a "recibo digital PDF" sin integración SRI.
-  Implementar usando `lib/pdf.php` o equivalente. Archivo: `es/recibo/index.html`.
-
 ---
 
 _Actualizado por el dueño del producto: 2026-03-29_
