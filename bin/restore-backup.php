@@ -16,9 +16,40 @@ require_once __DIR__ . '/../lib/backup.php';
 function usage()
 {
     echo "Usage: php bin/restore-backup.php <backup_file_path> [--force]\n";
-    echo "  <backup_file_path>: Path to the backup file (JSON).\n";
+    echo "  <backup_file_path>: Path to the backup file (JSON o JSON.GZ).\n";
     echo "  --force: Skip confirmation prompt (use with caution).\n";
     exit(1);
+}
+
+function read_backup_payload(string $backupPath): string
+{
+    $content = file_get_contents($backupPath);
+    if ($content === false) {
+        echo "Error: Could not read backup file.\n";
+        exit(1);
+    }
+
+    $isGzip = strtolower((string) pathinfo($backupPath, PATHINFO_EXTENSION)) === 'gz';
+    if (!$isGzip && strlen($content) >= 2) {
+        $isGzip = ord($content[0]) === 0x1f && ord($content[1]) === 0x8b;
+    }
+
+    if (!$isGzip) {
+        return $content;
+    }
+
+    if (!function_exists('gzdecode')) {
+        echo "Error: gzip support is not available in this PHP runtime.\n";
+        exit(1);
+    }
+
+    $decoded = @gzdecode($content);
+    if (!is_string($decoded) || $decoded === '') {
+        echo "Error: Could not decompress gzip backup file.\n";
+        exit(1);
+    }
+
+    return $decoded;
 }
 
 // Parse arguments
@@ -53,11 +84,7 @@ if (!is_readable($backupPath)) {
 }
 
 echo "Validating backup file...\n";
-$content = file_get_contents($backupPath);
-if ($content === false) {
-    echo "Error: Could not read backup file.\n";
-    exit(1);
-}
+$content = read_backup_payload($backupPath);
 
 // Decode and validate payload
 $decoded = backup_decode_store_payload($content);
