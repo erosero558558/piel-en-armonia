@@ -314,6 +314,25 @@ El sistema mantiene backups rotativos en `data/backups/` al escribir
 `store.json`. Adicionalmente, se recomienda ejecutar verificaciones y
 replicacion offsite por cron.
 
+**Snapshot manual canonico (operador o soporte):**
+
+```bash
+npm run backup
+```
+
+Ese comando genera un snapshot horario cifrado y comprimido en:
+
+```bash
+data/backups/YYYY-MM-DD-HH.json.gz
+```
+
+El wrapper rota automaticamente snapshots horarios con mas de 7 dias.
+Si necesitas forzar nombre o retencion para una corrida puntual:
+
+```bash
+BACKUP_TIMESTAMP=2026-03-31-15 BACKUP_RETENTION_DAYS=7 bash ops/backup.sh
+```
+
 **Cron recomendado (America/Guayaquil):**
 
 ```bash
@@ -362,6 +381,12 @@ Validacion manual del ultimo backup cifrado en destino:
 
 ```bash
 curl -s "https://DESTINO/verify-backup.php" -H "Authorization: Bearer BACKUP_RECEIVER_TOKEN"
+```
+
+**Restore desde snapshot horario `.json.gz`:**
+
+```bash
+php bin/restore-backup.php data/backups/YYYY-MM-DD-HH.json.gz --force
 ```
 
 ### 3.3 Revision de Auditoria
@@ -437,9 +462,17 @@ escritura.
 1.  Acceder por SFTP a `data/backups/`.
 2.  Localizar el archivo `store-YYYYMMDD-HHMMSS-XXXXXX.json` con fecha/hora
     justo antes del incidente.
-3.  Descargar y verificar que el JSON es valido.
-4.  Renombrar `data/store.json` a `data/store.json.corrupt` (como evidencia).
-5.  Subir el backup seleccionado como `data/store.json`.
+    Tambien es valido restaurar un snapshot horario generado por
+    `npm run backup`, por ejemplo `data/backups/YYYY-MM-DD-HH.json.gz`.
+3.  Descargar y verificar que el backup es valido.
+4.  Restaurar con:
+
+    ```bash
+    php bin/restore-backup.php data/backups/YYYY-MM-DD-HH.json.gz --force
+    ```
+
+5.  Si la restauracion es manual por archivo plano, renombrar el store actual
+    como evidencia antes de sobrescribirlo.
 6.  Verificar permisos (664 o 644).
 
 ### 5.3 Contactos de Emergencia
@@ -465,4 +498,3 @@ Una vez revertido el cambio, ejecutar las siguientes validaciones:
 3.  **Logs:**
     - [ ] Verificar que no hay nuevos errores fatales en `php.log` o
           `error_log`.
-
