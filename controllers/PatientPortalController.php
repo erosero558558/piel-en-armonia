@@ -79,6 +79,7 @@ final class PatientPortalController
                     : self::buildAppointmentSummary($nextAppointment, $patient),
                 'treatmentPlan' => self::buildTreatmentPlanSummary($store, $snapshot, $patient, $nextAppointment),
                 'billing' => self::buildBillingSummary($store, $snapshot),
+                'evolution' => self::buildEvolutionSummary($store, $snapshot),
                 'support' => [
                     'bookingUrl' => '/#citas',
                     'historyUrl' => '/es/portal/historial/',
@@ -241,6 +242,7 @@ final class PatientPortalController
             }
 
             $consultations[] = self::buildHistoryConsultationFromAppointment(
+                $store,
                 $appointment,
                 $patient,
                 $caseId,
@@ -613,6 +615,90 @@ final class PatientPortalController
             'nextObligation' => $nextObligation,
             'payNowUrl' => '/es/pago/',
         ];
+    }
+
+    private static function buildEvolutionSummary(array $store, array $snapshot): ?array
+    {
+        $caseIds = self::collectPatientCaseIds($store, $snapshot);
+        $caseMap = [];
+        foreach ($caseIds as $caseId) {
+            $caseId = trim((string) $caseId);
+            if ($caseId !== '') {
+                $caseMap[$caseId] = true;
+            }
+        }
+
+        $photosByGroup = [];
+        foreach (($store['clinical_uploads'] ?? []) as $upload) {
+            if (!is_array($upload)) {
+                continue;
+            }
+
+            $caseId = self::firstNonEmptyString(
+                (string) ($upload['patientCaseId'] ?? ''),
+                (string) ($upload['clinicalHistoryCaseId'] ?? '')
+            );
+            if ($caseId === '' || !isset($caseMap[$caseId])) {
+                continue;
+            }
+
+            if (strtolower(trim((string) ($upload['kind'] ?? ''))) !== 'case_photo') {
+                continue;
+            }
+
+            $bodyZone = trim((string) ($upload['bodyZone'] ?? 'rostro'));
+            $groupId = $caseId . '|' . strtolower($bodyZone);
+            if (!isset($photosByGroup[$groupId])) {
+                $photosByGroup[$groupId] = [];
+            }
+            $photosByGroup[$groupId][] = $upload;
+        }
+
+        $bestEvolution = null;
+        $maxDiff = 0;
+
+        foreach ($photosByGroup as $groupId => $photos) {
+            if (count($photos) < 2) {
+                continue;
+            }
+
+            usort($photos, static function (array $a, array $b): int {
+                return strtotime((string) ($a['createdAt'] ?? '')) <=> strtotime((string) ($b['createdAt'] ?? ''));
+            });
+
+            $firstPhoto = $photos[0];
+            $lastPhoto = $photos[count($photos) - 1];
+
+            $firstTs = strtotime((string) ($firstPhoto['createdAt'] ?? '')) ?: 0;
+            $lastTs = strtotime((string) ($lastPhoto['createdAt'] ?? '')) ?: 0;
+            $diffSeconds = $lastTs - $firstTs;
+
+            // Al menos 1 día de diferencia
+            if ($diffSeconds >= 86400 && $diffSeconds > $maxDiff) {
+                $maxDiff = $diffSeconds;
+                
+                $days = (int) floor($diffSeconds / 86400);
+                $weeks = (int) floor($days / 7);
+                $afterLabel = $weeks > 0 ? "Semana $weeks" : "Día $days";
+
+                $bestEvolution = [
+                    'before' => [
+                        'url' => (string) ($firstPhoto['optimizedUrl'] ?? $firstPhoto['url'] ?? ''),
+                        'label' => 'Día 1',
+                        'date' => (string) ($firstPhoto['createdAt'] ?? ''),
+                    ],
+                    'after' => [
+                        'url' => (string) ($lastPhoto['optimizedUrl'] ?? $lastPhoto['url'] ?? ''),
+                        'label' => $afterLabel,
+                        'date' => (string) ($lastPhoto['createdAt'] ?? ''),
+                    ],
+                    'bodyZone' => trim((string) ($firstPhoto['bodyZone'] ?? 'Seguimiento general')),
+                    'diffDays' => $days,
+                ];
+            }
+        }
+
+        return $bestEvolution;
     }
 
     private static function collectPortalBillingOrders(array $store, array $snapshot): array
@@ -1204,6 +1290,7 @@ final class PatientPortalController
     }
 
     private static function buildHistoryConsultationFromAppointment(
+        array $store,
         array $appointment,
         array $patient,
         string $caseId,
@@ -1213,6 +1300,14 @@ final class PatientPortalController
     ): array {
         $summary = self::buildAppointmentSummary($appointment, $patient);
         $status = (string) ($summary['status'] ?? 'confirmed');
+        $caseRecord = self::findPatientCaseRecord($store, $caseId);
+        $caseSummary = is_array($caseRecord['summary'] ?? null) ? $caseRecord['summary'] : [];
+        $serviceName = self::firstNonEmptyString(
+            (string) ($caseSummary['serviceName'] ?? ''),
+            (string) ($caseSummary['reasonLabel'] ?? ''),
+            (string) ($summary['serviceName'] ?? ''),
+            'Consulta Aurora Derm'
+        );
 
         return [
             'id' => 'appt-' . (string) ($appointment['id'] ?? $caseId),
@@ -1225,13 +1320,13 @@ final class PatientPortalController
             'time' => (string) ($summary['time'] ?? ''),
             'timeLabel' => (string) ($summary['timeLabel'] ?? self::buildTimeLabel((string) ($appointment['time'] ?? ''))),
             'doctorName' => (string) ($summary['doctorName'] ?? 'Equipo clínico Aurora Derm'),
-            'serviceName' => (string) ($summary['serviceName'] ?? 'Consulta Aurora Derm'),
+            'serviceName' => $serviceName,
             'appointmentTypeLabel' => (string) ($summary['appointmentTypeLabel'] ?? ''),
             'locationLabel' => (string) ($summary['locationLabel'] ?? ''),
             'events' => self::buildPortalTimelineEvents([
                 'dateLabel' => (string) ($summary['dateLabel'] ?? self::buildDateLabel((string) ($appointment['date'] ?? ''))),
                 'timeLabel' => (string) ($summary['timeLabel'] ?? self::buildTimeLabel((string) ($appointment['time'] ?? ''))),
-                'serviceName' => (string) ($summary['serviceName'] ?? 'Consulta Aurora Derm'),
+                'serviceName' => $serviceName,
             ], $documents, $photoSummary),
             'documents' => $documents,
             'sortTimestamp' => $timestamp ?? 0,
@@ -1916,10 +2011,16 @@ final class PatientPortalController
     {
         $serviceId = trim((string) ($appointment['service'] ?? ''));
         $tenantId = trim((string) ($appointment['tenantId'] ?? ''));
-        $serviceConfig = $serviceId !== '' ? get_service_config($serviceId, $tenantId !== '' ? $tenantId : null) : null;
-        $serviceName = is_array($serviceConfig)
-            ? trim((string) ($serviceConfig['name'] ?? ''))
-            : self::humanizeValue($serviceId, 'Consulta Aurora Derm');
+        // Prefer explicit serviceName if already resolved (e.g. by normalize_appointment or fixture).
+        $explicitServiceName = trim((string) ($appointment['serviceName'] ?? ''));
+        if ($explicitServiceName !== '') {
+            $serviceName = $explicitServiceName;
+        } else {
+            $serviceConfig = $serviceId !== '' ? get_service_config($serviceId, $tenantId !== '' ? $tenantId : null) : null;
+            $serviceName = is_array($serviceConfig)
+                ? trim((string) ($serviceConfig['name'] ?? ''))
+                : self::humanizeValue($serviceId, 'Consulta Aurora Derm');
+        }
 
         return [
             'id' => (int) ($appointment['id'] ?? 0),

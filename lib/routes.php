@@ -5,7 +5,7 @@ declare(strict_types=1);
 function register_api_routes(Router $router): void
 {
     // v1 Routes
-    $router->add('GET', 'monitoring-config', [SystemController::class, 'monitoringConfig']);
+    $router->add('GET', 'monitoring-config', [MonitoringConfigController::class, 'monitoringConfig']);
     $router->add('GET', 'features', [SystemController::class, 'features']);
     $router->add('GET', 'public-runtime-config', [SystemController::class, 'publicRuntimeConfig']);
     $router->add('GET', 'metrics', [SystemController::class, 'metrics']);

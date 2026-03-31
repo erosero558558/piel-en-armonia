@@ -90,6 +90,7 @@ final class PatientPortalControllerTest extends TestCase
             'patientCaseId' => 'pc_lucia_003',
             'status' => 'completed',
             'visitMode' => 'in_person',
+            'serviceName' => 'control dermatológico',
             'dateBooked' => '2026-03-18T15:00:00-05:00',
         ]);
         $store['patient_cases'][] = [

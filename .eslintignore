@@ -17,3 +17,8 @@ src/apps/turnero-desktop/
 *.min.js
 js/engines/
 js/bootstrap-inline-engine.js
+
+# Bundles minificados generados por agentes (>1MB linea única)
+js/queue-operator.js
+js/queue-kiosk.js
+js/engines/

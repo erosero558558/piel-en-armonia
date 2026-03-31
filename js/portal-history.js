@@ -442,7 +442,7 @@
             }
 
             container.innerHTML = `
-                <div class="portal-timeline" data-portal-history-feed>
+                <div class="portal-timeline">
                     ${consultations.map(renderConsultationItem).join('')}
                 </div>
             `;

@@ -35,6 +35,10 @@ module.exports = [
             'js/admin-chunks/**',
             'js/engines/**',
             'js/booking-calendar.js',
+            // Minified runtime bundles (>1MB, single line) — artifact contracts enforce correctness,
+            // not ESLint. False positives from minifier: dupe-keys, extra-boolean-cast, useless-escape.
+            'js/queue-operator.js',
+            'js/queue-kiosk.js',
         ],
     },
     {

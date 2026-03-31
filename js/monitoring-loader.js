@@ -22,7 +22,8 @@
         fetch('/api.php?resource=monitoring-config')
             .then((response) => response.json())
             .then((config) => {
-                if (!config || !config.enabled || !config.dsn) {
+                const dsn = config.sentry_dsn_frontend || config.dsn;
+                if (!config || !dsn) {
                     // Monitoring not configured or disabled
                     return;
                 }
@@ -35,8 +36,8 @@
                 ).then(() => {
                     if (window.Sentry) {
                         const options = {
-                            dsn: config.dsn,
-                            environment: config.environment || 'production',
+                            dsn: dsn,
+                            environment: config.environment || config.sentry_environment || 'production',
                             tracesSampleRate: parseFloat(
                                 config.tracesSampleRate || 1.0
                             ),

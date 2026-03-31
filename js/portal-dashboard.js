@@ -496,9 +496,58 @@
         });
     }
 
+    function renderEvolutionSkeleton() {
+        return `
+            <section class="portal-section" data-portal-evolution-skeleton style="opacity:0.8;">
+                <div class="portal-section-heading">
+                    <span class="portal-section-copy">Evolución</span>
+                    <h2 class="portal-section-title">Tu progreso en el tratamiento</h2>
+                </div>
+                <div class="skeleton" style="width: 100%; height: 320px; border-radius: 16px;"></div>
+            </section>
+        `;
+    }
+
+    function renderEvolutionCard(evolution) {
+        const safeEvo = evolution && typeof evolution === 'object' ? evolution : {};
+        if (!safeEvo.before || !safeEvo.after) return '';
+
+        const before = safeEvo.before;
+        const after = safeEvo.after;
+
+        return `
+            <section class="portal-section" aria-labelledby="portal-evolution-title">
+                <div class="portal-section-heading">
+                    <span class="portal-section-copy">Tu progreso clínico (${escapeHtml(safeEvo.diffDays)} días de monitoreo)</span>
+                    <h2 id="portal-evolution-title" class="portal-section-title">Resultados de tu tratamiento</h2>
+                    <p>Observa tu evolución médica comparando tu registro de ${escapeHtml(safeEvo.bodyZone)} a través del tiempo.</p>
+                </div>
+                <div style="overflow: hidden; position: relative;">
+                    <div class="pub-ba-container" id="baSliderPortal" style="height: 340px; border-radius: var(--radius-lg); width: 100%;">
+                        <div class="pub-ba-img pub-ba-before">
+                            <img src="${escapeHtml(before.url)}" alt="Antes del tratamiento - ${escapeHtml(before.label)}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                            <span class="pub-ba-label" style="background: rgba(0,0,0,0.6);">${escapeHtml(before.label)}</span>
+                        </div>
+                        <div class="pub-ba-img pub-ba-after">
+                            <img src="${escapeHtml(after.url)}" alt="Después del tratamiento - ${escapeHtml(after.label)}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                            <span class="pub-ba-label" style="background: rgba(0,0,0,0.6);">${escapeHtml(after.label)}</span>
+                        </div>
+                        <div class="pub-ba-divider">
+                            <div class="pub-ba-handle">
+                                <svg viewBox="0 0 24 24" fill="none" class="pub-ba-arrows" style="width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.5;"><path d="M15 18l5-6-5-6M9 6L4 12l5 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                        </div>
+                        <input type="range" class="pub-ba-slider" min="0" max="100" value="50" aria-label="Deslizar para comparar evolución">
+                    </div>
+                </div>
+            </section>
+        `;
+    }
+
     async function hydrateDashboard() {
         const nextAppointmentContainer = document.getElementById('portal-next-appointment');
         const treatmentPlanContainer = document.getElementById('portal-treatment-plan');
+        const evolutionContainer = document.getElementById('portal-evolution');
         const billingContainer = document.getElementById('portal-billing-summary');
         const actionsContainer = document.getElementById('portal-appointment-actions');
         if (!(nextAppointmentContainer instanceof HTMLElement)) {
@@ -517,6 +566,9 @@
         nextAppointmentContainer.innerHTML = renderSkeletonCard();
         if (treatmentPlanContainer instanceof HTMLElement) {
             treatmentPlanContainer.innerHTML = renderTreatmentPlanSkeleton();
+        }
+        if (evolutionContainer instanceof HTMLElement) {
+            evolutionContainer.innerHTML = renderEvolutionSkeleton();
         }
         if (billingContainer instanceof HTMLElement) {
             billingContainer.innerHTML = renderBillingSkeleton();
@@ -555,6 +607,8 @@
                     : null;
             const billing =
                 payload.billing && typeof payload.billing === 'object' ? payload.billing : null;
+            const evolution =
+                payload.evolution && typeof payload.evolution === 'object' ? payload.evolution : null;
             const support = payload.support && typeof payload.support === 'object' ? payload.support : {};
 
             if (portalShell && typeof portalShell.updatePatient === 'function' && patient.name) {
@@ -569,6 +623,21 @@
                     ? renderTreatmentPlan(treatmentPlan)
                     : renderTreatmentPlanEmpty();
             }
+            if (evolutionContainer instanceof HTMLElement) {
+                evolutionContainer.innerHTML = evolution
+                    ? renderEvolutionCard(evolution)
+                    : '';
+                const baContainer = document.getElementById('baSliderPortal');
+                if (baContainer) {
+                    const slider = baContainer.querySelector('.pub-ba-slider');
+                    if (slider) {
+                        slider.addEventListener('input', function(e) {
+                            baContainer.style.setProperty('--position', e.target.value + '%');
+                        });
+                        baContainer.style.setProperty('--position', slider.value + '%');
+                    }
+                }
+            }
             if (billingContainer instanceof HTMLElement) {
                 billingContainer.innerHTML = renderBillingCard(billing);
             }
@@ -581,6 +650,9 @@
             nextAppointmentContainer.innerHTML = renderErrorState();
             if (treatmentPlanContainer instanceof HTMLElement) {
                 treatmentPlanContainer.innerHTML = renderTreatmentPlanEmpty();
+            }
+            if (evolutionContainer instanceof HTMLElement) {
+                evolutionContainer.innerHTML = '';
             }
             if (billingContainer instanceof HTMLElement) {
                 billingContainer.innerHTML = renderBillingUnavailable();
