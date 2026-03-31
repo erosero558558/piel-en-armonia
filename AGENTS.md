@@ -1476,9 +1476,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### RB-3 Experiencia Clínica Seamless (Book & Patient Portal)
 
-- [ ] **RB-09** `[L]` `[UI]` App-like Booking Flow — pantallas como `<section data-step>` con `transform: translateX(100%→0)` spring `cubic-bezier(0.34,1.56,0.64,1)`, un input visible a la vez por paso. Verificable: `grep "data-step\|translateX\|RB-09" es/servicios/diagnostico-integral/index.html` → match ≥2.
-- [ ] **RB-10** `[XL]` `[UI]` Patient Dashboard Minimalista — `<h1>Hola, [Paciente]</h1>` con `font-size: clamp(2rem,5vw,4rem)`, cards sin bordes visibles, fotos clínicas con `aspect-ratio: 4/3`. Verificable: `grep "Hola.*Paciente\|clamp.*4rem\|RB-10" es/portal/index.html` → match ≥2.
-- [ ] **RB-11** `[L]` `[UI]` Slider OLED Antes/Después — línea de corte `<input type="range">` con CSS custom `clip-path`, `transition: none` en drag (60fps), `scroll-snap-align` para touch. Verificable: `grep "clip-path\|input.*range.*slider\|RB-11" es/servicios/*/index.html` → match ≥1.
+- [x] **RB-09** `[L]` `[UI]` App-like Booking Flow — pantallas como `<section data-step>` con `transform: translateX(100%→0)` spring `cubic-bezier(0.34,1.56,0.64,1)`, un input visible a la vez por paso. Verificable: `grep "data-step\|translateX\|RB-09" es/servicios/diagnostico-integral/index.html` → match ≥2.
+- [x] **RB-10** `[XL]` `[UI]` Patient Dashboard Minimalista — `<h1>Hola, [Paciente]</h1>` con `font-size: clamp(2rem,5vw,4rem)`, cards sin bordes visibles, fotos clínicas con `aspect-ratio: 4/3`. Verificable: `grep "Hola.*Paciente\|clamp.*4rem\|RB-10" es/portal/index.html` → match ≥2.
+- [x] **RB-11** `[L]` `[UI]` Slider OLED Antes/Después — línea de corte `<input type="range">` con CSS custom `clip-path`, `transition: none` en drag (60fps), `scroll-snap-align` para touch. Verificable: `grep "clip-path\|input.*range.*slider\|RB-11" es/servicios/*/index.html` → match ≥1.
 
 ---
 

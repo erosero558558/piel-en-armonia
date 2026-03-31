@@ -1,0 +1,85 @@
+/* =========================================================================
+   Aurora Derm - Clinical Tech Engine (REBORN)
+   Phase RB-09: App-like Booking Flow
+   ========================================================================= */
+
+.reborn-booking-view {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: var(--reborn-space-6) auto;
+    overflow: hidden; /* Encapsulate the springing sections */
+    min-height: 400px;
+    background: rgba(18, 18, 22, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 32px;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+.reborn-booking-step {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: var(--reborn-space-6);
+    display: flex;
+    flex-direction: column;
+    grid-gap: var(--reborn-space-4);
+    
+    /* App-like Spring Animation setup */
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+}
+
+.reborn-booking-step[data-step="active"] {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+    position: relative; /* Take up normal flow height when active */
+}
+
+.reborn-booking-step[data-step="past"] {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Base Booking UI Elements */
+.reborn-booking-header {
+    font-family: var(--reborn-font-display);
+    font-size: var(--reborn-text-h3);
+    color: var(--reborn-color-pure-white);
+    margin-bottom: var(--reborn-space-2);
+}
+
+.reborn-booking-btn {
+    appearance: none;
+    background: var(--reborn-color-aurora-gold);
+    color: var(--reborn-color-oled-black);
+    font-weight: 600;
+    font-size: var(--reborn-text-base);
+    border: none;
+    border-radius: 999px;
+    padding: 16px 24px;
+    cursor: pointer;
+    transition: transform var(--reborn-transition-smooth);
+    margin-top: auto;
+}
+
+.reborn-booking-btn:hover {
+    transform: scale(1.02);
+}
+
+.reborn-booking-btn--secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--reborn-color-pure-white);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reborn-booking-btn--secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
