@@ -27,9 +27,23 @@ export function buildTurneroSurfaceRecoveryBannerHtml(input = {}) {
         readout.surfaceLabel || 'Surface recovery'
     );
 
+    console.log('[RECOVERY LOG]', {
+        surface: readout.surfaceKey,
+        title: title,
+        summary: readout.summary,
+        badge: readout.badge,
+        state: readout.gateBand || readout.driftState || 'watch'
+    });
+    localStorage.setItem('turnero_recovery_' + readout.surfaceKey, JSON.stringify({
+        ts: Date.now(),
+        summary: readout.summary,
+        badge: readout.badge
+    }));
+
     return `
         <section
             class="turnero-surface-recovery-banner"
+            style="display:none;"
             data-state="${escapeHtml(readout.gateBand || readout.driftState || 'watch')}"
             data-surface="${escapeHtml(readout.surfaceKey)}"
         >

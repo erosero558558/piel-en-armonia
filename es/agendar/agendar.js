@@ -236,16 +236,27 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const req = await fetch('/data/catalog/services.json');
       if (req.ok) {
-        servicesCatalog = await req.json();
+        let text = await req.text();
+        if (text) {
+            let data = JSON.parse(text);
+            if (Array.isArray(data)) {
+                servicesCatalog = data;
+            } else if (data && Array.isArray(data.services)) {
+                servicesCatalog = data.services;
+            } else if (data && Array.isArray(data.data)) {
+                servicesCatalog = data.data;
+            }
+        }
       }
     } catch (e) {
       console.warn("Using fallback local catalog", e);
     }
     
+    if (!serviceGrid) return;
     serviceGrid.innerHTML = '';
     servicesCatalog.forEach(srv => {
       const label = document.createElement('label');
-      label.className = 'service-card';
+      label.className = 'service-card glass-card';
       const pop = srv.popular ? `<span class="badge-popular">★ Popular</span>` : '';
       const iconHTML = srv.icon || `<div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg></div>`;
       
@@ -255,11 +266,11 @@ document.addEventListener('DOMContentLoaded', () => {
            <div class="service-icon">${iconHTML}</div>
            ${pop}
         </div>
-        <div class="service-title">${srv.title}</div>
-        <div class="service-desc">${srv.desc}</div>
-        <div class="service-meta">
-           <span class="service-duration">${srv.duration || '30 min'}</span>
-           <span class="service-price">${srv.price || '$50'}</span>
+        <div class="service-title" style="color:#fff">${srv.title}</div>
+        <div class="service-desc" style="color:var(--pub-text-muted)">${srv.desc}</div>
+        <div class="service-meta" style="border-top: 1px solid rgba(255,255,255,0.1)">
+           <span class="service-duration" style="color:var(--pub-text-muted)">⏱️ ${srv.duration || '30 min'}</span>
+           <span class="service-price" style="color:#fff;font-weight:600">💵 ${srv.price || 'Consultar'}</span>
         </div>
       `;
       serviceGrid.appendChild(label);

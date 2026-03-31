@@ -38,7 +38,8 @@ if (!$jsonMode) {
 $tomorrow = (new DateTimeImmutable('tomorrow', new DateTimeZone('America/Guayaquil')))->format('Y-m-d');
 
 try {
-    $pdo = get_db_connection();
+    $pdo = get_db_connection($rootDir . '/data/store.sqlite');
+    if ($pdo === null) throw new \Exception('Driver failed or store not found');
 } catch (\Throwable $e) {
     if ($jsonMode) {
         echo json_encode(['ok' => false, 'error' => 'DB connection failed: ' . $e->getMessage()]);
@@ -181,6 +182,24 @@ if ($jsonMode) {
     } else {
         echo "⚠️  Completado con {$errors} error(es). Revisar log.\n\n";
     }
+}
+
+if (!$dryRun) {
+    $govDir = $rootDir . '/governance';
+    if (!is_dir($govDir)) {
+        @mkdir($govDir, 0755, true);
+    }
+    $logFile = $govDir . '/appointment-reminders-log.json';
+    $logData = [];
+    if (file_exists($logFile)) {
+        $content = @file_get_contents($logFile);
+        if ($content !== false && trim($content) !== '') {
+            $logData = json_decode($content, true);
+            if (!is_array($logData)) $logData = [];
+        }
+    }
+    $logData[] = $summary;
+    @file_put_contents($logFile, json_encode($logData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
 exit($errors > 0 ? 1 : 0);
