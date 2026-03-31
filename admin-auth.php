@@ -15,6 +15,10 @@ $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $action = strtolower(trim((string) ($_GET['action'] ?? 'status')));
 const ADMIN_LOGIN_ACTION = 'admin-login';
 const ADMIN_LOGIN_FAIL_ACTION = 'admin-login-failed';
+const ADMIN_LOGIN_MAX_REQUESTS = 5;
+const ADMIN_LOGIN_WINDOW_SECONDS = 60;
+const ADMIN_LOGIN_FAIL_MAX_REQUESTS = 5;
+const ADMIN_LOGIN_FAIL_WINDOW_SECONDS = 900;
 
 function admin_auth_is_loopback_request(): bool
 {
@@ -197,7 +201,7 @@ if ($method === 'POST' && $action === 'login') {
     }
 
     // Limite de intentos globales por IP para el endpoint de login.
-    require_rate_limit(ADMIN_LOGIN_ACTION, 12, 300);
+    require_rate_limit(ADMIN_LOGIN_ACTION, ADMIN_LOGIN_MAX_REQUESTS, ADMIN_LOGIN_WINDOW_SECONDS);
 
     if (!admin_password_is_configured()) {
         audit_log_event('admin.login_misconfigured', [
@@ -211,11 +215,17 @@ if ($method === 'POST' && $action === 'login') {
     }
 
     // Bloqueo temporal por credenciales fallidas repetidas.
-    if (is_rate_limited(ADMIN_LOGIN_FAIL_ACTION, 5, 900)) {
+    if (is_rate_limited(ADMIN_LOGIN_FAIL_ACTION, ADMIN_LOGIN_FAIL_MAX_REQUESTS, ADMIN_LOGIN_FAIL_WINDOW_SECONDS)) {
+        $blockedState = rate_limit_header_state(
+            ADMIN_LOGIN_FAIL_ACTION,
+            ADMIN_LOGIN_FAIL_MAX_REQUESTS,
+            ADMIN_LOGIN_FAIL_WINDOW_SECONDS
+        );
+        rate_limit_emit_headers($blockedState);
         audit_log_event('admin.login_blocked', [
             'reason' => 'too_many_failed_attempts'
         ]);
-        header('Retry-After: 900');
+        header('Retry-After: ' . (string) $blockedState['reset']);
         json_response([
             'ok' => false,
             'error' => 'Demasiados intentos fallidos. Intenta nuevamente en 15 minutos.',
@@ -234,7 +244,11 @@ if ($method === 'POST' && $action === 'login') {
     }
 
     if (!verify_admin_password($password)) {
-        check_rate_limit(ADMIN_LOGIN_FAIL_ACTION, 5, 900);
+        check_rate_limit(
+            ADMIN_LOGIN_FAIL_ACTION,
+            ADMIN_LOGIN_FAIL_MAX_REQUESTS,
+            ADMIN_LOGIN_FAIL_WINDOW_SECONDS
+        );
         audit_log_event('admin.login_failed', [
             'reason' => 'invalid_credentials'
         ]);

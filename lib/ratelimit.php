@@ -369,6 +369,21 @@ function rate_limit_filter_window(array $entries, int $now, int $windowSeconds):
 }
 
 /**
+ * Calculates how many seconds remain until the oldest hit leaves the window.
+ *
+ * @param int[] $entries
+ */
+function rate_limit_reset_seconds(array $entries, int $now, int $windowSeconds): int
+{
+    if ($entries === []) {
+        return max(1, $windowSeconds);
+    }
+
+    $oldest = min($entries);
+    return max(1, $windowSeconds - max(0, $now - $oldest));
+}
+
+/**
  * Persists normalized timestamps for a rate-limit key.
  *
  * @param int[] $entries
@@ -390,6 +405,42 @@ function rate_limit_entries_in_window(string $filePath, int $now, int $windowSec
         $now,
         $windowSeconds
     );
+}
+
+/**
+ * Builds the public header snapshot for an IP-based rate limit window.
+ *
+ * @return array{limit:int,remaining:int,reset:int}
+ */
+function rate_limit_header_state(string $action, int $maxRequests = 10, int $windowSeconds = 60): array
+{
+    $maxRequests = max(1, $maxRequests);
+    $windowSeconds = max(1, $windowSeconds);
+    $now = time();
+    $filePath = rate_limit_file_path($action);
+    $entries = rate_limit_entries_in_window($filePath, $now, $windowSeconds);
+
+    return [
+        'limit' => $maxRequests,
+        'remaining' => max(0, $maxRequests - count($entries)),
+        'reset' => rate_limit_reset_seconds($entries, $now, $windowSeconds),
+    ];
+}
+
+/**
+ * Emits standard X-RateLimit headers when the response is still mutable.
+ *
+ * @param array{limit:int,remaining:int,reset:int} $state
+ */
+function rate_limit_emit_headers(array $state): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    header('X-RateLimit-Limit: ' . (string) max(0, (int) ($state['limit'] ?? 0)));
+    header('X-RateLimit-Remaining: ' . (string) max(0, (int) ($state['remaining'] ?? 0)));
+    header('X-RateLimit-Reset: ' . (string) max(1, (int) ($state['reset'] ?? 1)));
 }
 
 /**
@@ -602,8 +653,15 @@ function reset_rate_limit(string $action): void
  */
 function require_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): void
 {
-    if (!check_rate_limit($action, $maxRequests, $windowSeconds)) {
-        $retryAfterSec = max(1, $windowSeconds);
+    $maxRequests = max(1, $maxRequests);
+    $windowSeconds = max(1, $windowSeconds);
+
+    $allowed = check_rate_limit($action, $maxRequests, $windowSeconds);
+    $headerState = rate_limit_header_state($action, $maxRequests, $windowSeconds);
+    rate_limit_emit_headers($headerState);
+
+    if (!$allowed) {
+        $retryAfterSec = max(1, $headerState['reset']);
         header('Retry-After: ' . (string) $retryAfterSec);
         json_response([
             'ok' => false,
