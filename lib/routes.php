@@ -75,6 +75,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'telemedicine-preconsultation', [TelemedicinePublicController::class, 'preConsultation']);
     $router->add('POST', 'telemedicine-preconsultation', [TelemedicinePublicController::class, 'submitPreConsultation']);
     $router->add('GET', 'telemedicine-room-token', [TelemedicineRoomController::class, 'token']);
+    $router->add('POST', 'telemedicine-recording', [TelemedicineRoomController::class, 'uploadRecording']);
     $router->add('GET', 'clinical-history-session', [ClinicalHistoryController::class, 'sessionGet']);
     $router->add('POST', 'clinical-history-session', [ClinicalHistoryController::class, 'sessionPost']);
     $router->add('POST', 'clinical-history-message', [ClinicalHistoryController::class, 'messagePost']);
@@ -219,6 +220,10 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'active-promotions', [PromotionController::class, 'getActivePromotions']);
 
     $router->add('GET', 'push-diagnostics', [PushController::class, 'diagnostics']);
+
+    // Native Android TV Telemetry
+    $router->add('POST', 'tv-heartbeat', [TvController::class, 'heartbeat']);
+    $router->add('GET', 'tv-config', [TvController::class, 'config']);
 
     // v2 Routes
     $router->add('GET', 'health', [HealthController::class, 'check'], 'v2');

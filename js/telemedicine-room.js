@@ -103,6 +103,10 @@
                 window.location.href = '/admin.html';
             }
         });
+
+        window.telemedicineApi = api;
+        window.telemedicineRole = role;
+        window.dispatchEvent(new CustomEvent('telemedicine:ready', { detail: { api, role } }));
     }
 
     document.addEventListener('DOMContentLoaded', initRoom);

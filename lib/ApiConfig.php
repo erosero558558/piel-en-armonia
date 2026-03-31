@@ -52,6 +52,7 @@ class ApiConfig
             'public-case-stories:GET' => [60, 60],
             'public-case-media-file:GET' => [120, 60],
             'active-promotions:GET' => [120, 60],
+            'tv-config:GET' => [60, 60],
 
             // Public POST - Actionable, lower volume to prevent spam
             'payment-intent:POST' => [10, 60],
@@ -83,6 +84,7 @@ class ApiConfig
             'patient-portal-auth-complete:POST' => [30, 300],
             'patient-portal-consent:POST' => [12, 300],
             'telemedicine-preconsultation:POST' => [8, 300],
+            'telemedicine-recording:POST' => [10, 60],
             'notification-subscribe:POST' => [15, 60],
             'notification-unsubscribe:POST' => [15, 60],
             'operator-pin-login:POST' => [24, 300],
@@ -90,6 +92,7 @@ class ApiConfig
             'operator-pin-rotate:POST' => [10, 300],
             'clinical-history-session:POST' => [40, 60],
             'clinical-history-message:POST' => [60, 60],
+            'tv-heartbeat:POST' => [120, 60],
 
             // Webhooks
             'stripe-webhook:POST' => [60, 60],
@@ -204,6 +207,8 @@ class ApiConfig
             ['method' => 'GET', 'resource' => 'content'],
             ['method' => 'GET', 'resource' => 'health'],
             ['method' => 'GET', 'resource' => 'active-promotions'],
+            ['method' => 'GET', 'resource' => 'tv-config'],
+            ['method' => 'POST', 'resource' => 'tv-heartbeat'],
         ];
     }
 

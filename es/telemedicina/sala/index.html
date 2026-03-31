@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es" data-theme-mode="system" data-ops-tone="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
+        <meta name="application-name" content="Aurora Derm" />
+        <meta name="apple-mobile-web-app-title" content="Aurora Derm" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#248a65" />
+        <title>Sala de Consulta | Aurora Derm</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/images/icon-192.png" />
+        <link rel="stylesheet" href="/styles/tokens.css" />
+        <link rel="stylesheet" href="/styles/base.css" />
+        <link rel="stylesheet" href="/styles/components.css" />
+        <link rel="stylesheet" href="/styles/aurora-portal.css" />
+        <style>
+            .telemedicine-room-surface {
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                height: 100dvh;
+                background-color: var(--surface-default);
+            }
+            .telemedicine-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 16px;
+                background: var(--surface-sunken);
+                border-bottom: 1px solid var(--border-subtle);
+                flex-shrink: 0;
+            }
+            .telemedicine-header__logo {
+                height: 24px;
+                width: auto;
+            }
+            .telemedicine-header__help {
+                font-size: var(--text-sm);
+                color: var(--text-muted);
+                text-decoration: underline;
+                background: transparent;
+                border: none;
+                padding: 4px;
+                cursor: pointer;
+            }
+            #jitsi-container {
+                flex: 1;
+                width: 100%;
+                background: #000;
+            }
+            #telemedicine-loader {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                background: var(--surface-default);
+                z-index: 10;
+                gap: 16px;
+            }
+            .spinner {
+                width: 40px;
+                height: 40px;
+                border: 3px solid var(--border-subtle);
+                border-top-color: var(--color-primary);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+            }
+            .portal-modal {
+                position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+                display: flex; align-items: center; justify-content: center; z-index: 1000;
+            }
+            .portal-modal.hidden { display: none; }
+            .portal-modal-content {
+                background: var(--surface-default); padding: 24px; border-radius: 8px;
+                max-width: 400px; width: 90%; color: var(--text-default);
+            }
+            .recording-indicator {
+                color: #ef4444; font-weight: bold; font-size: 14px; animation: pulse 2s infinite;
+                display: flex; align-items: center; gap: 4px;
+            }
+        </style>
+        <script src="https://meet.jit.si/external_api.js" defer></script>
+    </head>
+    <body>
+        <main class="telemedicine-room-surface">
+            <header class="telemedicine-header">
+                <a href="/es/portal/index.html" aria-label="Volver al portal" title="Aurora Derm">
+                    <img src="/images/aurora-logo.svg" alt="Aurora Derm" class="telemedicine-header__logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'24\'><text x=\'0\' y=\'18\' font-family=\'sans-serif\' font-size=\'18\' font-weight=\'bold\' fill=\'white\'>Aurora Derm</text></svg>'">
+                </a>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <span id="recording-indicator" class="recording-indicator" style="display:none;">🔴 Grabando</span>
+                    <button id="record-btn" class="btn btn-sm" style="display:none;">Grabar Consulta</button>
+                    <button id="stop-record-btn" class="btn btn-danger btn-sm" style="display:none;">Detener Grabación</button>
+                    <a href="https://wa.me/593982453672?text=Hola%2C%20tengo%20problemas%20con%20la%20videoconsulta" target="_blank" class="telemedicine-header__help" rel="noopener noreferrer">Necesito ayuda</a>
+                </div>
+            </header>
+
+            <div id="jitsi-container"></div>
+            
+            <div id="telemedicine-loader">
+                <div class="spinner" aria-hidden="true"></div>
+                <p style="color:var(--text-default); font-family:var(--font-sans); margin:0;">Preparando tu sala segura...</p>
+            </div>
+            
+            <div id="recording-consent-modal" class="portal-modal hidden" aria-modal="true" role="dialog">
+                <div class="portal-modal-content">
+                    <h3 style="margin-top:0; color:#c9a96e;">Solicitud de Grabación</h3>
+                    <p>El médico ha solicitado grabar esta consulta para tu historial médico clínico.</p>
+                    <div style="display:flex; justify-content: flex-end; gap: 10px; margin-top:20px;">
+                        <button id="deny-recording-btn" class="btn btn-secondary">Rechazar</button>
+                        <button id="accept-recording-btn" class="btn btn-primary">Aceptar y Grabar</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script src="/js/api.js"></script>
+        <script src="/js/portal-session.js"></script>
+        <script src="/js/portal-shell.js"></script>
+        <script src="/js/telemedicine-room.js"></script>
+        <script src="/js/telemedicine-recording.js"></script>
+    </body>
+</html>
