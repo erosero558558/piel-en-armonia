@@ -266,6 +266,10 @@ class AppointmentController
             maybe_send_admin_notification($appointment);
         }
 
+        // WhatsApp confirmation enqueueing (S13-20)
+        require_once __DIR__ . '/../lib/WhatsAppService.php';
+        WhatsAppService::sendConfirmation($appointment);
+
         json_response([
             'ok' => true,
             'data' => $appointment,
