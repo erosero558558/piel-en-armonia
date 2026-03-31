@@ -113,7 +113,8 @@ function parseTasks(md) {
 
 const ROLE_AFFINITY = {
   backend: {
-    description: 'PHP, APIs, servicios, lógica de negocio',
+    wipLimit: 2,
+    description: 'PHP, APIs, servicios, lógica de negocio',,
     // Ordenados por impacto en el médico del día 1
     prefer: [
       'S3-19', // Receta digital — genera PDF con membrete
