@@ -2157,6 +2157,8 @@ final class ClinicalHistorySessionRepository
                     'refusedSignature' => array_key_exists('refusedSignature', $source['patientAttestation'] ?? [])
                         ? (bool) $source['patientAttestation']['refusedSignature']
                         : false,
+                    'signatureDataUrl' => self::trimString($source['patientAttestation']['signatureDataUrl'] ?? ''),
+                    'signatureCapturedAt' => self::trimString($source['patientAttestation']['signatureCapturedAt'] ?? ''),
                 ],
                 'representativeAttestation' => [
                     'name' => self::trimString($source['representativeAttestation']['name'] ?? ''),
@@ -2184,6 +2186,11 @@ final class ClinicalHistorySessionRepository
                     'documentNumber' => self::trimString($source['witnessAttestation']['documentNumber'] ?? ''),
                     'phone' => self::trimString($source['witnessAttestation']['phone'] ?? ''),
                     'signedAt' => self::trimString($source['witnessAttestation']['signedAt'] ?? ''),
+                ],
+                'portalDocument' => [
+                    'pdfBase64' => self::trimString($source['portalDocument']['pdfBase64'] ?? ''),
+                    'pdfFileName' => self::trimString($source['portalDocument']['pdfFileName'] ?? ''),
+                    'pdfGeneratedAt' => self::trimString($source['portalDocument']['pdfGeneratedAt'] ?? ''),
                 ],
                 'history' => $history,
                 'createdAt' => self::trimString($source['createdAt'] ?? $now),

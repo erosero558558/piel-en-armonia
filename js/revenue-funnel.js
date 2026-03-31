@@ -237,6 +237,29 @@
     onScroll();
   }
 
+  function captureGlobalReferral() {
+    try {
+      if (typeof window === 'undefined' || !window.location || !window.URLSearchParams) return;
+      
+      const searchParams = new URLSearchParams(window.location.search);
+      const refCode = searchParams.get('ref');
+      
+      if (refCode && refCode.trim() !== '') {
+        const cleanlyRefCode = refCode.trim();
+        window.localStorage.setItem('aurora_referral_code', cleanlyRefCode);
+        
+        // Track the click transparently
+        fetch('/api.php?resource=referral-click', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: cleanlyRefCode })
+        }).catch(() => {});
+      }
+    } catch (_e) {
+      // Ignorar errores relacionados a localStorage cross-origin
+    }
+  }
+
   function init() {
     window.AuroraRevenueFunnel = {
       trackEvent,
@@ -244,6 +267,7 @@
       trackWhatsAppClick,
     };
 
+    captureGlobalReferral();
     trackVisit();
     bindScrollTracking();
     document.addEventListener('click', handleDocumentClick);

@@ -230,8 +230,13 @@ function normalize_appointment(array $appointment): array
         'rescheduleToken' => isset($appointment['rescheduleToken']) && $appointment['rescheduleToken'] !== ''
             ? (string) $appointment['rescheduleToken']
             : bin2hex(random_bytes(16)),
+        'giftCardCode' => truncate_field(trim((string) ($appointment['giftCardCode'] ?? '')), 30),
         'reminderSentAt' => truncate_field(trim((string) ($appointment['reminderSentAt'] ?? '')), 30),
-        'followUpSentAt' => truncate_field(trim((string) ($appointment['followUpSentAt'] ?? '')), 30)
+        'portalPushReminderSentAt' => truncate_field(trim((string) ($appointment['portalPushReminderSentAt'] ?? '')), 30),
+        'portalPushReminderChannel' => truncate_field(trim((string) ($appointment['portalPushReminderChannel'] ?? '')), 30),
+        'portalPushReminderDevices' => isset($appointment['portalPushReminderDevices']) ? (int) $appointment['portalPushReminderDevices'] : 0,
+        'followUpSentAt' => truncate_field(trim((string) ($appointment['followUpSentAt'] ?? '')), 30),
+        'referralCode' => truncate_field(trim((string) ($appointment['referralCode'] ?? '')), 30)
     ], $appointment);
 }
 

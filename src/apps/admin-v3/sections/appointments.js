@@ -7,6 +7,7 @@ export {
     hydrateAppointmentPreferences,
     markArrived,
     markNoShow,
+    redeemGiftCard,
     rejectTransfer,
     renderAppointmentsSection,
     setAppointmentDensity,

@@ -9,6 +9,7 @@ require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/PatientCaseService.php';
 require_once __DIR__ . '/calendar/runtime.php';
 require_once __DIR__ . '/storage.php';
+require_once __DIR__ . '/referrals/ReferralService.php';
 require_once __DIR__ . '/telemedicine/LegacyTelemedicineBridge.php';
 $telemedicinePolicyFile = __DIR__ . '/telemedicine/TelemedicineEnforcementPolicy.php';
 if (is_file($telemedicinePolicyFile)) {
@@ -272,6 +273,17 @@ class BookingService
         $store['appointments'][] = $appointment;
         $store = $this->hydratePatientFlowStore($store);
         $appointment = $this->findAppointmentById($store, (int) ($appointment['id'] ?? 0)) ?? $appointment;
+
+        // Attribute conversion for referrals if the code is present
+        $referralCode = trim((string) ($appointment['referralCode'] ?? ''));
+        $patientId = trim((string) ($appointment['patientId'] ?? ''));
+        if ($referralCode !== '' && $patientId !== '') {
+            try {
+                ReferralService::attributeConversion($referralCode, $patientId);
+            } catch (Throwable $e) {
+                // Silently ignore to avoid blocking booking
+            }
+        }
 
         return [
             'ok' => true,

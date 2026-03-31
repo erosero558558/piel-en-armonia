@@ -267,8 +267,33 @@
     (function () {
       const shareButtons = document.querySelectorAll('[data-referral-share]');
       const feedback = document.querySelector('[data-referral-feedback]');
-      const shareUrl = new URL('/es/referidos/?ref=aurora-circle', window.location.origin).toString();
-      const shareText = 'Le comparto este acceso de Aurora Derm por si quiere agendar su primera cita con beneficio de referido: ' + shareUrl;
+      
+      let dynamicShareUrl = new URL('/es/referidos/?ref=aurora-circle', window.location.origin).toString();
+      
+      // Attempt to generate unique link if we have patient context (e.g. injected or from localStorage)
+      const patientId = localStorage.getItem('aurora_patient_id') || localStorage.getItem('patient_id') || 'demo_p_' + Math.floor(Math.random() * 10000);
+      fetch('/api.php?resource=referral-link&patient_id=' + encodeURIComponent(patientId))
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success' && data.data && data.data.share_url) {
+                dynamicShareUrl = data.data.share_url;
+            }
+        }).catch(err => console.error("Could not fetch referral link", err));
+
+      function getShareText() {
+          return 'Le comparto este acceso de Aurora Derm por si quiere agendar su primera cita con beneficio de referido: ' + dynamicShareUrl;
+      }
+
+      // Track click si viene por link de referido
+      const urlParams = new URLSearchParams(window.location.search);
+      const incomingRef = urlParams.get('ref');
+      if (incomingRef) {
+          try {
+              localStorage.setItem('aurora_referral_code', incomingRef);
+          } catch (e) {
+              // ignore
+          }
+      }
 
       function trackShare(channel) {
         if (!window.AuroraRevenueFunnel || typeof window.AuroraRevenueFunnel.trackMessageIntent !== 'function') {
@@ -279,7 +304,7 @@
           cta_label: 'Comparte tu link',
           cta_section: 'referrals_share',
           message_channel: channel,
-          message_length: shareText.length
+          message_length: getShareText().length
         });
       }
 
@@ -294,7 +319,7 @@
             await navigator.share({
               title: 'Programa de referidos Aurora Derm',
               text: 'Le comparto el programa de referidos de Aurora Derm.',
-              url: shareUrl
+              url: dynamicShareUrl
             });
             trackShare('native_share');
             setFeedback('Listo. Se abrió el menú para compartir su link.');
@@ -302,18 +327,18 @@
           }
 
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(shareText);
+            await navigator.clipboard.writeText(getShareText());
             trackShare('clipboard_copy');
             setFeedback('Listo. Copiamos el mensaje con su link para que lo pegue donde quiera.');
             return;
           }
 
           trackShare('whatsapp_redirect');
-          window.location.href = 'https://wa.me/?text=' + encodeURIComponent(shareText);
+          window.location.href = 'https://wa.me/?text=' + encodeURIComponent(getShareText());
           setFeedback('Listo. Le estamos llevando a WhatsApp para compartir el link.');
         } catch (error) {
           trackShare('whatsapp_redirect');
-          window.location.href = 'https://wa.me/?text=' + encodeURIComponent(shareText);
+          window.location.href = 'https://wa.me/?text=' + encodeURIComponent(getShareText());
           setFeedback('No pudimos copiar el link, pero ya abrimos WhatsApp para compartirlo.');
         }
       }

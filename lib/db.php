@@ -334,7 +334,18 @@ function ensure_db_schema(): void
         )",
         "CREATE INDEX IF NOT EXISTS idx_cron_failures_retry ON cron_failures(next_retry_at)",
         "CREATE INDEX IF NOT EXISTS idx_gift_cards_code ON gift_cards(code)",
-        "CREATE INDEX IF NOT EXISTS idx_gift_cards_status ON gift_cards(status)"
+        "CREATE INDEX IF NOT EXISTS idx_gift_cards_status ON gift_cards(status)",
+        "CREATE TABLE IF NOT EXISTS referrals (
+            id INTEGER PRIMARY KEY,
+            code TEXT UNIQUE NOT NULL,
+            patient_id TEXT NOT NULL,
+            clicks INTEGER DEFAULT 0,
+            conversions INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        "CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(code)",
+        "CREATE INDEX IF NOT EXISTS idx_referrals_patient_id ON referrals(patient_id)"
     ];
 
     foreach ($queries as $sql) {

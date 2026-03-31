@@ -698,6 +698,10 @@ export function renderOpsDeck(
         setText('#appointmentsFocusContact', '-');
         setHtml('#appointmentsFocusTags', '');
         setText('#appointmentsFocusHint', focus.hint);
+        
+        const gcWidget = document.getElementById('appointmentsGcWidget');
+        if (gcWidget) gcWidget.classList.add('is-hidden');
+        
         renderQueueReview(queueReview);
         return;
     }
@@ -728,5 +732,23 @@ export function renderOpsDeck(
             .join('')
     );
     setText('#appointmentsFocusHint', focus.hint);
+    
+    const gcWidget = document.getElementById('appointmentsGcWidget');
+    if (gcWidget) {
+        gcWidget.classList.remove('is-hidden');
+        const codeInput = document.getElementById('admin-gc-code');
+        const amountInput = document.getElementById('admin-gc-amount');
+        if (codeInput) codeInput.value = item.giftCardCode || '';
+        if (amountInput) amountInput.value = '';
+        
+        const feedback = document.getElementById('admin-gc-feedback');
+        if (feedback) feedback.innerHTML = '';
+        
+        const btnRedeem = gcWidget.querySelector('[data-action="appointment-redeem-gc"]');
+        if (btnRedeem) {
+            btnRedeem.dataset.appointmentId = item.id;
+        }
+    }
+    
     renderQueueReview(queueReview);
 }

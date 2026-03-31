@@ -261,6 +261,12 @@
                 icon: 'docs',
             },
             {
+                href: String(safeSupport.planUrl || '/es/portal/plan/').trim() || '/es/portal/plan/',
+                label: 'Mi plan',
+                copy: 'Sigue el progreso real de tus sesiones, lo que viene y lo que todavía falta agendar.',
+                icon: 'plan',
+            },
+            {
                 href: String(safeSupport.prescriptionUrl || '/es/portal/receta/').trim() || '/es/portal/receta/',
                 label: 'Mi receta',
                 copy: 'Revisa tu receta activa, descarga el PDF firmado y valida su autenticidad con QR.',
@@ -280,6 +286,12 @@
                 external: true,
             },
             {
+                href: '/es/portal/referidos/',
+                label: 'Mis Referidos',
+                copy: 'Comparte tu código único y obtén beneficios en tu próxima consulta.',
+                icon: 'referral',
+            },
+            {
                 href: String(safeSupport.bookingUrl || '/#citas').trim() || '/#citas',
                 label: 'Nueva reserva',
                 copy: 'Si ya cerraste tu tratamiento, agenda tu siguiente control desde aquí.',
@@ -293,12 +305,16 @@
                 const icon =
                     item.icon === 'whatsapp'
                         ? 'W'
+                        : item.icon === 'plan'
+                            ? 'P'
                         : item.icon === 'prescription'
                             ? 'R'
                         : item.icon === 'photos'
                             ? 'F'
                         : item.icon === 'calendar'
                             ? 'A'
+                        : item.icon === 'referral'
+                            ? '★'
                             : 'H';
                 return `
                     <a class="portal-support-card" href="${escapeHtml(item.href)}"${item.external ? ' target="_blank" rel="noopener noreferrer"' : ''}>

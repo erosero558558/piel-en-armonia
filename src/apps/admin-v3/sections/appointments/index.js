@@ -16,5 +16,6 @@ export {
     exportAppointmentsCsv,
     markArrived,
     markNoShow,
+    redeemGiftCard,
     rejectTransfer,
 } from './actions.js';

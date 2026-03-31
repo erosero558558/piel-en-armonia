@@ -89,6 +89,36 @@
 
                 <section class="portal-section">
                     <div class="portal-section-heading">
+                        <span class="portal-inline-label">Recordatorios</span>
+                        <h2>Activa avisos 24 horas antes de tu cita.</h2>
+                        <p>La notificación queda asociada solo a este dispositivo y a tu sesión del portal.</p>
+                    </div>
+                    <section class="portal-plan-card portal-push-card" data-portal-push-card data-state="idle">
+                        <div class="portal-plan-card__header">
+                            <div class="portal-plan-card__info">
+                                <span class="portal-inline-label">Web Push</span>
+                                <strong>Recordatorio puntual en tu pantalla</strong>
+                                <span data-portal-push-copy>
+                                    Estamos verificando si este equipo puede recibir avisos del portal paciente.
+                                </span>
+                            </div>
+                            <span class="portal-status-chip portal-status-chip--idle" data-portal-push-status>
+                                Preparando
+                            </span>
+                        </div>
+                        <p class="portal-push-card__note" data-portal-push-note>
+                            El recordatorio llega solo a este dispositivo y 24 horas antes de una cita confirmada.
+                        </p>
+                        <div class="portal-cta-row portal-cta-row--single">
+                            <button class="btn btn-primary" type="button" data-portal-push-toggle disabled>
+                                Activar avisos
+                            </button>
+                        </div>
+                    </section>
+                </section>
+
+                <section class="portal-section">
+                    <div class="portal-section-heading">
                         <span class="portal-inline-label">Pagos</span>
                         <h2>Saldo y próximos cobros.</h2>
                         <p>Solo lectura y sin exponer información bancaria sensible dentro del portal.</p>
@@ -121,6 +151,15 @@
                         <path d="M3 18h10"></path>
                     </svg>
                     <span>Historial</span>
+                </a>
+                <a class="portal-nav-item" href="/es/portal/plan/">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 19h16"></path>
+                        <path d="M7 16V9"></path>
+                        <path d="M12 16V5"></path>
+                        <path d="M17 16v-4"></path>
+                    </svg>
+                    <span>Plan</span>
                 </a>
                 <a class="portal-nav-item" href="/es/portal/receta/">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">

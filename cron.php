@@ -24,6 +24,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/lib/clinical_history/bootstrap.php';
+require_once __DIR__ . '/lib/NotificationService.php';
 
 apply_security_headers(false);
 
@@ -189,6 +190,12 @@ function cron_task_reminders(array $payload): array
     ]);
     $sent += (int) ($appointmentReminderSummary['queued'] ?? 0);
 
+    $appointmentPushReminderSummary = NotificationService::queueAppointmentPushReminders($store, [
+        'today' => $today,
+        'tomorrow' => $tomorrow,
+    ]);
+    $sent += (int) ($appointmentPushReminderSummary['queued'] ?? 0);
+
     $postConsultationSummary = LeadOpsService::queuePostConsultationFollowUps($store, [
         'now' => (string) ($payload['now'] ?? local_date('c')),
     ]);
@@ -223,6 +230,8 @@ function cron_task_reminders(array $payload): array
 
     $skipped = (int) ($appointmentReminderSummary['skipped'] ?? 0);
     $failed += (int) ($appointmentReminderSummary['queueUnavailable'] ?? 0);
+    $failed += (int) ($appointmentPushReminderSummary['failed'] ?? 0);
+    $failed += (int) ($appointmentPushReminderSummary['notConfigured'] ?? 0);
     $failed += (int) ($postConsultationSummary['queueUnavailable'] ?? 0);
     $failed += (int) ($medicationReminderSummary['queueUnavailable'] ?? 0);
 
@@ -243,6 +252,7 @@ function cron_task_reminders(array $payload): array
         'skipped' => $skipped,
         'failed' => $failed,
         'appointmentReminders' => $appointmentReminderSummary,
+        'appointmentPushReminders' => $appointmentPushReminderSummary,
         'postConsultationFollowUps' => $postConsultationSummary,
         'medicationReminders' => $medicationReminderSummary,
         'birthdays' => $birthdaySummary,
@@ -475,6 +485,48 @@ function cron_task_clinical_history_reconcile(array $payload): array
     $result['action'] = 'clinical-history-reconcile';
     $result['timestamp'] = gmdate('c');
     return $result;
+}
+
+function cron_task_gift_cards_reminders(array $payload): array
+{
+    require_once __DIR__ . '/lib/gift_cards/GiftCardService.php';
+    require_once __DIR__ . '/lib/email.php';
+
+    $daysAhead = isset($payload['days']) ? (int) $payload['days'] : 14;
+    
+    try {
+        $expiringCards = GiftCardService::getExpiringCards($daysAhead);
+    } catch (Throwable $e) {
+        return ['ok' => false, 'error' => 'Error querying gift cards: ' . $e->getMessage()];
+    }
+
+    $sent = 0;
+    $failed = 0;
+
+    foreach ($expiringCards as $card) {
+        $cardArray = [
+            'code' => $card->code,
+            'balance_cents' => $card->balance_cents,
+            'recipient_email' => $card->recipient_email,
+            'expires_at' => $card->expires_at,
+        ];
+
+        if (maybe_send_gift_card_reminder_email($cardArray)) {
+            GiftCardService::markReminderSent($card->code);
+            $sent++;
+        } else {
+            $failed++;
+        }
+    }
+
+    return [
+        'ok' => true,
+        'action' => 'gift-cards-reminders',
+        'cardsFound' => count($expiringCards),
+        'sent' => $sent,
+        'failed' => $failed,
+        'timestamp' => gmdate('c')
+    ];
 }
 
 function cron_process_retries(): array

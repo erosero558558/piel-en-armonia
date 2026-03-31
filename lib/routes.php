@@ -46,8 +46,14 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'patient-portal-auth-status', [PatientPortalController::class, 'status']);
     $router->add('GET', 'patient-portal-dashboard', [PatientPortalController::class, 'dashboard']);
     $router->add('GET', 'patient-portal-history', [PatientPortalController::class, 'history']);
+    $router->add('GET', 'patient-portal-plan', [PatientPortalController::class, 'plan']);
     $router->add('GET', 'patient-portal-photos', [PatientPortalController::class, 'photos']);
     $router->add('GET', 'patient-portal-prescription', [PatientPortalController::class, 'prescription']);
+    $router->add('GET', 'patient-portal-consent', [PatientPortalController::class, 'consent']);
+    $router->add('POST', 'patient-portal-consent', [PatientPortalController::class, 'signConsent']);
+    $router->add('GET', 'notification-config', [NotificationController::class, 'config']);
+    $router->add('POST', 'notification-subscribe', [NotificationController::class, 'subscribe']);
+    $router->add('POST', 'notification-unsubscribe', [NotificationController::class, 'unsubscribe']);
     $router->add('GET', 'patient-portal-photo-file', [PatientPortalController::class, 'photoFile']);
     $router->add('GET', 'patient-portal-document', [PatientPortalController::class, 'document']);
     $router->add('GET', 'document-verify', [PatientPortalController::class, 'documentVerify']);
@@ -129,10 +135,16 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'gift-card-issue', [GiftCardController::class, 'issue']);
     $router->add('POST', 'gift-card-redeem', [GiftCardController::class, 'redeem']);
     $router->add('GET', 'gift-card-validate', [GiftCardController::class, 'validate']);
+    $router->add('GET', 'gift-cards-expiring', [GiftCardController::class, 'expiring']);
 
     // Certificados médicos — standalone (lista, crear, PDF)
     $router->add('GET', 'certificate', [CertificateController::class, 'index']);
     $router->add('POST', 'certificate', [CertificateController::class, 'store']);
+
+    // Referidos
+    $router->add('GET', 'referral-link', [ReferralController::class, 'getLink']);
+    $router->add('GET', 'referral-stats', [ReferralController::class, 'getStats']);
+    $router->add('POST', 'referral-click', [ReferralController::class, 'trackClick']);
 
     $router->add('GET', 'reviews', [ReviewController::class, 'index']);
     $router->add('POST', 'reviews', [ReviewController::class, 'store']);

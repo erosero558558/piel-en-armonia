@@ -151,6 +151,22 @@ final class PatientPortalControllerTest extends TestCase
                 'contactPhone' => '0988888888',
             ],
         ];
+        $store['clinical_history_sessions'][] = [
+            'id' => 401,
+            'sessionId' => 'chs_portal_consent_001',
+            'caseId' => 'pc_lucia_001',
+            'appointmentId' => 101,
+            'surface' => 'admin',
+            'mode' => 'clinical_intake',
+            'status' => 'active',
+            'patient' => [
+                'name' => 'Lucia Portal',
+                'phone' => '0991234567',
+                'documentNumber' => '0102030405',
+            ],
+            'createdAt' => '2026-03-30T10:05:00-05:00',
+            'updatedAt' => '2026-03-30T10:25:00-05:00',
+        ];
         $store['patients']['pc_lucia_002'] = [
             'firstName' => 'Lucia',
             'lastName' => 'Portal',
@@ -223,6 +239,66 @@ final class PatientPortalControllerTest extends TestCase
                 'name' => 'Lucia Portal',
                 'identification' => '0102030405',
             ],
+        ];
+        $store['clinical_history_drafts'][] = [
+            'draftId' => 'chd_portal_consent_001',
+            'sessionId' => 'chs_portal_consent_001',
+            'caseId' => 'pc_lucia_001',
+            'appointmentId' => 101,
+            'status' => 'draft',
+            'reviewStatus' => 'ready_for_review',
+            'requiresHumanReview' => false,
+            'patientRecordId' => 'hcu-portal-001',
+            'documents' => [],
+            'consentPackets' => [[
+                'packetId' => 'consent_portal_001',
+                'templateKey' => 'botox',
+                'title' => 'Consentimiento informado HCU-form.024/2008',
+                'serviceLabel' => 'Dermatología ambulatoria',
+                'establishmentLabel' => 'Aurora Derm',
+                'patientName' => '',
+                'patientDocumentNumber' => '',
+                'patientRecordId' => 'hcu-portal-001',
+                'encounterDateTime' => '2026-03-30T10:20:00-05:00',
+                'diagnosisLabel' => 'Rosácea inflamatoria en seguimiento.',
+                'diagnosisCie10' => 'L71.9',
+                'procedureName' => 'Aplicación de toxina botulínica',
+                'procedureWhatIsIt' => 'Aplicación controlada de toxina botulínica en puntos definidos.',
+                'procedureHowItIsDone' => 'Se limpia la zona, se marca el trayecto y se infiltra en consultorio.',
+                'durationEstimate' => '20 minutos',
+                'benefits' => 'Mejoría funcional y estética según criterio médico.',
+                'frequentRisks' => 'Dolor leve, edema transitorio y hematoma pequeño.',
+                'rareSeriousRisks' => 'Ptosis, asimetría o reacción alérgica.',
+                'patientSpecificRisks' => 'Equimosis transitoria por sensibilidad cutánea.',
+                'alternatives' => 'Observación clínica o manejo no infiltrativo.',
+                'postProcedureCare' => 'Evitar masaje local y seguir control indicado.',
+                'noProcedureConsequences' => 'Persistencia del motivo de consulta.',
+                'privateCommunicationConfirmed' => true,
+                'professionalAttestation' => [
+                    'name' => 'Dra Ana Rosero',
+                    'role' => 'medico_tratante',
+                    'documentNumber' => 'MSP-12345',
+                ],
+                'declaration' => [
+                    'patientCanConsent' => true,
+                    'capacityAssessment' => 'Paciente con capacidad para decidir.',
+                ],
+                'createdAt' => '2026-03-30T10:10:00-05:00',
+                'updatedAt' => '2026-03-30T10:20:00-05:00',
+            ]],
+            'activeConsentPacketId' => 'consent_portal_001',
+            'admission001' => $this->buildAdmission001Payload([
+                'identity' => [
+                    'apellidoPaterno' => 'Portal',
+                    'primerNombre' => 'Lucia',
+                    'documentNumber' => '0102030405',
+                ],
+                'demographics' => [
+                    'ageYears' => 34,
+                    'sexAtBirth' => 'femenino',
+                ],
+            ]),
+            'updatedAt' => '2026-03-30T10:25:00-05:00',
         ];
         $store['clinical_history_drafts'][] = [
             'draftId' => 'chd_portal_003',
@@ -693,6 +769,150 @@ final class PatientPortalControllerTest extends TestCase
         );
     }
 
+    public function testConsentReturnsPendingPortalConsentPacketForAuthenticatedPatient(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+
+        $consent = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::consent(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $consent['status']);
+        self::assertTrue((bool) ($consent['payload']['ok'] ?? false));
+        self::assertSame('pending', (string) ($consent['payload']['data']['consent']['status'] ?? ''));
+        self::assertSame(
+            'Consentimiento informado HCU-form.024/2008',
+            (string) ($consent['payload']['data']['consent']['title'] ?? '')
+        );
+        self::assertSame(
+            'Aplicación de toxina botulínica',
+            (string) ($consent['payload']['data']['consent']['procedureName'] ?? '')
+        );
+        self::assertSame(
+            'Dra Ana Rosero',
+            (string) ($consent['payload']['data']['consent']['doctorName'] ?? '')
+        );
+        self::assertSame(
+            '0102030405',
+            (string) ($consent['payload']['data']['consent']['patientDocumentNumber'] ?? '')
+        );
+        self::assertSame(true, (bool) ($consent['payload']['data']['consent']['readyForSignature'] ?? false));
+    }
+
+    public function testConsentSigningStoresSignedPdfInsideClinicalHistoryAndExposesPortalDownload(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+
+        $signatureDataUrl = 'data:image/png;base64,'
+            . 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0WQAAAAASUVORK5CYII=';
+
+        $sign = $this->captureJsonResponse(function () use ($signatureDataUrl): void {
+            $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+                'packetId' => 'consent_portal_001',
+                'patientName' => 'Lucia Portal',
+                'patientDocumentNumber' => '0102030405',
+                'signatureDataUrl' => $signatureDataUrl,
+                'accepted' => true,
+            ], JSON_UNESCAPED_UNICODE);
+            \PatientPortalController::signConsent(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $sign['status']);
+        self::assertTrue((bool) ($sign['payload']['ok'] ?? false));
+        self::assertSame('signed', (string) ($sign['payload']['data']['consent']['status'] ?? ''));
+        self::assertSame(true, (bool) ($sign['payload']['data']['consent']['pdfAvailable'] ?? false));
+        self::assertStringContainsString(
+            'patient-portal-document&type=consent&id=',
+            (string) ($sign['payload']['data']['consent']['downloadUrl'] ?? '')
+        );
+
+        $store = \read_store();
+        $drafts = \ClinicalHistorySessionRepository::findAllDraftsByCaseId($store, 'pc_lucia_001');
+        self::assertNotEmpty($drafts);
+        $draft = $drafts[0];
+        $documents = \ClinicalHistorySessionRepository::normalizeClinicalDocuments(
+            is_array($draft['documents'] ?? null) ? $draft['documents'] : []
+        );
+        $consentForms = is_array($documents['consentForms'] ?? null) ? $documents['consentForms'] : [];
+        self::assertCount(1, $consentForms);
+        self::assertSame('accepted', (string) ($consentForms[0]['status'] ?? ''));
+        self::assertSame(
+            'Lucia Portal',
+            (string) ($consentForms[0]['patientAttestation']['name'] ?? '')
+        );
+        self::assertStringStartsWith(
+            'data:image/png;base64,',
+            (string) ($consentForms[0]['patientAttestation']['signatureDataUrl'] ?? '')
+        );
+        self::assertNotSame('', (string) ($consentForms[0]['portalDocument']['pdfBase64'] ?? ''));
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET['type'] = 'consent';
+        $_GET['id'] = (string) ($consentForms[0]['snapshotId'] ?? '');
+
+        $document = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::document(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $document['status']);
+        self::assertTrue((bool) ($document['payload']['ok'] ?? false));
+        self::assertSame('pdf', (string) ($document['payload']['format'] ?? ''));
+        self::assertSame('application/pdf', (string) ($document['payload']['contentType'] ?? ''));
+        self::assertStringStartsWith('%PDF-', (string) ($document['payload']['binary'] ?? ''));
+    }
+
+    public function testPlanReturnsTimelineProgressAndPendingSessionPlaceholder(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+
+        $plan = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::plan(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $plan['status']);
+        self::assertTrue((bool) ($plan['payload']['ok'] ?? false));
+        self::assertTrue((bool) ($plan['payload']['data']['authenticated'] ?? false));
+        self::assertSame(
+            'Control integral para dermatitis irritativa',
+            (string) ($plan['payload']['data']['treatmentPlan']['diagnosis'] ?? '')
+        );
+        self::assertSame(
+            '2 de 4 sesiones',
+            (string) ($plan['payload']['data']['treatmentPlan']['progressLabel'] ?? '')
+        );
+        self::assertSame(
+            3,
+            (int) ($plan['payload']['data']['treatmentPlan']['scheduledSessions'] ?? 0)
+        );
+        self::assertSame(
+            1,
+            (int) ($plan['payload']['data']['treatmentPlan']['unscheduledSessions'] ?? 0)
+        );
+
+        $timeline = $plan['payload']['data']['treatmentPlan']['timeline'] ?? null;
+        self::assertIsArray($timeline);
+        self::assertCount(4, $timeline);
+        self::assertSame('completed', (string) ($timeline[0]['status'] ?? ''));
+        self::assertSame('Realizada', (string) ($timeline[0]['statusLabel'] ?? ''));
+        self::assertStringContainsString('12 mar 2026', (string) ($timeline[0]['dateLabel'] ?? ''));
+        self::assertSame('completed', (string) ($timeline[1]['status'] ?? ''));
+        self::assertSame('scheduled', (string) ($timeline[2]['status'] ?? ''));
+        self::assertSame(true, (bool) ($timeline[2]['isNext'] ?? false));
+        self::assertSame('Próxima', (string) ($timeline[2]['statusLabel'] ?? ''));
+        self::assertStringContainsString('2 abr 2099', (string) ($timeline[2]['dateLabel'] ?? ''));
+        self::assertSame('pending', (string) ($timeline[3]['status'] ?? ''));
+        self::assertSame('Por agendar', (string) ($timeline[3]['statusLabel'] ?? ''));
+    }
+
     public function testDocumentVerifyReturnsPublicPayloadForPrescriptionToken(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
@@ -923,6 +1143,60 @@ final class PatientPortalControllerTest extends TestCase
         }
 
         self::fail('Consultation for case ' . $caseId . ' was not found.');
+    }
+
+    private function buildAdmission001Payload(array $overrides = []): array
+    {
+        $base = [
+            'identity' => [
+                'documentType' => 'cedula',
+                'documentNumber' => '0102030405',
+                'apellidoPaterno' => 'Portal',
+                'apellidoMaterno' => '',
+                'primerNombre' => 'Lucia',
+                'segundoNombre' => '',
+            ],
+            'demographics' => [
+                'birthDate' => '1991-04-18',
+                'ageYears' => 34,
+                'sexAtBirth' => 'femenino',
+                'maritalStatus' => '',
+                'educationLevel' => '',
+                'occupation' => '',
+                'employer' => '',
+                'nationalityCountry' => 'EC',
+                'culturalGroup' => '',
+                'birthPlace' => '',
+            ],
+            'residence' => [
+                'addressLine' => 'Quito',
+                'neighborhood' => 'La Carolina',
+                'zoneType' => 'urbana',
+                'parish' => 'Iñaquito',
+                'canton' => 'Quito',
+                'province' => 'Pichincha',
+                'phone' => '0991234567',
+            ],
+            'coverage' => [
+                'healthInsuranceType' => 'privado',
+            ],
+            'referral' => [
+                'referredBy' => '',
+            ],
+            'emergencyContact' => [
+                'name' => 'Contacto Portal',
+                'kinship' => 'madre',
+                'phone' => '0997654321',
+            ],
+            'admissionMeta' => [
+                'admissionDate' => '2026-03-30',
+                'admissionKind' => 'first',
+                'admittedBy' => 'portal',
+                'transitionMode' => 'new_required',
+            ],
+        ];
+
+        return array_replace_recursive($base, $overrides);
     }
 
     private function removeDirectory(string $dir): void

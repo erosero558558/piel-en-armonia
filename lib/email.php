@@ -981,3 +981,38 @@ function maybe_send_reschedule_email(array $appointment): bool
         $body
     );
 }
+
+/**
+ * Sends a reminder email for an expiring gift card.
+ *
+ * @param array<string,mixed>|object $giftCard
+ */
+function maybe_send_gift_card_reminder_email($giftCard): bool
+{
+    // Handle both array and object representations
+    $cardArray = is_object($giftCard) ? (array) $giftCard : $giftCard;
+    
+    $recipient = trim((string) ($cardArray['recipient_email'] ?? ''));
+    if ($recipient === '') {
+        return false;
+    }
+
+    $amount = number_format(($cardArray['balance_cents'] ?? 0) / 100, 2);
+    $code = $cardArray['code'] ?? '';
+    
+    $subject = build_email_subject('Tu Gift Card vence pronto');
+    
+    $body = "Hola,\n\n";
+    $body .= "Te recordamos que tienes una Gift Card con saldo pendiente de $" . $amount . " en " . AppConfig::BRAND_NAME . ".\n\n";
+    $body .= "El código es: " . $code . "\n";
+    
+    if (!empty($cardArray['expires_at'])) {
+        $body .= "Este saldo vencerá el " . substr($cardArray['expires_at'], 0, 10) . ".\n\n";
+    }
+    
+    $body .= "Puedes usar este saldo en tus próximos tratamientos dermatológicos.\n";
+    $body .= "Visita " . AppConfig::BASE_URL . "/#citas o contáctanos para agendar.\n\n";
+    $body .= "Saludos,\n" . AppConfig::BRAND_NAME . "\n";
+    
+    return send_mail_to_recipient($recipient, $subject, $body, false);
+}

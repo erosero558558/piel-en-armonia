@@ -5,8 +5,8 @@ import { renderCallbacksSection } from './callbacks.js';
 import { renderClinicalHistorySection } from './clinical-history.js';
 import { renderDashboardSection } from './dashboard.js';
 import { renderQueueSection } from './queue.js';
-import { renderReviewsSection } from './reviews.js';
 import { renderSettingsSection } from './settings.js';
+import { renderGiftCardsSection } from './gift-cards.js';
 
 export function renderAllSections() {
     return `
@@ -19,5 +19,6 @@ export function renderAllSections() {
         ${renderQueueSection()}
         ${renderClinicalHistorySection()}
         ${renderSettingsSection()}
+        ${renderGiftCardsSection()}
     `;
 }

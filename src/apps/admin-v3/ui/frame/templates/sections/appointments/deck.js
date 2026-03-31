@@ -70,6 +70,17 @@ export function renderAppointmentsFocusPanel() {
             </div>
             <div id="appointmentsFocusTags" class="appointments-focus-tags"></div>
             <p id="appointmentsFocusHint" class="appointments-focus-hint">Sin bloqueos operativos.</p>
+            
+            <div id="appointmentsGcWidget" class="sony-panel is-hidden" style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--color-gold-200); background: var(--pub-bg-surface);">
+                <p class="sony-kicker" style="color: var(--color-gold-500);">Gift Card / Beneficios</p>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                    <input type="text" id="admin-gc-code" class="input" placeholder="Código" style="flex:1; min-width:120px; text-transform:uppercase;">
+                    <input type="number" id="admin-gc-amount" class="input" placeholder="Monto USD" step="0.01" style="width:100px;">
+                    <button type="button" data-action="appointment-redeem-gc" class="btn-primary" style="white-space:nowrap;">Redimir</button>
+                </div>
+                <div id="admin-gc-feedback" style="margin-top:0.5rem; font-size:var(--text-xs);"></div>
+            </div>
+
             <div id="appointmentsQueueReview" class="appointments-review-context is-hidden"></div>
         </article>
     `;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aurora-derm-v20-portal-pwa-20260330';
+const CACHE_NAME = 'aurora-derm-v21-portal-push-20260330';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -239,13 +239,33 @@ self.addEventListener('sync', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-    const data = event.data ? event.data.json() : {};
-    const title = data.title || 'Piel en Armonía';
+    let data = {};
+
+    if (event.data) {
+        try {
+            data = event.data.json();
+        } catch (_error) {
+            data = {
+                body: event.data.text(),
+            };
+        }
+    }
+
+    const title = data.title || 'Aurora Derm';
     const options = {
         body: data.body || 'Tienes una nueva notificación.',
         icon: '/images/icon-192.png',
         badge: '/images/icon-192.png',
-        data: data.url || '/',
+        tag: data.tag || 'aurora-portal-notification',
+        renotify: Boolean(data.renotify),
+        requireInteraction: Boolean(data.requireInteraction),
+        actions: Array.isArray(data.actions) ? data.actions : [],
+        data: {
+            url: data.url || '/es/portal/',
+            rescheduleUrl: data.rescheduleUrl || data.url || '/es/portal/',
+            type: data.type || 'generic',
+            appointmentId: Number(data.appointmentId || 0),
+        },
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
@@ -253,5 +273,27 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    event.waitUntil(self.clients.openWindow(event.notification.data));
+
+    const payload = event.notification && event.notification.data ? event.notification.data : {};
+    const requestedUrl =
+        event.action === 'reschedule'
+            ? String(payload.rescheduleUrl || payload.url || '/es/portal/')
+            : String(payload.url || '/es/portal/');
+    const targetUrl = new URL(requestedUrl, self.location.origin).toString();
+
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+            for (const client of clients) {
+                if (client.url === targetUrl && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+
+            if (self.clients.openWindow) {
+                return self.clients.openWindow(targetUrl);
+            }
+
+            return undefined;
+        })
+    );
 });

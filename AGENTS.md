@@ -1202,9 +1202,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S5-04** `[M]` Historial propio — `es/portal/historial/index.html`: lista de consultas (fecha, doctor, motivo). Tap para ver detalle. Solo lectura. Datos desde `ClinicalHistoryService`.
 - [x] **S5-05** `[M]` Mis fotos — `es/portal/fotos/index.html`: galería de fotos clínicas organizadas por zona y fecha. El paciente ve su propia evolución. Solo las fotos marcadas como "visible al paciente".
 - [x] **S5-06** `[L]` Mi receta activa — `es/portal/receta/index.html`: receta digital actual (medicamentos, dosis, frecuencia). PDF descargable. Incluye QR de verificación.
-- [ ] **S5-07** `[M]` Mi plan de tratamiento — `es/portal/plan/index.html`: sesiones programadas, progreso (3/6 sesiones), próximos pasos. Visual con timeline.
-- [ ] **S5-08** `[M]` Notificaciones push — `sw.js` actualizado: notificar al paciente 24h antes de su cita. Usar Web Push API. Backend: `controllers/NotificationController.php`.
-- [ ] **S5-09** `[S]` Consentimiento digital — `es/portal/consentimiento/index.html`: formulario de consentimiento informado. Firma táctil en móvil. Guardar PDF firmado en `ClinicalHistoryService`.
+- [x] **S5-07** `[M]` Mi plan de tratamiento — `es/portal/plan/index.html`: sesiones programadas, progreso (3/6 sesiones), próximos pasos. Visual con timeline.
+- [x] **S5-08** `[M]` Notificaciones push — `sw.js` actualizado: notificar al paciente 24h antes de su cita. Usar Web Push API. Backend: `controllers/NotificationController.php`.
+- [x] **S5-09** `[S]` Consentimiento digital — `es/portal/consentimiento/index.html`: formulario de consentimiento informado. Firma táctil en móvil. Guardar PDF firmado en `ClinicalHistoryService`.
 
 #### 5.2 Comunicación automática
 
@@ -1853,12 +1853,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 17.1 Gift Cards reales (la landing existe, el motor no)
 
 - [x] **S17-01** `[M]` Gift card ledger backend — `es/gift-cards/index.html` genera códigos en frontend pero sin persistencia. Crear `lib/gift_cards/GiftCardService.php` con métodos: `issue(amount, issuer, recipient): GiftCard`, `validate(code): GiftCard|null`, `redeem(code, amount): bool`. Modelo: `code`, `amount_cents`, `balance_cents`, `issuer_id`, `recipient_email`, `issued_at`, `expires_at`, `status (active|redeemed|expired)`. Storage en SQLite store existente. Verificable: `POST /api.php?resource=gift-card-issue` → JSON con code+QR data.
-- [ ] **S17-02** `[M]` Redención de gift card en booking y cierre de consulta — en `es/agendar/`: campo "¿Tienes gift card?" con validación en tiempo real. En `admin.html`: botón "Aplicar gift card" en cierre de consulta. Backend: `POST /api.php?resource=gift-card-redeem` descuenta saldo, previene doble uso con lock atómico. Verificable: una gift card no puede redimirse dos veces simultáneamente.
-- [ ] **S17-03** `[S]` Vigencia y recordatorios de gift cards — job cron que detecta gift cards con `expires_at` en los próximos 14 días y envía WhatsApp/email al recipient: "Tu gift card de Aurora Derm vence el [fecha]. Úsala antes para tratamientos de: [servicios]". Panel simple en admin bajo "Gestión > Gift Cards". Verificable: `GET /api.php?resource=gift-cards-expiring` → lista con días restantes.
+- [x] **S17-02** `[M]` Redención de gift card en booking y cierre de consulta — en `es/agendar/`: campo "¿Tienes gift card?" con validación en tiempo real. En `admin.html`: botón "Aplicar gift card" en cierre de consulta. Backend: `POST /api.php?resource=gift-card-redeem` descuenta saldo, previene doble uso con lock atómico. Verificable: una gift card no puede redimirse dos veces simultáneamente.
+- [x] **S17-03** `[S]` Vigencia y recordatorios de gift cards — job cron que detecta gift cards con `expires_at` en los próximos 14 días y envía WhatsApp/email al recipient: "Tu gift card de Aurora Derm vence el [fecha]. Úsala antes para tratamientos de: [servicios]". Panel simple en admin bajo "Gestión > Gift Cards". Verificable: `GET /api.php?resource=gift-cards-expiring` → lista con días restantes.
 
 #### 17.2 Programa de referidos (motor, no solo landing)
 
-- [ ] **S17-04** `[M]` Motor de referidos con link único — `es/referidos/index.html` existe sin backend. Crear `lib/referrals/ReferralService.php`: generar código único por paciente (`REF-XXXXX`), registrar clic, atribuir conversión cuando el referido agenda su primera cita. `GET /api.php?resource=referral-link?patient_id=X` → link trackeable. Verificable: un link de referido incrementa el contador de clics en cada visita.
+- [x] **S17-04** `[M]` Motor de referidos con link único — `es/referidos/index.html` existe sin backend. Crear `lib/referrals/ReferralService.php`: generar código único por paciente (`REF-XXXXX`), registrar clic, atribuir conversión cuando el referido agenda su primera cita. `GET /api.php?resource=referral-link?patient_id=X` → link trackeable. Verificable: un link de referido incrementa el contador de clics en cada visita.
 - [ ] **S17-05** `[M]` Wallet de beneficios por referidos — en `es/portal/`: sección "Mis Referidos" con: código compartible, referidos enviados, convertidos, beneficio ganado (ej: 10% próxima consulta), beneficio disponible para usar. Backend: `GET /api.php?resource=referral-stats?patient_id=X` → stats. Verificable: un paciente con 2 referidos convertidos ve beneficio aplicable en su portal.
 
 #### 17.3 Membresía con enforcement real

@@ -22,6 +22,8 @@ final class AppointmentReminderCronTest extends TestCase
         putenv('PIELARMONIA_SKIP_ENV_FILE=true');
         putenv('PIELARMONIA_WHATSAPP_OPENCLAW_ENABLED=true');
         putenv('PIELARMONIA_WHATSAPP_OPENCLAW_MODE=live');
+        putenv('AURORADERM_VAPID_PUBLIC_KEY=test_public_key');
+        putenv('AURORADERM_VAPID_PRIVATE_KEY=test_private_key');
 
         if (!defined('TESTING_ENV')) {
             define('TESTING_ENV', true);
@@ -31,6 +33,20 @@ final class AppointmentReminderCronTest extends TestCase
         }
 
         require_once __DIR__ . '/../../cron.php';
+        require_once __DIR__ . '/../../lib/NotificationService.php';
+
+        $GLOBALS['__TEST_PUSH_TRANSPORT'] = static function (array $items, array $payload): array {
+            $GLOBALS['__TEST_PUSH_DELIVERIES'][] = [
+                'items' => $items,
+                'payload' => $payload,
+            ];
+
+            return [
+                'success' => count($items),
+                'failed' => 0,
+                'errors' => [],
+            ];
+        };
 
         $store = \read_store();
         $store['appointments'] = [
@@ -44,6 +60,7 @@ final class AppointmentReminderCronTest extends TestCase
                 'time' => '10:00',
                 'doctor' => 'rosero',
                 'service' => 'consulta',
+                'patientId' => 'pt_ana_001',
                 'reminderSentAt' => '',
             ],
             [
@@ -55,6 +72,7 @@ final class AppointmentReminderCronTest extends TestCase
                 'time' => '11:00',
                 'doctor' => 'narvaez',
                 'service' => 'consulta',
+                'patientId' => 'pt_lejano_001',
                 'reminderSentAt' => '',
             ],
         ];
@@ -62,6 +80,21 @@ final class AppointmentReminderCronTest extends TestCase
         $store['clinical_history_drafts'] = [];
 
         \write_store($store, false);
+
+        $push = new \PushService();
+        $push->subscribe([
+            'endpoint' => 'https://push.example.test/subscriptions/ana-001',
+            'keys' => [
+                'p256dh' => 'test_p256dh_key',
+                'auth' => 'test_auth_key',
+            ],
+        ], 'PHPUnit Reminder Cron', [
+            'channel' => 'patient_portal',
+            'scope' => \NotificationService::scope(),
+            'subject' => 'pt_ana_001',
+            'patientId' => 'pt_ana_001',
+            'locale' => 'es',
+        ]);
     }
 
     protected function tearDown(): void
@@ -71,9 +104,13 @@ final class AppointmentReminderCronTest extends TestCase
             'PIELARMONIA_SKIP_ENV_FILE',
             'PIELARMONIA_WHATSAPP_OPENCLAW_ENABLED',
             'PIELARMONIA_WHATSAPP_OPENCLAW_MODE',
+            'AURORADERM_VAPID_PUBLIC_KEY',
+            'AURORADERM_VAPID_PRIVATE_KEY',
         ] as $key) {
             putenv($key);
         }
+
+        unset($GLOBALS['__TEST_PUSH_TRANSPORT'], $GLOBALS['__TEST_PUSH_DELIVERIES']);
 
         if (\function_exists('get_db_connection')) {
             \get_db_connection(null, true);
@@ -90,8 +127,10 @@ final class AppointmentReminderCronTest extends TestCase
         ]);
 
         self::assertTrue((bool) ($result['ok'] ?? false));
-        self::assertSame(1, (int) ($result['sent'] ?? 0));
+        self::assertSame(2, (int) ($result['sent'] ?? 0));
         self::assertSame(1, (int) ($result['appointmentReminders']['queued'] ?? 0));
+        self::assertSame(1, (int) ($result['appointmentPushReminders']['queued'] ?? 0));
+        self::assertSame(1, (int) ($result['appointmentPushReminders']['sentDevices'] ?? 0));
         self::assertSame(1, (int) ($result['appointmentReminders']['tokensCreated'] ?? 0));
         self::assertSame(1, (int) ($result['appointmentReminders']['notTomorrow'] ?? 0));
         self::assertSame(0, (int) ($result['appointmentReminders']['emailFallbackSent'] ?? 0));
@@ -107,7 +146,19 @@ final class AppointmentReminderCronTest extends TestCase
         self::assertNotSame('', (string) ($store['appointments'][0]['reminderSentAt'] ?? ''));
         self::assertSame('whatsapp', (string) ($store['appointments'][0]['reminderChannel'] ?? ''));
         self::assertNotSame('', (string) ($store['appointments'][0]['rescheduleToken'] ?? ''));
+        self::assertNotSame('', (string) ($store['appointments'][0]['portalPushReminderSentAt'] ?? ''));
+        self::assertSame('web_push', (string) ($store['appointments'][0]['portalPushReminderChannel'] ?? ''));
         self::assertSame('', (string) ($store['appointments'][1]['reminderSentAt'] ?? ''));
+
+        self::assertCount(1, $GLOBALS['__TEST_PUSH_DELIVERIES'] ?? []);
+        self::assertSame(
+            'appointment_reminder_24h',
+            (string) (($GLOBALS['__TEST_PUSH_DELIVERIES'][0]['payload']['type'] ?? ''))
+        );
+        self::assertStringContainsString(
+            'Manana tienes consulta',
+            str_replace(['mañana', 'Mañana'], ['manana', 'Manana'], (string) ($GLOBALS['__TEST_PUSH_DELIVERIES'][0]['payload']['body'] ?? ''))
+        );
 
         $secondRun = \cron_task_reminders([
             'today' => '2026-03-30',
@@ -116,7 +167,9 @@ final class AppointmentReminderCronTest extends TestCase
 
         self::assertTrue((bool) ($secondRun['ok'] ?? false));
         self::assertSame(0, (int) ($secondRun['appointmentReminders']['queued'] ?? 0));
+        self::assertSame(0, (int) ($secondRun['appointmentPushReminders']['queued'] ?? 0));
         self::assertSame(1, (int) ($secondRun['appointmentReminders']['alreadySent'] ?? 0));
+        self::assertSame(1, (int) ($secondRun['appointmentPushReminders']['alreadySent'] ?? 0));
         self::assertCount(1, \whatsapp_openclaw_repository()->listPendingOutbox(10));
     }
 

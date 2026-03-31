@@ -19,9 +19,20 @@ class PushService
         return $config['publicKey'] !== '' && $config['privateKey'] !== '';
     }
 
-    public function subscribe(array $subscription, string $userAgent = ''): bool
+    public function canSendNotifications(): bool
     {
-        $normalized = $this->normalizeSubscription($subscription, $userAgent);
+        if ($this->hasTestTransport()) {
+            return true;
+        }
+
+        return $this->isConfigured()
+            && class_exists('\Minishlink\WebPush\WebPush')
+            && class_exists('\Minishlink\WebPush\Subscription');
+    }
+
+    public function subscribe(array $subscription, string $userAgent = '', array $meta = []): bool
+    {
+        $normalized = $this->normalizeSubscription($subscription, $userAgent, $meta);
         if ($normalized === null) {
             return false;
         }
@@ -40,7 +51,7 @@ class PushService
         return $this->writeSubscriptions($store);
     }
 
-    public function unsubscribe(string $endpoint): bool
+    public function unsubscribe(string $endpoint, array $criteria = []): bool
     {
         $endpoint = trim($endpoint);
         if ($endpoint === '') {
@@ -50,8 +61,12 @@ class PushService
         $store = $this->readSubscriptions();
         $items = is_array($store['items'] ?? null) ? $store['items'] : [];
         /** @psalm-suppress RedundantFunctionCall */
-        $filtered = array_values(array_filter($items, static function ($item) use ($endpoint): bool {
-            return (string) ($item['endpoint'] ?? '') !== $endpoint;
+        $filtered = array_values(array_filter($items, function ($item) use ($endpoint, $criteria): bool {
+            if ((string) ($item['endpoint'] ?? '') !== $endpoint) {
+                return true;
+            }
+
+            return !$this->itemMatchesCriteria($item, $criteria);
         }));
 
         if (count($filtered) === count($items)) {
@@ -63,18 +78,32 @@ class PushService
         return $this->writeSubscriptions($store);
     }
 
-    public function subscriptionsCount(): int
+    public function subscriptionsCount(array $criteria = []): int
     {
-        $store = $this->readSubscriptions();
-        return count(is_array($store['items'] ?? null) ? $store['items'] : []);
+        return count($this->filterSubscriptions($criteria));
     }
 
-    public function sendNotification(array $payload): array
+    public function sendNotification(array $payload, array $criteria = []): array
     {
+        $items = $this->filterSubscriptions($criteria);
+        if (count($items) === 0) {
+            return [
+                'success' => 0,
+                'failed' => 0,
+                'targeted' => 0,
+                'errors' => ['No hay suscripciones activas']
+            ];
+        }
+
+        if ($this->hasTestTransport()) {
+            return $this->sendViaTestTransport($items, $payload, $criteria);
+        }
+
         if (!$this->isConfigured()) {
             return [
                 'success' => 0,
                 'failed' => 0,
+                'targeted' => count($items),
                 'errors' => ['Push VAPID no configurado']
             ];
         }
@@ -83,17 +112,8 @@ class PushService
             return [
                 'success' => 0,
                 'failed' => 0,
+                'targeted' => count($items),
                 'errors' => ['Dependencia minishlink/web-push no instalada']
-            ];
-        }
-
-        $store = $this->readSubscriptions();
-        $items = is_array($store['items'] ?? null) ? $store['items'] : [];
-        if (count($items) === 0) {
-            return [
-                'success' => 0,
-                'failed' => 0,
-                'errors' => ['No hay suscripciones activas']
             ];
         }
 
@@ -151,15 +171,31 @@ class PushService
         return [
             'success' => $success,
             'failed' => $failed,
+            'targeted' => count($items),
             'errors' => $errors
         ];
     }
 
     private function getVapidConfig(): array
     {
-        $publicKey = trim((string) (getenv('PIELARMONIA_VAPID_PUBLIC_KEY') ?: getenv('VAPID_PUBLIC_KEY') ?: ''));
-        $privateKey = trim((string) (getenv('PIELARMONIA_VAPID_PRIVATE_KEY') ?: getenv('VAPID_PRIVATE_KEY') ?: ''));
-        $subject = trim((string) (getenv('PIELARMONIA_VAPID_SUBJECT') ?: getenv('VAPID_SUBJECT') ?: 'mailto:admin@pielarmonia.com'));
+        $publicKey = trim((string) (
+            getenv('AURORADERM_VAPID_PUBLIC_KEY')
+            ?: getenv('PIELARMONIA_VAPID_PUBLIC_KEY')
+            ?: getenv('VAPID_PUBLIC_KEY')
+            ?: ''
+        ));
+        $privateKey = trim((string) (
+            getenv('AURORADERM_VAPID_PRIVATE_KEY')
+            ?: getenv('PIELARMONIA_VAPID_PRIVATE_KEY')
+            ?: getenv('VAPID_PRIVATE_KEY')
+            ?: ''
+        ));
+        $subject = trim((string) (
+            getenv('AURORADERM_VAPID_SUBJECT')
+            ?: getenv('PIELARMONIA_VAPID_SUBJECT')
+            ?: getenv('VAPID_SUBJECT')
+            ?: 'mailto:admin@pielarmonia.com'
+        ));
 
         return [
             'publicKey' => $publicKey,
@@ -168,7 +204,7 @@ class PushService
         ];
     }
 
-    private function normalizeSubscription(array $subscription, string $userAgent): ?array
+    private function normalizeSubscription(array $subscription, string $userAgent, array $meta = []): ?array
     {
         $endpoint = trim((string) ($subscription['endpoint'] ?? ''));
         $keys = is_array($subscription['keys'] ?? null) ? $subscription['keys'] : [];
@@ -183,13 +219,117 @@ class PushService
             return null;
         }
 
-        return [
+        return array_merge([
             'endpoint' => $endpoint,
             'p256dh' => $p256dh,
             'auth' => $auth,
             'userAgent' => substr(trim($userAgent), 0, 300),
             'updatedAt' => local_date('c')
+        ], $this->normalizeMeta($meta));
+    }
+
+    private function normalizeMeta(array $meta): array
+    {
+        $channel = strtolower(trim((string) ($meta['channel'] ?? 'admin')));
+        if (!in_array($channel, ['admin', 'patient_portal'], true)) {
+            $channel = 'admin';
+        }
+
+        $locale = strtolower(trim((string) ($meta['locale'] ?? '')));
+        if (!in_array($locale, ['es', 'en'], true)) {
+            $locale = '';
+        }
+
+        $subject = trim((string) ($meta['subject'] ?? ''));
+        $patientId = trim((string) ($meta['patientId'] ?? ''));
+        $patientCaseId = trim((string) ($meta['patientCaseId'] ?? ''));
+        $scope = trim((string) ($meta['scope'] ?? ''));
+        $phone = preg_replace('/\D+/', '', (string) ($meta['phone'] ?? ''));
+        if (!is_string($phone)) {
+            $phone = '';
+        }
+
+        return [
+            'channel' => substr($channel, 0, 40),
+            'scope' => substr($scope, 0, 80),
+            'subject' => substr($subject, 0, 120),
+            'patientId' => substr($patientId, 0, 120),
+            'patientCaseId' => substr($patientCaseId, 0, 120),
+            'phone' => substr($phone, 0, 20),
+            'locale' => $locale,
         ];
+    }
+
+    private function filterSubscriptions(array $criteria = []): array
+    {
+        $store = $this->readSubscriptions();
+        $items = is_array($store['items'] ?? null) ? $store['items'] : [];
+        return array_values(array_filter($items, function ($item) use ($criteria): bool {
+            return $this->itemMatchesCriteria($item, $criteria);
+        }));
+    }
+
+    private function itemMatchesCriteria(array $item, array $criteria): bool
+    {
+        foreach ($criteria as $key => $expected) {
+            if ($expected === null || $expected === '' || $expected === []) {
+                continue;
+            }
+
+            $actual = trim((string) ($item[$key] ?? ''));
+            if (is_array($expected)) {
+                $options = array_values(array_filter(array_map(static function ($value): string {
+                    return trim((string) $value);
+                }, $expected), static function (string $value): bool {
+                    return $value !== '';
+                }));
+                if ($options === []) {
+                    continue;
+                }
+                if (!in_array($actual, $options, true)) {
+                    return false;
+                }
+                continue;
+            }
+
+            if ($actual !== trim((string) $expected)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function hasTestTransport(): bool
+    {
+        return defined('TESTING_ENV')
+            && isset($GLOBALS['__TEST_PUSH_TRANSPORT'])
+            && is_callable($GLOBALS['__TEST_PUSH_TRANSPORT']);
+    }
+
+    private function sendViaTestTransport(array $items, array $payload, array $criteria): array
+    {
+        try {
+            $callback = $GLOBALS['__TEST_PUSH_TRANSPORT'];
+            $result = $callback($items, $payload, $criteria);
+            if (!is_array($result)) {
+                $result = [];
+            }
+
+            return [
+                'success' => (int) ($result['success'] ?? count($items)),
+                'failed' => (int) ($result['failed'] ?? 0),
+                'targeted' => count($items),
+                'errors' => is_array($result['errors'] ?? null) ? $result['errors'] : [],
+            ];
+        } catch (Throwable $error) {
+            return [
+                'success' => 0,
+                'failed' => count($items),
+                'targeted' => count($items),
+                'errors' => [$error->getMessage()],
+            ];
+        }
     }
 
     private function storagePath(): string

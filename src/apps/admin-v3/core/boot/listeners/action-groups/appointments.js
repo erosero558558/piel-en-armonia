@@ -7,6 +7,7 @@ import {
     exportAppointmentsCsv,
     markNoShow,
     markArrived,
+    redeemGiftCard,
     rejectTransfer,
     setAppointmentDensity,
     setAppointmentFilter,
@@ -213,6 +214,47 @@ export async function handleAppointmentAction(action, element) {
                       : 'Llegada registrada en cola',
                 result?.replay ? 'info' : 'success'
             );
+            return true;
+        }
+        case 'appointment-redeem-gc': {
+            const appointmentId = Number(element.dataset.appointmentId || 0);
+            const codeInput = document.getElementById('admin-gc-code');
+            const amountInput = document.getElementById('admin-gc-amount');
+            const feedback = document.getElementById('admin-gc-feedback');
+            
+            if (!appointmentId) {
+                createToast('Primero seleccione una cita válida', 'error');
+                return true;
+            }
+            if (!codeInput || !codeInput.value.trim()) {
+                if (feedback) feedback.innerHTML = '<span style="color:var(--status-error)">Ingrese el código de la Gift Card</span>';
+                return true;
+            }
+            if (!amountInput || !amountInput.value || Number(amountInput.value) <= 0) {
+                if (feedback) feedback.innerHTML = '<span style="color:var(--status-error)">Ingrese un monto a redimir</span>';
+                return true;
+            }
+            
+            const code = codeInput.value.trim();
+            const amountCents = Math.round(Number(amountInput.value) * 100);
+            
+            try {
+                element.disabled = true;
+                if (feedback) feedback.innerHTML = '<span>Redimiendo...</span>';
+                
+                const res = await redeemGiftCard(appointmentId, code, amountCents);
+                if (res && res.success) {
+                    if (feedback) feedback.innerHTML = '<span style="color:var(--status-success)">✅ Redimida exitosamente.</span>';
+                    createToast('Gift Card aplicada con éxito', 'success');
+                    amountInput.value = '';
+                } else {
+                    if (feedback) feedback.innerHTML = `<span style="color:var(--status-error)">❌ Error: ${res.reason || 'Saldo insuficiente o código inválido'}</span>`;
+                }
+            } catch (err) {
+                if (feedback) feedback.innerHTML = `<span style="color:var(--status-error)">❌ Falló la redención: ${err.message || 'Error de red'}</span>`;
+            } finally {
+                element.disabled = false;
+            }
             return true;
         }
         case 'cancel-appointment':

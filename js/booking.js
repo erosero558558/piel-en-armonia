@@ -218,6 +218,19 @@ async function buildAppointmentPayload(appointment) {
     payload.casePhotoNames = uploadedPhotos.names;
     payload.casePhotoUrls = uploadedPhotos.urls;
     payload.casePhotoPaths = uploadedPhotos.paths;
+    
+    // Inject referral code if present
+    try {
+        if (typeof localStorage !== 'undefined') {
+            const refCode = localStorage.getItem('aurora_referral_code');
+            if (refCode) {
+                payload.referralCode = refCode;
+            }
+        }
+    } catch (e) {
+        // ignore storage access errors
+    }
+    
     return payload;
 }
 

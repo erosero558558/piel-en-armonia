@@ -11,7 +11,7 @@ class GiftCardController
     /**
      * POST /api.php?resource=gift-card-issue
      */
-    public function issue(): void
+    public static function issue(): void
     {
         // Enforce administrative authentication for issuance
         requireAuth();
@@ -56,7 +56,7 @@ class GiftCardController
     /**
      * POST /api.php?resource=gift-card-redeem
      */
-    public function redeem(): void
+    public static function redeem(): void
     {
         requireAuth();
 
@@ -90,7 +90,7 @@ class GiftCardController
     /**
      * GET /api.php?resource=gift-card-validate&code=XXX
      */
-    public function validate(): void
+    public static function validate(): void
     {
         $code = $_GET['code'] ?? null;
         if (!$code) {
@@ -114,4 +114,51 @@ class GiftCardController
             ]);
         }
     }
+
+    /**
+     * GET /api.php?resource=gift-cards-expiring
+     */
+    public static function expiring(): void
+    {
+        requireAuth();
+        
+        // Let UI pass a optional days param or default to 14
+        $days = isset($_GET['days']) ? (int)$_GET['days'] : 14;
+        
+        try {
+            // Get strictly expiring
+            $expiringCards = GiftCardService::getExpiringCards($days);
+            
+            // Or get all active for the admin dashboard (Gestión > Gift Cards says "listar con dias restantes")
+            $allActive = GiftCardService::getAllActiveCards();
+            
+            $mapped = array_map(function($c) {
+                // Calculate days remaining
+                $daysRemaining = null;
+                if ($c->expires_at) {
+                    $diff = (new DateTime($c->expires_at))->diff(new DateTime());
+                    $daysRemaining = $diff->invert ? $diff->days : -$diff->days;
+                }
+                
+                return [
+                    "code" => $c->code,
+                    "balance_cents" => $c->balance_cents,
+                    "recipient_email" => $c->recipient_email,
+                    "expires_at" => $c->expires_at,
+                    "days_remaining" => $daysRemaining,
+                    "status" => $c->status
+                ];
+            }, $allActive);
+
+            echo json_encode([
+                "message" => "Gift cards retrieved",
+                "cards" => $mapped,
+                "expiring_count" => count($expiringCards)
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(["error" => $e->getMessage()]);
+        }
+    }
+
 }

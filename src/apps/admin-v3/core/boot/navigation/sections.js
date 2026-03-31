@@ -14,6 +14,7 @@ import { renderAdminChrome, setActiveSection } from '../../../ui/frame.js';
 import { renderAppointmentsSection } from '../../../sections/appointments.js';
 import { hasPendingAvailabilityChanges } from '../../../sections/availability.js';
 import { openClinicalHistorySession } from '../../../sections/clinical-history.js';
+import { renderGiftCardsSection } from '../../../sections/gift-cards.js';
 import {
     persistUiPrefs,
     readInitialThemeMode,
@@ -81,6 +82,9 @@ export async function navigateToSection(section, options = {}) {
     }
     if (normalized === 'appointments') {
         renderAppointmentsSection();
+    }
+    if (normalized === 'gift-cards') {
+        renderGiftCardsSection();
     }
     if (normalized === 'queue') {
         applyQueueRuntimeDefaults();

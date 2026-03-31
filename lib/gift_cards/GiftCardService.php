@@ -120,11 +120,102 @@ class GiftCardService
         return $affectedRows > 0;
     }
 
+    /**
+     * @return GiftCard[]
+     */
+    public static function getExpiring(int $daysOut = 14): array
+    {
+        // Get active cards expiring between now and $daysOut days ahead.
+        // We use CURRENT_TIMESTAMP and datetime() functions compatible with SQLite.
+        $sql = "SELECT * FROM gift_cards 
+                WHERE status = 'active'
+                  AND balance_cents > 0
+                  AND expires_at IS NOT NULL
+                  AND expires_at >= CURRENT_TIMESTAMP
+                  AND expires_at <= datetime(CURRENT_TIMESTAMP, ?)";
+        
+        $modifier = '+' . $daysOut . ' days';
+        $results = db_query($sql, [$modifier]);
+        
+        $cards = [];
+        if (is_array($results)) {
+            foreach ($results as $row) {
+                $cards[] = new GiftCard($row);
+            }
+        }
+        return $cards;
+    }
+
     private static function generateUniqueCode(): string
     {
         // Generates an alphanumeric secure format: AD-XXXX-XXXX
         $bytes = random_bytes(6);
         $hex = strtoupper(bin2hex($bytes));
         return "AD-" . substr($hex, 0, 4) . "-" . substr($hex, 4, 4);
+    }
+
+    /**
+     * @param int $daysAhead
+     * @return GiftCard[]
+     */
+    public static function getExpiringCards(int $daysAhead = 14): array
+    {
+        $cutoffDate = gmdate('Y-m-d H:i:s', strtotime("+$daysAhead days"));
+        $now = gmdate('Y-m-d H:i:s');
+
+        // Look for cards expiring between now and $daysAhead, that are still active and have balance
+        $sql = "SELECT * FROM gift_cards 
+                WHERE status = 'active'
+                  AND balance_cents > 0
+                  AND expires_at IS NOT NULL
+                  AND expires_at > ?
+                  AND expires_at <= ?
+                ORDER BY expires_at ASC";
+                  
+        $results = db_query($sql, [$now, $cutoffDate]);
+        
+        $cards = [];
+        if (is_array($results)) {
+            foreach ($results as $row) {
+                // Check if reminder was already sent
+                if (!self::hasReminderBeenSent((string)$row['code'])) {
+                    $cards[] = new GiftCard($row);
+                }
+            }
+        }
+        return $cards;
+    }
+
+    /**
+     * @return array
+     */
+    public static function getAllActiveCards(): array
+    {
+        $sql = "SELECT * FROM gift_cards WHERE status = 'active' ORDER BY expires_at ASC";
+        $results = db_query($sql);
+        $cards = [];
+        if (is_array($results)) {
+            foreach ($results as $row) {
+                $cards[] = new GiftCard($row);
+            }
+        }
+        return $cards;
+    }
+
+    public static function hasReminderBeenSent(string $code): bool
+    {
+        $key = 'gift_card_reminder_' . $code;
+        $sql = "SELECT value FROM kv_store WHERE key = ? LIMIT 1";
+        $result = db_query($sql, [$key]);
+        return is_array($result) && count($result) > 0;
+    }
+
+    public static function markReminderSent(string $code): void
+    {
+        $key = 'gift_card_reminder_' . $code;
+        $val = gmdate('Y-m-d H:i:s');
+        $sql = "INSERT INTO kv_store (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP";
+        db_query($sql, [$key, $val]);
     }
 }

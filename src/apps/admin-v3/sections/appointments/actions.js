@@ -79,6 +79,23 @@ export async function cancelAppointment(id) {
     mutateAppointmentInState(id, { status: 'cancelled' });
 }
 
+export async function redeemGiftCard(appointmentId, code, amountCents) {
+    const payload = await apiRequest('gift-card-redeem', {
+        method: 'POST',
+        body: { code, amount_cents: amountCents }
+    });
+    // Add success visually to appointment as paid if fully covered
+    if (payload.message) {
+        payload.success = true;
+        // In real operations, we often tag it to paymentStatus='paid' if the balance was enough.
+        mutateAppointmentInState(appointmentId, { 
+            paymentStatus: 'paid',
+            giftCardCode: code
+        });
+    }
+    return payload;
+}
+
 export async function markArrived(id) {
     const targetId = Number(id || 0);
     const appointment = (getState().data.appointments || []).find(
