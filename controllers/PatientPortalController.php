@@ -3756,6 +3756,11 @@ final class PatientPortalController
     private static function resolvePreparationRequired(array $appointment, ?array $serviceConfig): string
     {
         $serviceId = strtolower(trim((string) ($appointment['service'] ?? '')));
+        $catalogPreparation = service_catalog_preparation_for($serviceId);
+        if ($catalogPreparation !== '') {
+            return $catalogPreparation;
+        }
+
         $serviceName = strtolower(trim((string) ($serviceConfig['name'] ?? '')));
         $serviceCategory = strtolower(trim((string) ($serviceConfig['category'] ?? '')));
         $typeKey = self::resolveAppointmentTypeKey($appointment, $serviceConfig);

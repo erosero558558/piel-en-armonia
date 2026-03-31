@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/lead/LeadScoringService.php';
+require_once __DIR__ . '/ServiceCatalog.php';
 
 final class LeadOpsService
 {
@@ -1295,10 +1296,9 @@ final class LeadOpsService
 
     private static function serviceCatalog(): array
     {
-        $path = defined('TESTING_ENV') && TESTING_ENV === true && trim((string) getenv('PIELARMONIA_SERVICES_CATALOG_FILE')) !== ''
-            ? trim((string) getenv('PIELARMONIA_SERVICES_CATALOG_FILE'))
-            : __DIR__ . '/../content/services.json';
-        $mtime = is_file($path) ? (int) @filemtime($path) : 0;
+        $catalog = load_service_catalog_payload();
+        $path = (string) ($catalog['path'] ?? '');
+        $mtime = (int) ($catalog['mtime'] ?? 0);
 
         if (
             self::$catalogCache !== null
@@ -1310,10 +1310,9 @@ final class LeadOpsService
             ];
         }
 
-        $decoded = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
         $services = [];
 
-        foreach ((array) ($decoded['services'] ?? []) as $service) {
+        foreach (service_catalog_services('public_route') as $service) {
             if (!is_array($service)) {
                 continue;
             }

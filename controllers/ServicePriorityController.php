@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/ServiceCatalog.php';
+
 class ServicePriorityController
 {
     public static function index(array $context): void
@@ -90,60 +92,14 @@ class ServicePriorityController
      */
     private static function loadCatalog(): array
     {
-        $path = self::resolveCatalogPath();
-        if ($path === '' || !is_file($path)) {
-            return [
-                'source' => 'missing',
-                'version' => 'missing',
-                'timezone' => 'America/Guayaquil',
-                'services' => [],
-            ];
-        }
+        $catalog = load_service_catalog_payload();
 
-        $raw = file_get_contents($path);
-        if ($raw === false || trim($raw) === '') {
-            return [
-                'source' => 'invalid',
-                'version' => 'invalid',
-                'timezone' => 'America/Guayaquil',
-                'services' => [],
-            ];
-        }
-
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
-            return [
-                'source' => 'invalid',
-                'version' => 'invalid',
-                'timezone' => 'America/Guayaquil',
-                'services' => [],
-            ];
-        }
-
-        $services = isset($decoded['services']) && is_array($decoded['services']) ? $decoded['services'] : [];
-        $version = is_string($decoded['version'] ?? null) ? trim((string) $decoded['version']) : '';
-        $timezone = is_string($decoded['timezone'] ?? null) ? trim((string) $decoded['timezone']) : '';
         return [
-            'source' => 'file',
-            'version' => $version !== '' ? $version : 'unknown',
-            'timezone' => $timezone !== '' ? $timezone : 'America/Guayaquil',
-            'services' => $services,
+            'source' => (string) ($catalog['source'] ?? 'missing'),
+            'version' => (string) ($catalog['version'] ?? 'unknown'),
+            'timezone' => (string) ($catalog['timezone'] ?? 'America/Guayaquil'),
+            'services' => service_catalog_services('public_route'),
         ];
-    }
-
-    private static function resolveCatalogPath(): string
-    {
-        $defaultPath = __DIR__ . '/../content/services.json';
-        $override = app_env('AURORADERM_SERVICES_CATALOG_FILE');
-        if (
-            is_string($override) &&
-            trim($override) !== '' &&
-            defined('TESTING_ENV') &&
-            TESTING_ENV === true
-        ) {
-            return trim($override);
-        }
-        return $defaultPath;
     }
 
     /**
