@@ -62,6 +62,17 @@ const ROUTES = [
         ],
     },
     {
+        route: '/es/telemedicina/pre-consulta/',
+        templateId: 'telemedicine_preconsultation_v6',
+        selectors: [
+            '[data-v6-page-head]',
+            '[data-v6-tele-pre-hero]',
+            '[data-v6-tele-pre-summary]',
+            '[data-v6-tele-pre-form]',
+            '[data-v6-booking-status]',
+        ],
+    },
+    {
         route: '/es/legal/terminos/',
         templateId: 'legal_v6',
         selectors: [

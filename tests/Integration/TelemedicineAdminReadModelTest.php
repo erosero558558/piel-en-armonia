@@ -66,6 +66,12 @@ final class TelemedicineAdminReadModelTest extends TestCase
             'status' => 'confirmed',
             'telemedicineIntakeId' => 601,
         ];
+        $store['appointments'][] = [
+            'id' => 112,
+            'service' => 'video',
+            'status' => 'confirmed',
+            'telemedicineIntakeId' => 602,
+        ];
         $store['telemedicine_intakes'][] = [
             'id' => 601,
             'channel' => 'phone',
@@ -98,6 +104,37 @@ final class TelemedicineAdminReadModelTest extends TestCase
             'createdAt' => '2026-03-03T11:00:00-05:00',
             'updatedAt' => '2026-03-03T11:10:00-05:00',
         ];
+        $store['telemedicine_intakes'][] = [
+            'id' => 602,
+            'channel' => 'secure_video',
+            'legacyService' => 'video',
+            'status' => 'booked',
+            'suitability' => 'fit',
+            'reviewRequired' => false,
+            'linkedAppointmentId' => 112,
+            'patient' => [
+                'name' => 'Paciente Briefing',
+                'email' => 'briefing@example.com',
+                'phone' => '0990000003',
+            ],
+            'latestPatientConcern' => 'Hoy la lesión cambió de color.',
+            'telemedicinePreConsultation' => [
+                'status' => 'submitted',
+                'statusLabel' => 'Pre-consulta enviada',
+                'concern' => 'Hoy la lesión cambió de color.',
+                'hasNewLesion' => true,
+                'photoCount' => 2,
+                'mediaIds' => [771, 772],
+                'photos' => [],
+                'submittedAt' => '2026-03-03T12:00:00-05:00',
+                'updatedAt' => '2026-03-03T12:05:00-05:00',
+            ],
+            'requestedDate' => '2026-03-11',
+            'requestedTime' => '12:00',
+            'requestedDoctor' => 'rosero',
+            'createdAt' => '2026-03-03T11:30:00-05:00',
+            'updatedAt' => '2026-03-03T12:05:00-05:00',
+        ];
         \write_store($store, false);
 
         try {
@@ -115,13 +152,15 @@ final class TelemedicineAdminReadModelTest extends TestCase
 
         $telemedicineMeta = $payload['data']['telemedicineMeta'];
         $this->assertSame(1, (int) ($telemedicineMeta['summary']['reviewQueueCount'] ?? -1));
-        $this->assertSame(1, (int) ($telemedicineMeta['summary']['intakes']['total'] ?? -1));
-        $this->assertSame(1, (int) ($telemedicineMeta['summary']['intakes']['byReviewDecision']['none'] ?? -1));
+        $this->assertSame(1, (int) ($telemedicineMeta['summary']['briefingQueueCount'] ?? -1));
+        $this->assertSame(2, (int) ($telemedicineMeta['summary']['intakes']['total'] ?? -1));
+        $this->assertSame(2, (int) ($telemedicineMeta['summary']['intakes']['byReviewDecision']['none'] ?? -1));
         $this->assertSame(1, (int) ($telemedicineMeta['summary']['intakes']['byReviewState']['pending'] ?? -1));
         $this->assertArrayHasKey('diagnostics', $telemedicineMeta['summary']);
         $this->assertSame('healthy', (string) ($telemedicineMeta['summary']['diagnostics']['status'] ?? ''));
         $this->assertArrayHasKey('diagnostics', $telemedicineMeta);
         $this->assertCount(1, $telemedicineMeta['reviewQueue']);
+        $this->assertCount(1, $telemedicineMeta['briefingQueue']);
         $this->assertSame('Paciente Admin', $telemedicineMeta['reviewQueue'][0]['patientName']);
         $this->assertSame('admin@example.com', $telemedicineMeta['reviewQueue'][0]['patientEmail']);
         $this->assertSame('manual_review', $telemedicineMeta['reviewQueue'][0]['escalationRecommendation']);
@@ -137,6 +176,9 @@ final class TelemedicineAdminReadModelTest extends TestCase
             'pending',
             (string) ($telemedicineMeta['reviewQueue'][0]['photoAiDoctorValidationStatus'] ?? '')
         );
+        $this->assertSame('Paciente Briefing', $telemedicineMeta['briefingQueue'][0]['patientName']);
+        $this->assertSame('Hoy la lesión cambió de color.', $telemedicineMeta['briefingQueue'][0]['concern']);
+        $this->assertSame(2, (int) ($telemedicineMeta['briefingQueue'][0]['photoCount'] ?? 0));
     }
 
     private function removeDirectory(string $dir): void

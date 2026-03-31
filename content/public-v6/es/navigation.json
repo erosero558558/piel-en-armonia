@@ -189,6 +189,12 @@
                 "href": "/es/telemedicina/consulta/",
                 "eyebrow": "Teleconsulta",
                 "deck": "Sala virtual para entrar a la llamada, abrir WhatsApp clinico y compartir fotos antes o durante la teleconsulta."
+            },
+            {
+                "label": "Pre-consulta de telemedicina",
+                "href": "/es/telemedicina/pre-consulta/",
+                "eyebrow": "Teleconsulta",
+                "deck": "Deje una nota breve y hasta 3 fotos nuevas antes de entrar para que el medico lea que cambio hoy."
             }
         ]
     },

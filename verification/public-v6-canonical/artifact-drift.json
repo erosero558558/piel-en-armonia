@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-03-30T20:20:30.687Z",
+  "generatedAt": "2026-03-31T10:53:47.499Z",
   "rebuild": false,
   "distRoot": "src/apps/astro/dist",
   "checks": [
     {
       "entry": "es",
-      "distCount": 33,
-      "repoCount": 33,
+      "distCount": 45,
+      "repoCount": 45,
       "missingInRepo": [],
       "extraInRepo": [],
       "changed": []
     },
     {
       "entry": "en",
-      "distCount": 30,
-      "repoCount": 30,
+      "distCount": 31,
+      "repoCount": 31,
       "missingInRepo": [],
       "extraInRepo": [],
       "changed": []
     },
     {
       "entry": "_astro",
-      "distCount": 9,
-      "repoCount": 9,
+      "distCount": 13,
+      "repoCount": 13,
       "missingInRepo": [],
       "extraInRepo": [],
       "changed": []

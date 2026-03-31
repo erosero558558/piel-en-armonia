@@ -70,6 +70,12 @@ final class TelemedicineHealthSnapshotTest extends TestCase
             'status' => 'confirmed',
             'telemedicineIntakeId' => 501,
         ];
+        $store['appointments'][] = [
+            'id' => 102,
+            'service' => 'video',
+            'status' => 'confirmed',
+            'telemedicineIntakeId' => 502,
+        ];
         $store['telemedicine_intakes'][] = [
             'id' => 501,
             'channel' => 'secure_video',
@@ -91,6 +97,37 @@ final class TelemedicineHealthSnapshotTest extends TestCase
             'requestedDoctor' => 'rosero',
             'createdAt' => '2026-03-03T10:00:00-05:00',
             'updatedAt' => '2026-03-03T10:05:00-05:00',
+        ];
+        $store['telemedicine_intakes'][] = [
+            'id' => 502,
+            'channel' => 'secure_video',
+            'legacyService' => 'video',
+            'status' => 'booked',
+            'suitability' => 'fit',
+            'reviewRequired' => false,
+            'linkedAppointmentId' => 102,
+            'patient' => [
+                'name' => 'Paciente Briefing',
+                'email' => 'briefing@example.com',
+                'phone' => '0990000004',
+            ],
+            'latestPatientConcern' => 'Apareció una zona nueva.',
+            'telemedicinePreConsultation' => [
+                'status' => 'submitted',
+                'statusLabel' => 'Pre-consulta enviada',
+                'concern' => 'Apareció una zona nueva.',
+                'hasNewLesion' => true,
+                'photoCount' => 1,
+                'mediaIds' => [702],
+                'photos' => [],
+                'submittedAt' => '2026-03-03T10:06:00-05:00',
+                'updatedAt' => '2026-03-03T10:06:00-05:00',
+            ],
+            'requestedDate' => '2026-03-10',
+            'requestedTime' => '10:20',
+            'requestedDoctor' => 'rosero',
+            'createdAt' => '2026-03-03T10:02:00-05:00',
+            'updatedAt' => '2026-03-03T10:06:00-05:00',
         ];
         $store['clinical_uploads'][] = [
             'id' => 701,
@@ -121,9 +158,10 @@ final class TelemedicineHealthSnapshotTest extends TestCase
         $this->assertArrayHasKey('telemedicine', $payload['checks']);
         $telemedicine = $payload['checks']['telemedicine'];
         $this->assertTrue((bool) ($telemedicine['configured'] ?? false));
-        $this->assertSame(1, (int) ($telemedicine['intakes']['total'] ?? -1));
+        $this->assertSame(2, (int) ($telemedicine['intakes']['total'] ?? -1));
         $this->assertSame(1, (int) ($telemedicine['reviewQueueCount'] ?? -1));
-        $this->assertSame(1, (int) ($telemedicine['integrity']['linkedAppointmentsCount'] ?? -1));
+        $this->assertSame(1, (int) ($telemedicine['briefingQueueCount'] ?? -1));
+        $this->assertSame(2, (int) ($telemedicine['integrity']['linkedAppointmentsCount'] ?? -1));
         $this->assertSame(true, (bool) ($telemedicine['policy']['shadowModeEnabled'] ?? false));
         $this->assertSame(true, (bool) ($telemedicine['policy']['enforceUnsuitable'] ?? false));
         $this->assertSame(false, (bool) ($telemedicine['policy']['enforceReviewRequired'] ?? true));

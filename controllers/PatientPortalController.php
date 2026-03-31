@@ -666,6 +666,73 @@ final class PatientPortalController
         ]);
     }
 
+    public static function getPushPreferences(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        require_once __DIR__ . '/../lib/PushPreferencesService.php';
+        
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+        $patientId = trim((string) ($patient['patientId'] ?? ''));
+
+        $service = new PushPreferencesService();
+        $preferences = $service->getPreferences($patientId);
+
+        self::emit([
+            'ok' => true,
+            'data' => [
+                'preferences' => $preferences
+            ]
+        ]);
+    }
+
+    public static function setPushPreferences(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        require_once __DIR__ . '/../lib/PushPreferencesService.php';
+
+        $payload = require_json_body();
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+        $patientId = trim((string) ($patient['patientId'] ?? ''));
+
+        $service = new PushPreferencesService();
+        if (!$service->setPreferences($patientId, $payload)) {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudieron guardar las preferencias'
+            ], 500);
+        }
+
+        self::emit([
+            'ok' => true,
+            'data' => [
+                'preferences' => $service->getPreferences($patientId)
+            ]
+        ]);
+    }
+
+
     private static function findNextAppointment(array $store, array $snapshot): array
     {
         $matches = [];

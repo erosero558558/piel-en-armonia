@@ -152,6 +152,13 @@ export function renderSettingsSection() {
                         <div class="settings-form-actions">
                             <p id="clinicProfileSaveMeta">Sin cambios guardados todavia.</p>
                             <button
+                                type="button"
+                                id="clinicProfilePreviewBtn"
+                                class="admin-theme-btn settings-secondary-btn"
+                            >
+                                Vista previa
+                            </button>
+                            <button
                                 type="submit"
                                 id="clinicProfileSaveBtn"
                                 class="admin-v3-command-btn settings-primary-btn"
@@ -161,6 +168,27 @@ export function renderSettingsSection() {
                         </div>
                     </form>
                 </article>
+
+                <dialog id="clinicPreviewModal" class="clinic-preview-dialog">
+                    <form method="dialog" class="clinic-preview-dialog-core">
+                        <header class="clinic-preview-header">
+                            <div>
+                                <h3>Vista Previa en Vivo</h3>
+                                <p>Revisa el efecto visual del logo y marca antes de aplicar.</p>
+                            </div>
+                            <div class="clinic-preview-actions">
+                                <select id="clinicPreviewSurfaceSelect">
+                                    <option value="/admin.html">Admin Dashboard</option>
+                                    <option value="/operador-turnos.html">Operador Recepción</option>
+                                    <option value="/kiosco-turnos.html">Kiosco Pacientes</option>
+                                    <option value="/sala-turnos.html">Display Sala</option>
+                                </select>
+                                <button type="submit" class="admin-theme-btn">Cerrar</button>
+                            </div>
+                        </header>
+                        <iframe id="clinicPreviewIframe" class="clinic-preview-iframe" src="about:blank"></iframe>
+                    </form>
+                </dialog>
 
                 <aside class="settings-rail">
                     <article class="sony-panel soft settings-preview-panel">

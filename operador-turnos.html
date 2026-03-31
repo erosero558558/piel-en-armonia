@@ -816,5 +816,28 @@
             </div>
         </aside>
         <script src="/js/knowledge-base.js"></script>
+
+        <!-- Live Preview Hook (S18-12) -->
+        <script>
+            (function() {
+                if (window.self !== window.top) {
+                    try {
+                        const str = sessionStorage.getItem('aurora_clinic_preview_data');
+                        if (str) {
+                            const data = JSON.parse(str);
+                            document.addEventListener('DOMContentLoaded', () => {
+                                const els = document.querySelectorAll('#operatorClinicMeta, #operatorSurfaceMeta');
+                                els.forEach(el => {
+                                    let html = '';
+                                    if (data.logoImage) html += `<img src="${data.logoImage}" style="max-height: 20px; vertical-align: middle; margin-right: 8px; border-radius: 4px;"> `;
+                                    if (data.clinicName) html += `<span style="vertical-align: middle;">Operador en ${data.clinicName}</span>`;
+                                    el.innerHTML = html;
+                                });
+                            });
+                        }
+                    } catch(e) {}
+                }
+            })();
+        </script>
     </body>
 </html>

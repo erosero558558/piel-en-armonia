@@ -86,6 +86,22 @@ class PushService
     public function sendNotification(array $payload, array $criteria = []): array
     {
         $items = $this->filterSubscriptions($criteria);
+        
+        $category = (string)($payload['category'] ?? '');
+        if ($category !== '') {
+            if (!class_exists('PushPreferencesService')) {
+                require_once __DIR__ . '/PushPreferencesService.php';
+            }
+            $prefsService = new PushPreferencesService();
+            $items = array_values(array_filter($items, function($item) use ($prefsService, $category): bool {
+                $patientId = trim((string)($item['patientId'] ?? ''));
+                if ($patientId === '') {
+                    return true;
+                }
+                return $prefsService->wants($patientId, $category);
+            }));
+        }
+
         if (count($items) === 0) {
             return [
                 'success' => 0,

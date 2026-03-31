@@ -465,6 +465,39 @@ function attachClinicListeners(root) {
         });
     }
 
+    const previewBtn = qs('#clinicProfilePreviewBtn', root);
+    const previewModal = qs('#clinicPreviewModal', root);
+    const surfaceSelect = qs('#clinicPreviewSurfaceSelect', root);
+    const previewIframe = qs('#clinicPreviewIframe', root);
+
+    if (previewBtn instanceof HTMLButtonElement && previewModal instanceof HTMLDialogElement) {
+        previewBtn.addEventListener('click', () => {
+            const currentUnsavedProfile = readClinicProfileFromForm(root);
+            sessionStorage.setItem('aurora_clinic_preview_data', JSON.stringify({
+                clinicName: currentUnsavedProfile.clinicName,
+                logoImage: activeLogoImage
+            }));
+            
+            const loadIframe = () => {
+                if (previewIframe instanceof HTMLIFrameElement && surfaceSelect instanceof HTMLSelectElement) {
+                    previewIframe.src = surfaceSelect.value;
+                }
+            };
+
+            loadIframe();
+            previewModal.showModal();
+
+            if (surfaceSelect instanceof HTMLSelectElement) {
+                surfaceSelect.onchange = loadIframe;
+            }
+        });
+
+        previewModal.addEventListener('close', () => {
+            sessionStorage.removeItem('aurora_clinic_preview_data');
+            if (previewIframe instanceof HTMLIFrameElement) previewIframe.src = 'about:blank';
+        });
+    }
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (savingClinic) return;

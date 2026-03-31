@@ -1,0 +1,716 @@
+---
+import '../../styles/public-v6/telemedicine-preconsultation.css';
+
+import BookingStatusV6 from './BookingStatusV6.astro';
+import PageHeadV6 from './PageHeadV6.astro';
+
+const { page = {}, locale = 'es', navModel = {} } = Astro.props;
+
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
+const makeMenuItem = (label, href) => {
+    const safeLabel = normalizeText(label);
+    const safeHref = normalizeHref(href);
+    return safeLabel && safeHref ? { label: safeLabel, href: safeHref } : null;
+};
+
+const pageHeadUi = navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object' ? navModel.ui.pageHead : {};
+const breadcrumb = Array.isArray(page?.breadcrumb) ? page.breadcrumb : [];
+const sections = Array.isArray(page?.sections) ? page.sections : [];
+const pageMenuItems = sections.map((item) => makeMenuItem(item?.label, item?.href)).filter(Boolean);
+const hero = page?.hero && typeof page.hero === 'object' ? page.hero : {};
+const summary = page?.summary && typeof page.summary === 'object' ? page.summary : {};
+const form = page?.form && typeof page.form === 'object' ? page.form : {};
+const response = page?.response && typeof page.response === 'object' ? page.response : {};
+const responseSteps = Array.isArray(response?.steps) ? response.steps : [];
+const support = page?.support && typeof page.support === 'object' ? page.support : {};
+const supportStatus = {
+    eyebrow: normalizeText(support.eyebrow),
+    title: normalizeText(support.title),
+    description: normalizeText(support.description),
+    ctaLabel: normalizeText(support.ctaLabel),
+    ctaHref: normalizeHref(support.ctaHref),
+};
+---
+
+<PageHeadV6
+    breadcrumb={breadcrumb}
+    heading={page.heading}
+    locale={locale}
+    switchLabel=""
+    switchHref=""
+    menuLabel={page.menuLabel}
+    menuItems={pageMenuItems}
+    copy={pageHeadUi}
+/>
+
+<section class="v6-tele-pre-hero" data-v6-tele-pre-hero>
+    <div class="v6-tele-pre-hero__shell">
+        <div class="v6-tele-pre-hero__copy">
+            {normalizeText(hero.eyebrow) ? <p class="v6-tele-pre-hero__eyebrow">{hero.eyebrow}</p> : null}
+            {normalizeText(hero.title) ? <h2>{hero.title}</h2> : null}
+            {normalizeText(hero.body) ? <p class="v6-tele-pre-hero__body">{hero.body}</p> : null}
+            {
+                Array.isArray(hero?.highlights) && hero.highlights.length ? (
+                    <div class="v6-tele-pre-hero__highlights" aria-hidden="true">
+                        {
+                            hero.highlights.map((item) => (
+                                <article>
+                                    <span>{normalizeText(item?.label)}</span>
+                                    <strong>{normalizeText(item?.value)}</strong>
+                                </article>
+                            ))
+                        }
+                    </div>
+                ) : null
+            }
+        </div>
+
+        <aside class="v6-tele-pre-hero__panel">
+            {normalizeText(hero.panelEyebrow) ? <p>{hero.panelEyebrow}</p> : null}
+            {normalizeText(hero.panelTitle) ? <h3>{hero.panelTitle}</h3> : null}
+            {
+                Array.isArray(hero?.panelItems) && hero.panelItems.length ? (
+                    <ul>
+                        {
+                            hero.panelItems.map((item) => (
+                                <li>{normalizeText(item)}</li>
+                            ))
+                        }
+                    </ul>
+                ) : null
+            }
+            {normalizeText(hero.panelCtaLabel) ? <a href="#v6-tele-pre-form">{hero.panelCtaLabel}</a> : null}
+        </aside>
+    </div>
+</section>
+
+<div
+    class="v6-internal-shell v6-tele-pre-shell"
+    data-v6-tele-pre-root
+    data-fetch-url="/api.php?resource=telemedicine-preconsultation"
+    data-login-url="/es/portal/login/"
+    data-support-url={supportStatus.ctaHref}
+>
+    {
+        pageMenuItems.length ? (
+            <aside class="v6-internal-rail" data-v6-internal-rail>
+                <p>Secciones</p>
+                <nav data-v6-section-nav="internal" aria-label="Secciones de pre-consulta de telemedicina">
+                    {pageMenuItems.map((item) => <a data-v6-section-link href={item.href}>{item.label}</a>)}
+                </nav>
+            </aside>
+        ) : null
+    }
+
+    <div class="v6-internal-shell__body">
+        <section id="v6-tele-pre-summary" class="v6-tele-pre-summary" data-v6-tele-pre-summary>
+            <header class="v6-tele-pre-head">
+                {normalizeText(summary.eyebrow) ? <p>{summary.eyebrow}</p> : null}
+                {normalizeText(summary.title) ? <h2>{summary.title}</h2> : null}
+                {normalizeText(summary.body) ? <p>{summary.body}</p> : null}
+            </header>
+
+            <div class="v6-tele-pre-summary__grid">
+                <article class="v6-tele-pre-card v6-tele-pre-card--appointment" data-tele-pre-appointment>
+                    <p class="v6-tele-pre-card__eyebrow">{normalizeText(summary.statusEyebrow) || 'Resumen previo'}</p>
+                    <h3>Estamos cargando el contexto de su teleconsulta.</h3>
+                    <dl class="v6-tele-pre-facts">
+                        <div>
+                            <dt>Paciente</dt>
+                            <dd data-tele-pre-field="patient">Paciente Aurora</dd>
+                        </div>
+                        <div>
+                            <dt>Doctor/a</dt>
+                            <dd data-tele-pre-field="doctor">Por confirmar</dd>
+                        </div>
+                        <div>
+                            <dt>Fecha</dt>
+                            <dd data-tele-pre-field="date">Por confirmar</dd>
+                        </div>
+                        <div>
+                            <dt>Hora</dt>
+                            <dd data-tele-pre-field="time">Por confirmar</dd>
+                        </div>
+                        <div>
+                            <dt>Canal</dt>
+                            <dd data-tele-pre-field="channel">Teleconsulta</dd>
+                        </div>
+                    </dl>
+                    <p class="v6-tele-pre-inline-status" data-tele-pre-load-status>
+                        Buscando la cita activa de telemedicina...
+                    </p>
+                </article>
+
+                <article class="v6-tele-pre-card v6-tele-pre-card--next">
+                    <p class="v6-tele-pre-card__eyebrow">{normalizeText(summary.nextEyebrow) || 'Después de guardar'}</p>
+                    <h3>{normalizeText(summary.nextTitle) || 'La sala queda a un toque.'}</h3>
+                    <p>{normalizeText(summary.nextBody) || 'Puede guardar la pre-consulta y seguir directo a la sala virtual.'}</p>
+                    <div class="v6-tele-pre-card__actions">
+                        <a
+                            class="v6-tele-pre-btn v6-tele-pre-btn--ghost"
+                            href="/es/telemedicina/sala/index.html"
+                            data-tele-pre-room-link
+                        >
+                            {normalizeText(summary.roomCtaLabel) || 'Abrir sala de teleconsulta'}
+                        </a>
+                    </div>
+                    <article class="v6-tele-pre-history" data-tele-pre-history hidden>
+                        <span>Última pre-consulta</span>
+                        <strong data-tele-pre-history-status>Pre-consulta enviada</strong>
+                        <p data-tele-pre-history-copy></p>
+                    </article>
+                </article>
+            </div>
+        </section>
+
+        <section
+            id="v6-tele-pre-form"
+            class="v6-tele-pre-form-section"
+            data-v6-tele-pre-form
+            data-max-files="3"
+            data-max-bytes="5242880"
+        >
+            <div class="v6-tele-pre-form-layout">
+                <article class="v6-tele-pre-card v6-tele-pre-card--form">
+                    <div class="v6-tele-pre-head">
+                        {normalizeText(form.eyebrow) ? <p>{form.eyebrow}</p> : null}
+                        {normalizeText(form.title) ? <h2>{form.title}</h2> : null}
+                        {normalizeText(form.description) ? <p>{form.description}</p> : null}
+                    </div>
+
+                    <div class="v6-tele-pre-auth" data-tele-pre-auth hidden>
+                        <strong>Necesitamos abrir su acceso primero.</strong>
+                        <p>
+                            Si entro desde el portal o un recordatorio de cita, vuelva a abrir ese enlace. Si no, inicie
+                            sesión para ubicar la teleconsulta correcta.
+                        </p>
+                        <div class="v6-tele-pre-card__actions">
+                            <a class="v6-tele-pre-btn v6-tele-pre-btn--primary" href="/es/portal/login/" data-tele-pre-login-link>
+                                Abrir portal
+                            </a>
+                            {
+                                supportStatus.ctaLabel && supportStatus.ctaHref ? (
+                                    <a class="v6-tele-pre-btn v6-tele-pre-btn--ghost" href={supportStatus.ctaHref} target="_blank" rel="noopener noreferrer">
+                                        {supportStatus.ctaLabel}
+                                    </a>
+                                ) : null
+                            }
+                        </div>
+                    </div>
+
+                    <form class="v6-tele-pre-form" data-tele-pre-form novalidate>
+                        <div class="v6-tele-pre-form__field is-full">
+                            <label for="tele-pre-concern">Actualización clínica</label>
+                            <textarea
+                                id="tele-pre-concern"
+                                name="concern"
+                                rows="5"
+                                maxlength="1000"
+                                placeholder="Cuente qué cambió hoy, si apareció algo nuevo o si el motivo principal se ve distinto a como estaba cuando reservó."
+                                data-tele-pre-concern
+                                required
+                            ></textarea>
+                        </div>
+
+                        <label class="v6-tele-pre-form__check">
+                            <input type="checkbox" name="hasNewLesion" value="1" data-tele-pre-new-lesion />
+                            <span>Hoy hay una lesión nueva o un cambio visual que antes no estaba.</span>
+                        </label>
+
+                        <div class="v6-tele-pre-form__field is-full">
+                            <label for="tele-pre-photos">Fotos nuevas opcionales</label>
+                            <input
+                                id="tele-pre-photos"
+                                name="photos[]"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                multiple
+                                data-tele-pre-photos
+                            />
+                            <p class="v6-tele-pre-form__hint">{normalizeText(form.photoHint)}</p>
+                            <ul class="v6-tele-pre-form__files" data-tele-pre-files></ul>
+                        </div>
+
+                        {normalizeText(form.footnote) ? <p class="v6-tele-pre-form__footnote">{form.footnote}</p> : null}
+
+                        <div class="v6-tele-pre-form__actions">
+                            <button class="v6-tele-pre-btn v6-tele-pre-btn--primary" type="submit" data-tele-pre-submit>
+                                {normalizeText(form.submitLabel) || 'Guardar pre-consulta'}
+                            </button>
+                            {
+                                supportStatus.ctaLabel && supportStatus.ctaHref ? (
+                                    <a class="v6-tele-pre-btn v6-tele-pre-btn--ghost" href={supportStatus.ctaHref} target="_blank" rel="noopener noreferrer">
+                                        {normalizeText(form.secondaryCtaLabel) || supportStatus.ctaLabel}
+                                    </a>
+                                ) : null
+                            }
+                        </div>
+
+                        <div class="v6-tele-pre-form__status" data-tele-pre-status role="status" aria-live="polite" hidden></div>
+
+                        <article class="v6-tele-pre-form__success" data-tele-pre-success hidden>
+                            <p>Pre-consulta guardada</p>
+                            <h3>El médico ya ve el contexto nuevo antes de entrar.</h3>
+                            <p data-tele-pre-success-body></p>
+                        </article>
+                    </form>
+                </article>
+
+                <aside class="v6-tele-pre-card v6-tele-pre-card--side">
+                    <div class="v6-tele-pre-head">
+                        {normalizeText(response.eyebrow) ? <p>{response.eyebrow}</p> : null}
+                        {normalizeText(response.title) ? <h2>{response.title}</h2> : null}
+                    </div>
+
+                    {
+                        responseSteps.length ? (
+                            <ol class="v6-tele-pre-steps">
+                                {
+                                    responseSteps.map((item) => (
+                                        <li>
+                                            <h3>{normalizeText(item?.title)}</h3>
+                                            <p>{normalizeText(item?.copy)}</p>
+                                        </li>
+                                    ))
+                                }
+                            </ol>
+                        ) : null
+                    }
+                </aside>
+            </div>
+        </section>
+    </div>
+</div>
+
+<BookingStatusV6 status={supportStatus} />
+
+<script is:inline>
+    (() => {
+        const root = document.querySelector('[data-v6-tele-pre-root]');
+        if (!(root instanceof HTMLElement)) {
+            return;
+        }
+
+        const fetchUrl = root.dataset.fetchUrl || '/api.php?resource=telemedicine-preconsultation';
+        const loginUrl = root.dataset.loginUrl || '/es/portal/login/';
+        const supportUrl = root.dataset.supportUrl || '';
+        const params = new URLSearchParams(window.location.search);
+        const tokenParam = (params.get('token') || '').trim();
+        const appointmentId = (params.get('id') || '').trim();
+        const maxFiles = Number(root.dataset.maxFiles || 3) || 3;
+        const maxBytes = Number(root.dataset.maxBytes || 5242880) || 5242880;
+        const roleOrder = ['zona', 'primer_plano', 'contexto'];
+        const roleLabels = {
+            zona: 'Zona',
+            primer_plano: 'Primer plano',
+            contexto: 'Contexto',
+        };
+
+        const fieldPatient = root.querySelector('[data-tele-pre-field="patient"]');
+        const fieldDoctor = root.querySelector('[data-tele-pre-field="doctor"]');
+        const fieldDate = root.querySelector('[data-tele-pre-field="date"]');
+        const fieldTime = root.querySelector('[data-tele-pre-field="time"]');
+        const fieldChannel = root.querySelector('[data-tele-pre-field="channel"]');
+        const loadStatus = root.querySelector('[data-tele-pre-load-status]');
+        const form = root.querySelector('[data-tele-pre-form]');
+        const authPanel = root.querySelector('[data-tele-pre-auth]');
+        const loginLink = root.querySelector('[data-tele-pre-login-link]');
+        const concernField = root.querySelector('[data-tele-pre-concern]');
+        const newLesionField = root.querySelector('[data-tele-pre-new-lesion]');
+        const photosField = root.querySelector('[data-tele-pre-photos]');
+        const fileList = root.querySelector('[data-tele-pre-files]');
+        const submitButton = root.querySelector('[data-tele-pre-submit]');
+        const statusNode = root.querySelector('[data-tele-pre-status]');
+        const successNode = root.querySelector('[data-tele-pre-success]');
+        const successBody = root.querySelector('[data-tele-pre-success-body]');
+        const roomLink = root.querySelector('[data-tele-pre-room-link]');
+        const historyCard = root.querySelector('[data-tele-pre-history]');
+        const historyStatus = root.querySelector('[data-tele-pre-history-status]');
+        const historyCopy = root.querySelector('[data-tele-pre-history-copy]');
+
+        const state = {
+            appointment: null,
+            preConsultation: null,
+            files: [],
+            roomUrl: '',
+        };
+
+        function readSession() {
+            try {
+                const raw = window.localStorage.getItem('auroraPatientPortalSession');
+                if (!raw) {
+                    return null;
+                }
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            } catch (_error) {
+                return null;
+            }
+        }
+
+        function buildHeaders() {
+            const headers = {
+                Accept: 'application/json',
+            };
+            const session = readSession();
+            const token = typeof session?.token === 'string' ? session.token.trim() : '';
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+            return headers;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function setStatus(message, tone = 'neutral') {
+            if (!(statusNode instanceof HTMLElement)) {
+                return;
+            }
+            const text = String(message || '').trim();
+            if (!text) {
+                statusNode.hidden = true;
+                statusNode.removeAttribute('data-state');
+                statusNode.textContent = '';
+                return;
+            }
+
+            statusNode.hidden = false;
+            statusNode.dataset.state = tone;
+            statusNode.textContent = text;
+        }
+
+        function humanDate(value) {
+            const raw = String(value || '').trim();
+            if (!raw) {
+                return 'Por confirmar';
+            }
+            const parsed = new Date(raw);
+            if (Number.isNaN(parsed.getTime())) {
+                return raw;
+            }
+            return parsed.toLocaleDateString('es-EC', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+            });
+        }
+
+        function endpointWithQuery() {
+            const url = new URL(fetchUrl, window.location.origin);
+            if (tokenParam) {
+                url.searchParams.set('token', tokenParam);
+            } else if (appointmentId) {
+                url.searchParams.set('id', appointmentId);
+            }
+            return url.toString();
+        }
+
+        function updateRoomLink(href) {
+            const resolvedHref = String(href || '').trim();
+            if (roomLink instanceof HTMLAnchorElement && resolvedHref) {
+                roomLink.href = resolvedHref;
+            }
+        }
+
+        function renderHistory(preConsultation) {
+            if (!(historyCard instanceof HTMLElement)) {
+                return;
+            }
+            if (!preConsultation || typeof preConsultation !== 'object' || !String(preConsultation.status || '').trim()) {
+                historyCard.hidden = true;
+                return;
+            }
+
+            historyCard.hidden = false;
+            if (historyStatus instanceof HTMLElement) {
+                historyStatus.textContent = String(
+                    preConsultation.statusLabel || 'Pre-consulta enviada'
+                ).trim();
+            }
+            if (historyCopy instanceof HTMLElement) {
+                const pieces = [];
+                if (preConsultation.concern) {
+                    pieces.push(String(preConsultation.concern).trim());
+                }
+                if (Number(preConsultation.photoCount || 0) > 0) {
+                    pieces.push(`${Number(preConsultation.photoCount)} foto(s) nueva(s).`);
+                }
+                historyCopy.textContent =
+                    pieces.join(' ') || 'Ya existe una pre-consulta guardada para esta teleconsulta.';
+            }
+        }
+
+        function populate(data) {
+            const appointment =
+                data?.appointment && typeof data.appointment === 'object'
+                    ? data.appointment
+                    : {};
+            const preConsultation =
+                data?.preConsultation && typeof data.preConsultation === 'object'
+                    ? data.preConsultation
+                    : null;
+
+            state.appointment = appointment;
+            state.preConsultation = preConsultation;
+            state.roomUrl = String(data?.roomUrl || '').trim();
+
+            if (fieldPatient instanceof HTMLElement) {
+                fieldPatient.textContent = String(
+                    appointment.patientName || 'Paciente Aurora'
+                ).trim();
+            }
+            if (fieldDoctor instanceof HTMLElement) {
+                fieldDoctor.textContent = String(
+                    appointment.doctorName || 'Por confirmar'
+                ).trim();
+            }
+            if (fieldDate instanceof HTMLElement) {
+                fieldDate.textContent = humanDate(appointment.date);
+            }
+            if (fieldTime instanceof HTMLElement) {
+                fieldTime.textContent = String(
+                    appointment.time || 'Por confirmar'
+                ).trim();
+            }
+            if (fieldChannel instanceof HTMLElement) {
+                fieldChannel.textContent = String(
+                    appointment.channelLabel || appointment.locationLabel || 'Teleconsulta'
+                ).trim();
+            }
+            if (loadStatus instanceof HTMLElement) {
+                loadStatus.textContent = String(
+                    appointment.serviceName || 'Teleconsulta lista para actualizar'
+                ).trim();
+            }
+            if (
+                concernField instanceof HTMLTextAreaElement &&
+                preConsultation &&
+                String(preConsultation.concern || '').trim()
+            ) {
+                concernField.value = String(preConsultation.concern || '').trim();
+            }
+            if (newLesionField instanceof HTMLInputElement) {
+                newLesionField.checked = Boolean(preConsultation?.hasNewLesion);
+            }
+
+            updateRoomLink(state.roomUrl || data?.roomUrl);
+            renderHistory(preConsultation);
+        }
+
+        function renderFiles() {
+            if (!(fileList instanceof HTMLElement)) {
+                return;
+            }
+            if (!state.files.length) {
+                fileList.innerHTML = '';
+                return;
+            }
+
+            fileList.innerHTML = state.files
+                .map((file, index) => {
+                    const role = roleOrder[index] || roleOrder[roleOrder.length - 1];
+                    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+                    return `<li><strong>${escapeHtml(roleLabels[role] || 'Foto')}</strong> · ${escapeHtml(file.name)} · ${escapeHtml(sizeMb)} MB</li>`;
+                })
+                .join('');
+        }
+
+        function setLoading(loading) {
+            if (submitButton instanceof HTMLButtonElement) {
+                submitButton.disabled = loading;
+                submitButton.textContent = loading
+                    ? 'Guardando...'
+                    : 'Guardar pre-consulta';
+            }
+        }
+
+        function showAuth(message) {
+            if (form instanceof HTMLFormElement) {
+                form.hidden = true;
+            }
+            if (authPanel instanceof HTMLElement) {
+                authPanel.hidden = false;
+                if (message) {
+                    authPanel.querySelector('p').textContent = message;
+                }
+            }
+            if (loginLink instanceof HTMLAnchorElement) {
+                loginLink.href = loginUrl;
+            }
+        }
+
+        async function load() {
+            if (!tokenParam && !appointmentId) {
+                setStatus(
+                    'Necesitamos el enlace de la cita o una sesión del portal para abrir esta pre-consulta.',
+                    'error'
+                );
+                showAuth(
+                    'Abra esta ruta desde el portal del paciente o desde el recordatorio que le enviamos por WhatsApp.'
+                );
+                return;
+            }
+
+            try {
+                const response = await window.fetch(endpointWithQuery(), {
+                    headers: buildHeaders(),
+                });
+                const payload = await response.json().catch(() => ({}));
+
+                if (!response.ok || payload.ok !== true) {
+                    const errorText = String(payload.error || '').trim();
+                    if (response.status === 401 || response.status === 403) {
+                        showAuth(
+                            errorText ||
+                                'Necesitamos validar su sesión antes de abrir la pre-consulta.'
+                        );
+                        return;
+                    }
+                    throw new Error(errorText || 'No pudimos cargar la teleconsulta.');
+                }
+
+                populate(payload.data || {});
+                setStatus('', 'neutral');
+            } catch (error) {
+                const message =
+                    error instanceof Error && error.message
+                        ? error.message
+                        : 'No pudimos cargar la pre-consulta en este momento.';
+                setStatus(message, 'error');
+            }
+        }
+
+        if (photosField instanceof HTMLInputElement) {
+            photosField.addEventListener('change', () => {
+                const files = Array.from(photosField.files || []);
+                if (files.length > maxFiles) {
+                    photosField.value = '';
+                    state.files = [];
+                    renderFiles();
+                    setStatus(`Adjunta hasta ${maxFiles} fotos por pre-consulta.`, 'error');
+                    return;
+                }
+
+                const invalid = files.find((file) => file.size > maxBytes);
+                if (invalid) {
+                    photosField.value = '';
+                    state.files = [];
+                    renderFiles();
+                    setStatus('Cada foto debe pesar máximo 5 MB.', 'error');
+                    return;
+                }
+
+                state.files = files;
+                renderFiles();
+                setStatus('', 'neutral');
+            });
+        }
+
+        if (form instanceof HTMLFormElement) {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const concern = concernField instanceof HTMLTextAreaElement
+                    ? concernField.value.trim()
+                    : '';
+                const hasNewLesion =
+                    newLesionField instanceof HTMLInputElement
+                        ? newLesionField.checked
+                        : false;
+
+                if (!concern && !state.files.length) {
+                    setStatus(
+                        'Cuéntenos qué cambió hoy o adjunte una foto nueva antes de guardar.',
+                        'error'
+                    );
+                    return;
+                }
+
+                const formData = new window.FormData();
+                if (tokenParam) {
+                    formData.append('token', tokenParam);
+                } else if (appointmentId) {
+                    formData.append('appointmentId', appointmentId);
+                }
+                formData.append('concern', concern);
+                formData.append('hasNewLesion', hasNewLesion ? '1' : '0');
+                state.files.forEach((file, index) => {
+                    const role = roleOrder[index] || roleOrder[roleOrder.length - 1];
+                    formData.append('photos[]', file, file.name);
+                    formData.append('photoRoles[]', role);
+                });
+
+                try {
+                    setLoading(true);
+                    setStatus('Guardando su pre-consulta...', 'loading');
+                    const response = await window.fetch(fetchUrl, {
+                        method: 'POST',
+                        headers: buildHeaders(),
+                        body: formData,
+                    });
+                    const payload = await response.json().catch(() => ({}));
+
+                    if (!response.ok || payload.ok !== true) {
+                        throw new Error(
+                            String(payload.error || '').trim() ||
+                                'No pudimos guardar la pre-consulta.'
+                        );
+                    }
+
+                    populate(payload.data || {});
+                    if (successNode instanceof HTMLElement) {
+                        successNode.hidden = false;
+                    }
+                    if (successBody instanceof HTMLElement) {
+                        successBody.textContent = String(
+                            payload.data?.message ||
+                                'Puede pasar ahora a la sala con el contexto clínico ya guardado.'
+                        ).trim();
+                    }
+                    if (photosField instanceof HTMLInputElement) {
+                        photosField.value = '';
+                    }
+                    state.files = [];
+                    renderFiles();
+                    setStatus('Pre-consulta enviada. El médico la verá antes de entrar.', 'success');
+                } catch (error) {
+                    setStatus(
+                        error instanceof Error && error.message
+                            ? error.message
+                            : 'No pudimos guardar la pre-consulta.',
+                        'error'
+                    );
+                    if (
+                        String(
+                            error instanceof Error ? error.message : ''
+                        ).includes('No autorizado')
+                    ) {
+                        showAuth(
+                            'La sesión del portal venció. Vuelva a abrir la teleconsulta desde el portal o desde su recordatorio.'
+                        );
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            });
+        }
+
+        if (!supportUrl && roomLink instanceof HTMLAnchorElement && !roomLink.href) {
+            roomLink.removeAttribute('href');
+        }
+
+        load();
+    })();
+</script>

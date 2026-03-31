@@ -489,5 +489,28 @@
             </div>
         </aside>
         <script src="/js/knowledge-base.js"></script>
+        
+        <!-- Live Preview Hook (S18-12) -->
+        <script>
+            (function() {
+                if (window.self !== window.top) {
+                    try {
+                        const str = sessionStorage.getItem('aurora_clinic_preview_data');
+                        if (str) {
+                            const data = JSON.parse(str);
+                            document.addEventListener('DOMContentLoaded', () => {
+                                const el = document.querySelector('.sidebar-brand');
+                                if (el) {
+                                    let html = '<div class="dot"></div>';
+                                    if (data.logoImage) html += `<img src="${data.logoImage}" style="max-height: 24px; vertical-align: middle; margin-right: 8px;">`;
+                                    if (data.clinicName) html += `<span style="vertical-align: middle;">${data.clinicName}</span>`;
+                                    el.innerHTML = html;
+                                }
+                            });
+                        }
+                    } catch(e) {}
+                }
+            })();
+        </script>
     </body>
 </html>

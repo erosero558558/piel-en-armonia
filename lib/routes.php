@@ -57,6 +57,11 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'patient-portal-photo-file', [PatientPortalController::class, 'photoFile']);
     $router->add('GET', 'patient-portal-document', [PatientPortalController::class, 'document']);
     $router->add('GET', 'document-verify', [PatientPortalController::class, 'documentVerify']);
+    
+    // Push Preferences
+    $router->add('GET', 'push-preferences', [PatientPortalController::class, 'getPushPreferences']);
+    $router->add('POST', 'push-preferences', [PatientPortalController::class, 'setPushPreferences']);
+
     $router->add('GET', 'patient-cases', [PatientCaseController::class, 'index']);
     $router->add('POST', 'patient-cases', [PatientCaseController::class, 'store']);
     $router->add('GET', 'patient-search', [PatientCaseController::class, 'search']);

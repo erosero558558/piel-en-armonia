@@ -40,5 +40,9 @@ RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/Allo
 # Set environment variable for data directory
 ENV AURORADERM_DATA_DIR=/var/www/data
 
+# S7-06: Health check — el load balancer puede detectar contenedores caídos
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fs "http://localhost/api.php?resource=health" || exit 1
+
 EXPOSE 80
 

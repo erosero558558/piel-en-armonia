@@ -110,4 +110,77 @@ test.describe('Patient portal next appointment card', () => {
             'https://wa.me/593982453672?text=sin-cita'
         );
     });
+
+    test('telemedicine appointment exposes pre-consultation and room shortcuts', async ({
+        page,
+    }) => {
+        await page.addInitScript((session) => {
+            window.localStorage.setItem(
+                'auroraPatientPortalSession',
+                JSON.stringify(session)
+            );
+        }, SESSION);
+
+        await page.route('**/api.php?resource=patient-portal-dashboard', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    ok: true,
+                    data: {
+                        authenticated: true,
+                        patient: {
+                            patientId: 'pt_lucia_001',
+                            name: 'Lucia Portal',
+                        },
+                        nextAppointment: {
+                            id: 202,
+                            appointmentType: 'telemedicine',
+                            appointmentTypeLabel: 'Teleconsulta',
+                            serviceName: 'Teleconsulta de control',
+                            doctorName: 'Dra Ana Rosero',
+                            dateLabel: 'lun 6 abr 2026',
+                            timeLabel: '09:20',
+                            locationLabel: 'Sala virtual segura',
+                            preparation:
+                                'Ten tu celular con buena conexion, fotos de apoyo y resultados recientes a la mano 10 minutos antes.',
+                            preConsultationUrl:
+                                '/es/telemedicina/pre-consulta/?token=tok_tele_001',
+                            roomUrl:
+                                '/es/telemedicina/sala/index.html?token=tok_tele_001',
+                            telemedicinePreConsultation: {
+                                status: 'submitted',
+                                statusLabel: 'Pre-consulta enviada',
+                            },
+                            whatsappUrl:
+                                'https://wa.me/593982453672?text=telemedicina',
+                        },
+                        support: {
+                            bookingUrl: '/#citas',
+                            historyUrl: '/es/portal/historial/',
+                            whatsappUrl:
+                                'https://wa.me/593982453672?text=telemedicina',
+                        },
+                    },
+                }),
+            });
+        });
+
+        await page.goto('/es/portal/');
+
+        await expect(page.locator('[data-portal-next-appointment-card]')).toBeVisible();
+        await expect(
+            page.locator('[data-portal-next-preconsultation]')
+        ).toHaveAttribute(
+            'href',
+            '/es/telemedicina/pre-consulta/?token=tok_tele_001'
+        );
+        await expect(page.locator('[data-portal-next-room]')).toHaveAttribute(
+            'href',
+            '/es/telemedicina/sala/index.html?token=tok_tele_001'
+        );
+        await expect(
+            page.locator('[data-portal-next-preconsultation-status]')
+        ).toContainText('Pre-consulta enviada');
+    });
 });

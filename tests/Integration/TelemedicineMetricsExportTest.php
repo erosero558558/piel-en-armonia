@@ -67,6 +67,12 @@ final class TelemedicineMetricsExportTest extends TestCase
             'status' => 'confirmed',
             'telemedicineIntakeId' => 701,
         ];
+        $store['appointments'][] = [
+            'id' => 202,
+            'service' => 'video',
+            'status' => 'confirmed',
+            'telemedicineIntakeId' => 702,
+        ];
         $store['telemedicine_intakes'][] = [
             'id' => 701,
             'channel' => 'secure_video',
@@ -85,6 +91,29 @@ final class TelemedicineMetricsExportTest extends TestCase
             'linkedAppointmentId' => 201,
             'createdAt' => '2026-03-03T12:00:00-05:00',
             'updatedAt' => '2026-03-03T12:10:00-05:00',
+        ];
+        $store['telemedicine_intakes'][] = [
+            'id' => 702,
+            'channel' => 'secure_video',
+            'legacyService' => 'video',
+            'status' => 'booked',
+            'suitability' => 'fit',
+            'reviewRequired' => false,
+            'linkedAppointmentId' => 202,
+            'latestPatientConcern' => 'Hoy apareció una lesión nueva.',
+            'telemedicinePreConsultation' => [
+                'status' => 'submitted',
+                'statusLabel' => 'Pre-consulta enviada',
+                'concern' => 'Hoy apareció una lesión nueva.',
+                'hasNewLesion' => true,
+                'photoCount' => 1,
+                'mediaIds' => [802],
+                'photos' => [],
+                'submittedAt' => '2026-03-03T12:12:00-05:00',
+                'updatedAt' => '2026-03-03T12:12:00-05:00',
+            ],
+            'createdAt' => '2026-03-03T12:01:00-05:00',
+            'updatedAt' => '2026-03-03T12:12:00-05:00',
         ];
         $store['clinical_uploads'][] = [
             'id' => 801,
@@ -105,18 +134,20 @@ final class TelemedicineMetricsExportTest extends TestCase
         ]);
         $output = (string) ob_get_clean();
 
-        $this->assertStringContainsString('pielarmonia_telemedicine_intakes_total 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_intakes_total 2', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_intakes_by_status_total{status="review_required"} 1', $output);
-        $this->assertStringContainsString('pielarmonia_telemedicine_intakes_by_channel_total{channel="secure_video"} 1', $output);
-        $this->assertStringContainsString('pielarmonia_telemedicine_review_decisions_total{decision="none"} 1', $output);
-        $this->assertStringContainsString('pielarmonia_telemedicine_review_state_total{state="pending"} 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_intakes_by_status_total{status="booked"} 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_intakes_by_channel_total{channel="secure_video"} 2', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_review_decisions_total{decision="none"} 2', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_review_state_total{state="pending"} 2', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_photo_ai_urgency_total{level="4"} 1', $output);
-        $this->assertStringContainsString('pielarmonia_telemedicine_photo_ai_validation_total{status="pending"} 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_photo_ai_validation_total{status="pending"} 2', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_media_by_kind_total{kind="case_photo"} 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_media_by_storage_total{storage_mode="private_clinical"} 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_review_queue_total 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_briefing_queue_total 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_photo_ai_high_urgency_total 1', $output);
-        $this->assertStringContainsString('pielarmonia_telemedicine_photo_ai_pending_validation_total 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_photo_ai_pending_validation_total 2', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_shadow_mode_enabled 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_enforce_unsuitable_enabled 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_enforce_review_required_enabled 0', $output);

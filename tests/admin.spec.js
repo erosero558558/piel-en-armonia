@@ -1727,6 +1727,38 @@ test.describe('Panel de administracion', () => {
         );
     });
 
+    test('dashboard destaca pre-consulta nueva de telemedicina antes de entrar', async ({
+        page,
+    }) => {
+        await setupAuthenticatedAdminMocks(page, {
+            telemedicineMeta: {
+                summary: {
+                    reviewQueueCount: 0,
+                    briefingQueueCount: 1,
+                },
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await openDashboardSection(page);
+
+        const telemedicineItem = page
+            .locator('#dashboardAttentionList .dashboard-attention-item')
+            .filter({ hasText: 'Telemedicina' });
+        await expect(telemedicineItem).toContainText(
+            '1 teleconsulta(s) llegan con pre-consulta nueva antes de entrar.'
+        );
+
+        const clinicalAction = page
+            .locator('#dashboardClinicalHistoryActions .operations-action-item')
+            .filter({ hasText: 'Abrir frente clinico' });
+        await expect(clinicalAction).toContainText(
+            '1 teleconsulta(s) tienen pre-consulta nueva antes de entrar'
+        );
+    });
+
     test('acciones secundarias del dashboard siguen llevando a triage util', async ({
         page,
     }) => {

@@ -91,6 +91,15 @@ const SEO_CASES = [
         xDefaultPath: '/es/telemedicina/consulta/',
     },
     {
+        path: '/es/telemedicina/pre-consulta/',
+        canonicalPath: '/es/telemedicina/pre-consulta/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/telemedicina/pre-consulta/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/telemedicina/pre-consulta/',
+    },
+    {
         path: '/en/telemedicine/',
         canonicalPath: '/en/telemedicine/',
         currentLocale: 'en',
