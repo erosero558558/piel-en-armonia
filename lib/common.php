@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Common configuration and helper functions.
  */
+require_once __DIR__ . '/input-validator.php';
 
 const APP_TIMEZONE = 'America/Guayaquil';
 
