@@ -103,7 +103,9 @@ async function setupAuthenticatedAdminMocks(page, overrides = {}) {
                 resource === 'checkout-orders' &&
                 (method === 'PATCH' || intendedMethod === 'PATCH')
             ) {
-                const orderId = String(payload.id || payload.orderId || '').trim();
+                const orderId = String(
+                    payload.id || payload.orderId || ''
+                ).trim();
                 const action = String(payload.action || '').trim();
                 const meta =
                     mergedData.checkoutReviewMeta &&
@@ -454,7 +456,8 @@ test.describe('Panel de administracion', () => {
                             sessionId: 'cs_sub_001',
                             clinicProfile: context.data.clinicProfile,
                             subscription:
-                                context.data.clinicProfile.software_subscription,
+                                context.data.clinicProfile
+                                    .software_subscription,
                         },
                     });
                     return true;
@@ -480,9 +483,9 @@ test.describe('Panel de administracion', () => {
         await expect(
             page.locator('#softwareSubscriptionPlanHeadline')
         ).toHaveText('Starter');
-        await expect(page.locator('#softwareSubscriptionStatusLine')).toContainText(
-            'Activa'
-        );
+        await expect(
+            page.locator('#softwareSubscriptionStatusLine')
+        ).toContainText('Activa');
         await expect(
             page.locator('#softwareSubscriptionRenewalLine')
         ).toContainText('Próxima renovación');
@@ -504,6 +507,110 @@ test.describe('Panel de administracion', () => {
         ).toHaveAttribute(
             'href',
             'https://checkout.stripe.test/session/cs_sub_001'
+        );
+    });
+
+    test('settings permite convertir trial Pro a checkout Stripe sin bloquear el CTA', async ({
+        page,
+    }) => {
+        const checkoutRequests = [];
+
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_trial_checkout_token',
+        });
+
+        await installBasicAdminApiMocks(page, {
+            dataOverrides: {
+                clinicProfile: {
+                    clinicName: 'Clinica Trial Pro',
+                    address: 'Av. Trial 123',
+                    phone: '+593999111222',
+                    software_plan: 'Pro',
+                    software_subscription: {
+                        status: 'trialing',
+                        statusLabel: 'Trial activo',
+                        planKey: 'pro',
+                        planLabel: 'Pro',
+                        amountLabel: '$79.00/mes',
+                        trialEndsAt: '2026-04-14T09:00:00-05:00',
+                        updatedAt: '2026-03-31T09:15:00-05:00',
+                        invoices: [],
+                    },
+                    updatedAt: '2026-03-31T09:15:00-05:00',
+                },
+            },
+            handleRoute: async ({
+                route,
+                resource,
+                method,
+                payload,
+                context,
+                fulfillJson,
+            }) => {
+                if (
+                    resource === 'software-subscription-checkout' &&
+                    method === 'POST'
+                ) {
+                    checkoutRequests.push(payload);
+                    context.data.clinicProfile = {
+                        ...context.data.clinicProfile,
+                        software_subscription: {
+                            ...context.data.clinicProfile.software_subscription,
+                            status: 'pending_checkout',
+                            statusLabel: 'Checkout pendiente',
+                            pendingPlanKey: 'pro',
+                            pendingPlanLabel: 'Pro',
+                            checkoutSessionId: 'cs_trial_pro_001',
+                            checkoutUrl:
+                                'https://checkout.stripe.test/session/cs_trial_pro_001',
+                            updatedAt: '2026-03-31T09:20:00-05:00',
+                        },
+                    };
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: {
+                            checkoutUrl:
+                                'https://checkout.stripe.test/session/cs_trial_pro_001',
+                            sessionId: 'cs_trial_pro_001',
+                            clinicProfile: context.data.clinicProfile,
+                            subscription:
+                                context.data.clinicProfile
+                                    .software_subscription,
+                        },
+                    });
+                    return true;
+                }
+
+                return false;
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+
+        await page
+            .locator('#adminSidebar .nav-item[data-section="settings"]')
+            .click();
+
+        await expect(
+            page.locator('#softwareSubscriptionStatusLine')
+        ).toContainText('Trial activo');
+        await expect(
+            page.locator('#softwareSubscriptionRenewalLine')
+        ).toContainText('Trial hasta');
+        await expect(page.locator('#softwareSubscriptionProBtn')).toBeEnabled();
+
+        await page.locator('#softwareSubscriptionProBtn').click();
+
+        await expect.poll(() => checkoutRequests.length).toBe(1);
+        expect(checkoutRequests[0]).toMatchObject({
+            planKey: 'pro',
+        });
+        await expect(
+            page.locator('#softwareSubscriptionCheckoutLink')
+        ).toHaveAttribute(
+            'href',
+            'https://checkout.stripe.test/session/cs_trial_pro_001'
         );
     });
 
@@ -633,7 +740,7 @@ test.describe('Panel de administracion', () => {
                         avgQueueWaitMs: 180000,
                         hourlyThroughput: {
                             '09': 2,
-                            '11': 1,
+                            11: 1,
                         },
                     },
                     last7d: {
@@ -839,17 +946,17 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#funnelDailyVisitsToday')).toHaveText('18');
         await expect(page.locator('#funnelDailyWhatsappToday')).toHaveText('5');
         await expect(page.locator('#funnelDailyVisitsAvg')).toHaveText('12.0');
-        await expect(page.locator('#funnelDailyWhatsappAvg')).toHaveText(
-            '3.0'
-        );
+        await expect(page.locator('#funnelDailyWhatsappAvg')).toHaveText('3.0');
         await expect(page.locator('#dashboardConversionTopService')).toHaveText(
             'Botox'
         );
-        await expect(page.locator('#dashboardConversionPaceHeadline')).toHaveText(
-            '9 confirmadas'
-        );
         await expect(
-            page.locator('#dashboardConversionDailyList [data-conversion-day="true"]')
+            page.locator('#dashboardConversionPaceHeadline')
+        ).toHaveText('9 confirmadas');
+        await expect(
+            page.locator(
+                '#dashboardConversionDailyList [data-conversion-day="true"]'
+            )
         ).toHaveCount(4);
         await expect(
             page.locator(
@@ -966,11 +1073,13 @@ test.describe('Panel de administracion', () => {
         await expect(
             page.locator('#dashboardMultiClinicDemandLeaderHeadline')
         ).toHaveText('Clinica Norte');
-        await expect(page.locator('#dashboardMultiClinicSummary')).toContainText(
-            '2 registro(s) siguen usando fallback'
-        );
         await expect(
-            page.locator('#dashboardMultiClinicList [data-multi-clinic-row="true"]')
+            page.locator('#dashboardMultiClinicSummary')
+        ).toContainText('2 registro(s) siguen usando fallback');
+        await expect(
+            page.locator(
+                '#dashboardMultiClinicList [data-multi-clinic-row="true"]'
+            )
         ).toHaveCount(3);
         await expect(page.locator('#dashboardMultiClinicList')).toContainText(
             'Clinica Sur'
@@ -1586,9 +1695,9 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#checkoutReviewVerifiedCount')).toHaveText(
             '1'
         );
-        await expect(page.locator('#dashboardCheckoutReviewQueue')).toContainText(
-            'PAY-20260330-TRF01'
-        );
+        await expect(
+            page.locator('#dashboardCheckoutReviewQueue')
+        ).toContainText('PAY-20260330-TRF01');
 
         await page
             .locator(
@@ -1615,9 +1724,9 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#checkoutReviewAppliedCount')).toHaveText(
             '1'
         );
-        await expect(page.locator('#dashboardCheckoutReviewQueue')).toContainText(
-            'Aplicado'
-        );
+        await expect(
+            page.locator('#dashboardCheckoutReviewQueue')
+        ).toContainText('Aplicado');
     });
 
     test('dashboard muestra estado de cuenta por paciente con saldos y vencimientos', async ({
@@ -1722,7 +1831,8 @@ test.describe('Panel de administracion', () => {
                                 paymentMethod: 'cash',
                                 paymentMethodLabel: 'Efectivo en consultorio',
                                 paymentStatus: 'pending_cash',
-                                paymentStatusLabel: 'Pendiente de pago en consultorio',
+                                paymentStatusLabel:
+                                    'Pendiente de pago en consultorio',
                                 statusBucket: 'outstanding',
                                 dueAt: dueSoonAt,
                                 dueState: 'due_soon',
@@ -1753,30 +1863,30 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#paymentAccountPatientCount')).toHaveText(
             '2'
         );
-        await expect(page.locator('#paymentAccountOutstandingCount')).toHaveText(
-            '2'
-        );
+        await expect(
+            page.locator('#paymentAccountOutstandingCount')
+        ).toHaveText('2');
         await expect(page.locator('#paymentAccountOverdueCount')).toHaveText(
             '1'
         );
-        await expect(page.locator('#dashboardPaymentAccountChip')).toContainText(
-            '1 vencido'
-        );
-        await expect(page.locator('#dashboardPaymentAccountSummary')).toContainText(
-            'Saldo pendiente $155.00'
-        );
-        await expect(page.locator('#dashboardPaymentAccountList')).toContainText(
-            'Ana Test'
-        );
-        await expect(page.locator('#dashboardPaymentAccountList')).toContainText(
-            'Luis Mora'
-        );
-        await expect(page.locator('#dashboardPaymentAccountList')).toContainText(
-            'PAY-ANA-001'
-        );
-        await expect(page.locator('#dashboardPaymentAccountList')).toContainText(
-            '$40.00 por aplicar'
-        );
+        await expect(
+            page.locator('#dashboardPaymentAccountChip')
+        ).toContainText('1 vencido');
+        await expect(
+            page.locator('#dashboardPaymentAccountSummary')
+        ).toContainText('Saldo pendiente $155.00');
+        await expect(
+            page.locator('#dashboardPaymentAccountList')
+        ).toContainText('Ana Test');
+        await expect(
+            page.locator('#dashboardPaymentAccountList')
+        ).toContainText('Luis Mora');
+        await expect(
+            page.locator('#dashboardPaymentAccountList')
+        ).toContainText('PAY-ANA-001');
+        await expect(
+            page.locator('#dashboardPaymentAccountList')
+        ).toContainText('$40.00 por aplicar');
     });
 
     test('dashboard muestra el timeline reciente de Flow OS por paciente', async ({
@@ -1852,9 +1962,9 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await openDashboardSection(page);
 
-        await expect(page.locator('#dashboardJourneyHistoryChip')).toContainText(
-            '2 cambio(s)'
-        );
+        await expect(
+            page.locator('#dashboardJourneyHistoryChip')
+        ).toContainText('2 cambio(s)');
         await expect(
             page.locator('#dashboardJourneyFocusHeadline')
         ).toContainText('Juan Perez');
