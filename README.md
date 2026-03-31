@@ -172,6 +172,8 @@ El doctor de higiene unifica todos los checks de workspace. Output JSON:
 }
 ```
 
+Campos del schema: `overall_state`, `issues[]`, `remediation_plan[]`, `scope_context`, `strategy_context`, `lane_context`, `scope_counts`, `candidate_tasks[]`, `split_plan[]`.
+
 Flags principales:
 
 | Flag | Descripción |
@@ -186,4 +188,36 @@ Si `overall_state` es `fixable`, ejecutar el `next_command` indicado (ej: `git w
 
 El check `legacy_generated_root_deindexed` falla si hay archivos del root generado sin deindexar.
 Limpiar con `npm run legacy:generated-root:apply`.
+
+---
+
+## Artefactos locales efímeros
+
+Los siguientes archivos son outputs locales que **no deben permanecer versionados**. Limpiar con:
+
+```bash
+npm run check:local:artifacts    # dry-run
+npm run clean:local:artifacts    # limpieza real
+```
+
+Lista de artefactos gestionados:
+
+| Artefacto | Descripción |
+|-----------|-------------|
+| `playwright-report/` | Reportes de Playwright |
+| `test-results/` | Resultados de tests e2e |
+| `php_server.log` | Log del servidor PHP local |
+| `.php-cs-fixer.cache` | Cache de PHP CS Fixer |
+| `.phpunit.cache/` | Cache de PHPUnit |
+| `coverage.xml` | Reporte de cobertura |
+| `.tmp-calendar-write-report.json` | Reporte temporal de calendario |
+| `.codex-public-paths.txt` | Paths generados por Codex |
+| `build_analysis.txt` | Análisis de bundle |
+| `conflict_branches.txt` | Ramas con conflicto |
+| `stats.html` | Stats de Rollup |
+| `styles.min.css` | CSS minificado legacy |
+| `styles.optimized.css` | CSS optimizado legacy |
+| `styles-critical.min.css` | CSS crítico minificado legacy |
+| `styles-deferred.min.css` | CSS diferido minificado legacy |
+
 

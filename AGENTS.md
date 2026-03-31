@@ -1459,26 +1459,26 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### RB-0 Tierra Arrasada y Nuevos Cimientos (Fundamentos Tech)
 
-- [x] **RB-01** `[L]` `[UI]` Purga de CSS Legacy — eliminar todo rastro de `styles/main-aurora.css`, `base.css` antiguo y `tokens.css`. Entorno estéril.
-- [x] **RB-02** `[M]` `[UI]` Sistema de Tokens Reborn — crear `styles/reborn-tokens.css`: Dark Mode OLED (fondo `#000000`), Dark Gray para cristal (`rgba(28, 28, 30, 0.65)` al estilo Apple), Blanco Tiza brillante y Acento "Aurora Gold" (`#d4af37`).
-- [x] **RB-03** `[M]` `[UI]` Tipografía Monumental — crear `styles/reborn-typo.css` de alto contraste en escala clamp, copiando el enorme Display font de los sitios de presentación de Sony y Apple. Inter para legibilidad menor.
+- [x] **RB-01** `[L]` `[UI]` Purga de CSS Legacy — eliminar `styles/main-aurora.css` y archivos `base.css` pre-v6 (NO `tokens.css` que es parte del sistema v6 activo ni `liquid-glass.css`). Entorno estéril solo de archivos no referenciados. Verificable: `grep -r "main-aurora.css\|base.css" es/ | wc -l` → 0.
+- [x] **RB-02** `[M]` `[UI]` Sistema de Tokens Reborn — `styles/reborn-tokens.css`: fondo OLED Navy `#050810` (no `#000000` puro — distorsión LCD), cristal `rgba(18, 18, 22, 0.70)`, Blanco Tiza `#f4f7fb`, Acento "Aurora Gold" `#d4af37`. Verificable: `grep "d4af37\|050810\|reborn-tokens" styles/reborn-tokens.css` → match ≥3.
+- [x] **RB-03** `[M]` `[UI]` Tipografía Monumental — `styles/reborn-typo.css` con `clamp(3.5rem, 8vw, 7rem)` para hero h1, `font-weight: 700`, Inter via Google Fonts como sans-serif de cuerpo. Verificable: `grep "clamp.*7rem\|reborn-typo" styles/reborn-typo.css` → match.
 
 #### RB-1 Shell Inmersivo y Navegación "Invisible"
 
-- [ ] **RB-04** `[L]` `[UI]` Navbar Glassmorphism Píldora — clónico a ChatGPT/Dynamic Island. Píldora superior translúcida ultra fina flotante, y no una barra de extremo a extremo. Contiene: logo chico, hamburguesa simple y CTA primario miniatura que reacciona con blur.
-- [ ] **RB-05** `[XL]` `[UI]` Hero Screen Cinemático — exacto al first-paint de Apple. Video de fondo muy sutil o imagen dermatológica anamórfica súper HD difuminándose a negro intenso. Único texto central gigantesco: "La ciencia detrás de tu piel". `[Agendar ahora]` ghost button.
-- [ ] **RB-06** `[XL]` `[UI]` Layout Bento Grid — copiar el grid asimétrico del sistema iOS/SonyHub. Modos y servicios (Láser, Botox) en cajas rounded (`border-radius: 24px`), fondo oscuro difuso (`rgba(28,28,30)`), bordes 1px sub-visibles con iconografía y micro-clips.
+- [ ] **RB-04** `[L]` `[UI]` Navbar Glassmorphism Píldora — píldora flotante `border-radius: 999px`, `max-width: 600px`, centrada, `backdrop-filter: blur(20px)`, NO full-width. Logo 24px, hamburguesa SVG, CTA "Agendar" como pill dorado. Verificable: `grep "border-radius.*999px\|navbar.*pill\|RB-04" styles/reborn-nav.css` → match; `grep "v6-header" es/index.html | wc -l` → 0 (reemplazado).
+- [ ] **RB-05** `[XL]` `[UI]` Hero Screen Cinemático — imagen HD en `<picture>` con `object-fit: cover`, `filter: brightness(0.3)`, overlay gradient `#050810 → transparent`. Texto único h1 con tipografía RB-03. Ghost button CTA. **Restricción LCP ≤2.5s**: imagen con `fetchpriority="high"`, NO video autoplay en desktop. Verificable: `grep "fetchpriority.*high\|RB-05" es/index.html` → match; Lighthouse LCP score ≥85.
+- [ ] **RB-06** `[XL]` `[UI]` Layout Bento Grid — grid CSS `grid-template-columns: repeat(3, 1fr)` con celdas de distintos tamaños (`grid-row: span 2`), `border-radius: 24px`, `background: rgba(28,28,30,0.65)`, `border: 1px solid rgba(255,255,255,0.06)`. Verificable: `grep "border-radius.*24px\|grid-row.*span\|bento" styles/reborn-layout.css` → match ≥3.
 
 #### RB-2 Interacción de Diagnóstico (ChatGPT-like UI)
 
-- [ ] **RB-07** `[L]` `[UI]` Rediseño completo OpenClaw UI — calca de ChatGPT interactivo. Eliminar chat antiguo de burbujas tipo iMessage. Usar lista plana sin bordes en los mensajes. Input inferior fijo tipo píldora.
-- [ ] **RB-08** `[M]` `[UI]` Micro-animaciones AI — incluir el token cursor generator de ChatGPT. Mostrar los protocolos CIE-10 propuestos como selectores de glassmorphism sobre los que al pasar se revela info.
+- [ ] **RB-07** `[L]` `[UI]` Rediseño OpenClaw UI — SOLO la interfaz visual del chat en `admin.html`. NO tocar `OpenclawController.php` ni ningún archivo PHP. Lista plana de mensajes sin burbujas, input píldora fijo en bottom. Verificable: `grep "openclaw.*pill\|chat-flat\|RB-07" styles/aurora-clinical.css` → match; `git diff HEAD -- controllers/` → 0 cambios en controllers.
+- [ ] **RB-08** `[M]` `[UI]` Micro-animaciones AI — cursor blink CSS `@keyframes blink 1s step-end infinite`, selector CIE-10 con `backdrop-filter` y `opacity 0→1` al hover. Verificable: `grep "blink\|CIE.*glass\|RB-08" styles/aurora-clinical.css` → match ≥2.
 
 #### RB-3 Experiencia Clínica Seamless (Book & Patient Portal)
 
-- [ ] **RB-09** `[L]` `[UI]` App-like Booking Flow — flow de agendamiento como los onboarding de apps de salud premium de Google/Typeform, pantallas deslizándose sobre otras fundiendo el fondo, inputs masivos que enfocan de a un solo dato a la vez y quitan la interfaz fea web habitual.
-- [ ] **RB-10** `[XL]` `[UI]` Patient Dashboard Minimalista — dashboard como el hub inmersivo de iCloud Apple. "Hola, [Paciente]" muy grande. Card brillando con el recordatorio o receta al centro y fotos clínicas sin UI de marco que compita con ellas.
-- [ ] **RB-11** `[L]` `[UI]` Slider OLED fluído — componente Antes/Después usando una línea de corte láser y scroll hiper liso a 60fps sin control tosco, copiando las demostraciones de TV OLED en sus webs.
+- [ ] **RB-09** `[L]` `[UI]` App-like Booking Flow — pantallas como `<section data-step>` con `transform: translateX(100%→0)` spring `cubic-bezier(0.34,1.56,0.64,1)`, un input visible a la vez por paso. Verificable: `grep "data-step\|translateX\|RB-09" es/servicios/diagnostico-integral/index.html` → match ≥2.
+- [ ] **RB-10** `[XL]` `[UI]` Patient Dashboard Minimalista — `<h1>Hola, [Paciente]</h1>` con `font-size: clamp(2rem,5vw,4rem)`, cards sin bordes visibles, fotos clínicas con `aspect-ratio: 4/3`. Verificable: `grep "Hola.*Paciente\|clamp.*4rem\|RB-10" es/portal/index.html` → match ≥2.
+- [ ] **RB-11** `[L]` `[UI]` Slider OLED Antes/Después — línea de corte `<input type="range">` con CSS custom `clip-path`, `transition: none` en drag (60fps), `scroll-snap-align` para touch. Verificable: `grep "clip-path\|input.*range.*slider\|RB-11" es/servicios/*/index.html` → match ≥1.
 
 ---
 
@@ -2001,9 +2001,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 20.3 Animaciones — Fluid motion
 
-- [ ] **UI4-10** `[M]` `[UI]` Fluid scroll reveal — reemplazar las animaciones `opacity` planas actuales por un sistema físico: `cubic-bezier(0.34, 1.56, 0.64, 1)` (spring), elementos entran trasladados `+24px` en Y y `blur(8px)` → su posición final. Duración `480ms`. Stagger de `60ms` entre elementos hermanos. Verificable: `grep "0.34.*1.56.*0.64.*1\|cubic-bezier.*spring" js/aurora-scroll-reveal.js` → match.
+- [x] **UI4-10** `[M]` `[UI]` Fluid scroll reveal — reemplazar las animaciones `opacity` planas actuales por un sistema físico: `cubic-bezier(0.34, 1.56, 0.64, 1)` (spring), elementos entran trasladados `+24px` en Y y `blur(8px)` → su posición final. Duración `480ms`. Stagger de `60ms` entre elementos hermanos. Verificable: `grep "0.34.*1.56.*0.64.*1\|cubic-bezier.*spring" js/aurora-scroll-reveal.js` → match.
 
-- [ ] **UI4-11** `[S]` `[UI]` Hover glass ripple — al hacer hover en cualquier `.lg-surface`, agregar efecto de "ondulación interna": pseudo `::after` circular que hace `transform: scale(0) → scale(2.5)`, `opacity: 0.06 → 0`, `background: radial-gradient(rgba(255,255,255,0.4))`. Duración `600ms ease-out`. Verificable: `grep "ripple\|scale.*2.5.*glass" liquid-glass.css` → match.
+- [x] **UI4-11** `[S]` `[UI]` Hover glass ripple — al hacer hover en cualquier `.lg-surface`, agregar efecto de "ondulación interna": pseudo `::after` circular que hace `transform: scale(0) → scale(2.5)`, `opacity: 0.06 → 0`, `background: radial-gradient(rgba(255,255,255,0.4))`. Duración `600ms ease-out`. Verificable: `grep "ripple\|scale.*2.5.*glass" liquid-glass.css` → match.
 
 - [ ] **UI4-12** `[M]` `[UI]` Page transition glass morphing — al navegar entre páginas, en lugar de flash blanco, implementar: overlay glass que hace `opacity 0→1→0` con `blur(0→8px→0)` en `200ms+200ms`. Aprovechar `aurora-nprogress.js` para sincronizar. El efecto es idéntico al "Sheet" de UIKit en iOS. Verificable: `grep "page-transition.*glass\|blur.*transition.*nav" js/aurora-nprogress.js` → match.
 

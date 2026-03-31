@@ -162,11 +162,11 @@
     border-radius: inherit;
     background: radial-gradient(
         circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
-        rgba(255, 255, 255, 0.08),
+        rgba(255, 255, 255, 0.4),
         transparent 70%
     );
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0);
     transition: opacity 600ms ease-out, transform 600ms ease-out;
     pointer-events: none;
     z-index: 1;
@@ -175,8 +175,21 @@
 .lg-surface:hover::after,
 .lg-surface--dark:hover::after,
 .lg-surface--gold:hover::after {
-    opacity: 1;
-    transform: scale(1);
+    opacity: 0;
+    transform: scale(2.5);
+    /* Se activa la animación usando una técnica de un solo sentido */
+    animation: lg-ripple 600ms ease-out forwards;
+}
+
+@keyframes lg-ripple {
+    0% {
+        opacity: 0.06;
+        transform: scale(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2.5);
+    }
 }
 
 /* ── Glass Pill — para badges y CTAs pequeños ────────────────────────────── */

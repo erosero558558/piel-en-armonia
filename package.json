@@ -265,7 +265,14 @@
     "inject:css:dry": "node bin/inject-css.js --dry-run",
     "qa:summary": "node bin/qa-summary.js",
     "qa:summary:json": "node bin/qa-summary.js --json",
-    "qa:summary:prod": "node bin/qa-summary.js --domain https://pielarmonia.com"
+    "qa:summary:prod": "node bin/qa-summary.js --domain https://pielarmonia.com",
+    "gov:claim:gc": "node bin/claim-gc.js",
+    "gov:claim:gc:purge": "node bin/claim-gc.js --purge",
+    "gov:worktree:prune": "git worktree prune && git worktree list",
+    "gov:contract:check": "node bin/verify-task-contract.js",
+    "gov:contract:sprint": "node bin/verify-task-contract.js --sprint",
+    "dispatch:ui:gemini": "node bin/dispatch.js --role ui"
+
   },
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",

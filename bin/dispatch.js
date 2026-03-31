@@ -277,6 +277,20 @@ function scoreTask(task, role, claims) {
   // Esto previene que Codex (fullstack/backend) tome tareas reservadas a Antigravity.
   if (role !== 'ui' && task.uiTag) return -9999;
 
+  // ── Sprint-level scope enforcement (carencia #5) ───────────────────────────
+  // S7: seguridad de infraestructura — solo devops (y el director)
+  const isS7 = task.id.startsWith('S7-');
+  if (isS7 && role === 'content') return -9999;
+
+  // S10: AI/OpenClaw clínico — requiere conocimiento de dominio médico
+  // Solo backend senior puede tomarlas, frontend y content no
+  const isS10 = task.id.startsWith('S10-');
+  if (isS10 && (role === 'frontend' || role === 'content')) return -9999;
+
+  // RB: Sprint REBORN — exclusivo para UI (Gemini bajo dirección de Antigravity)
+  const isRB = task.id.startsWith('RB-');
+  if (isRB && role !== 'ui') return -9999;
+
   let score = 0;
 
   // UI tag bonus — garantiza que UI tasks flotan primero en el rol ui

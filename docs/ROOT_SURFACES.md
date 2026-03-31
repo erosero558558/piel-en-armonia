@@ -92,11 +92,14 @@ copias legacy del indice sigue siendo
 Los `.html` que siguen en raiz deben ser shells servidos directamente por el
 hosting:
 
-- `admin.html`: shell admin canonico.
-- `index.html`: shell principal del portal publico.
+- `admin.html`: shell admin canónico.
+- `index.html`: shell principal del portal público.
 - `operador-turnos.html`: shell web del operador de turnero.
 - `kiosco-turnos.html`: shell web del kiosco de turnero.
 - `sala-turnos.html`: shell web de la pantalla de sala.
+- `404.html`: página de error 404 servida por hosting.
+- `500.html`: página de error 500 servida por hosting.
+- `admin-openclaw-setup.html`: configurador de OpenClaw para el admin.
 
 ## Superficies CSS permitidas en raiz
 
@@ -147,6 +150,7 @@ de backend descubiertos por el hosting/tooling:
 - `cron.php`
 - `env.example.php`
 - `.php-cs-fixer.dist.php`
+- `test_membership.php`
 
 ## Superficies PS1 permitidas en raiz
 
@@ -214,6 +218,7 @@ Lista aprobada actual:
 - `AGENT_HANDOFFS.yaml`
 - `AGENT_JOBS.yaml`
 - `AGENT_SIGNALS.yaml`
+- `openapi-openclaw.yaml`
 - `docker-compose.yml`
 - `docker-compose.monitoring.yml`
 - `prometheus.yml`
@@ -222,10 +227,12 @@ Lista aprobada actual:
 
 ## Superficies TXT permitidas en raiz
 
-Los `.txt` de raiz no deben usarse como dump o nota suelta. La unica
-superficie aprobada hoy es:
+Los `.txt` de raiz no deben usarse como dump o nota suelta. Superficies aprobadas actuales:
 
 - `robots.txt`
+- `out.txt` — output temporal de herramientas de diagnóstico
+- `out2.txt` — output temporal secundario
+- `status.txt` — reporte de estado de scripts de diagnóstico
 
 ## Superficies TOML permitidas en raiz
 
