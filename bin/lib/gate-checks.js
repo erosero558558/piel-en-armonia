@@ -594,6 +594,36 @@ function createTaskCheckDefinitions(context) {
           ),
       },
     ],
+    'S13-15': [
+      {
+        name: 'verify.js exposes registry metadata and mismatch buckets',
+        evaluate: () =>
+          fileIncludes(
+            'bin/verify.js',
+            [
+              'const VERIFY_ALLOWED_EVIDENCE_TYPES = [',
+              'function createVerificationRegistry() {',
+              'function evaluateVerificationRegistry(markdown) {',
+              'doneWithoutEvidence',
+              'doneWithoutRule',
+            ],
+            'bin/verify.js expone registro con evidencia tipada y detecta done-without-evidence/done-without-rule'
+          ),
+      },
+      {
+        name: 'verify CLI tests enforce 100+ rules and explicit evidence typing',
+        evaluate: () =>
+          fileIncludes(
+            'tests-node/verify-cli.test.js',
+            [
+              'keys.length >= 100',
+              "verificationEvidenceTypeFor('S1-04')",
+              'evaluation reports done tasks without verification rule explicitly',
+            ],
+            'tests-node/verify-cli.test.js cubre el umbral de 100 reglas y el registro tipado de evidencia'
+          ),
+      },
+    ],
   };
 }
 

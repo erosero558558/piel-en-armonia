@@ -89,6 +89,40 @@ const OPENCLAW_ENDPOINTS = [
         action: 'routerStatus',
     },
 ];
+const VERIFY_ALLOWED_EVIDENCE_TYPES = ['file_exists', 'grep', 'json_key'];
+const FILE_EXISTS_EVIDENCE_TASKS = new Set([
+    'S1-05',
+    'S2-10',
+    'S2-11',
+    'S2-12',
+    'S2-13',
+    'S2-14',
+    'S2-15',
+    'S2-16',
+    'S2-17',
+    'S3-05',
+    'S3-24',
+    'S3-30',
+    'S3-32',
+    'S4-08',
+    'S4-13',
+    'S4-14',
+    'S4-15',
+    'S4-17',
+    'S5-16',
+    'S7-23',
+    'S7-24',
+    'S7-25',
+    'S7-26',
+    'S7-31',
+    'S13-03',
+    'S13-08',
+    'S13-17',
+]);
+const JSON_KEY_EVIDENCE_TASKS = new Set([
+    'S1-04',
+    'S9-11',
+]);
 
 function read(filePath) {
     return existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
@@ -100,6 +134,48 @@ function readRepoFile(relativePath) {
 
 function fileExists(relativePath) {
     return existsSync(resolve(ROOT, relativePath));
+}
+
+function readJsonRepoFile(relativePath) {
+    try {
+        return JSON.parse(readRepoFile(relativePath).replace(/^\uFEFF/, ''));
+    } catch {
+        return null;
+    }
+}
+
+function filesShareSingleRegexMatch(relativePaths, pattern) {
+    const values = new Set();
+
+    for (const relativePath of relativePaths) {
+        if (!fileExists(relativePath)) {
+            return false;
+        }
+
+        const content = readRepoFile(relativePath);
+        const matches = content.match(pattern) || [];
+        if (matches.length === 0) {
+            return false;
+        }
+
+        for (const match of matches) {
+            values.add(match);
+        }
+    }
+
+    return values.size === 1;
+}
+
+function verificationEvidenceTypeFor(taskId) {
+    if (JSON_KEY_EVIDENCE_TASKS.has(taskId)) {
+        return 'json_key';
+    }
+
+    if (FILE_EXISTS_EVIDENCE_TASKS.has(taskId)) {
+        return 'file_exists';
+    }
+
+    return 'grep';
 }
 
 function listNestedIndexFiles(relativeDir) {
@@ -336,25 +412,15 @@ function createVerificationChecks() {
             fileExists('es/blog/bioestimuladores-vs-rellenos/index.html'),
         'S2-17': () => fileExists('es/blog/feed.xml'),
         'S2-18': () => {
-            try {
-                const files = execSync(
-                    `find "${resolve(ROOT, 'es/servicios')}" -mindepth 2 -maxdepth 2 -name "index.html"`,
-                    { encoding: 'utf8' }
-                )
-                    .split('\n')
-                    .map((entry) => entry.trim())
-                    .filter(Boolean);
-                return (
-                    files.length > 0 &&
-                    files.every((filePath) =>
-                        normalizeHtmlEntities(read(filePath)).includes(
-                            'Los resultados varían. Consulte a nuestro especialista.'
-                        )
+            const files = listNestedIndexFiles('es/servicios');
+            return (
+                files.length > 0 &&
+                files.every((relativePath) =>
+                    normalizeHtmlEntities(readRepoFile(relativePath)).includes(
+                        'Los resultados varían. Consulte a nuestro especialista.'
                     )
-                );
-            } catch {
-                return false;
-            }
+                )
+            );
         },
 
         'S2-19': () => {
@@ -404,26 +470,17 @@ function createVerificationChecks() {
         },
 
         'S2-24': () => {
-            try {
-                const readSlugs = (localePath) =>
-                    execSync(
-                        `find "${resolve(ROOT, localePath)}" -mindepth 2 -maxdepth 2 -name "index.html"`,
-                        { encoding: 'utf8' }
-                    )
-                        .split('\n')
-                        .map((entry) => entry.trim())
-                        .filter(Boolean)
-                        .map((filePath) => filePath.split('/').slice(-2, -1)[0])
-                        .sort();
-                const esSlugs = readSlugs('es/servicios');
-                const enSlugs = readSlugs('en/services');
-                return (
-                    JSON.stringify(esSlugs) === JSON.stringify(enSlugs) &&
-                    !enSlugs.includes('bioestimuladores')
-                );
-            } catch {
-                return false;
-            }
+            const readSlugs = (localePath) =>
+                listNestedIndexFiles(localePath)
+                    .map((relativePath) => relativePath.split('/').slice(-2, -1)[0])
+                    .sort();
+            const esSlugs = readSlugs('es/servicios');
+            const enSlugs = readSlugs('en/services');
+            return (
+                esSlugs.length > 0 &&
+                JSON.stringify(esSlugs) === JSON.stringify(enSlugs) &&
+                !enSlugs.includes('bioestimuladores')
+            );
         },
 
         // ── Sprint 3 ───────────────────────────────────────────────────────
@@ -762,6 +819,16 @@ function createVerificationChecks() {
         'S4-08': () =>
             fileExists('es/software/turnero-clinicas/precios/index.html'),
         'S4-13': () => fileExists('es/paquetes/index.html'),
+        'S4-14': () => fileExists('es/referidos/index.html'),
+        'S4-15': () => fileExists('es/promociones/index.html'),
+        'S4-17': () =>
+            fileExists('es/gift-cards/index.html') &&
+            fileExists('es/gift-cards/gift-cards.js'),
+        'S4-18': () =>
+            fileContains('js/revenue-funnel.js', 'revenue_page_visit') &&
+            fileContains('js/revenue-funnel.js', 'revenue_page_scroll') &&
+            fileContains('js/revenue-funnel.js', 'revenue_whatsapp_click') &&
+            fileContains('js/revenue-funnel.js', 'revenue_message_intent'),
         'S4-19': () => {
             const idx = readRepoFile('index.html');
             return (
@@ -786,424 +853,319 @@ function createVerificationChecks() {
             }
         },
 
+        // ── Sprint 5 ───────────────────────────────────────────────────────
+        'S5-10': () =>
+            fileContains(
+                'lib/LeadOpsService.php',
+                'queueAppointmentReminders'
+            ),
+        'S5-11': () =>
+            fileContains('lib/LeadOpsService.php', 'followUpSentAt') &&
+            fileContains('lib/models.php', 'followUpSentAt'),
+        'S5-12': () =>
+            fileContains('lib/LeadOpsService.php', 'halfwayReminderSentAt'),
+        'S5-13': () =>
+            fileContains('lib/LeadOpsService.php', 'queueBirthdayGreetings'),
+        'S5-14': () =>
+            fileContains(
+                'lib/whatsapp_openclaw/ConversationOrchestrator.php',
+                'human_followup'
+            ),
+        'S5-16': () =>
+            fileExists(
+                'src/apps/astro/src/pages/es/telemedicina/pre-consulta/index.astro'
+            ),
+        'S5-22': () =>
+            fileContains('controllers/PatientPortalController.php', 'historyPdf') &&
+            fileContains('js/portal-history.js', 'data-portal-history-export-link'),
+
+        // ── Sprint 7 ───────────────────────────────────────────────────────
+        'S7-22': () =>
+            fileContains('bin/verify.js', 'const CLINICAL_SAMPLE_PHOTOS = [') &&
+            fileContains('bin/verify.js', 'const OPENCLAW_ENDPOINTS = [') &&
+            fileContains(
+                'tests-node/verify-cli.test.js',
+                "assert.equal(checks['S3-OC4'](), true);"
+            ),
+        'S7-23': () =>
+            fileExists('bin/audit.js') &&
+            fileContains('package.json', '"audit": "node bin/audit.js"'),
+        'S7-24': () => fileExists('docs/DESKTOP_DISTRIBUTION.md'),
+        'S7-25': () =>
+            fileExists('docs/RUNBOOK_TURNERO_APPS_RELEASE.md') &&
+            fileContains(
+                'docs/OPERATIONS_INDEX.md',
+                'docs/RUNBOOK_TURNERO_APPS_RELEASE.md'
+            ),
+        'S7-26': () =>
+            fileExists('docs/OWNERSHIP.md') &&
+            fileContains('docs/OPERATIONS_INDEX.md', 'docs/OWNERSHIP.md'),
+        'S7-31': () =>
+            fileExists('docs/ENV_INVENTORY.md') && fileExists('env.example.php'),
+
+        // ── Sprint 8/9/10 ──────────────────────────────────────────────────
+        'S8-01': () =>
+            fileExists('docs/DESKTOP_CATALOG.md') &&
+            fileContains('data/turnero-surfaces.json', '"status": "published"') &&
+            fileContains(
+                'data/turnero-surfaces.json',
+                '"status": "registry_only"'
+            ),
+        'S8-07': () =>
+            fileContains('bin/report.js', "replace(/^\\uFEFF/, '')") &&
+            fileContains(
+                'tests-node/weekly-report-bom-parser.test.js',
+                'UTF-8 BOM'
+            ),
+        'S9-11': () => {
+            const catalog = readJsonRepoFile('data/catalog/services.json');
+            const services = Array.isArray(catalog?.services) ? catalog.services : [];
+            return (
+                services.length === 20 &&
+                fileContains('lib/ServiceCatalog.php', 'data/catalog/services.json') &&
+                fileContains(
+                    'src/apps/astro/src/lib/content.js',
+                    "path.join('data', 'catalog', 'services.json')"
+                )
+            );
+        },
+        'S10-06': () =>
+            fileContains(
+                'lib/clinical_history/ComplianceMSP.php',
+                'public static function validate(array $record): array'
+            ) &&
+            fileContains(
+                'tests/Unit/ComplianceMspTest.php',
+                '\\ComplianceMSP::validate(['
+            ),
+
+        // ── Sprint 13 ──────────────────────────────────────────────────────
+        'S13-01': () =>
+            fileContains('robots.txt', 'Disallow: /lib/') &&
+            fileContains('robots.txt', 'Disallow: /templates/') &&
+            fileContains('robots.txt', 'Disallow: /backup/') &&
+            fileContains('robots.txt', 'Disallow: /bin/') &&
+            fileContains('robots.txt', 'Disallow: /store/') &&
+            fileContains('robots.txt', 'Sitemap: https://pielarmonia.com/sitemap.xml'),
+        'S13-02': () =>
+            fileExists('bin/gen-sitemap.js') &&
+            fileContains('bin/sync-backlog.js', 'gen-sitemap.js') &&
+            fileContains('sitemap.xml', 'https://pielarmonia.com/es/paquetes/'),
+        'S13-03': () =>
+            fileExists('404.html') &&
+            fileExists('500.html') &&
+            fileContains('404.html', '/styles/tokens.css') &&
+            fileContains('500.html', '/styles/aurora-public.css'),
+        'S13-04': () =>
+            fileContains('nginx-pielarmonia.conf', 'Content-Security-Policy') &&
+            fileContains('nginx-pielarmonia.conf', 'X-Frame-Options') &&
+            fileContains('nginx-pielarmonia.conf', 'X-Content-Type-Options') &&
+            fileContains('nginx-pielarmonia.conf', 'Referrer-Policy'),
+        'S13-05': () =>
+            fileExists('favicon.svg') &&
+            fileContains('index.html', 'apple-touch-icon') &&
+            fileContains('manifest.json', '/favicon.svg'),
+        'S13-06': () =>
+            filesShareSingleRegexMatch(
+                [
+                    'index.html',
+                    'admin.html',
+                    'js/public-v3-shell.js',
+                    'js/public-v5-shell.js',
+                    'js/public-v6-shell.js',
+                ],
+                /G-[A-Z0-9]+/g
+            ),
+        'S13-08': () => !fileExists('templates/partials/tele-head-links.html'),
+        'S13-10': () =>
+            fileContains('admin.html', 'DOMPurify') &&
+            fileContains('templates/partials/tele-head-meta.html', 'DOMPurify'),
+        'S13-14': () =>
+            fileContains('bin/lib/gate-checks.js', "'S13-14': [") &&
+            fileContains(
+                'tests-node/gate-task-checks.test.js',
+                "taskChecks['S13-14']"
+            ),
+        'S13-15': () =>
+            fileContains('bin/verify.js', 'const VERIFY_ALLOWED_EVIDENCE_TYPES = [') &&
+            fileContains('bin/verify.js', 'function createVerificationRegistry() {') &&
+            fileContains('bin/verify.js', 'function evaluateVerificationRegistry(markdown) {') &&
+            fileContains('bin/verify.js', 'doneWithoutEvidence') &&
+            fileContains('bin/verify.js', 'doneWithoutRule') &&
+            fileContains('tests-node/verify-cli.test.js', 'keys.length >= 100'),
+        'S13-16': () =>
+            fileExists('bin/gen-sitemap.js') &&
+            fileContains('bin/sync-backlog.js', 'gen-sitemap.js'),
+        'S13-17': () =>
+            fileExists('docs/DEAD_FILES.md') &&
+            fileExists('bin/dead-file-audit.js'),
+
         'S16-13': () => {
              const verifyJS = readRepoFile('bin/verify.js');
              return verifyJS.includes('verifyResourceHints()') && verifyJS.includes('https://browser.sentry-cdn.com') && verifyJS.includes('https://www.googletagmanager.com');
         },
+        'S15-01': () =>
+            fileContains('bin/velocity.js', 'criticalSprints') &&
+            fileContains('bin/velocity.js', 'criticalSprintsPending'),
+        'S15-03': () =>
+            fileContains('bin/dispatch.js', "'S8-07'") &&
+            fileContains('bin/dispatch.js', "'S9-08'") &&
+            fileContains('bin/dispatch.js', "'S14-02'"),
+
+        // ── Sprint 16 ──────────────────────────────────────────────────────
+        'S16-06': () =>
+            fileContains('js/monitoring-loader.js', '__auroraSentryLoaded'),
+        'S16-08': () =>
+            fileExists('docs/MONITORING.md') &&
+            fileContains('docs/MONITORING_SETUP.md', 'MONITORING.md'),
+        'S16-12': () =>
+            fileContains('openapi-openclaw.yaml', 'x-schema-version:') &&
+            fileContains('docs/gpt-schema-pack-latest.md', 'x-schema-version:'),
+
+        // ── Sprint 17 ──────────────────────────────────────────────────────
+        'S17-15': () =>
+            fileContains('js/dynamic-reviews.js', '.dynamic-reviews[data-service]') &&
+            routeExists('GET', 'reviews', 'ReviewController', 'index'),
+
+        // ── UI4 ────────────────────────────────────────────────────────────
+        'UI4-01': () =>
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '--lg-blur:'
+            ) &&
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '--lg-saturation:'
+            ),
+        'UI4-02': () =>
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '.lg-surface--gold'
+            ) &&
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '.lg-surface--deep'
+            ),
+        'UI4-03': () =>
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                'Specular highlight edge'
+            ) &&
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                'linear-gradient('
+            ),
+        'UI4-04': () =>
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '--lg-shadow-z1'
+            ) &&
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '--lg-shadow-z4'
+            ),
+        'UI4-05': () =>
+            fileContains('src/apps/astro/src/styles/public-v6/home.css', '.v6-hero__band'),
+        'UI4-06': () =>
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '.v6-header'
+            ) &&
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '.v6-header.is-scrolled'
+            ),
+        'UI4-07': () =>
+            fileContains('styles/aurora-clinical.css', '.oc-chat-flat') &&
+            fileContains('styles/aurora-clinical.css', '.openclaw-input-pill'),
+        'UI4-08': () =>
+            fileContains('styles/aurora-clinical.css', '@keyframes blink') &&
+            fileContains('styles/aurora-clinical.css', '.CIE-10-glass'),
+        'UI4-11': () =>
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                'scale(2.5)'
+            ) &&
+            fileContains(
+                'src/apps/astro/src/styles/public-v6/liquid-glass.css',
+                '@keyframes lg-ripple'
+            ),
+        'UI4-12': () =>
+            fileContains('js/aurora-nprogress.js', 'page-transition-glass') &&
+            fileContains('js/aurora-nprogress.js', 'blur(8px)'),
         'UI2-20': () =>
             PHASE_TWO_AUDIT_CHECK_KEYS.every(
                 (checkId) => typeof phaseTwoAuditChecks[checkId] === 'function'
             ) &&
             Object.keys(parseTaskLines('- [ ] **UI2-20**')).includes('UI2-20'),
-
-        'UI2-01': () => {
-            try {
-                const out = execSync("grep -rl \"aurora-service.css\" es/servicios/ | wc -l", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "20";
-            } catch {
-                return false;
-            }
-        },
-        'UI2-02': () => {
-            try {
-                execSync("grep -l \"tokens.css\" es/primera-consulta/index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI2-03': () => {
-            try {
-                execSync("grep -l \"prefers-reduced-motion\" styles/base.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI2-05': () => {
-            try {
-                const out = execSync("grep -c \"aria-live\" sala-turnos.html", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return parseInt(out, 10) >= 1;
-            } catch {
-                return false;
-            }
-        },
-        'UI2-18': () => {
-            // Unparsable verificable text: `node bin/gate.js S4-08`.
-            // By default marking as true since it was already marked done manually or we couldn't parse the exact grep pattern
-            return true;
-        },
-        'RB-01': () => {
-            try {
-                const out = execSync("grep -r \"main-aurora.css\\|base.css\" es/ | wc -l", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "0";
-            } catch {
-                return false;
-            }
-        },
-        'RB-02': () => {
-            try {
-                execSync("grep \"d4af37\\|050810\\|reborn-tokens\" styles/reborn-tokens.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-03': () => {
-            try {
-                execSync("grep \"clamp.*7rem\\|reborn-typo\" styles/reborn-typo.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-04': () => {
-            try {
-                execSync("grep \"border-radius.*999px\\|navbar.*pill\\|RB-04\" styles/reborn-nav.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-05': () => {
-            try {
-                execSync("grep \"fetchpriority.*high\\|RB-05\" es/index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-06': () => {
-            try {
-                execSync("grep \"border-radius.*24px\\|grid-row.*span\\|bento\" styles/reborn-layout.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-07': () => {
-            try {
-                execSync("grep \"openclaw.*pill\\|chat-flat\\|RB-07\" styles/aurora-clinical.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-08': () => {
-            try {
-                execSync("grep \"blink\\|CIE.*glass\\|RB-08\" styles/aurora-clinical.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-09': () => {
-            try {
-                execSync("grep \"data-step\\|translateX\\|RB-09\" es/servicios/diagnostico-integral/index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-10': () => {
-            try {
-                execSync("grep \"Hola.*Paciente\\|clamp.*4rem\\|RB-10\" es/portal/index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-11': () => {
-            try {
-                execSync("grep \"clip-path\\|input.*range.*slider\\|RB-11\" es/servicios/*/index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-16': () => {
-            try {
-                execSync("grep \"lg-surface\" styles/aurora-tv.css styles/aurora-kiosk.css styles/reborn-tokens.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'RB-17': () => {
-            // Unparsable verificable text: suma de `!important` en aurora-kiosk + aurora-operator + aurora-tv ≤ 10.
-            // By default marking as true since it was already marked done manually or we couldn't parse the exact grep pattern
-            return true;
-        },
-        'RB-18': () => {
-            // Unparsable verificable text: Lighthouse CSS coverage ≥ 80% en `sala-turnos.html`, `kiosco-turnos.html`, `operador-turnos.html`, `admin.html`.
-            // By default marking as true since it was already marked done manually or we couldn't parse the exact grep pattern
-            return true;
-        },
-        'S8-02': () => {
-            try {
-                const out = execSync("npm run verify:turnero:bundle", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "exit 0";
-            } catch {
-                return false;
-            }
-        },
-        'S8-07': () => {
-            // Unparsable verificable text: `node bin/report.js` nunca muere con `SyntaxError: Unexpected token`.
-            // By default marking as true since it was already marked done manually or we couldn't parse the exact grep pattern
-            return true;
-        },
-        'S8-12': () => {
-            // Unparsable verificable text: `TelemedicineOpsDiagnostics.stagedLegacyUploadsCount === 0` en producción.
-            // By default marking as true since it was already marked done manually or we couldn't parse the exact grep pattern
-            return true;
-        },
-        'S8-17': () => {
-            try {
-                const out = execSync("grep -c \"kiosco\" queue-ops.css", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "0";
-            } catch {
-                return false;
-            }
-        },
-        'S9-07': () => {
-            // Unparsable verificable text: `LeadOpsService` siempre persiste estos 4 campos. Sin ellos marketing queda ciego.
-            // By default marking as true since it was already marked done manually or we couldn't parse the exact grep pattern
-            return true;
-        },
-        'S9-11': () => {
-            // Unparsable verificable text: el booking, el portal y los PDFs leen de aquí.
-            // By default marking as true since it was already marked done manually or we couldn't parse the exact grep pattern
-            return true;
-        },
-        'S12-17': () => {
-            // Unparsable verificable text: 0 CTAs que digan solo "Contáctanos".
-            // By default marking as true since it was already marked done manually or we couldn't parse the exact grep pattern
-            return true;
-        },
-        'S13-00': () => {
-            try {
-                execSync("ls es/software/turnero-clinicas/precios/index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'S13-01': () => {
-            try {
-                const out = execSync("curl https://aurora-derm.com/robots.txt | grep \"/lib/\"", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "Disallow";
-            } catch {
-                return false;
-            }
-        },
-        'S13-02': () => {
-            try {
-                execSync("grep \"paquetes\" sitemap.xml", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'S13-03': () => {
-            try {
-                execSync("ls 404.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'S13-04': () => {
-            try {
-                execSync("curl -I https://aurora-derm.com | grep -i \"x-frame\"", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'S13-05': () => {
-            try {
-                execSync("grep \"apple-touch-icon\" index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'S13-06': () => {
-            try {
-                const out = execSync("grep -r \"G-\" index.html es/index.html", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "mismo ID";
-            } catch {
-                return false;
-            }
-        },
-        'S13-07': () => {
-            try {
-                const out = execSync("grep \"styles.css\" templates/partials/tele-head-links.html", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "0";
-            } catch {
-                return false;
-            }
-        },
-        'S13-08': () => {
-            try {
-                const out = execSync("grep -r \"tele-head-links\" templates/ | wc -l", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return parseInt(out, 10) >= 1;
-            } catch {
-                return false;
-            }
-        },
-        'S13-12': () => {
-            try {
-                const out = execSync("grep -rL \'lang=\"es\"\' es/servicios/*/index.html | wc -l", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "0";
-            } catch {
-                return false;
-            }
-        },
-        'S13-13': () => {
-            try {
-                const out = execSync("grep -rl \'rel=\"canonical\"\' es/servicios/ | wc -l", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "20";
-            } catch {
-                return false;
-            }
-        },
-        'S13-16': () => {
-            try {
-                execSync("node bin/gen-sitemap.js && grep \"paquetes\" sitemap.xml", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-01': () => {
-            try {
-                const out = execSync("grep \"styles.css\" templates/partials/head-links.html", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return out === "0";
-            } catch {
-                return false;
-            }
-        },
-        'UI3-02': () => {
-            try {
-                execSync("grep \"aurora-\\|tokens\" templates/partials/tele-body-cookie.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-03': () => {
-            try {
-                execSync("grep \"IntersectionObserver\" js/aurora-counters.js", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-04': () => {
-            try {
-                execSync("grep \'og:image\' index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-05': () => {
-            try {
-                execSync("grep \"DermatologyClinic\" index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-06': () => {
-            try {
-                execSync("grep \"@media.*768\" styles/aurora-admin.css", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-07': () => {
-            try {
-                const out = execSync("grep \"empty-state\" components.css", { encoding: 'utf8', stdio: 'pipe' }).trim();
-                return parseInt(out, 10) >= 5;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-08': () => {
-            try {
-                execSync("grep \"debounce\\|patient-search\" js/admin-search.js", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-09': () => {
-            try {
-                execSync("grep \"breadcrumb\" admin.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-10': () => {
-            try {
-                execSync("grep \"localStorage.*theme\" js/aurora-theme.js", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-11': () => {
-            try {
-                execSync("grep \"slot-picker\\|time-grid\" es/agendar/index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
-        'UI3-12': () => {
-            try {
-                execSync("grep \"progress-steps\\|step-indicator\" es/agendar/index.html", { encoding: 'utf8', stdio: 'pipe' });
-                return true;
-            } catch {
-                return false;
-            }
-        },
     };
 }
 
-function main() {
-    const markdown = read(AGENTS_FILE);
-    const taskLines = parseTaskLines(markdown);
+function createVerificationRegistry() {
     const checks = createVerificationChecks();
+
+    return Object.fromEntries(
+        Object.entries(checks).map(([taskId, verify]) => [
+            taskId,
+            {
+                evidence: verificationEvidenceTypeFor(taskId),
+                verify,
+            },
+        ])
+    );
+}
+
+function evaluateVerificationRegistry(markdown) {
+    const taskLines = parseTaskLines(markdown);
+    const registry = createVerificationRegistry();
 
     const results = {
         alreadyDone: [],
         nowDone: [],
         stillPending: [],
+        doneWithoutEvidence: [],
+        doneWithoutRule: [],
         unchecked: [],
     };
 
-    for (const [taskId, check] of Object.entries(checks)) {
+    for (const [taskId, rule] of Object.entries(registry)) {
         const taskInfo = taskLines[taskId];
         if (!taskInfo) {
             results.unchecked.push(taskId);
             continue;
         }
 
-        const evidenceFound = check();
+        const evidenceFound = rule.verify();
 
         if (taskInfo.done && evidenceFound) {
             results.alreadyDone.push(taskId);
+        } else if (taskInfo.done && !evidenceFound) {
+            results.doneWithoutEvidence.push(taskId);
         } else if (!taskInfo.done && evidenceFound) {
-            results.nowDone.push({ taskId, lineIndex: taskInfo.lineIndex });
+            results.nowDone.push({
+                taskId,
+                lineIndex: taskInfo.lineIndex,
+            });
         } else if (!taskInfo.done && !evidenceFound) {
             results.stillPending.push(taskId);
         }
     }
+
+    results.doneWithoutRule = Object.entries(taskLines)
+        .filter(([taskId, taskInfo]) => taskInfo.done && !registry[taskId])
+        .map(([taskId]) => taskId)
+        .sort();
+
+    return {
+        registry,
+        results,
+        taskLines,
+    };
+}
+
+function main() {
+    const markdown = read(AGENTS_FILE);
+    const { registry, results } = evaluateVerificationRegistry(markdown);
 
     console.log('\n🔍 Aurora Derm — Board Verification\n');
 
@@ -1244,6 +1206,24 @@ function main() {
             `\n✅ Already correct (done + evidence): ${results.alreadyDone.length}`
         );
         results.alreadyDone.forEach((taskId) => console.log(`   ${taskId}`));
+    }
+
+    if (results.doneWithoutEvidence.length > 0) {
+        console.log(
+            `\n❌ Marked done without evidence: ${results.doneWithoutEvidence.length}`
+        );
+        results.doneWithoutEvidence.forEach((taskId) =>
+            console.log(`   ${taskId}`)
+        );
+    }
+
+    if (results.doneWithoutRule.length > 0) {
+        console.log(
+            `\n⚠️  Done tasks without verification rule: ${results.doneWithoutRule.length}`
+        );
+        results.doneWithoutRule.forEach((taskId) =>
+            console.log(`   ${taskId}`)
+        );
     }
 
     if (results.stillPending.length > 0) {
@@ -1300,13 +1280,17 @@ function main() {
     // S19-15: Justificado: los resource hints fueron retirados o inyectados dinámicamente por Tag Manager/Cloudflare. Se purgan los warnings visibles.
     // const hintWarnings = verifyResourceHints();
 
-    const total = Object.keys(checks).length;
+    const total = Object.keys(registry).length;
     const done = results.alreadyDone.length + results.nowDone.length;
     console.log(
-        `\n📊 Summary: ${done}/${total} verified done, ${results.stillPending.length} pending\n`
+        `\n📊 Summary: ${done}/${total} verified done, ${results.stillPending.length} pending, ${results.doneWithoutEvidence.length} done-without-evidence, ${results.doneWithoutRule.length} done-without-rule\n`
     );
 
-    return results.stillPending.length;
+    return results.stillPending.length > 0 ||
+        results.doneWithoutEvidence.length > 0 ||
+        results.doneWithoutRule.length > 0
+        ? 1
+        : 0;
 }
 
 if (require.main === module) {
@@ -1322,6 +1306,8 @@ module.exports = {
     controllerSurfaceExists,
     createPhaseTwoAuditChecks,
     createVerificationChecks,
+    createVerificationRegistry,
+    evaluateVerificationRegistry,
     fileContains,
     fileExists,
     getServiceAuroraCssCoverage,
@@ -1333,4 +1319,6 @@ module.exports = {
     phpClassExists,
     phpMethodExists,
     routeExists,
+    VERIFY_ALLOWED_EVIDENCE_TYPES,
+    verificationEvidenceTypeFor,
 };

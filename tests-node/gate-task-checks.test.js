@@ -107,3 +107,16 @@ test('S13-14 gate map covers audited Sprint 8, 9, 10 and 12 checks', () => {
   assert.equal(s1314Tests.ok, true);
   assert.match(s1314Tests.detail, /gate-task-checks\.test\.js/);
 });
+
+test('S13-15 gate check verifies typed verification registry coverage', () => {
+  const verifyRuntime = taskChecks['S13-15'][0].evaluate();
+  const verifyTests = taskChecks['S13-15'][1].evaluate();
+
+  assert.equal(verifyRuntime.ok, true);
+  assert.match(verifyRuntime.detail, /bin\/verify\.js/);
+  assert.match(verifyRuntime.detail, /done-without-evidence/);
+
+  assert.equal(verifyTests.ok, true);
+  assert.match(verifyTests.detail, /verify-cli\.test\.js/);
+  assert.match(verifyTests.detail, /100 reglas/);
+});
