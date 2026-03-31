@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 3:41:01 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 4:20:02 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████████░░░░░░` **71%** completado (357/504)
+`█████████████░░░░░░░` **65%** completado (362/554)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -35,8 +35,8 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 18 | 4 | 0 | 100% |
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
-| ⏸ Sprint 23 | 7 | 3 | 70% |
-| ⏸ Sprint UI | 12 | 6 | 67% |
+| ✅ Sprint 23 | 10 | 0 | 100% |
+| ⏸ Sprint UI | 14 | 54 | 21% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -225,30 +225,22 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 | **S22-05** | `[S22]` | L |
 | ... | | _+4 más_ |
 
-## ⏸ Sprint 23 — Credibilidad de Compra, Cohesión Comercial y Truth-in-Sales
-_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
-
-### 🟢 Disponibles (3)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S23-10** | `[S23]` | M |
-| **S23-08** | `[S23]` | M |
-| **S23-09** | `[S23]` | M |
+## ✅ Sprint 23 — Credibilidad de Compra, Cohesión Comercial y Truth-in-Sales
+_Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 6 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 54 tareas pendientes._
 
-### 🟢 Disponibles (6)
+### 🟢 Disponibles (54)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **UI4-13** | `[UI4]` | L |
-| **UI4-14** | `[UI4]` | M |
 | **UI4-15** | `[UI4]` | M |
 | **UI4-16** | `[UI4]` | L |
 | **UI4-17** | `[UI4]` | M |
-| ... | | _+1 más_ |
+| **UI4-18** | `[UI4]` | M |
+| **S24-01** | `[S24]` | M |
+| ... | | _+49 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

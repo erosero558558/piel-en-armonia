@@ -116,6 +116,10 @@
               "href": "/es/software/turnero-clinicas/api-docs/"
             },
             {
+              "label": "Technical Pack",
+              "href": "/es/software/turnero-clinicas/buyer-pack/"
+            },
+            {
               "label": "Solicitar propuesta",
               "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede"
             }
@@ -126,7 +130,7 @@
           "links": [
             {
               "label": "Ops Console",
-              "href": "/admin.html#queue"
+              "href": "/es/software/turnero-clinicas/demo/"
             },
             {
               "label": "Patient Flow Link",
@@ -248,7 +252,7 @@
               "Transiciones validas dentro del journey de cinco etapas",
               "Trazabilidad por tenant y por caso"
             ],
-            "href": "/admin.html#queue",
+            "href": "/es/software/turnero-clinicas/demo/",
             "ctaLabel": "Abrir Ops Console",
             "highlight": true
           },
@@ -294,7 +298,7 @@
               "Acciones preparadas por IA con aprobacion humana explicita",
               "Tenant unico y audit trail canonico"
             ],
-            "href": "/admin.html#queue",
+            "href": "/es/software/turnero-clinicas/demo/",
             "ctaLabel": "Abrir Ops Console",
             "featured": true
           },
@@ -358,7 +362,7 @@
               "Ops ve el caso nuevo sin reconstruirlo desde cero.",
               "Aurora Derm demuestra el mismo origen sobre un tenant realista."
             ],
-            "href": "/admin.html#queue",
+            "href": "/es/software/turnero-clinicas/demo/",
             "ctaLabel": "Ver captura en Ops Console"
           },
           {
@@ -372,7 +376,7 @@
               "La IA puede preparar una accion, pero no ejecuta clinica sola.",
               "La aprobacion humana queda explicita donde hace falta."
             ],
-            "href": "/admin.html#queue",
+            "href": "/es/software/turnero-clinicas/demo/",
             "ctaLabel": "Ver triage"
           },
           {
@@ -629,7 +633,7 @@
           {
             "eyebrow": "Operacion",
             "label": "Ops Console",
-            "href": "/admin.html#queue",
+            "href": "/es/software/turnero-clinicas/demo/",
             "note": "Superficie principal de venta y operacion"
           },
           {
@@ -789,7 +793,7 @@
           {
             "eyebrow": "Operacion",
             "label": "Ops Console",
-            "href": "/admin.html#queue",
+            "href": "/es/software/turnero-clinicas/demo/",
             "note": "Mantiene el mismo patient case"
           },
           {
@@ -948,7 +952,7 @@
           {
             "eyebrow": "Operacion",
             "label": "Ops Console",
-            "href": "/admin.html#queue",
+            "href": "/es/software/turnero-clinicas/demo/",
             "note": "Sostiene el estado del tenant"
           },
           {
@@ -1112,7 +1116,7 @@
           {
             "eyebrow": "Operacion",
             "label": "Ops Console",
-            "href": "/admin.html#queue",
+            "href": "/es/software/turnero-clinicas/demo/",
             "note": "Superficie principal para operar y vender"
           },
           {

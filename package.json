@@ -69,7 +69,7 @@
     "gate:public:v5:sony:strict": "npm run baseline:sony:reference && npm run baseline:public:screenshots && npm run compare:public:v5:sony:reference && npm run content:public-v5:validate && npm run audit:public:v5:surface && npm run audit:public:v5:copy && npm run test:frontend:qa:v5 && npm run test:frontend:performance:gate && npm run score:public:v5:sony:strict",
     "gate:public:v6:from-scratch": "npm run content:public-v6:validate && npm run build && npm run test:frontend:qa:v6 && npm run audit:public:v6:visual-contract && npm run audit:public:v6:copy && npm run audit:public:v6:zero-reuse",
     "gate:public:v6:sony-evidence": "npm run gate:public:v6:from-scratch && npm run audit:public:v6:sony-evidence && npm run audit:public:v6:sony-parity",
-    "gate:public:v6:canonical-publish": "npm run content:public-v6:validate && npm run check:public:v6:readiness && npm run build:public:v6 && npm run check:public:v6:artifacts && npm run check:public:runtime:artifacts && npm run test:frontend:qa:v6 && npm run audit:public:v6:copy && npm run audit:public:v6:visual-contract && npm run audit:public:v6:sony-parity && npm run smoke:public:routing && npm run smoke:public:conversion && node bin/assert-public-v6-single-source.js",
+    "gate:public:v6:canonical-publish": "npm run content:public-v6:validate && npm run check:public:v6:readiness && npm run check:public:v6:truth && npm run build:public:v6 && npm run check:public:v6:artifacts && npm run check:public:runtime:artifacts && npm run test:frontend:qa:v6 && npm run audit:public:v6:copy && npm run audit:public:v6:visual-contract && npm run audit:public:v6:sony-parity && npm run smoke:public:routing && npm run smoke:public:conversion && node bin/assert-public-v6-single-source.js",
     "gate:public:v6:quality150": "node bin/gate-public-v6-quality150.js",
     "gate:staging:acceptance": "node bin/run-staging-acceptance-gate.js",
     "test:frontend:qa:public": "npx playwright test tests/homepage.spec.js tests/telemedicina-conversion-qa.spec.js tests/service-pages-qa.spec.js tests/mobile-overflow-regression.spec.js tests/deferred-content-fallback.spec.js tests/home-deferred-hydration.spec.js tests/cookie-consent.spec.js tests/legal.spec.js tests/public-v3-entry-surface-taxonomy.spec.js",
@@ -245,6 +245,9 @@
     "agent:validate": "php bin/validate-agent-governance.php",
     "agent:gate": "node agent-orchestrator.js board doctor --strict --json && npm run agent:test && npm run agent:board:legacy:check && npm run agent:board:sync:check && npm run agent:conflicts && npm run agent:handoffs:lint && npm run agent:policy:lint && npm run agent:codex-check && node agent-orchestrator.js focus check --json && npm run agent:validate",
     "agent:gate:release": "npm run agent:gate && node agent-orchestrator.js focus check --enforce-required-checks --json && node agent-orchestrator.js jobs verify public_main_sync --json && node agent-orchestrator.js runtime verify pilot_runtime --json",
+    "mark-done": "node bin/mark-done.js",
+    "gov:check": "node bin/verify.js && node bin/claim-gc.js --json",
+    "gov:done-audit": "node -e \"const fs=require('fs');const f='governance/done-audit.jsonl';if(!fs.existsSync(f)){console.log('No audit entries')}else{fs.readFileSync(f,'utf8').split('\\n').filter(Boolean).map(JSON.parse).forEach(e=>console.log(e.markedAt,e.taskId,e.who))}\"",
     "prepare": "husky",
     "content:public-v6:validate": "node bin/validate-public-v6-content.js",
     "agent:jobs:status": "node agent-orchestrator.js jobs status --json",
@@ -279,7 +282,8 @@
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",
     "*.{js,mjs,cjs,json,md}": "prettier --write",
-    "*.{js,mjs,cjs}": "eslint --fix"
+    "*.{js,mjs,cjs}": "eslint --fix",
+    "AGENTS.md": "node bin/guard-agents-md.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

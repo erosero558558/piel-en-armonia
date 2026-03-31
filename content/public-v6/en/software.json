@@ -116,6 +116,10 @@
               "href": "/en/software/clinic-flow-suite/api-docs/"
             },
             {
+              "label": "Technical Pack",
+              "href": "/en/software/clinic-flow-suite/buyer-pack/"
+            },
+            {
               "label": "Request proposal",
               "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic"
             }
@@ -126,7 +130,7 @@
           "links": [
             {
               "label": "Ops Console",
-              "href": "/admin.html#queue"
+              "href": "/en/software/clinic-flow-suite/demo/"
             },
             {
               "label": "Patient Flow Link",
@@ -247,7 +251,7 @@
               "Valid transitions inside the five-stage journey",
               "Traceability by tenant and by case"
             ],
-            "href": "/admin.html#queue",
+            "href": "/en/software/clinic-flow-suite/demo/",
             "ctaLabel": "Open Ops Console",
             "highlight": true
           },
@@ -293,7 +297,7 @@
               "AI-prepared actions with explicit human approval",
               "Single-tenant audit trail"
             ],
-            "href": "/admin.html#queue",
+            "href": "/en/software/clinic-flow-suite/demo/",
             "ctaLabel": "Open Ops Console",
             "featured": true
           },
@@ -357,7 +361,7 @@
               "Operations sees the new case without rebuilding it.",
               "Aurora Derm demonstrates the same origin on a realistic tenant."
             ],
-            "href": "/admin.html#queue",
+            "href": "/en/software/clinic-flow-suite/demo/",
             "ctaLabel": "See capture in Ops Console"
           },
           {
@@ -371,7 +375,7 @@
               "AI can prepare an action, but it does not run clinical work alone.",
               "Human approval stays explicit where it matters."
             ],
-            "href": "/admin.html#queue",
+            "href": "/en/software/clinic-flow-suite/demo/",
             "ctaLabel": "See triage"
           },
           {
@@ -627,7 +631,7 @@
           {
             "eyebrow": "Operations",
             "label": "Ops Console",
-            "href": "/admin.html#queue",
+            "href": "/en/software/clinic-flow-suite/demo/",
             "note": "Primary sales and operations surface"
           },
           {
@@ -786,7 +790,7 @@
           {
             "eyebrow": "Operations",
             "label": "Ops Console",
-            "href": "/admin.html#queue",
+            "href": "/en/software/clinic-flow-suite/demo/",
             "note": "Keeps the same patient case live"
           },
           {
@@ -945,7 +949,7 @@
           {
             "eyebrow": "Operations",
             "label": "Ops Console",
-            "href": "/admin.html#queue",
+            "href": "/en/software/clinic-flow-suite/demo/",
             "note": "Carries the tenant state"
           },
           {
@@ -1109,7 +1113,7 @@
           {
             "eyebrow": "Operations",
             "label": "Ops Console",
-            "href": "/admin.html#queue",
+            "href": "/en/software/clinic-flow-suite/demo/",
             "note": "Primary surface for operations and sales"
           },
           {

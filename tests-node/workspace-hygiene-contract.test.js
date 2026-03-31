@@ -419,6 +419,7 @@ test('frontera de markdowns en raiz queda explicita y limitada', () => {
         'KIMI_TASKS.md',
         'LAUNCH.md',
         'PLAN_ESTABILIDAD_14DIAS.md',
+        'PLAN_MAESTRO_CODEX_2026.md',
         'PRODUCT.md',
         'README.md',
         'SECURITY_AUDIT.md',

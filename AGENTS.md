@@ -2028,12 +2028,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S23-03** `[M]` `codex_transversal` Ledger de proof comercial — crear `data/flow-os/proof-ledger.json` con `claim_id`, `value`, `source`, `tenant`, `captured_at`, `fresh_until` y `status=live|stale|demo`. Las cards de proof y métricas públicas deben salir de ahí, no de JSON inline opaco. Verificable: cada cifra pública visible tiene `captured_at` y `status`.
 - [x] **S23-04** `[M]` `codex_transversal` Gate de venta según readiness — si el semáforo operativo sigue `RED`, las páginas comerciales deben degradar promesa a `demo controlada`, `propuesta exploratoria` o `waitlist`, no `piloto listo`, `SLA`, `empieza ya` ni `instalación inmediata`. Verificable: un check comercial falla si `PRODUCT_OPERATIONAL_STATUS=RED` y la web pública sigue prometiendo despliegue activo.
 - [x] **S23-06** `[M]` `codex_frontend` Badges públicos de readiness por módulo — cada surface o módulo visible para compra debe llevar estado público real: `Disponible ahora`, `Piloto guiado`, `En validación` o `No publicado`. Debe consumir readiness real y artefactos publicados, especialmente desktop, kiosk y sala TV. Verificable: `kiosk` y `sala_tv` no aparecen como listos cuando el repo no publica artefactos reales.
-- [ ] **S23-10** `[M]` `codex_transversal` Commercial truth gate — crear un check tipo `bin/check-commercial-truth.js` o equivalente que falle por claims sin source, CTAs a rutas internas, pricing incoherente, SLA o promesas no habilitadas y badges de readiness sin soporte real. Verificable: el gate detecta drift comercial antes de publicar.
+- [x] **S23-10** `[M]` `codex_transversal` Commercial truth gate — crear un check tipo `bin/check-commercial-truth.js` o equivalente que falle por claims sin source, CTAs a rutas internas, pricing incoherente, SLA o promesas no habilitadas y badges de readiness sin soporte real. Verificable: el gate detecta drift comercial antes de publicar.
 
 #### 23.4 Compra B2B y alcance de implementación
 
-- [ ] **S23-08** `[M]` `codex_transversal` Buyer pack B2B de seguridad y operación — crear un paquete comercial técnico corto con auth, backups, audit trail, IA con aprobación humana, soporte, límites del producto y prerequisitos de implementación. Esto es B2B, no página legal de paciente. Verificable: existe una surface o pack enlazable desde Flow OS que responde a objeciones de comprador serio.
-- [ ] **S23-09** `[M]` `codex_backend_ops` Scope y migración de implementación — definir una hoja de implantación del piloto: qué datos se migran, qué no, duración real, qué debe entregar la clínica, fallback de día 1 y qué queda fuera del alcance. Verificable: existe un checklist de implementación y un buyer no tiene que inferir el esfuerzo por su cuenta.
+- [x] **S23-08** `[M]` `codex_transversal` Buyer pack B2B de seguridad y operación — crear un paquete comercial técnico corto con auth, backups, audit trail, IA con aprobación humana, soporte, límites del producto y prerequisitos de implementación. Esto es B2B, no página legal de paciente. Verificable: existe una surface o pack enlazable desde Flow OS que responde a objeciones de comprador serio.
+- [x] **S23-09** `[M]` `codex_backend_ops` Scope y migración de implementación — definir una hoja de implantación del piloto: qué datos se migran, qué no, duración real, qué debe entregar la clínica, fallback de día 1 y qué queda fuera del alcance. Verificable: existe un checklist de implementación y un buyer no tiene que inferir el esfuerzo por su cuenta.
 
 
 ---
@@ -2077,9 +2077,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 20.4 Superficie pública — Lavado de cara total
 
-- [ ] **UI4-13** `[L]` `[UI]` Home page glass sections — aplicar `.lg-surface` y variantes a todas las secciones de `es/index.html`: editorial cards, trust signals, CTA strip, news strip. El home debe sentirse como una app nativa iOS 18 visto en desktop. Sin usar `!important`. Verificable: `grep "lg-surface" es/index.html` → ≥8 matches.
+- [x] **UI4-13** `[L]` `[UI]` Home page glass sections — aplicar `.lg-surface` y variantes a todas las secciones de `es/index.html`: editorial cards, trust signals, CTA strip, news strip. El home debe sentirse como una app nativa iOS 18 visto en desktop. Sin usar `!important`. Verificable: `grep "lg-surface" es/index.html` → ≥8 matches.
 
-- [ ] **UI4-14** `[M]` `[UI]` Services page glass redesign — `es/servicios/*/index.html`: header de servicio con vidrio flotante sobre imagen de fondo (position relative + glass panel absolute), precio/duración en pill de glass gold. CTA "Agendar cita" con estado hover glass. Verificable: `grep "lg-surface\|glass-pill" es/servicios/diagnostico-integral/index.html` → match.
+- [x] **UI4-14** `[M]` `[UI]` Services page glass redesign — `es/servicios/*/index.html`: header de servicio con vidrio flotante sobre imagen de fondo (position relative + glass panel absolute), precio/duración en pill de glass gold. CTA "Agendar cita" con estado hover glass. Verificable: `grep "lg-surface\|glass-pill" es/servicios/diagnostico-integral/index.html` → match.
 
 - [ ] **UI4-15** `[M]` `[UI]` Blog article glass — `es/blog/*/index.html`: tabla de contenidos sticky como panel glass a la derecha, citas/callouts con glass dark tint, progress bar de lectura glass gold. Verificable: `grep "lg-surface.*toc\|glass.*callout" styles/aurora-blog.css` → match.
 
@@ -2090,3 +2090,158 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **UI4-17** `[M]` `[UI]` Timeline de historial glass — `es/portal/historial/`: eventos clínicos como stepper vertical, cada nodo con circle glass dorado, línea conectora translúcida, cards expandibles al clic con `height: 0 → auto` spring. Verificable: `grep "lg-surface.*timeline\|glass.*stepper" es/portal/historial/index.html` → match.
 
 - [ ] **UI4-18** `[M]` `[UI]` Kiosk glass skin — `kiosk.html`: la pantalla del kiosco en sala de espera debe tener: fondo de video/animación sutil de partículas en navy, panel central glass para registro de turno, contadores en glass pill. Pacientes que esperan ven algo premium, no una pantalla de admin. Verificable: `grep "lg-surface\|kiosk.*glass" kiosk.html` → match.
+
+---
+
+## 24. Sprint 24 — Resiliencia Clínica Día 1
+
+> **Propósito:** tareas que deben existir para que una clínica opere sin que el sistema los falle en el día de arranque. Sin estas, el lanzamiento de junio es frágil.
+
+#### 24.1 Operación sin fricciones
+
+- [ ] **S24-01** `[M]` Detección de pacientes duplicados — antes de crear un nuevo paciente en `PatientCaseController`, verificar si ya existe uno con el mismo número de cédula o nombre+apellido+fecha nacimiento. Mostrar modal de confirmación: "Ya existe un paciente con este número de cédula. ¿Desea continuar o vincular?" Sin esto, la HCE queda fragmentada. Verificable: `POST /api.php?resource=patient-case` con cédula existente → respuesta incluye `duplicate_candidate: true` y `existing_case_id`.
+
+- [ ] **S24-02** `[M]` Prevención de doble booking — `AppointmentController` y `AvailabilityController` no bloquean el slot durante el proceso de pago. Un paciente puede iniciar el checkout de un slot mientras otro lo hace simultáneamente. Implementar reserva optimista de slot (`slot_reserved_until: +5min`, liberado si caduca). Verificable: dos requests concurrentes al mismo slot → uno recibe `conflict: true, slot_held: true`.
+
+- [ ] **S24-03** `[M]` Wizard de onboarding de clínica nueva — flujo guiado en el admin (pantalla por pantalla) cuando `clinic_profile.json` está vacío: 1) nombre y especialidad, 2) logo y colores, 3) horarios de atención, 4) servicios (selección de catálogo), 5) médico(s) y PIN. Al finalizar, el sistema está listo para recibir pacientes. Sin wizard, el setup tarda días. Verificable: `GET /api.php?resource=onboarding-progress` → `completed_steps` y `next_step` correctos al avanzar.
+
+- [ ] **S24-04** `[L]` `[UI]` Modo degradado offline para admin — cuando `navigator.onLine === false`, el admin debe mostrar un banner de alerta gold y deshabilitar acciones que requieren API (guardar diagnóstico, emitir receta) con tooltip "Sin conexión — los cambios no se guardarán". El médico puede seguir leyendo la HCE del paciente desde caché local (last 5 casos cargados). Sin esto, una caída de internet en la consulta detiene al médico. Verificable: `grep "navigator.onLine\|offline-banner" js/admin-offline.js` → match.
+
+- [ ] **S24-05** `[S]` Alerta automática de backup fallido — si el cron de backup no produce un archivo en `data/backups/` en las últimas 28 horas, el health check en `/api.php?resource=health-diagnostics` debe devolver `backup.status: 'stale'` y `backup.last_at`. El admin debe mostrar un banner rojo al médico propietario. Sin esto, los backups pueden fallar silenciosamente semanas. Verificable: `grep "backup.*stale\|backup.*last_at" lib/monitoring.php` → match.
+
+- [ ] **S24-06** `[M]` Plantillas de notas clínicas rápidas (macros) — los médicos escriben las mismas evoluciones repetidamente. Implementar un sistema de macros en `data/note-templates/`: el médico escribe `/eczema` y se autocompleta: "Paciente refiere prurito en…". CRUD de templates en el admin. Integrar en el campo de evolución de la HCE. Verificable: `GET /api.php?resource=note-templates` → array de templates; campo de evolución detecta `/` y abre selector.
+
+- [ ] **S24-07** `[M]` Print pack clínico — desde la vista de caso activo, el médico puede hacer clic en "Imprimir todo" y obtiene un PDF único de: evolución del día + receta activa + indicaciones post-consulta. Hoy cada documento es un PDF separado. Beneficio: la secretaria imprime con un click. Verificable: `GET /api.php?resource=openclaw-print-pack&case_id=X` → PDF multipage con todas las secciones.
+
+- [ ] **S24-08** `[S]` Recovery de sesión de consulta — si el médico cierra accidentalmente el admin durante una consulta activa (caso en estado `in_consultation`), al volver, el sistema debe mostrar un banner: "Tienes una consulta en curso con [Paciente]". Usar `localStorage` para persistir el `case_id` activo. Verificable: `grep "session-recovery\|in_consultation.*recover" js/admin.js` → match.
+
+#### 24.2 Validaciones médicas de seguridad
+
+- [ ] **S24-09** `[M]` Validación de rangos de dosis — `openclaw-check-interactions` verifica interacciones pero no rangos de dosis. Añadir en `data/drug-doses.json` los rangos seguros de los 50 medicamentos más comunes en dermatología (corticoides, antihistamínicos, retinoides). Si la dosis prescrita supera el rango, mostrar alerta de nivel `medium`. No bloquear — solo alertar. Verificable: receta con `Betametasona 0.1% BID` + `cantidad: 200g` → respuesta incluye `dose_warning: true`.
+
+- [ ] **S24-10** `[S]` Alerta de alérgeno en prescripción — antes de guardar una receta, cruzar los `medications` propuestos contra las alergias registradas del paciente en la HCE. Si hay match, mostrar modal de bloqueo suave: "El paciente tiene alergia registrada a [X]. ¿Confirma prescribir igualmente?" Registrar override en `clinical_ai_actions.jsonl`. Verificable: receta con medicamento en `allergies` del paciente → respuesta `allergy_conflict: true, drug: X`.
+
+- [ ] **S24-11** `[M]` Contrareferencia y semáforo de urgencia — el médico puede marcar un caso como `URGENTE`, `NORMAL` o `ELECTIVO`. El campo va al ticket del turnero y a la pantalla de sala. Hoy todos los tickets tienen la misma prioridad visual. Verificable: `PATCH /api.php?resource=queue-ticket` con `priority: urgent` → ticket aparece con badge rojo en `queue-display.html`.
+
+#### 24.3 Comunicación paciente-clínica
+
+- [ ] **S24-12** `[M]` Recordatorio de cita con link de cancelación — 24h antes de la cita, enviar WhatsApp al paciente con: datos de la cita, link para confirmar (`/es/portal/confirmar-cita/?token=X`), y link para cancelar/reagendar. El link de cancelación debe ser de un solo uso con token firmado. Verificable: `php tests/test_appointment_reminder.php` → genera el mensaje correcto con token válido.
+
+- [ ] **S24-13** `[M]` Encuesta NPS post-consulta — 2 horas después de que `case.stage` pasa a `completed`, enviar WhatsApp: "¿Cómo fue tu experiencia? Responde del 1 al 5." Al responder, registrar en `data/nps-responses.jsonl`. Dashboard en admin con NPS calculado. Verificable: `GET /api.php?resource=nps-summary` → `score`, `total_responses`, `promoters`, `detractors`.
+
+- [ ] **S24-14** `[S]` Confirmación de cita con instrucciones pre-consulta — al agregar cita, el email/WhatsApp de confirmación debe incluir instrucciones específicas del servicio (p.ej. para láser: "No aplicar crema el día de la sesión"). Las instrucciones vienen del catálogo de servicios. Verificable: `data/services/laser-co2.json` tiene `pre_consultation_instructions` y aparece en el email de confirmación.
+
+---
+
+## 25. Sprint 25 — Portal del Paciente: Producto Real
+
+> **Propósito:** el portal hoy muestra placeholders. El paciente **no puede hacer nada útil** con él. Sin un portal funcional, Aurora Derm no tiene diferenciación de retención frente a una clínica que usa WhatsApp.
+
+#### 25.1 Información clínica en vivo
+
+- [ ] **S25-01** `[L]` `[UI]` Próxima cita en vivo con estado — `es/portal/index.html` debe mostrar la cita activa real: nombre del médico, servicio, fecha, hora, sala asignada. Si está en cola ese día, mostrar número de turno y estimado de espera desde el API del turnero. Si no hay cita, mostrar CTA "Agendar tu próxima cita". Sin esto el portal no tiene valor. Verificable: `GET /api.php?resource=patient-portal-dashboard` → `next_appointment` con `doctor`, `service`, `date`, `queue_position` si aplica.
+
+- [ ] **S25-02** `[M]` `[UI]` Descarga de recetas y certificados — `es/portal/historial/`: listar todas las recetas y certificados del paciente por fecha, con botón de descarga PDF directo. El token de descarga debe ser firmado y de un solo uso (TTL 1h). Actualmente `patient-portal-prescription` existe pero no está expuesto en la UI. Verificable: visita `es/portal/historial/` → lista de documentos con botón que descarga PDF auténtico.
+
+- [ ] **S25-03** `[L]` `[UI]` Plan de tratamiento activo — mostrar el plan de tratamiento clínico activo en una card: diagnóstico principal, medicamentos activos con instrucciones de toma, próximo control y qué hacer si empeora. Esta información existe en la HCE pero el paciente no la ve. Es la pregunta más frecuente post-consulta. Verificable: `GET /api.php?resource=patient-portal-plan` → `active_diagnosis`, `medications` con instrucciones, `next_visit`.
+
+- [ ] **S25-04** `[M]` `[UI]` Historial de pagos en el portal — mostrar cada cita pagada con: fecha, servicio, monto, método de pago, y link de recibo PDF. Si hay saldo pendiente, mostrarlo en rojo con CTA "Pagar ahora". Sin esto el paciente llama a la clínica para pedir facturas. Verificable: `GET /api.php?resource=patient-portal-payments` → array de `payments` con `amount`, `method`, `receipt_url`.
+
+#### 25.2 Autogestión del paciente
+
+- [ ] **S25-05** `[M]` Cancelación y reagendamiento self-service — desde el portal, el paciente puede cancelar o reagendar una cita futura (hasta 24h antes). El slot se libera automáticamente. Si cancela con menos de 24h, mostrar nota de política de cancelación. Verificable: `POST /api.php?resource=patient-portal-reschedule` con `appointment_id` y `new_slot` → slot original liberado + nuevo confirmado.
+
+- [ ] **S25-06** `[M]` Upload de foto del paciente para teleconsulta — antes de una teleconsulta, el paciente puede subir hasta 3 fotos desde el portal. Las fotos van a `CaseMediaFlowController` con origen `patient_upload` y visibilidad `doctor_only`. El médico las ve en el panel de teleconsulta. Verificable: `POST /api.php?resource=patient-portal-photo-upload` → foto guardada con `source: patient_upload` en el case media.
+
+- [ ] **S25-07** `[S]` PWA install prompt — `es/portal/index.html` detecta si el usuario no ha instalado la PWA y muestra un banner: "Agrega el portal a tu pantalla de inicio para acceder más rápido." Solo aparece si el criterio de instalabilidad del navegador está activo. Verificable: `manifest.json` tiene `start_url: /es/portal/`, `display: standalone` y `grep "beforeinstallprompt" js/portal.js` → match.
+
+- [ ] **S25-08** `[M]` Perfil de paciente editable — desde el portal, el paciente puede actualizar: teléfono, email, dirección. Los cambios van a `PatientPortalController::updateProfile` con validación de formato. El médico ve en la HCE qué campos actualizó el paciente y cuándo. Verificable: `PATCH /api.php?resource=patient-portal-profile` → `updated_fields` en respuesta y log en `data/patient-audit.jsonl`.
+
+- [ ] **S25-09** `[M]` Consentimiento informado digital — al crear cuenta en el portal, el paciente firma el consentimiento de tratamiento de datos digitalmente (checkboxes con texto legal real, IP y timestamp registrados). Sin firma digital válida, algunos servicios no deben estar disponibles. Verificable: `POST /api.php?resource=patient-portal-consent` → `signed_at`, `ip`, `version` en respuesta; `GET /api.php?resource=patient-portal-consent` → devuelve el estado de firma.
+
+---
+
+## 26. Sprint 26 — Analytics de Negocio Real
+
+> **Propósito:** el dueño de la clínica necesita saber si el negocio está funcionando. Hoy no hay ningún dashboard que responda: ¿cuánto facturé esta semana? ¿Qué servicio deja más? ¿Cuántos no-shows tuve?
+
+#### 26.1 Dashboard de operación diaria
+
+- [ ] **S26-01** `[L]` Dashboard ejecutivo diario — `GET /api.php?resource=executive-dashboard` calcula para el día en curso: citas programadas vs completadas vs no-shows, monto facturado, servicios ejecutados desglosado. Vista simple en admin, acceso solo para rol `owner`. Verificable: respuesta tiene `appointments_scheduled`, `appointments_completed`, `no_shows`, `revenue_today`, `services_breakdown`.
+
+- [ ] **S26-02** `[M]` Tracking de no-shows y cancelaciones — registrar en la HCE cuando una cita queda en estado `no_show` (paciente no llegó) o `late_cancel` (canceló con <24h). Calcular tasa de no-shows por semana. La tasa de no-shows varía según el servicio y el día de la semana. Verificable: `GET /api.php?resource=no-show-report` → `no_show_rate_pct`, `by_service`, `by_day_of_week`.
+
+- [ ] **S26-03** `[M]` Revenue por servicio y médico — `GET /api.php?resource=revenue-report&period=month` desglosa: monto por servicio, monto por médico, tendencia semanal. Datos vienen de pagos confirmados. Verificable: respuesta tiene `by_service: [{service, revenue, appointments}]` y `by_doctor: [{doctor, revenue}]`.
+
+- [ ] **S26-04** `[M]` Funnel de conversión web → booking — conectar el evento `funnel-event` existente con el resultado final del booking. ¿Cuántos que visitaron `/es/agendar/` completaron el pago? ¿En qué paso abandona más gente? Dashboard en admin con: visitas, inicios de booking, selección de slot, pago completado. Verificable: `GET /api.php?resource=booking-funnel` → `steps: [{step, count, drop_rate}]`.
+
+- [ ] **S26-05** `[M]` Lifetime value del paciente — calcular para cada paciente: número de visitas, gasto total histórico, días desde última visita, estado (activo/inactivo/en riesgo). Un paciente es "en riesgo" si no ha venido en más de 90 días. Listado en admin ordenable por valor. Verificable: `GET /api.php?resource=patient-ltv?status=at_risk` → lista de pacientes con `ltv`, `last_visit`, `days_absent`.
+
+- [ ] **S26-06** `[S]` Tasa de utilización del médico — qué porcentaje de los slots disponibles del médico se reservan. Si un médico tiene baja utilización (<60%), el sistema lo señala al propietario. Verificable: `GET /api.php?resource=doctor-utilization` → `by_doctor: [{doctor, slots_available, slots_booked, utilization_pct}]`.
+
+#### 26.2 Métricas de marketing y crecimiento
+
+- [ ] **S26-07** `[M]` Origen de los nuevos pacientes — registrar en `patient.acquisition_source` cómo llegó cada nuevo paciente: `google`, `instagram`, `referido`, `whatsapp`, `directo`. El médico lo selecciona al crear el caso o el sistema lo infiere del `UTM` de la URL de booking. Verificable: `GET /api.php?resource=acquisition-report` → `by_source: [{source, count, revenue}]`.
+
+- [ ] **S26-08** `[M]` Resumen semanal automático por email/WhatsApp al propietario — cada lunes a las 8am, enviar al propietario de la clínica un resumen de la semana anterior: citas, revenue, NPS, no-shows, nuevos pacientes. Formato compacto. Sin dashboards que nadie visita. Verificable: `php bin/send-weekly-summary.php` → genera y envía el resumen correctamente; test unitario de generación del contenido.
+
+---
+
+## 27. Sprint 27 — Productividad del Médico en Consulta
+
+> **Propósito:** si OpenClaw le ahorra 5 minutos por consulta, pero el médico pierde 3 en burocracia evitable, el beneficio neto no es suficiente. Este sprint elimina fricción residual.
+
+#### 27.1 Interface de consulta fluida
+
+- [ ] **S27-01** `[M]` `[UI]` Vista "Focus Mode" en consulta activa — cuando el médico inicia una consulta, el admin entra en modo pantalla completa con: foto del paciente, resumen clínico colapsable, chat de OpenClaw, y acciones rápidas (guardar diagnóstico, emitir receta, cerrar). Sin distracciones de menús laterales. Verificable: `grep "focus-mode\|consultation-focus" js/admin.js` → match; clase `.focus-mode` en `admin.html` cuando `case.status === in_consultation`.
+
+- [ ] **S27-02** `[M]` `[UI]` Panel de alergias e interacciones siempre visible — arriba del campo de prescripción, una barra fija en amber/gold que muestre las alergias activas del paciente. No debe estar enterrada en un tab. Si no hay alergias: barra verde "Sin alergias registradas". Verificable: `grep "allergy-bar\|allergy.*fixed" styles/aurora-clinical.css` → match; visible en DOM con `position: sticky`.
+
+- [ ] **S27-03** `[M]` Historial de búsquedas CIE-10 del médico — los médicos buscan los mismos 20 diagnósticos el 90% del tiempo. Guardar en `localStorage` las últimas 10 búsquedas CIE-10 del médico. Al abrir el selector de diagnóstico, mostrar "Recientes:" antes de escribir. Verificable: `grep "cie10.*recent\|localStorage.*cie10" js/openclaw-chat.js` → match; búsquedas previas aparecen sin escribir.
+
+- [ ] **S27-04** `[M]` Autoguardado de borrador de evolución — mientras el médico escribe la nota de evolución, hacer autosave a `localStorage` cada 30 segundos. Si cierra accidentalmente, al volver aparece: "Tienes un borrador sin guardar. ¿Recuperar?" Verificable: `grep "autosave\|draft.*evolution\|recovery.*draft" js/admin.js` → match.
+
+- [ ] **S27-05** `[S]` Atajos de teclado en admin — los médicos que operan rápido usan teclado. Implementar: `Ctrl+D` → abrir selector de diagnóstico, `Ctrl+P` → emitir prescripción, `Ctrl+E` → guardar evolución, `Ctrl+Enter` → cerrar consulta. Mostrar cheatsheet con `?`. Verificable: `grep "Ctrl+D\|keyboard.*shortcut\|hotkey" js/admin.js` → match; funcional en navegador.
+
+- [ ] **S27-06** `[L]` OpenClaw en WhatsApp — el médico puede enviar desde el chat de OpenClaw hacia el WhatsApp del paciente directamente: resumen de consulta, indicaciones post-procedimiento, link de receta. Un botón "Enviar a paciente" en el chat usa el `wa.me` del caso activo. Hoy el médico tiene que copiar y pegar. Verificable: `grep "send.*to.*patient\|whatsapp.*chat" js/openclaw-chat.js` → match; botón en UI dispara `POST /api.php?resource=openclaw-send-to-patient`.
+
+#### 27.2 Gestión de agenda
+
+- [ ] **S27-07** `[M]` Vista de agenda semanal del médico — en el admin, una vista tipo Google Calendar (semana actual) con las citas bloqueadas por color de servicio. Click en cita → abre el caso. Hoy la agenda es solo una lista. Verificable: `grep "week-view\|agenda.*calendar" js/admin.js` → match; vista con 7 columnas de días.
+
+- [ ] **S27-08** `[M]` Bloqueo de horarios — el médico puede marcar slots como bloqueados (vacaciones, reunión) desde el admin. Al intentar agendar en ese slot, el sistema lo rechaza. Bloqueados visibles en la vista de agenda. Verificable: `POST /api.php?resource=availability-block` con `date`, `time_start`, `time_end` → slot aparece en `booked-slots` como `blocked: true`.
+
+- [ ] **S27-09** `[M]` Lista de espera para servicios con alta demanda — si un slot está lleno, el paciente puede unirse a la lista de espera del día. Si hay cancelación, se notifica automáticamente al primero en la lista. Verificable: `POST /api.php?resource=waitlist-join` → entrada en `data/waitlist.json`; al cancelar una cita, `waitlist-notify.php` (cron) notifica al siguiente.
+
+---
+
+## 28. Sprint 28 — Compliance y Confianza Ecuador 2026
+
+> **Propósito:** para que una clínica firme contrato, el responsable legal de la clínica necesita respuestas a preguntas concretas de cumplimiento. Sin esto el ciclo de venta B2B se alarga meses.
+
+#### 28.1 Protección de datos (LOPD Ecuador)
+
+- [ ] **S28-01** `[M]` Endpoint de eliminación de datos de paciente — `DELETE /api.php?resource=patient-data-erasure&patient_id=X` elimina o anonimiza todos los datos personales del paciente excepto los que tienen retención legal obligatoria (HCE tiene retención de 10 años en Ecuador). El endpoint requiere autenticación de propietario, genera un log de audit. LOPD Ecuatoriana Art. 22. Verificable: endpoint devuelve `erased_fields`, `retained_fields` con motivo de retención.
+
+- [ ] **S28-02** `[M]` Portabilidad de datos del paciente — `GET /api.php?resource=patient-data-export&patient_id=X&format=json` genera un ZIP con toda la información del paciente en formato legible: HCE completa, recetas, citas, pagos, fotos. El paciente puede solicitarlo desde el portal. Verificable: respuesta es un ZIP con al menos `clinical_history.json`, `appointments.json`, `prescriptions.json`.
+
+- [ ] **S28-03** `[M]` Audit trail de acceso a datos — registrar en `data/access-log.jsonl` cada vez que se accede a datos de un paciente: quién, cuándo, qué recurso, desde qué IP. Solo visible para el propietario de la clínica. El médico puede ver su propio trail. Sin esto, es imposible responder ante una brecha. Verificable: `GET /api.php?resource=data-access-audit?patient_id=X` → array de `access_events` con `accessor`, `resource`, `ts`.
+
+- [ ] **S28-04** `[M]` Consentimiento informado versionado — el texto del consentimiento tiene versión semántica (`v1.2.0`). Al cambiar la versión, todos los pacientes son notificados y deben re-firmar antes del próximo acceso al portal. El sistema registra qué versión firmó cada paciente y cuándo. Verificable: `GET /api.php?resource=consent-status?patient_id=X` → `signed_version`, `current_version`, `needs_renewal: true/false`.
+
+- [ ] **S28-05** `[S]` Privacy notice en el booking público — `es/agendar/index.html` debe mostrar enlace a política de privacidad y checkbox de aceptación antes de confirmar el formulario. Sin la aceptación, el botón de confirmar está deshabilitado. Verificable: `grep "privacy.*checkbox\|consent.*booking" es/agendar/index.html` → match; `disabled` en submit sin check.
+
+#### 28.2 Seguridad demostrable
+
+- [ ] **S28-06** `[M]` Informe de seguridad exportable — `GET /api.php?resource=security-report` genera un JSON con: última vez que se rotaron las secrets, estado del backup, últimos 5 accesos de admin, CSP activo, versión del sistema, integridad de archivos críticos (hash de `api.php`, `lib/auth.php`). Para uso del responsable de TI de la clínica. Verificable: respuesta incluye `backup_last_at`, `admin_logins_last_5`, `file_integrity`.
+
+- [ ] **S28-07** `[M]` Sesiones concurrentes de admin — detectar si el mismo email de administrador tiene sesión activa en más de una IP simultáneamente. Mostrar alerta en el panel: "Tu cuenta tiene una sesión activa desde [IP]. ¿Eres tú?" Con opción de cerrar todas las otras sesiones. Verificable: `GET /api.php?resource=active-sessions` → array de `sessions` con `ip`, `started_at`, `last_active`.
+
+- [ ] **S28-08** `[M]` Log de cambios en configuración de clínica — registrar en `data/config-audit.jsonl` cada cambio en `clinic-profile.json`, servicios, precios, horarios. Con quién lo cambió, cuándo, qué campo y valor anterior/nuevo. Crítico para detectar cambios no autorizados. Verificable: `GET /api.php?resource=config-audit-log` → array de `changes` con `field`, `old_value`, `new_value`, `changed_by`, `ts`.
+
+- [ ] **S28-09** `[S]` Hardening de headers HTTP — verificar y completar en `Caddyfile`: `Permissions-Policy` (sin acceso a cámara/micrófono excepto en teleconsulta), `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`. Documentar en `SECURITY.md` qué headers están activos y por qué. Verificable: `curl -I https://pielarmonia.com` → `Permissions-Policy` y `Referrer-Policy` presentes; `grep "Permissions-Policy\|Referrer-Policy" ops/caddy/Caddyfile` → match.
+
+- [ ] **S28-10** `[M]` Expiración de sesión por inactividad — si el médico no interactúa con el admin en 30 minutos, la sesión expira automáticamente y se muestra modal de re-login. El timer se reinicia con cualquier click/tecla. Sin esto, dejar el admin abierto en la sala de espera es un riesgo. Verificable: `grep "inactivity.*timer\|session.*expire.*inactivity" js/admin.js` → match; timeout configurable desde `clinic-profile.json`.
+
+---
+

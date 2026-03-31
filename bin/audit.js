@@ -137,14 +137,20 @@ function defaultRunner(command, args) {
 }
 
 function runAudit(runner = defaultRunner) {
-    const steps = AUDIT_STEPS.map((step) => runAuditStep(step, runner));
-    const ok = steps.every((step) => step.ok);
+    const steps = AUDIT_STEPS.map((step) => {
+        const result = runAuditStep(step, runner);
+        return { ...result, optional: !!step.optional };
+    });
+    // optional steps don't contribute to the overall ok flag
+    const requiredSteps = steps.filter((s) => !s.optional);
+    const ok = requiredSteps.every((step) => step.ok);
 
     return {
         ok,
         stepCount: steps.length,
         passedCount: steps.filter((step) => step.ok).length,
         failedCount: steps.filter((step) => !step.ok).length,
+        requiredFailed: requiredSteps.filter((step) => !step.ok).length,
         steps,
     };
 }

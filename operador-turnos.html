@@ -21,6 +21,10 @@
         />
         <link
             rel="stylesheet"
+            href="/queue-ops.css?v=queue-ops-20260314-sony150"
+        />
+        <link
+            rel="stylesheet"
             href="/styles/queue-shared.css"
         />
     
@@ -38,14 +42,8 @@
 <link rel="stylesheet" href="/styles/reborn-typo.css">
 <link rel="stylesheet" href="/styles/aurora-operator.css">
 <link rel="stylesheet" href="/styles/aurora-kb.css">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-2DWZ5PJ4MC');
-</script>
+        <!-- GA4 belongs only in public pages, NOT in clinical operator surface -->
+        <!-- patient data privacy: no analytics on operational surfaces (see SEC-02) -->
 </head>
     <body
         class="admin-v3-mode queue-operator-body"

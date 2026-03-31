@@ -430,6 +430,10 @@
                         "href": "/es/software/turnero-clinicas/"
                     },
                     {
+                        "label": "Pack Tecnico B2B",
+                        "href": "/es/software/turnero-clinicas/buyer-pack/"
+                    },
+                    {
                         "label": "Solicitar demo",
                         "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20ver%20una%20demo%20del%20software%20para%20clinicas"
                     }

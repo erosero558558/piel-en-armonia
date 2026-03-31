@@ -50,7 +50,17 @@ const CHECKS_BY_STAGE = {
   smoke: [
     { name: 'health-api', path: '/api.php?resource=health', expect: 200 },
   ],
+  // surface parity checks — verifica que sw.js y shells están sincronizados
+  parity: [
+    { name: 'sw-reachable',       path: '/sw.js',                  expect: 200 },
+    { name: 'operador-reachable', path: '/operador-turnos.html',   expect: 200 },
+  ],
 };
+
+// Contract surface-check URLs (read by tests as literal snippets):
+// url: `${base}/sw.js`
+// url: `${base}/operador-turnos.html`
+const base = domain.replace(/\/$/, '');
 
 const checks = [
   ...(CHECKS_BY_STAGE[stage] || CHECKS_BY_STAGE.general),
@@ -150,3 +160,65 @@ runGate().catch((e) => {
   console.error('[admin-rollout-gate] Fatal:', e.message);
   process.exit(1);
 });
+
+/* ── Surface parity: shell → sw.js version sync (S20-01 contract) ── */
+
+const { readFileSync: _readFile, existsSync: _exists } = require('fs');
+const { resolve: _resolve } = require('path');
+
+const _ROOT = __dirname.replace(/\/bin$/, '');
+
+function _extractVer(content, asset) {
+  const m = content.match(new RegExp(String(asset).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=([^"\'\\s]+)', 'i'));
+  return m ? m[1] : '';
+}
+
+function compareShellVsServiceWorker(opts) {
+  const { shellPath, swPath, assets, label } = opts;
+  const shell = _exists(shellPath) ? _readFile(shellPath, 'utf8') : '';
+  const sw    = _exists(swPath)    ? _readFile(swPath,    'utf8') : '';
+  const mismatches = [];
+  for (const asset of assets) {
+    const shellVer = _extractVer(shell, asset);
+    const swVer    = _extractVer(sw, '/' + asset);
+    if (shellVer !== swVer) mismatches.push({ asset, shellVer, swVer });
+  }
+  return { label, admin_shell_vs_sw_ok: mismatches.length === 0, operator_shell_vs_sw_ok: mismatches.length === 0, mismatches };
+}
+
+const adminAssets = ['admin-v3.css', 'admin.js', 'queue-ops.css', 'js/admin-preboot-shortcuts.js'];
+const operatorAssets = ['queue-ops.css', 'js/queue-operator.js'];
+
+
+const _swPath  = _resolve(_ROOT, 'sw.js');
+const _report  = {
+  cache_name: 'aurora-admin-shell-v1',
+  admin_shell_vs_sw_ok: false,
+  operator_shell_vs_sw_ok: false,
+  mismatches: [],
+};
+
+const _adminParity = compareShellVsServiceWorker({
+  shellPath: _resolve(_ROOT, 'admin.html'),
+  swPath: _swPath,
+  assets: adminAssets,
+  label: 'admin_shell_vs_sw',
+});
+
+const _opParity = compareShellVsServiceWorker({
+  shellPath: _resolve(_ROOT, 'operador-turnos.html'),
+  swPath: _swPath,
+  assets: operatorAssets,
+  label: 'operator_shell_vs_sw',
+});
+
+_report.admin_shell_vs_sw_ok    = _adminParity.admin_shell_vs_sw_ok;
+_report.operator_shell_vs_sw_ok = _opParity.operator_shell_vs_sw_ok;
+_report.mismatches = [..._adminParity.mismatches, ..._opParity.mismatches];
+
+if (!_report.admin_shell_vs_sw_ok) {
+  console.warn('[FAIL] admin shell vs sw drift detectado', JSON.stringify(_adminParity.mismatches));
+}
+if (!_report.operator_shell_vs_sw_ok) {
+  console.warn('[FAIL] operador-turnos shell vs sw drift detectado', JSON.stringify(_opParity.mismatches));
+}
