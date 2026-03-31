@@ -741,6 +741,117 @@ test.describe('Panel de administracion', () => {
         ).toHaveCount(2);
     });
 
+    test('dashboard resume operacion multi-clinica por sucursal', async ({
+        page,
+    }) => {
+        await setupAuthenticatedAdminMocks(page, {
+            multiClinicOverview: {
+                summary: {
+                    clinicCount: 3,
+                    clinicsWithActivity: 2,
+                    todayAppointments: 9,
+                    patientCount: 7,
+                    settledRevenueLabel: '$1,420.00',
+                    fallbackAssignedRecords: 2,
+                    explicitlyScopedRecords: 8,
+                    generatedAt: '2026-03-31T11:05:00-05:00',
+                },
+                comparative: {
+                    leaderByRevenue: {
+                        clinicId: 'clinica-centro',
+                        clinicLabel: 'Clinica Centro',
+                        todayAppointments: 4,
+                        patientCount: 3,
+                        settledRevenueLabel: '$720.00',
+                    },
+                    leaderByDemand: {
+                        clinicId: 'clinica-norte',
+                        clinicLabel: 'Clinica Norte',
+                        todayAppointments: 5,
+                        patientCount: 4,
+                        settledRevenueLabel: '$540.00',
+                    },
+                },
+                clinics: [
+                    {
+                        clinicId: 'clinica-centro',
+                        clinicLabel: 'Clinica Centro',
+                        region: 'Quito',
+                        status: 'leader',
+                        isActiveClinic: true,
+                        isRevenueLeader: true,
+                        isDemandLeader: false,
+                        hasActivity: true,
+                        todayAppointments: 4,
+                        patientCount: 3,
+                        settledRevenueLabel: '$720.00',
+                    },
+                    {
+                        clinicId: 'clinica-norte',
+                        clinicLabel: 'Clinica Norte',
+                        region: 'Quito Norte',
+                        status: 'leader',
+                        isActiveClinic: false,
+                        isRevenueLeader: false,
+                        isDemandLeader: true,
+                        hasActivity: true,
+                        todayAppointments: 5,
+                        patientCount: 4,
+                        settledRevenueLabel: '$540.00',
+                    },
+                    {
+                        clinicId: 'clinica-sur',
+                        clinicLabel: 'Clinica Sur',
+                        region: 'Valle',
+                        status: 'idle',
+                        isActiveClinic: false,
+                        isRevenueLeader: false,
+                        isDemandLeader: false,
+                        hasActivity: false,
+                        todayAppointments: 0,
+                        patientCount: 0,
+                        settledRevenueLabel: '$0.00',
+                    },
+                ],
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await openDashboardSection(page);
+
+        await expect(page.locator('#dashboardMultiClinicChip')).toHaveText(
+            '2/3 activas'
+        );
+        await expect(page.locator('#multiClinicCount')).toHaveText('3');
+        await expect(page.locator('#multiClinicAppointmentsToday')).toHaveText(
+            '9'
+        );
+        await expect(page.locator('#multiClinicRevenueLabel')).toHaveText(
+            '$1,420.00'
+        );
+        await expect(page.locator('#multiClinicPatientCount')).toHaveText('7');
+        await expect(
+            page.locator('#dashboardMultiClinicRevenueLeaderHeadline')
+        ).toHaveText('Clinica Centro');
+        await expect(
+            page.locator('#dashboardMultiClinicDemandLeaderHeadline')
+        ).toHaveText('Clinica Norte');
+        await expect(page.locator('#dashboardMultiClinicSummary')).toContainText(
+            '2 registro(s) siguen usando fallback'
+        );
+        await expect(
+            page.locator('#dashboardMultiClinicList [data-multi-clinic-row="true"]')
+        ).toHaveCount(3);
+        await expect(page.locator('#dashboardMultiClinicList')).toContainText(
+            'Clinica Sur'
+        );
+        await expect(page.locator('#dashboardMultiClinicList')).toContainText(
+            'Ingresos $720.00'
+        );
+    });
+
     test('inicio operativo simplifica accesos y resuelve tareas en un clic', async ({
         page,
     }) => {

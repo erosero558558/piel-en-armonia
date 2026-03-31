@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:57:36 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 6:21:34 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -15,7 +15,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
 | 🎯 Sprint 3 | 66 | 1 | 99% |
-| ⏸ Sprint 4 | 24 | 2 | 92% |
+| ⏸ Sprint 4 | 25 | 1 | 96% |
 | ⏸ Sprint 5 | 17 | 5 | 77% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 8 | 29 | 22% |
@@ -50,11 +50,7 @@ _Sprint completado. 24/24 tareas._
 - **S3-35** `[S3]` L...
 
 ## ⏸ Sprint 4 — Escalar el negocio
-_Esperando que Sprint anterior esté completo. 2 tareas pendientes._
-
-### 🔒 En progreso — NO tomar
-
-- **S4-10** `[S4]` → _Codex-erosero558558_ (expira en 478min)
+_Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -249,6 +245,13 @@ _Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 | **S17-16** | `[S17]` | M |
 | **S17-17** | `[S17]` | M |
 
+<<<<<<< HEAD
+=======
+### 🔒 En progreso — NO tomar
+
+- **S17-10** `[S17]` → _Antigravity_ (expira en 199min)
+
+>>>>>>> 23adc2af (feat(S4-10): add multi-clinic admin dashboard)
 ## ✅ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
 _Sprint completado. 4/4 tareas._
 

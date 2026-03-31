@@ -76,6 +76,7 @@ const initialState = {
         telemedicineMeta: null,
         checkoutReviewMeta: null,
         paymentAccountMeta: null,
+        multiClinicOverview: null,
         internalConsoleMeta: null,
         funnelMetrics: null,
         health: null,

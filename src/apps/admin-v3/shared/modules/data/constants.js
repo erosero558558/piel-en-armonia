@@ -14,6 +14,7 @@ export const LOCAL_DATA_KEYS = {
     telemedicineMeta: 'telemedicine-meta',
     checkoutReviewMeta: 'checkout-review-meta',
     paymentAccountMeta: 'payment-account-meta',
+    multiClinicOverview: 'multi-clinic-overview',
     queueSurfaceStatus: 'queue-surface-status',
     appDownloads: 'app-downloads',
     turneroClinicProfile: 'turnero-clinic-profile',

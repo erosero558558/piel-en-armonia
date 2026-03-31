@@ -1,5 +1,19 @@
-import { formatDateTime, setText } from '../../../shared/ui/render.js';
+import {
+    escapeHtml,
+    formatDateTime,
+    setHtml,
+    setText,
+} from '../../../shared/ui/render.js';
 import { heroSummary } from '../markup.js';
+
+function normalizeNumber(value) {
+    const num = Number(value || 0);
+    return Number.isFinite(num) ? Math.max(0, num) : 0;
+}
+
+function normalizeString(value) {
+    return String(value || '').trim();
+}
 
 function resolveBridgeChipTone(ops) {
     if (!ops.available) return 'warning';
@@ -400,6 +414,246 @@ function resolveClinicalEventMeta(snapshot) {
         .join(' • ');
 }
 
+function normalizeMultiClinicOverview(rawOverview) {
+    const overview =
+        rawOverview && typeof rawOverview === 'object' ? rawOverview : {};
+    const summary =
+        overview.summary && typeof overview.summary === 'object'
+            ? overview.summary
+            : {};
+    const comparative =
+        overview.comparative && typeof overview.comparative === 'object'
+            ? overview.comparative
+            : {};
+    const clinics = Array.isArray(overview.clinics) ? overview.clinics : [];
+
+    return {
+        summary: {
+            clinicCount: normalizeNumber(summary.clinicCount),
+            clinicsWithActivity: normalizeNumber(summary.clinicsWithActivity),
+            todayAppointments: normalizeNumber(summary.todayAppointments),
+            patientCount: normalizeNumber(summary.patientCount),
+            settledRevenueLabel: normalizeString(summary.settledRevenueLabel),
+            fallbackAssignedRecords: normalizeNumber(
+                summary.fallbackAssignedRecords
+            ),
+            explicitlyScopedRecords: normalizeNumber(
+                summary.explicitlyScopedRecords
+            ),
+            generatedAt: normalizeString(summary.generatedAt),
+        },
+        comparative: {
+            leaderByRevenue:
+                comparative.leaderByRevenue &&
+                typeof comparative.leaderByRevenue === 'object'
+                    ? comparative.leaderByRevenue
+                    : null,
+            leaderByDemand:
+                comparative.leaderByDemand &&
+                typeof comparative.leaderByDemand === 'object'
+                    ? comparative.leaderByDemand
+                    : null,
+        },
+        clinics: clinics.map((clinic) => ({
+            clinicId: normalizeString(clinic?.clinicId),
+            clinicLabel: normalizeString(clinic?.clinicLabel),
+            region: normalizeString(clinic?.region),
+            status: normalizeString(clinic?.status),
+            isActiveClinic: clinic?.isActiveClinic === true,
+            isRevenueLeader: clinic?.isRevenueLeader === true,
+            isDemandLeader: clinic?.isDemandLeader === true,
+            hasActivity: clinic?.hasActivity === true,
+            todayAppointments: normalizeNumber(clinic?.todayAppointments),
+            patientCount: normalizeNumber(clinic?.patientCount),
+            settledRevenueLabel: normalizeString(clinic?.settledRevenueLabel),
+        })),
+    };
+}
+
+function resolveMultiClinicChipTone(overview) {
+    const clinicCount = Number(overview?.summary?.clinicCount || 0);
+    const activeCount = Number(overview?.summary?.clinicsWithActivity || 0);
+    if (clinicCount <= 1) return 'neutral';
+    if (activeCount === clinicCount && clinicCount > 1) return 'success';
+    if (activeCount > 0) return 'warning';
+    return 'neutral';
+}
+
+function resolveMultiClinicChipLabel(overview) {
+    const clinicCount = Number(overview?.summary?.clinicCount || 0);
+    const activeCount = Number(overview?.summary?.clinicsWithActivity || 0);
+    if (clinicCount <= 0) return 'Sin red';
+    if (clinicCount === 1) return 'Una sede';
+    if (activeCount <= 0) return `${clinicCount} sedes`;
+    return `${activeCount}/${clinicCount} activas`;
+}
+
+function resolveMultiClinicMeta(overview) {
+    const generatedAt = String(overview?.summary?.generatedAt || '').trim();
+    const fallbackAssignedRecords = Number(
+        overview?.summary?.fallbackAssignedRecords || 0
+    );
+    const parts = [];
+
+    if (generatedAt) {
+        parts.push(`Actualizado ${formatDateTime(generatedAt)}`);
+    }
+    if (fallbackAssignedRecords > 0) {
+        parts.push(
+            `${fallbackAssignedRecords} registro(s) siguen cayendo a la clinica activa`
+        );
+    }
+
+    return parts.length > 0
+        ? parts.join(' • ')
+        : 'Comparativa operativa por sucursal del tenant.';
+}
+
+function resolveMultiClinicSummary(overview) {
+    const leaderByRevenue = overview?.comparative?.leaderByRevenue || null;
+    const leaderByDemand = overview?.comparative?.leaderByDemand || null;
+    const fallbackAssignedRecords = Number(
+        overview?.summary?.fallbackAssignedRecords || 0
+    );
+    const explicitRecords = Number(
+        overview?.summary?.explicitlyScopedRecords || 0
+    );
+    const fragments = [];
+
+    if (leaderByRevenue?.clinicLabel) {
+        fragments.push(
+            `${leaderByRevenue.clinicLabel} lidera ingresos con ${leaderByRevenue.settledRevenueLabel || '$0.00'}`
+        );
+    }
+    if (leaderByDemand?.clinicLabel) {
+        fragments.push(
+            `${leaderByDemand.clinicLabel} concentra ${normalizeNumber(
+                leaderByDemand.todayAppointments
+            )} turno(s) hoy`
+        );
+    }
+    if (fallbackAssignedRecords > 0) {
+        fragments.push(
+            `${fallbackAssignedRecords} registro(s) siguen usando fallback a la sede activa`
+        );
+    } else if (explicitRecords > 0) {
+        fragments.push(
+            `${explicitRecords} registro(s) ya llegaron con clinicId explicito`
+        );
+    }
+
+    return fragments.length > 0
+        ? fragments.join('. ') + '.'
+        : 'La red esta cargada pero todavia no hay actividad comparativa por sucursal.';
+}
+
+function resolveMultiClinicLeaderHeadline(leader) {
+    if (!leader?.clinicLabel) {
+        return 'Sin datos';
+    }
+
+    return String(leader.clinicLabel || 'Sin datos').trim();
+}
+
+function resolveMultiClinicLeaderMeta(leader, kind = 'revenue') {
+    if (!leader?.clinicLabel) {
+        return kind === 'revenue'
+            ? 'La sede con mayor ingreso liquidado aparecera aqui.'
+            : 'La sede con mas turnos del dia aparecera aqui.';
+    }
+
+    if (kind === 'revenue') {
+        return [
+            leader.settledRevenueLabel || '$0.00',
+            `${normalizeNumber(leader.patientCount)} paciente(s)`,
+            normalizeNumber(leader.todayAppointments) > 0
+                ? `${normalizeNumber(leader.todayAppointments)} turno(s) hoy`
+                : '',
+        ]
+            .filter(Boolean)
+            .join(' • ');
+    }
+
+    return [
+        `${normalizeNumber(leader.todayAppointments)} turno(s) hoy`,
+        `${normalizeNumber(leader.patientCount)} paciente(s)`,
+        leader.settledRevenueLabel || '',
+    ]
+        .filter(Boolean)
+        .join(' • ');
+}
+
+function resolveMultiClinicBadgeTone(clinic) {
+    if (clinic?.isRevenueLeader || clinic?.isDemandLeader) return 'success';
+    if (clinic?.hasActivity) return 'neutral';
+    return clinic?.isActiveClinic ? 'warning' : 'neutral';
+}
+
+function resolveMultiClinicBadgeLabel(clinic) {
+    if (clinic?.isRevenueLeader && clinic?.isDemandLeader) return 'Lider total';
+    if (clinic?.isRevenueLeader) return 'Lider ingresos';
+    if (clinic?.isDemandLeader) return 'Mayor demanda';
+    if (clinic?.isActiveClinic && !clinic?.hasActivity) return 'Sin actividad';
+    if (clinic?.hasActivity) return 'Activa';
+    return 'En espera';
+}
+
+function buildMultiClinicRowsMarkup(overview) {
+    const clinics = Array.isArray(overview?.clinics) ? overview.clinics : [];
+    if (clinics.length === 0) {
+        return `
+            <li class="dashboard-attention-item dashboard-multi-clinic__item">
+                <div class="dashboard-multi-clinic__copy">
+                    <span>Sin sucursales cargadas</span>
+                    <small>Cuando exista un catalogo multi-clinica aparecera aqui el comparativo del tenant.</small>
+                </div>
+            </li>
+        `;
+    }
+
+    return clinics
+        .map(
+            (clinic) => `
+                <li class="dashboard-attention-item dashboard-multi-clinic__item" data-multi-clinic-row="true">
+                    <div class="dashboard-multi-clinic__copy">
+                        <div class="dashboard-multi-clinic__head">
+                            <span>${escapeHtml(
+                                clinic.clinicLabel || clinic.clinicId || 'Clinica'
+                            )}</span>
+                            <span class="dashboard-signal-chip" data-state="${escapeHtml(
+                                resolveMultiClinicBadgeTone(clinic)
+                            )}">
+                                ${escapeHtml(resolveMultiClinicBadgeLabel(clinic))}
+                            </span>
+                        </div>
+                        <small>${escapeHtml(
+                            [
+                                clinic.region || 'Tenant',
+                                clinic.isActiveClinic ? 'sede activa' : '',
+                            ]
+                                .filter(Boolean)
+                                .join(' • ')
+                        )}</small>
+                    </div>
+                    <div class="dashboard-multi-clinic__metrics">
+                        <span class="dashboard-multi-clinic__badge">
+                            Turnos hoy ${escapeHtml(clinic.todayAppointments)}
+                        </span>
+                        <span class="dashboard-multi-clinic__badge">
+                            Ingresos ${escapeHtml(
+                                clinic.settledRevenueLabel || '$0.00'
+                            )}
+                        </span>
+                        <span class="dashboard-multi-clinic__badge">
+                            Pacientes ${escapeHtml(clinic.patientCount)}
+                        </span>
+                    </div>
+                </li>
+            `
+        )
+        .join('');
+}
+
 export function setOverviewMetrics(state) {
     const {
         appointments,
@@ -410,6 +664,7 @@ export function setOverviewMetrics(state) {
         availabilityDays,
         calledTickets,
         clinicalHistoryMeta,
+        multiClinicOverview,
         pendingCallbacks,
         waitingTickets,
         whatsappOpenclawOps,
@@ -439,6 +694,7 @@ export function setOverviewMetrics(state) {
         reviewQueue: [],
         events: [],
     };
+    const multiClinic = normalizeMultiClinicOverview(multiClinicOverview);
 
     setText(
         '#dashboardHeroSummary',
@@ -539,4 +795,53 @@ export function setOverviewMetrics(state) {
         resolveClinicalEventHeadline(clinical)
     );
     setText('#clinicalHistoryEventMeta', resolveClinicalEventMeta(clinical));
+    setText('#dashboardMultiClinicChip', resolveMultiClinicChipLabel(multiClinic));
+    document
+        .getElementById('dashboardMultiClinicChip')
+        ?.setAttribute('data-state', resolveMultiClinicChipTone(multiClinic));
+    setText('#dashboardMultiClinicMeta', resolveMultiClinicMeta(multiClinic));
+    setText(
+        '#dashboardMultiClinicSummary',
+        resolveMultiClinicSummary(multiClinic)
+    );
+    setText('#multiClinicCount', Number(multiClinic?.summary?.clinicCount || 0));
+    setText(
+        '#multiClinicAppointmentsToday',
+        Number(multiClinic?.summary?.todayAppointments || 0)
+    );
+    setText(
+        '#multiClinicRevenueLabel',
+        String(multiClinic?.summary?.settledRevenueLabel || '$0.00')
+    );
+    setText(
+        '#multiClinicPatientCount',
+        Number(multiClinic?.summary?.patientCount || 0)
+    );
+    setText(
+        '#dashboardMultiClinicRevenueLeaderHeadline',
+        resolveMultiClinicLeaderHeadline(
+            multiClinic?.comparative?.leaderByRevenue
+        )
+    );
+    setText(
+        '#dashboardMultiClinicRevenueLeaderMeta',
+        resolveMultiClinicLeaderMeta(
+            multiClinic?.comparative?.leaderByRevenue,
+            'revenue'
+        )
+    );
+    setText(
+        '#dashboardMultiClinicDemandLeaderHeadline',
+        resolveMultiClinicLeaderHeadline(
+            multiClinic?.comparative?.leaderByDemand
+        )
+    );
+    setText(
+        '#dashboardMultiClinicDemandLeaderMeta',
+        resolveMultiClinicLeaderMeta(
+            multiClinic?.comparative?.leaderByDemand,
+            'demand'
+        )
+    );
+    setHtml('#dashboardMultiClinicList', buildMultiClinicRowsMarkup(multiClinic));
 }
