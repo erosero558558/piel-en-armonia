@@ -1162,7 +1162,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S4-08** `[L]` Pricing page — `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor), Pro ($49/mes, 5 doctores), Enterprise (contactar). Design premium con comparativa.
 - [x] **S4-09** `[L]` Demo interactiva mejorada — `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. El visitante experimenta: kiosco → turno → operador lo llama.
 - [x] **S4-10** `[L]` Dashboard multi-clínica — vista admin: stats de todas las clínicas del tenant. Turnos/día, ingresos, pacientes. Comparativa entre sucursales.
-- [ ] **S4-11** `[L]` Whitelabel — personalizar: logo, colores, nombre, dominio por clínica. Engine Flow OS intacto, branding customizable.
+- [x] **S4-11** `[L]` Whitelabel — personalizar: logo, colores, nombre, dominio por clínica. Engine Flow OS intacto, branding customizable.
 - [x] **S4-12** `[L]` API docs — `es/software/turnero-clinicas/api-docs/index.html`: documentación OpenAPI de la API para integraciones externas.
 
 #### 4.3 Revenue
@@ -1911,9 +1911,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 19.2 WhatsApp OpenClaw — Ops y resiliencia
 
-- [ ] **S19-04** `[M]` Ops console para WhatsApp OpenClaw — vista operativa `whatsapp-openclaw-ops`: muestra conversations, drafts, outbox, holds y human_followup agrupados. Verificable: una conversación con hold activo aparece en el panel con su `conversationId`.
-- [ ] **S19-05** `[M]` Retry y dead-letter para outbox WhatsApp — formalizar estados `queued|sent|failed|requeued`, campos `retryCount`, `lastError`, y acción admin `requeue_outbox`. Verificable: un mensaje fallido puede reencolarse (`status=requeued`) sin duplicar mensajes ya enviados.
-- [ ] **S19-06** `[M]` Dashboard de slot holds WhatsApp — listar holds `active|expired|released|consumed` por doctor/fecha con TTL visible y acción de liberación manual con motivo. Verificable: un hold expirado ya no figura como `active` después de `expireSlotHolds()`.
+- [x] **S19-04** `[M]` Ops console para WhatsApp OpenClaw — vista operativa `whatsapp-openclaw-ops`: muestra conversations, drafts, outbox, holds y human_followup agrupados. Verificable: una conversación con hold activo aparece en el panel con su `conversationId`.
+- [x] **S19-05** `[M]` Retry y dead-letter para outbox WhatsApp — formalizar estados `queued|sent|failed|requeued`, campos `retryCount`, `lastError`, y acción admin `requeue_outbox`. Verificable: un mensaje fallido puede reencolarse (`status=requeued`) sin duplicar mensajes ya enviados.
+- [x] **S19-06** `[M]` Dashboard de slot holds WhatsApp — listar holds `active|expired|released|consumed` por doctor/fecha con TTL visible y acción de liberación manual con motivo. Verificable: un hold expirado ya no figura como `active` después de `expireSlotHolds()`.
 - [ ] **S19-07** `[M]` Cola de handoff humano desde WhatsApp — cuando `intent=handoff_clinical` o FAQ no resuelve, crear item operativo con `{conversationId, phone, reason, latestDraftSummary, sla_due_at}`. Verificable: pregunta clínica sin resolución → registro trazable fuera del chat.
 - [ ] **S19-08** `[M]` Funnel de booking por WhatsApp OpenClaw — generar artifact `data/funnel/whatsapp-openclaw-latest.json` con etapas: `inbound → availability_lookup → hold_created → checkout_ready → appointment_created → handoff`. Verificable: el artifact existe aunque alguna etapa esté en 0.
 
