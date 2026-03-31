@@ -9,6 +9,18 @@ Para detalles tecnicos profundos, ver `docs/DEPLOY_HOSTING_PLAYBOOK.md`.
 Para publicar un `main` ya validado, ver `docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md`.
 Para el cron host-side de `public_main_sync`, ver `docs/PUBLIC_V3_CRON_INSTALL.md`.
 
+### Preflight obligatorio de secrets Kubernetes
+
+Antes de cualquier deploy o rollback operativo, validar el Secret real del
+cluster y confirmar que no quedan placeholders:
+
+```bash
+bash ./ops/check-secrets.sh --namespace pielarmonia --secret pielarmonia-secret
+```
+
+El script falla si detecta valores vacios, `change-me`, `...`, sentinels del
+tipo `__REPLACE_*__` o placeholders obvios como `example.com`.
+
 ### 1.1 Despliegue Automatico (Recomendado)
 
 El repositorio cuenta con un flujo de GitHub Actions
@@ -17,10 +29,11 @@ El repositorio cuenta con un flujo de GitHub Actions
 
 **Pasos:**
 
-1.  Realizar cambios en una rama de `feature`.
-2.  Crear Pull Request y fusionar a `main`.
-3.  Verificar la ejecucion del Action en la pestana "Actions" de GitHub.
-4.  Una vez completado (verde), ejecutar la validacion post-despliegue.
+1.  Ejecutar `bash ./ops/check-secrets.sh --namespace pielarmonia --secret pielarmonia-secret`.
+2.  Realizar cambios en una rama de `feature`.
+3.  Crear Pull Request y fusionar a `main`.
+4.  Verificar la ejecucion del Action en la pestana "Actions" de GitHub.
+5.  Una vez completado (verde), ejecutar la validacion post-despliegue.
 
 ### 1.2 Despliegue Manual (FTP)
 
@@ -28,7 +41,8 @@ Si el despliegue automatico falla, se puede subir manualmente.
 
 **Pasos:**
 
-1.  Ejecutar `npm run bundle:deploy` para generar el paquete ZIP en
+1.  Ejecutar `bash ./ops/check-secrets.sh --namespace pielarmonia --secret pielarmonia-secret`.
+2.  Ejecutar `npm run bundle:deploy` para generar el paquete ZIP en
     `_deploy_bundle/`.
     El ZIP preserva los wrappers raiz junto con `scripts/ops/prod`,
     `scripts/ops/setup` y `bin/powershell` para que el tooling incluido siga
@@ -37,11 +51,11 @@ Si el despliegue automatico falla, se puede subir manualmente.
     `js/public-v6-shell.js`), el runtime admin V3 (`admin.js`,
     `js/admin-chunks/**`, `js/admin-preboot-shortcuts.js`) y las superficies de
     turnero (`operador-turnos.html`, `kiosco-turnos.html`, `sala-turnos.html`).
-2.  Conectarse al servidor FTP (credenciales en gestor de contrasenas del equipo).
-3.  Subir el contenido del ZIP a `public_html/`.
-4.  **Importante:** No sobrescribir la carpeta `data/` si ya contiene datos de
+3.  Conectarse al servidor FTP (credenciales en gestor de contrasenas del equipo).
+4.  Subir el contenido del ZIP a `public_html/`.
+5.  **Importante:** No sobrescribir la carpeta `data/` si ya contiene datos de
     produccion.
-5.  Si el bundle y los reportes locales ya no se necesitan, ejecutar
+6.  Si el bundle y los reportes locales ya no se necesitan, ejecutar
     `npm run clean:local:artifacts` para limpiar `_deploy_bundle/`,
     `.lighthouseci/`, `lhci_reports/`, `playwright-report/`,
     `test-results/`, `php_server.log`, `.php-cs-fixer.cache`,
@@ -465,4 +479,3 @@ Una vez revertido el cambio, ejecutar las siguientes validaciones:
 3.  **Logs:**
     - [ ] Verificar que no hay nuevos errores fatales en `php.log` o
           `error_log`.
-

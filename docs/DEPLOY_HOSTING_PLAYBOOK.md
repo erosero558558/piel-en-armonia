@@ -29,6 +29,16 @@ Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
 - Secrets opcionales para SSH dedicado: `SSH_USERNAME`, `SSH_PASSWORD` (fallback a `FTP_USERNAME/FTP_PASSWORD`)
 - Variables operativas que deben preservarse en el hosting/runtime: `AURORADERM_EMAIL_FROM`, `PIELARMONIA_EMAIL_FROM`, `FIGO_TELEGRAM_BOT_TOKEN`
 
+Preflight obligatorio antes de publicar o rotar secretos:
+
+```bash
+bash ./ops/check-secrets.sh --namespace pielarmonia --secret pielarmonia-secret
+```
+
+El check inspecciona el Secret real con `kubectl get secret` y falla si detecta
+valores vacios, `change-me`, `...`, `example.com` o sentinels del tipo
+`__REPLACE_*__`.
+
 Uso:
 
 - Push a `main`: deploy automatico.
