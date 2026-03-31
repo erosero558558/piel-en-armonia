@@ -285,6 +285,8 @@ Contexto del paciente se te dará como sistema de contexto.`,
       ...payload,
       medications,
       diagnoses,
+      vitalAlerts: Array.isArray(payload.vital_alerts) ? payload.vital_alerts : [],
+      vitalAlertCritical: payload.vital_alert_critical === true,
       lastDx: payload.lastDx || payload.last_dx || null,
       lastVisitSummary: String(payload.lastVisitSummary || payload.ai_summary || ''),
       visits: Array.isArray(payload.visits) ? payload.visits : [],
@@ -503,6 +505,7 @@ CONTEXTO DEL PACIENTE:
 - Diagnósticos previos: ${(patientContext.diagnoses || []).join(', ') || 'ninguno'}
 - Medicamentos activos: ${(patientContext.medications || []).map(m => m.name + ' ' + m.dose).join(', ') || 'ninguno'}
 - Alergias: ${(patientContext.allergies || []).join(', ') || 'ninguna conocida'}
+- Alertas de Signos Vitales Tomados en Admisión: ${(patientContext.vitalAlerts || []).join('; ') || 'ninguna alerta'}
 - Última visita: ${patientContext.lastVisitSummary || 'sin visitas previas'}
 ` : '';
 

@@ -97,8 +97,22 @@ final class OpenclawController
             ];
         }, array_slice(array_reverse($history['episodes'] ?? []), 0, 5));
 
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
+        $activeSession = ClinicalHistorySessionRepository::findSessionByCaseId($store, $case['id'] ?? $caseId);
+        $vitalAlerts = [];
+        $vitalAlertCritical = false;
+        if ($activeSession !== null) {
+            $draft = ClinicalHistorySessionRepository::findDraftBySessionId($store, (string) ($activeSession['sessionId'] ?? ''));
+            if ($draft !== null) {
+                $vitalAlerts = $draft['intake']['vitalSigns']['vitalAlerts'] ?? [];
+                $vitalAlertCritical = count($vitalAlerts) > 0;
+            }
+        }
+
         json_response([
             'ok' => true,
+            'vital_alerts'     => $vitalAlerts,
+            'vital_alert_critical' => $vitalAlertCritical,
             'patient_id'       => $patientId,
             'case_id'          => $case['id'] ?? $caseId,
             'name'             => trim(($case['firstName'] ?? '') . ' ' . ($case['lastName'] ?? '')),
@@ -722,11 +736,87 @@ final class OpenclawController
 
         $interactions = array_values(array_unique($interactions, SORT_REGULAR));
 
+        // S30-16: Check de teratogenicidad
+        // El GPT "Aurora Derm Clinica" NECESITA esto antes de prescribir a paciente femenina en edad fértil
+        $teratogenicityWarning = false;
+        $teratogenicDrugsAtRisk = [];
+        $pregnancyStatus = null;
+
+        if ($caseId !== '') {
+            $store = read_store();
+            // Buscar la sesión activa del caso para obtener datos de la paciente
+            foreach (($store['clinical_history_drafts'] ?? []) as $draft) {
+                if (trim((string) ($draft['caseId'] ?? '')) === $caseId) {
+                    $pregnancyStatus = $draft['intake']['datosPaciente']['embarazo'] ?? null;
+                    break;
+                }
+            }
+            // También buscar sexo y edad en el store de appointments/cases
+            $patientAgeYears = null;
+            $patientSex = '';
+            foreach (($store['cases'] ?? $store['patient_cases'] ?? []) as $case) {
+                if (trim((string) ($case['id'] ?? $case['caseId'] ?? '')) === $caseId) {
+                    $patientAgeYears = isset($case['ageYears']) ? (int) $case['ageYears'] : null;
+                    $patientSex = strtolower(trim((string) ($case['sexAtBirth'] ?? $case['sex'] ?? $case['gender'] ?? '')));
+                    if ($patientAgeYears === null && isset($case['birthDate']) && $case['birthDate'] !== '') {
+                        try {
+                            $dob = new DateTimeImmutable($case['birthDate']);
+                            $patientAgeYears = (int) $dob->diff(new DateTimeImmutable())->y;
+                        } catch (\Throwable $e) {}
+                    }
+                    break;
+                }
+            }
+
+            // Lista MSP-validada de teratógenos frecuentes en dermatología y medicina general
+            $knownTeratogens = [
+                'isotretinoina', 'isotretinoin', 'isotretinoína', 'roaccutan', 'acnotin',
+                'metotrexato', 'methotrexate', 'metotrexate',
+                'warfarina', 'warfarin', 'acenocumarol',
+                'acido valproico', 'valproato', 'valproic acid', 'valproate', 'depakene',
+                'talidomida', 'thalidomide',
+                'litio', 'lithium', 'carbolit',
+                'tetraciclina', 'tetracicline', 'doxiciclina', 'doxycycline', 'minociclina', 'minocycline',
+                'misoprostol', 'cytotec',
+                'finasterida', 'finasteride', 'propecia',
+                'fluconazol', 'fluconazole', // dosis altas
+                'ribavirin', 'ribavirina',
+                'retinol', 'vitamina a', 'vitamin a', // dosis farmacológicas
+            ];
+
+            $isFemaleChilbearing = (
+                ($patientSex === 'female' || $patientSex === 'femenino' || $patientSex === 'f' || $patientSex === 'mujer')
+                && $patientAgeYears !== null
+                && $patientAgeYears >= 14
+                && $patientAgeYears <= 55
+            );
+
+            if ($isFemaleChilbearing && $pregnancyStatus === null) {
+                foreach ($proposed as $proposedMed) {
+                    $propKey = strtolower(trim($proposedMed));
+                    foreach ($knownTeratogens as $teratogen) {
+                        if (str_contains($propKey, $teratogen) || str_contains($teratogen, $propKey)) {
+                            $teratogenicDrugsAtRisk[] = $proposedMed;
+                            $teratogenicityWarning = true;
+                            break;
+                        }
+                    }
+                }
+                $teratogenicDrugsAtRisk = array_values(array_unique($teratogenicDrugsAtRisk));
+            }
+        }
+
         json_response([
-            'ok'               => true,
-            'has_interactions' => count($interactions) > 0,
-            'active_medications' => $active,
-            'interactions'     => $interactions,
+            'ok'                    => true,
+            'has_interactions'      => count($interactions) > 0,
+            'active_medications'    => $active,
+            'interactions'          => $interactions,
+            'teratogenicity_warning'=> $teratogenicityWarning,
+            'drugs_at_risk'         => $teratogenicDrugsAtRisk,
+            'pregnancy_status'      => $pregnancyStatus,
+            'teratogenicity_note'   => $teratogenicityWarning
+                ? 'ADVERTENCIA: medicamento(s) teratogénico(s) detectado(s). Confirme que la paciente no está embarazada antes de prescribir.'
+                : null,
         ]);
     }
 
