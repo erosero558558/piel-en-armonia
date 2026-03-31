@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:08:13 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 5:13:44 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **56%** completado (253/449)
+`███████████░░░░░░░░░` **57%** completado (258/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -30,8 +30,8 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 14 | 2 | 12 | 14% |
 | ⏸ Sprint 15 | 1 | 12 | 8% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
-| ⏸ Sprint 17 | 5 | 7 | 42% |
-| ⏸ Sprint 18 | 0 | 4 | 0% |
+| ⏸ Sprint 17 | 8 | 4 | 67% |
+| ⏸ Sprint 18 | 2 | 2 | 50% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -235,28 +235,24 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 _Sprint completado. 13/13 tareas._
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
-_Esperando que Sprint anterior esté completo. 7 tareas pendientes._
-
-### 🟢 Disponibles (7)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S17-06** | `[S17]` | M |
-| **S17-07** | `[S17]` | M |
-| **S17-08** | `[S17]` | M |
-| **S17-10** | `[S17]` | M |
-| **S17-15** | `[S17]` | M |
-| ... | | _+2 más_ |
-
-## ⏸ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
 _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 
 ### 🟢 Disponibles (4)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S18-02** | `[S18]` | M |
-| **S18-03** | `[S18]` | M |
+| **S17-10** | `[S17]` | M |
+| **S17-15** | `[S17]` | M |
+| **S17-16** | `[S17]` | M |
+| **S17-17** | `[S17]` | M |
+
+## ⏸ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
+_Esperando que Sprint anterior esté completo. 2 tareas pendientes._
+
+### 🟢 Disponibles (2)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
 | **S18-11** | `[S18]` | M |
 | **S18-12** | `[S18]` | M |
 

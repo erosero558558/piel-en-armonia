@@ -1863,12 +1863,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 17.3 Membresía con enforcement real
 
-- [ ] **S17-06** `[M]` Enforcement de membresía activa — `es/membresia/index.html` existe. Falta: en backend, verificar `membership_status` en `PatientCaseController`: si paciente es miembro → flag `priority_booking: true` en respuesta. En admin → badge "⭐ Miembro" visible en ficha. Descuento automático según plan en cierre de consulta. Verificable: `GET /api.php?resource=patient-cases` → campo `membership_status` present.
-- [ ] **S17-07** `[M]` Estado y renovación de membresía — en `es/portal/index.html`: card "Mi Plan" con estado (Activo / Vence en X días / Vencido), perks activos y CTA "Renovar". Si vence en <30 días → banner de renovación en portal y en admin cuando médico ve al paciente. Backend: `GET /api.php?resource=membership-status?patient_id=X` → `{status, expires_at, days_remaining, perks[]}`. Verificable: un miembro con plan vencido ve estado "Vencido" en portal.
+- [x] **S17-06** `[M]` Enforcement de membresía activa — `es/membresia/index.html` existe. Falta: en backend, verificar `membership_status` en `PatientCaseController`: si paciente es miembro → flag `priority_booking: true` en respuesta. En admin → badge "⭐ Miembro" visible en ficha. Descuento automático según plan en cierre de consulta. Verificable: `GET /api.php?resource=patient-cases` → campo `membership_status` present.
+- [x] **S17-07** `[M]` Estado y renovación de membresía — en `es/portal/index.html`: card "Mi Plan" con estado (Activo / Vence en X días / Vencido), perks activos y CTA "Renovar". Si vence en <30 días → banner de renovación en portal y en admin cuando médico ve al paciente. Backend: `GET /api.php?resource=membership-status?patient_id=X` → `{status, expires_at, days_remaining, perks[]}`. Verificable: un miembro con plan vencido ve estado "Vencido" en portal.
 
 #### 17.4 Paquetes con control de sesiones
 
-- [ ] **S17-08** `[M]` Consumo de sesiones de paquete — `es/paquetes/index.html` existe como landing. Falta backend: `lib/packages/PackageService.php` con `activatePackage(patient_id, package_id)`, `consumeSession(patient_id, package_id)`, `getBalance(patient_id)`. En admin: ved progreso del paquete "3/5 sesiones usadas". En portal: card con sesiones restantes. Verificable: después de cerrar una consulta con servicio incluido en paquete → sesión decrementada.
+- [x] **S17-08** `[M]` Consumo de sesiones de paquete — `es/paquetes/index.html` existe como landing. Falta backend: `lib/packages/PackageService.php` con `activatePackage(patient_id, package_id)`, `consumeSession(patient_id, package_id)`, `getBalance(patient_id)`. En admin: ved progreso del paquete "3/5 sesiones usadas". En portal: card con sesiones restantes. Verificable: después de cerrar una consulta con servicio incluido en paquete → sesión decrementada.
 
 #### 17.5 Conversión de páginas a ventas
 
@@ -1888,8 +1888,8 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 18.1 Onboarding y adopción inicial
 
-- [ ] **S18-02** `[M]` Onboarding progress persistente — las consolas y tests del onboarding existen. Falta: estado real por clínica guardado en store (pasos completados, bloqueados, ETA estimada, "next best action"). `GET /api.php?resource=onboarding-progress?clinic_id=X` → `{steps: [{id, name, status, blocker?}], percent, next_action}`. Admin puede ver progreso de cada clínica piloto. Verificable: completar paso 2 → el paso 3 aparece como "available" y el 2 como "done".
-- [ ] **S18-03** `[M]` Guided walkthrough in-app — primer uso guiado para admin y operator: al primer login, mostrar walkthrough de 5 pasos contextual (no tooltip estático, no docs externos). Pasos: (1) Emitir ticket de prueba, (2) Llamar turno desde operator, (3) Ver agenda del día, (4) Ver dashboard, (5) ¡Listo! El walkthrough se puede saltar y reactivar desde "Ayuda". Estado guardado en localStorage. Verificable: al limpiar localStorage, el walkthrough aparece de nuevo en el primer clic.
+- [x] **S18-02** `[M]` Onboarding progress persistente — las consolas y tests del onboarding existen. Falta: estado real por clínica guardado en store (pasos completados, bloqueados, ETA estimada, "next best action"). `GET /api.php?resource=onboarding-progress?clinic_id=X` → `{steps: [{id, name, status, blocker?}], percent, next_action}`. Admin puede ver progreso de cada clínica piloto. Verificable: completar paso 2 → el paso 3 aparece como "available" y el 2 como "done".
+- [x] **S18-03** `[M]` Guided walkthrough in-app — primer uso guiado para admin y operator: al primer login, mostrar walkthrough de 5 pasos contextual (no tooltip estático, no docs externos). Pasos: (1) Emitir ticket de prueba, (2) Llamar turno desde operator, (3) Ver agenda del día, (4) Ver dashboard, (5) ¡Listo! El walkthrough se puede saltar y reactivar desde "Ayuda". Estado guardado en localStorage. Verificable: al limpiar localStorage, el walkthrough aparece de nuevo en el primer clic.
 
 #### 18.2 Soporte en contexto
 

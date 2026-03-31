@@ -141,10 +141,29 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'certificate', [CertificateController::class, 'index']);
     $router->add('POST', 'certificate', [CertificateController::class, 'store']);
 
+    // Membresías
+    $router->add('GET', 'membership-status', [MembershipController::class, 'status']);
+    $router->add('POST', 'membership-issue', [MembershipController::class, 'issue']);
+    $router->add('GET', 'package-balance', [MembershipController::class, 'packageBalance']);
+    $router->add('POST', 'package-activate', [MembershipController::class, 'activatePackage']);
+    $router->add('POST', 'package-consume', [MembershipController::class, 'consumeSession']);
+
     // Referidos
     $router->add('GET', 'referral-link', [ReferralController::class, 'getLink']);
     $router->add('GET', 'referral-stats', [ReferralController::class, 'getStats']);
     $router->add('POST', 'referral-click', [ReferralController::class, 'trackClick']);
+
+    // Membresías — S17-06, S17-07, S17-08
+    $router->add('GET', 'membership-status', [MembershipController::class, 'status']);
+    $router->add('POST', 'membership-issue', [MembershipController::class, 'issue']);
+    $router->add('GET', 'package-balance', [MembershipController::class, 'packageBalance']);
+    $router->add('POST', 'package-activate', [MembershipController::class, 'activatePackage']);
+    $router->add('POST', 'package-consume', [MembershipController::class, 'consumeSession']);
+
+    // Onboarding + Walkthrough — S18-02, S18-03
+    $router->add('GET', 'onboarding-progress', [OnboardingController::class, 'progress']);
+    $router->add('POST', 'onboarding-step', [OnboardingController::class, 'updateStep']);
+    $router->add('GET', 'walkthrough-config', [OnboardingController::class, 'walkthroughConfig']);
 
     $router->add('GET', 'reviews', [ReviewController::class, 'index']);
     $router->add('POST', 'reviews', [ReviewController::class, 'store']);
