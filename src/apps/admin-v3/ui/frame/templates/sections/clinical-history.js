@@ -209,6 +209,13 @@ export function renderClinicalHistorySection() {
                             Sin cambios
                         </span>
                     </header>
+                    <div class="clinical-history-cie10-toolbar" style="padding: 16px; border-bottom: 1px solid var(--admin-border); display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="diagnosisCode" class="input" placeholder="CIE-10 (ej. L400)" style="width: 120px;" autocomplete="off" />
+                        <input type="text" id="diagnosisLabel" class="input" placeholder="Diagnóstico" style="flex: 1;" autocomplete="off" />
+                        <button type="button" class="btn" style="background: rgba(106, 126, 150, 0.1); border: 1px solid var(--color-aurora-500); display: flex; align-items: center; gap: 4px;" onclick="window.cie10Search && window.cie10Search.open()">
+                            🔍 CIE-10
+                        </button>
+                    </div>
                     <form
                         id="clinicalHistoryDraftForm"
                         class="clinical-history-form"
@@ -321,6 +328,27 @@ export function renderClinicalHistorySection() {
                     </div>
                 </article>
             </div>
+            
+            <script type="module">
+                import '/js/cie10-search.js';
+                window.addEventListener('load', () => {
+                    setTimeout(() => {
+                        window.cie10SearchEngine = new window.CIE10Search({
+                            onSelect: (item) => {
+                                const codeEl = document.getElementById('diagnosisCode') || document.querySelector('[name="diagnosisCode"]') || document.querySelector('[name="clinician_cie10"]');
+                                const labelEl = document.getElementById('diagnosisLabel') || document.querySelector('[name="diagnosisLabel"]') || document.querySelector('[name="hcu005_diagnostic_impression"]');
+                                if (codeEl) codeEl.value = item.code;
+                                if (labelEl) labelEl.value = item.label;
+                            }
+                        });
+                        document.body.addEventListener('click', (e) => {
+                            if (e.target.closest('#btnCie10Search')) {
+                                window.cie10SearchEngine.open();
+                            }
+                        });
+                    }, 500);
+                });
+            </script>
         </section>
     `;
 }

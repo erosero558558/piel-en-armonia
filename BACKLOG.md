@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:16:03 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 5:22:22 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████████░░░░░░░░` **60%** completado (359/595)
+`████████████░░░░░░░░` **61%** completado (360/595)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 19 | 90 | 17% |
+| ⏸ Sprint UI | 20 | 89 | 18% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -261,9 +261,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 90 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 89 tareas pendientes._
 
-### 🟢 Disponibles (89)
+### 🟢 Disponibles (88)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -272,11 +272,11 @@ _Esperando que Sprint anterior esté completo. 90 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-04** | `[S24]` | L |
 | **S24-05** | `[S24]` | S |
-| ... | | _+84 más_ |
+| ... | | _+83 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S29-01** `[S29]` → _Antigravity_ (expira en 476min)
+- **S29-02** `[S29]` → _Antigravity_ (expira en 239min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

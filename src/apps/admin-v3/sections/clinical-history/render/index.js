@@ -9014,16 +9014,23 @@ function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
                             disabled,
                         }
                     ),
-                    textareaField(
-                        'clinician_cie10',
-                        'CIE-10 sugeridos',
-                        listToTextarea(draft.clinicianDraft.cie10Sugeridos),
-                        {
-                            rows: 4,
-                            placeholder: 'Ej. L20.9',
-                            disabled,
-                        }
-                    ),
+                    `
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        ${textareaField(
+                            'clinician_cie10',
+                            'CIE-10 sugeridos',
+                            listToTextarea(draft.clinicianDraft.cie10Sugeridos),
+                            {
+                                rows: 2,
+                                placeholder: 'Ej. L20.9',
+                                disabled,
+                            }
+                        )}
+                        <button type="button" id="btnCie10Search" class="clinical-history-action-btn" ${disabled ? 'disabled' : ''} style="width: 100%; justify-content: center;">
+                            🔍 CIE-10 Buscar
+                        </button>
+                    </div>
+                    `
                 ])}
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(

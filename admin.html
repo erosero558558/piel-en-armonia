@@ -46,6 +46,37 @@
         <script src="js/certificate-modal.js"></script>
         <script src="js/aurora-toast.js"></script>
         <script src="js/aurora-shortcuts.js"></script>
+        <link rel="stylesheet" href="/styles/cie10-search.css">
+        <script src="/js/cie10-search.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                if (typeof window.CIE10Search !== 'undefined') {
+                    window.cie10Search = new window.CIE10Search({
+                        dataPath: '/data/cie10-derm.json',
+                        onSelect: (item) => {
+                            const codeInputs = ['diagnosisCode', 'clinician_cie10', 'consent_packet_diagnosis_cie10', 'interconsult_diagnosis_def_cie10'];
+                            const labelInputs = ['diagnosisLabel', 'hcu005_diagnostic_impression', 'consent_packet_diagnosis_label', 'interconsult_diagnosis_def_label'];
+                            
+                            codeInputs.forEach(id => {
+                                const el = document.getElementById(id);
+                                if (el) {
+                                    el.value = item.code;
+                                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            });
+                            
+                            labelInputs.forEach(id => {
+                                const el = document.getElementById(id);
+                                if (el) {
+                                    el.value = item.label;
+                                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        </script>
     
 <!-- UI-01: Global Design Tokens & Typography -->
 <link rel="preconnect" href="https://fonts.googleapis.com">

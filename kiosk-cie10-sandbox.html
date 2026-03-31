@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sandbox CIE-10 (cpockets clon)</title>
+    <link rel="stylesheet" href="styles/cie10-search.css">
+    <style>
+        body { font-family: system-ui, sans-serif; padding: 40px; background: #e2e8f0; }
+        .sandbox-panel { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 500px; margin: auto; }
+        .sandbox-panel h1 { font-size: 1.5rem; margin-top: 0; }
+        button { padding: 10px 16px; font-size: 1rem; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .result-box { margin-top: 20px; padding: 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="sandbox-panel">
+    <h1>CIE-10 Sandbox (S29-02)</h1>
+    <p>Presiona <strong>Ctrl+K</strong> o Cmd+K para abrir el buscador CIE-10, o haz click en el botón.</p>
+    
+    <button id="btnSearch">Abrir Buscador</button>
+
+    <div class="result-box" id="resultOutput">
+        No hay diagnóstico seleccionado.
+    </div>
+</div>
+
+<script src="js/cie10-search.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const search = new CIE10Search({
+            dataPath: 'data/cie10-derm.json',
+            onSelect: (item) => {
+                document.getElementById('resultOutput').innerHTML = 
+                    `<strong style="color: #0f172a">${item.code}</strong> - ${item.label}`;
+            }
+        });
+
+        document.getElementById('btnSearch').addEventListener('click', () => {
+            search.open();
+        });
+    });
+</script>
+</body>
+</html>

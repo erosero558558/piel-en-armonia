@@ -1,0 +1,94 @@
+/* styles/cie10-search.css */
+
+.cie10-modal {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    margin: auto;
+    width: 90%;
+    max-width: 600px;
+    background: #f6f8fb;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.cie10-modal::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+}
+
+.cie10-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.cie10-input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 24px;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #0f172a;
+    background: transparent;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.cie10-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.cie10-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    background: #f6f8fb;
+}
+
+.cie10-item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 16px 24px;
+    cursor: pointer;
+    border-bottom: 1px solid #e2e8f0;
+    transition: background-color 0.2s ease;
+}
+
+.cie10-item:last-child {
+    border-bottom: none;
+}
+
+.cie10-item:hover,
+.cie10-item.active {
+    background: #ffffff;
+}
+
+.cie10-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-weight: 700;
+    color: #0f172a;
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.cie10-label {
+    font-weight: 500;
+    color: #334155;
+    flex-grow: 1;
+    text-transform: uppercase;
+}
+
+.cie10-status {
+    padding: 12px 24px;
+    font-size: 0.875rem;
+    color: #64748b;
+    background: #f1f5f9;
+    border-top: 1px solid #e2e8f0;
+    text-align: center;
+}
