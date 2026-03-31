@@ -1,0 +1,54 @@
+/* 
+   UI4-15: Liquid Glass Blog Overhaul
+   This defines the core components for the Blog's Liquid Glass reading experience.
+*/
+
+/* 1. Glass Table of Contents (TOC) */
+.lg-surface.v6-blog-toc {
+    position: sticky;
+    top: 140px;
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 30px;
+    /* Uses lg-surface mixins defined natively in the global token space */
+}
+
+/* 2. Glass Callouts / Quotes */
+.v6-blog-callout.glass-callout {
+    position: relative;
+    border-radius: 16px;
+    padding: 24px 30px;
+    margin: 32px 0;
+    border-left: 4px solid var(--reborn-color-aurora-gold, #c7a36d);
+    /* Injected into the prose context to blur the background under heavy text */
+}
+
+.v6-blog-callout.lg-surface--dark {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.v6-blog-callout.lg-surface--dark strong,
+.v6-blog-callout.lg-surface--dark h3 {
+    color: var(--reborn-color-aurora-gold, #c7a36d);
+    margin-bottom: 12px;
+    font-size: 1.1em;
+}
+
+/* 3. Reading Progress Bar */
+.v6-blog-progress-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: transparent;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.v6-blog-progress.lg-surface--gold {
+    height: 100%;
+    width: 0%;
+    border-radius: 0 4px 4px 0;
+    transition: width 0.1s ease-out;
+}

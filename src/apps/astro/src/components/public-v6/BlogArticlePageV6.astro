@@ -120,6 +120,12 @@ const introBody = Array.isArray(intro?.body)
     copy={pageHeadUi}
 />
 
+<link rel="stylesheet" href="/styles/aurora-blog.css" />
+
+<div class="v6-blog-progress-container">
+    <div class="v6-blog-progress lg-surface--gold" id="blogReadingProgress"></div>
+</div>
+
 <section class="v6-page-hero-media is-internal v6-page-hero-media--blog-article" data-v6-blog-article-hero>
     <div class="v6-blog-article-hero-shell">
         <figure class="v6-blog-article-hero-shell__media">
@@ -174,7 +180,7 @@ const introBody = Array.isArray(intro?.body)
 <div class="v6-internal-shell v6-blog-article-shell" data-v6-blog-article>
     {
         articleMenuItems.length || railTitle ? (
-            <aside class="v6-internal-rail" data-v6-internal-rail>
+            <aside class="v6-internal-rail v6-blog-toc lg-surface" data-v6-internal-rail>
                 {railTitle ? <p>{railTitle}</p> : null}
                 {
                     articleMenuItems.length ? (
@@ -223,9 +229,16 @@ const introBody = Array.isArray(intro?.body)
                         </header>
                         <div class="v6-blog-article-section__prose">
                             {
-                                section.body.map((paragraph) => (
-                                    <p set:html={paragraph}></p>
-                                ))
+                                section.body.map((paragraph) => {
+                                    const isQuote = paragraph.trim().startsWith('“') || paragraph.trim().startsWith('"') || paragraph.trim().startsWith('«') || paragraph.trim().startsWith('<strong>');
+                                    return isQuote ? (
+                                        <div class="v6-blog-callout glass-callout lg-surface--dark">
+                                            <p set:html={paragraph}></p>
+                                        </div>
+                                    ) : (
+                                        <p set:html={paragraph}></p>
+                                    );
+                                })
                             }
                         </div>
                         {
@@ -737,3 +750,18 @@ const introBody = Array.isArray(intro?.body)
         }
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const progressBar = document.getElementById('blogReadingProgress');
+        const updateProgress = () => {
+            const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            if (docHeight > 0) {
+                const scrolled = (window.scrollY / docHeight) * 100;
+                if (progressBar) progressBar.style.width = scrolled + '%';
+            }
+        };
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        updateProgress();
+    });
+</script>

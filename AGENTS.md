@@ -2081,7 +2081,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI4-14** `[M]` `[UI]` Services page glass redesign — `es/servicios/*/index.html`: header de servicio con vidrio flotante sobre imagen de fondo (position relative + glass panel absolute), precio/duración en pill de glass gold. CTA "Agendar cita" con estado hover glass. Verificable: `grep "lg-surface\|glass-pill" es/servicios/diagnostico-integral/index.html` → match.
 
-- [ ] **UI4-15** `[M]` `[UI]` Blog article glass — `es/blog/*/index.html`: tabla de contenidos sticky como panel glass a la derecha, citas/callouts con glass dark tint, progress bar de lectura glass gold. Verificable: `grep "lg-surface.*toc\|glass.*callout" styles/aurora-blog.css` → match.
+- [x] **UI4-15** `[M]` `[UI]` Blog article glass — `es/blog/*/index.html`: tabla de contenidos sticky como panel glass a la derecha, citas/callouts con glass dark tint, progress bar de lectura glass gold. Verificable: `grep "lg-surface.*toc\|glass.*callout" styles/aurora-blog.css` → match.
 
 #### 20.5 Portal del paciente — Experiencia premium
 
