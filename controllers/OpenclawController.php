@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../lib/openclaw/AIRouter.php';
 require_once __DIR__ . '/../lib/DoctorProfileStore.php';
 require_once __DIR__ . '/../lib/ClinicProfileStore.php';
+require_once __DIR__ . '/../lib/email.php';
 
 /**
  * OpenclawController — Copiloto clínico de Aurora Derm
@@ -439,18 +440,40 @@ final class OpenclawController
         }
 
         $pdfUrl      = '/api.php?resource=openclaw-prescription&id=' . $rxId . '&format=pdf';
-        $patientCtx  = self::readStore()['patients'][$caseId] ?? [];
+        $savedStore = isset($result['store']) && is_array($result['store'])
+            ? $result['store']
+            : self::readStore();
+        $patientCtx  = $savedStore['patients'][$caseId] ?? [];
         $phone       = $patientCtx['phone'] ?? '';
         $clinicProfile = read_clinic_profile();
         $clinicName  = $clinicProfile['clinicName'] ?? 'la clínica';
         $waMsg       = urlencode("Su receta médica de {$clinicName} está lista. Para descargarla visite el siguiente enlace o contacte a la clínica.");
         $waUrl       = $phone !== '' ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) . '?text=' . $waMsg : '';
+        $emailSent   = false;
+
+        if (isset($savedStore['prescriptions'][$rxId]) && is_array($savedStore['prescriptions'][$rxId])) {
+            $emailSent = maybe_send_prescription_ready_email(
+                $savedStore,
+                $savedStore['prescriptions'][$rxId],
+                [],
+                [
+                    'portalUrl' => AppConfig::BASE_URL . '/es/portal/receta/',
+                ]
+            );
+
+            if ($emailSent) {
+                $savedStore['prescriptions'][$rxId]['emailSentAt'] = local_date('c');
+                $savedStore['prescriptions'][$rxId]['emailChannel'] = 'email';
+                write_store($savedStore, false);
+            }
+        }
 
         json_response([
             'ok'              => true,
             'prescription_id' => $rxId,
             'pdf_url'         => $pdfUrl,
             'whatsapp_url'    => $waUrl,
+            'email_sent'      => $emailSent,
         ]);
     }
 

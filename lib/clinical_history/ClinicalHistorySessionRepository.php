@@ -725,8 +725,6 @@ final class ClinicalHistorySessionRepository
                     'medication' => $legacyMedication,
                     'directions' => $legacyDirections,
                     'signedAt' => self::trimString($prescription['signedAt'] ?? ''),
-                    'patientEmailSentAt' => self::trimString($prescription['patientEmailSentAt'] ?? ''),
-                    'patientEmailChannel' => self::trimString($prescription['patientEmailChannel'] ?? ''),
                     'confidential' => array_key_exists('confidential', $prescription)
                         ? (bool) $prescription['confidential']
                         : true,

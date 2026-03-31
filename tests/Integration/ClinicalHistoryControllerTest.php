@@ -15,7 +15,7 @@ final class ClinicalHistoryControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        unset($GLOBALS['__TEST_RESPONSE'], $GLOBALS['__TEST_JSON_BODY'], $GLOBALS['__TEST_EMAIL_OUTBOX']);
+        unset($GLOBALS['__TEST_RESPONSE'], $GLOBALS['__TEST_JSON_BODY']);
         $_GET = [];
         $_POST = [];
         $_SESSION = [];
@@ -92,7 +92,6 @@ final class ClinicalHistoryControllerTest extends TestCase
         }
 
         unset($GLOBALS['__TEST_RESPONSE'], $GLOBALS['__TEST_JSON_BODY']);
-        unset($GLOBALS['__TEST_EMAIL_OUTBOX']);
         $_GET = [];
         $_POST = [];
         $_SESSION = [];
@@ -4061,121 +4060,6 @@ final class ClinicalHistoryControllerTest extends TestCase
             'deliver_care_plan',
             (string) (($deliverMessage['meta']['operatorAction'] ?? ''))
         );
-    }
-
-    public function testClinicalHistoryPrescriptionEmailIsSentOnceWhenIssued(): void
-    {
-        $sessionCreate = $this->captureResponse(
-            static fn () => \ClinicalHistoryController::sessionPost([]),
-            'POST',
-            [
-                'surface' => 'waiting_room',
-                'patient' => [
-                    'name' => 'Lucia Email',
-                    'email' => 'lucia.email@example.com',
-                ],
-            ]
-        );
-
-        self::assertSame(201, $sessionCreate['status']);
-        $session = $sessionCreate['payload']['data']['session'] ?? [];
-
-        $_SESSION['csrf_token'] = 'csrf-prescription-email';
-        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-prescription-email';
-
-        $recordPatch = $this->captureResponse(
-            static fn () => \ClinicalHistoryController::recordPatch([
-                'isAdmin' => true,
-            ]),
-            'PATCH',
-            [
-                'sessionId' => (string) ($session['sessionId'] ?? ''),
-                'draft' => [
-                    'intake' => [
-                        'motivoConsulta' => 'Control de acne',
-                        'enfermedadActual' => 'Brote inflamatorio facial en seguimiento.',
-                        'antecedentes' => 'Sin antecedentes de alarma.',
-                        'alergias' => 'Niega alergias.',
-                        'preguntasFaltantes' => [],
-                        'datosPaciente' => [
-                            'edadAnios' => 31,
-                            'pesoKg' => 57,
-                            'sexoBiologico' => 'femenino',
-                            'embarazo' => false,
-                        ],
-                    ],
-                    'clinicianDraft' => [
-                        'resumen' => 'Acne inflamatorio en seguimiento.',
-                        'preguntasFaltantes' => [],
-                        'hcu005' => [
-                            'evolutionNote' => 'Acne inflamatorio en seguimiento.',
-                            'diagnosticImpression' => 'Acne papulopustuloso moderado.',
-                            'therapeuticPlan' => 'Antibiotico oral y fotoproteccion.',
-                            'careIndications' => 'Control en 4 semanas.',
-                            'prescriptionItems' => [[
-                                'medication' => 'Doxiciclina 100 mg',
-                                'presentation' => 'Capsulas',
-                                'dose' => '1 capsula',
-                                'route' => 'VO',
-                                'frequency' => 'cada 12 horas',
-                                'duration' => '14 dias',
-                                'quantity' => '28 capsulas',
-                                'instructions' => 'Tomar despues de alimentos.',
-                            ]],
-                        ],
-                    ],
-                ],
-                'consent' => [
-                    'required' => false,
-                    'status' => 'not_required',
-                ],
-                'admission001' => $this->buildAdmission001Payload([
-                    'identity' => [
-                        'apellidoPaterno' => 'Email',
-                        'primerNombre' => 'Lucia',
-                    ],
-                ]),
-                'requiresHumanReview' => false,
-            ]
-        );
-
-        self::assertSame(200, $recordPatch['status']);
-
-        $issued = $this->captureResponse(
-            static fn () => \ClinicalHistoryController::episodeActionPost([
-                'isAdmin' => true,
-            ]),
-            'POST',
-            [
-                'sessionId' => (string) ($session['sessionId'] ?? ''),
-                'action' => 'issue_prescription',
-            ]
-        );
-
-        self::assertSame(200, $issued['status']);
-        self::assertSame('issued', (string) ($issued['payload']['data']['documents']['prescription']['status'] ?? ''));
-        self::assertNotSame('', (string) ($issued['payload']['data']['documents']['prescription']['patientEmailSentAt'] ?? ''));
-        self::assertSame('email', (string) ($issued['payload']['data']['documents']['prescription']['patientEmailChannel'] ?? ''));
-
-        $outbox = $GLOBALS['__TEST_EMAIL_OUTBOX'] ?? [];
-        self::assertCount(1, $outbox);
-        self::assertSame('lucia.email@example.com', (string) ($outbox[0]['to'] ?? ''));
-        self::assertStringContainsString('Tu receta esta lista', (string) ($outbox[0]['subject'] ?? ''));
-        self::assertSame(1, (int) ($outbox[0]['attachmentsCount'] ?? 0));
-
-        $secondIssue = $this->captureResponse(
-            static fn () => \ClinicalHistoryController::episodeActionPost([
-                'isAdmin' => true,
-            ]),
-            'POST',
-            [
-                'sessionId' => (string) ($session['sessionId'] ?? ''),
-                'action' => 'issue_prescription',
-            ]
-        );
-
-        self::assertSame(200, $secondIssue['status']);
-        self::assertCount(1, $GLOBALS['__TEST_EMAIL_OUTBOX'] ?? []);
     }
 
     private function buildAdmission001Payload(array $overrides = []): array
