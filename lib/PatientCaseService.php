@@ -635,6 +635,25 @@ final class PatientCaseService
     {
         $store = $this->hydrateStore($store);
         $cases = isset($store['patient_cases']) && is_array($store['patient_cases']) ? $store['patient_cases'] : [];
+        
+        require_once __DIR__ . '/memberships/MembershipService.php';
+        $membershipSvc = new MembershipService();
+        foreach ($cases as &$case) {
+            $pid = trim((string)($case['patientId'] ?? ''));
+            if ($pid !== '') {
+                $status = $membershipSvc->getStatus($pid);
+                $case['membership_status'] = $status !== null;
+                $case['membership_plan'] = $status !== null ? $status['plan'] : null;
+                if ($status !== null) {
+                    $case['priority_booking'] = true;
+                }
+            } else {
+                $case['membership_status'] = false;
+                $case['membership_plan'] = null;
+            }
+        }
+        unset($case);
+
         $links = isset($store['patient_case_links']) && is_array($store['patient_case_links'])
             ? $store['patient_case_links']
             : [];
@@ -1084,6 +1103,8 @@ final class PatientCaseService
             'previousVisitsCount' => $previousVisitsCount,
             'lastCompletedVisitAt' => $lastCompletedVisitAt !== '' ? $lastCompletedVisitAt : null,
             'alerts' => $this->buildQueueTicketAlerts($ticket, $case, $approvals),
+            'membership_status' => (bool)($case['membership_status'] ?? false),
+            'membership_plan' => (string)($case['membership_plan'] ?? ''),
         ];
 
         return $ticket;

@@ -868,9 +868,20 @@ public function  buildAdminPayload(array $store, array $session, array $draft): 
         ];
     }
 
-public function  buildClinicalRecordPayload(array $store, array $session, array $draft): array
+    public function buildClinicalRecordPayload(array $store, array $session, array $draft): array
     {
+        require_once __DIR__ . '/../memberships/MembershipService.php';
+        $membershipSvc = new MembershipService();
+        $pid = trim((string)($session['caseId'] ?? $session['patient']['id'] ?? ''));
+        $membershipStatus = false;
+        if ($pid !== '') {
+            $status = $membershipSvc->getStatus($pid);
+            $membershipStatus = $status !== null;
+        }
+
         $session = ClinicalHistoryRepository::adminSession($session);
+        $session['membership_status'] = $membershipStatus;
+        
         $draft = $this->synchronizeDraftClinicalState(
             ClinicalHistoryRepository::adminDraft($draft),
             $session

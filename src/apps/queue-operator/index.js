@@ -3776,6 +3776,8 @@ function getOperatorTicketPatientCaseSnapshot(ticket) {
         previousVisitsCount: 0,
         lastCompletedVisitAt: '',
         alerts: [],
+        membership_status: false,
+        membership_plan: '',
     };
 }
 
@@ -4157,7 +4159,11 @@ function renderOperatorCurrentTicketPanel() {
             <div class="queue-operator-current-ticket__header">
                 <div>
                     <p class="queue-operator-kicker">Turno llamado</p>
-                    <h4>${escapeHtml(patientLabel)}</h4>
+                    <h4>${escapeHtml(patientLabel)}${
+                        snapshot.membership_status
+                            ? ` <span class="queue-operator-current-ticket__badge" style="background:var(--gold);color:black;vertical-align:middle;margin-left:0.5rem;">⭐ Miembro</span>`
+                            : ''
+                    }</h4>
                     <p>${escapeHtml(ticketCode)} · ${escapeHtml(
                         getOperatorTicketCurrentStatusLabel(activeTicket)
                     )} · ${escapeHtml(consultorioLabel)}</p>

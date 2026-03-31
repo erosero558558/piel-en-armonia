@@ -345,7 +345,17 @@ function ensure_db_schema(): void
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
         "CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(code)",
-        "CREATE INDEX IF NOT EXISTS idx_referrals_patient_id ON referrals(patient_id)"
+        "CREATE INDEX IF NOT EXISTS idx_referrals_patient_id ON referrals(patient_id)",
+        "CREATE TABLE IF NOT EXISTS memberships (
+            id INTEGER PRIMARY KEY,
+            patient_id TEXT NOT NULL,
+            status TEXT DEFAULT 'active',
+            plan TEXT NOT NULL,
+            expires_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        "CREATE INDEX IF NOT EXISTS idx_memberships_patient_id ON memberships(patient_id)"
     ];
 
     foreach ($queries as $sql) {

@@ -691,9 +691,14 @@ final class CheckoutOrderService
             'sourceRoute' => '/es/pago/',
             'concept' => $concept,
             'notes' => $notes,
-            'amountCents' => self::normalizeAmountCents(
-                $payload['amount'] ?? '',
-                $payload['amountCents'] ?? null
+            'amountCents' => self::applyMembershipDiscount(
+                self::normalizeAmountCents(
+                    $payload['amount'] ?? '',
+                    $payload['amountCents'] ?? null
+                ),
+                $payerEmail,
+                $payerWhatsapp,
+                trim((string)($payload['patientCaseId'] ?? ''))
             ),
             'currency' => strtoupper(payment_currency()),
             'dueAt' => self::normalizeIsoDateTime(
@@ -720,6 +725,39 @@ final class CheckoutOrderService
             'createdAt' => $createdAt,
             'updatedAt' => $createdAt,
         ];
+    }
+
+    private static function applyMembershipDiscount(int $amountCents, string $email, string $whatsapp, string $caseId): int
+    {
+        require_once __DIR__ . '/memberships/MembershipService.php';
+        $membershipSvc = new MembershipService();
+        $membership = null;
+
+        // Try checking by caseId if provided, or common patient ID formats.
+        $candidates = array_filter([
+            $caseId,
+            trim($email) !== '' ? 'email:' . strtolower(trim($email)) : '',
+            trim($whatsapp) !== '' ? 'wa:' . trim($whatsapp) : '',
+        ], fn($v) => $v !== '');
+
+        foreach ($candidates as $candidate) {
+            $membership = $membershipSvc->getStatus($candidate);
+            if ($membership !== null) {
+                break;
+            }
+        }
+
+        if ($membership !== null && isset($membership['status']) && $membership['status'] === 'active') {
+            // Plan discount, default 15%
+            $discountPercent = 15;
+            if (isset($membership['plan']) && strtolower($membership['plan']) === 'gold') {
+                $discountPercent = 20;
+            }
+            $discountMultiplier = 1 - ($discountPercent / 100);
+            return (int) round($amountCents * $discountMultiplier);
+        }
+
+        return $amountCents;
     }
 
     private static function normalizeAmountCents($amountValue, $amountCentsValue): int

@@ -4948,18 +4948,19 @@ function readableTimestamp(value) {
 }
 
 function currentSelectionLabel(review) {
+    const badge = review?.session?.membership_status ? ' ⭐ Miembro' : '';
     const patientName =
         buildAdmissionLegalName(
             review.patientRecord?.admission001,
             review.session.patient
         ) || normalizeString(review.session.patient.name);
     if (patientName) {
-        return patientName;
+        return `${patientName}${badge}`;
     }
 
     const caseId = normalizeString(review.session.caseId);
     if (caseId) {
-        return `Caso ${caseId}`;
+        return `Caso ${caseId}${badge}`;
     }
 
     return 'Sin seleccion';
@@ -7845,7 +7846,7 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
             <div class="clinical-history-queue-head">
                 <strong>${escapeHtml(
                     item.patientName || item.caseId || 'Caso clinico'
-                )}</strong>
+                )}${item.membership_status ? ' ⭐ Miembro' : ''}</strong>
                 <span class="clinical-history-mini-chip" data-tone="${escapeHtml(
                     tone
                 )}">

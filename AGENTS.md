@@ -1859,7 +1859,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 17.2 Programa de referidos (motor, no solo landing)
 
 - [x] **S17-04** `[M]` Motor de referidos con link único — `es/referidos/index.html` existe sin backend. Crear `lib/referrals/ReferralService.php`: generar código único por paciente (`REF-XXXXX`), registrar clic, atribuir conversión cuando el referido agenda su primera cita. `GET /api.php?resource=referral-link?patient_id=X` → link trackeable. Verificable: un link de referido incrementa el contador de clics en cada visita.
-- [ ] **S17-05** `[M]` Wallet de beneficios por referidos — en `es/portal/`: sección "Mis Referidos" con: código compartible, referidos enviados, convertidos, beneficio ganado (ej: 10% próxima consulta), beneficio disponible para usar. Backend: `GET /api.php?resource=referral-stats?patient_id=X` → stats. Verificable: un paciente con 2 referidos convertidos ve beneficio aplicable en su portal.
+- [x] **S17-05** `[M]` Wallet de beneficios por referidos — en `es/portal/`: sección "Mis Referidos" con: código compartible, referidos enviados, convertidos, beneficio ganado (ej: 10% próxima consulta), beneficio disponible para usar. Backend: `GET /api.php?resource=referral-stats?patient_id=X` → stats. Verificable: un paciente con 2 referidos convertidos ve beneficio aplicable en su portal.
 
 #### 17.3 Membresía con enforcement real
 
