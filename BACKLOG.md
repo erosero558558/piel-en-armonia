@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 11:02:45 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 11:10:27 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████░░░░░░░░░░` **49%** completado (222/449)
+`██████████░░░░░░░░░░` **50%** completado (223/449)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -29,7 +29,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint UI | 19 | 1 | 95% |
 | ⏸ Sprint 14 | 2 | 12 | 14% |
 | ⏸ Sprint 15 | 1 | 12 | 8% |
-| ⏸ Sprint 16 | 3 | 10 | 23% |
+| ⏸ Sprint 16 | 4 | 9 | 31% |
 | ⏸ Sprint 17 | 0 | 12 | 0% |
 | ⏸ Sprint 18 | 0 | 4 | 0% |
 
@@ -242,18 +242,18 @@ _Esperando que Sprint anterior esté completo. 12 tareas pendientes._
 | ... | | _+7 más_ |
 
 ## ⏸ Sprint 16 — Calidad, Seguridad y Observabilidad Productiva
-_Esperando que Sprint anterior esté completo. 10 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 
-### 🟢 Disponibles (10)
+### 🟢 Disponibles (9)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S16-04** | `[S16]` | S |
 | **S16-05** | `[S16]` | M |
 | **S16-06** | `[S16]` | M |
 | **S16-13** | `[S16]` | S |
 | **S16-07** | `[S16]` | M |
-| ... | | _+5 más_ |
+| **S16-08** | `[S16]` | M |
+| ... | | _+4 más_ |
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._

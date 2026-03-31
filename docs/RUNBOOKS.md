@@ -361,7 +361,7 @@ Para replica remota real:
 Validacion manual del ultimo backup cifrado en destino:
 
 ```bash
-curl -s "https://DESTINO/verify-backup.php" -H "Authorization: Bearer BACKUP_RECEIVER_TOKEN"
+curl -s "https://DESTINO/verify-backup.php" -H "Authorization: Bearer $AURORADERM_BACKUP_VERIFY_TOKEN"
 ```
 
 ### 3.3 Revision de Auditoria
@@ -465,4 +465,3 @@ Una vez revertido el cambio, ejecutar las siguientes validaciones:
 3.  **Logs:**
     - [ ] Verificar que no hay nuevos errores fatales en `php.log` o
           `error_log`.
-

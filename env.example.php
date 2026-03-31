@@ -249,6 +249,9 @@
 // putenv('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN=token_diagnostico_largo');
 // putenv('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN_HEADER=Authorization');
 // putenv('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN_PREFIX=Bearer');
+// Token dedicado y de solo lectura para verify-backup.php.
+// No reutilizar AURORADERM_CRON_SECRET ni AURORADERM_DIAGNOSTICS_ACCESS_TOKEN.
+// putenv('AURORADERM_BACKUP_VERIFY_TOKEN=token_verificacion_backup_largo');
 // ── Rate limit (IP + usuario) ────────────────────────
 // Proxies de confianza (para usar X-Forwarded-For).
 // Por seguridad, X-Forwarded-For se ignora si la peticion no viene de una IP confiable.

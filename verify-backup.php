@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
-api_apply_cors(['GET', 'OPTIONS'], ['Authorization', 'X-Backup-Token', 'X-Cron-Token'], false);
+api_apply_cors(['GET', 'OPTIONS'], ['Authorization', 'X-Backup-Token'], false);
 
 function verify_backup_json(array $payload, int $status = 200): void
 {
@@ -40,12 +40,13 @@ function verify_backup_extract_token(): string
         return $backupToken;
     }
 
-    $cronToken = isset($_SERVER['HTTP_X_CRON_TOKEN']) ? trim((string) $_SERVER['HTTP_X_CRON_TOKEN']) : '';
-    if ($cronToken !== '') {
-        return $cronToken;
-    }
-
     return '';
+}
+
+function verify_backup_expected_token(): string
+{
+    $token = app_env('AURORADERM_BACKUP_VERIFY_TOKEN');
+    return is_string($token) ? trim($token) : '';
 }
 
 function verify_backup_authorization_state(): array
@@ -60,25 +61,42 @@ function verify_backup_authorization_state(): array
         ];
     }
 
-    $expectedTokens = [
-        app_env('AURORADERM_BACKUP_RECEIVER_TOKEN'),
-        app_env('AURORADERM_BACKUP_OFFSITE_TOKEN'),
-        app_env('AURORADERM_BACKUP_WEBHOOK_TOKEN'),
-        app_env('AURORADERM_CRON_SECRET')
+    $forbiddenTokens = [
+        [
+            'env' => 'AURORADERM_CRON_SECRET',
+            'code' => 'auth_forbidden_cron_secret',
+            'error' => 'CRON_SECRET no tiene permisos para verify-backup',
+        ],
+        [
+            'env' => 'AURORADERM_DIAGNOSTICS_ACCESS_TOKEN',
+            'code' => 'auth_forbidden_diagnostics_token',
+            'error' => 'AURORADERM_DIAGNOSTICS_ACCESS_TOKEN no tiene permisos para verify-backup',
+        ],
     ];
 
-    foreach ($expectedTokens as $expectedToken) {
-        if (!is_string($expectedToken) || trim($expectedToken) === '') {
+    foreach ($forbiddenTokens as $forbidden) {
+        $forbiddenToken = app_env((string) ($forbidden['env'] ?? ''));
+        if (!is_string($forbiddenToken) || trim($forbiddenToken) === '') {
             continue;
         }
-        if (hash_equals(trim($expectedToken), $providedToken)) {
+        if (hash_equals(trim($forbiddenToken), $providedToken)) {
             return [
-                'ok' => true,
-                'status' => 200,
-                'code' => '',
-                'error' => '',
+                'ok' => false,
+                'status' => 403,
+                'code' => (string) ($forbidden['code'] ?? 'auth_invalid'),
+                'error' => (string) ($forbidden['error'] ?? 'Token de verificacion invalido'),
             ];
         }
+    }
+
+    $expectedToken = verify_backup_expected_token();
+    if ($expectedToken !== '' && hash_equals($expectedToken, $providedToken)) {
+        return [
+            'ok' => true,
+            'status' => 200,
+            'code' => '',
+            'error' => '',
+        ];
     }
 
     return [
