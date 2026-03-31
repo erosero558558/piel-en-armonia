@@ -507,6 +507,9 @@ export function buildClinicalHistoryActions(input) {
         const telemedicineReviewQueueCount = Number(
             telemedicineMeta?.summary?.reviewQueueCount || 0
         );
+        const telemedicineHighUrgencyCount = Number(
+            telemedicineMeta?.summary?.intakes?.photoAiHighUrgencyCount || 0
+        );
         const pendingApprovals = Number(patientFlowMeta?.pendingApprovals || 0);
         const activeHelpRequests = Number(
             patientFlowMeta?.activeHelpRequests || 0
@@ -520,7 +523,9 @@ export function buildClinicalHistoryActions(input) {
                     'context-open-clinical-history',
                     'Abrir frente clinico',
                     clinicalReady
-                        ? `${telemedicineReviewQueueCount} intake(s) telemedicina pendientes de validacion medico-legal`
+                        ? telemedicineHighUrgencyCount > 0
+                            ? `${telemedicineHighUrgencyCount} intake(s) telemedicina con urgencia IA 4-5 esperan validacion medico-legal`
+                            : `${telemedicineReviewQueueCount} intake(s) telemedicina pendientes de validacion medico-legal`
                         : `${telemedicineReviewQueueCount} intake(s) telemedicina pausados por gate clinico`
                 )
             );

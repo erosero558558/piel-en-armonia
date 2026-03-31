@@ -11,6 +11,7 @@ require_once __DIR__ . '/TelemedicineSuitabilityEvaluator.php';
 require_once __DIR__ . '/TelemedicineEncounterPlanner.php';
 require_once __DIR__ . '/ClinicalMediaService.php';
 require_once __DIR__ . '/TelemedicinePhotoTriage.php';
+require_once __DIR__ . '/TelemedicinePhotoAiTriage.php';
 
 final class TelemedicineIntakeService
 {
@@ -59,6 +60,7 @@ final class TelemedicineIntakeService
         $intake['suitabilityReasons'] = $suitability['reasons'];
         $intake['reviewRequired'] = $suitability['requiresHumanReview'];
         $intake['escalationRecommendation'] = $suitability['escalationRecommendation'];
+        $intake = $this->applyPhotoClinicalSignals($intake, $appointment);
         $intake['encounterPlan'] = TelemedicineEncounterPlanner::build($intake);
 
         $result = TelemedicineRepository::upsertIntake($store, $intake);
@@ -118,6 +120,7 @@ final class TelemedicineIntakeService
             'transferReference' => (string) ($appointment['transferReference'] ?? ''),
         ];
         $intake['status'] = $this->resolveBookedStatus($suitability);
+        $intake = $this->applyPhotoClinicalSignals($intake, $appointment);
         $intake['encounterPlan'] = TelemedicineEncounterPlanner::build($intake);
 
         $secondSave = TelemedicineRepository::upsertIntake($store, $intake);
@@ -263,6 +266,16 @@ final class TelemedicineIntakeService
         $intake['reviewNotes'] = $notes;
         $intake['reviewedBy'] = $reviewedBy;
         $intake['reviewedAt'] = $reviewedAt;
+        $photoAiTriage = isset($intake['photoAiTriage']) && is_array($intake['photoAiTriage'])
+            ? $intake['photoAiTriage']
+            : TelemedicinePhotoAiTriage::evaluate($intake);
+        $intake['photoAiTriage'] = TelemedicinePhotoAiTriage::recordDoctorValidation(
+            $photoAiTriage,
+            $decision,
+            $reviewedBy,
+            $reviewedAt,
+            $notes
+        );
 
         $history = is_array($intake['reviewHistory'] ?? null) ? $intake['reviewHistory'] : [];
         $history[] = [
@@ -350,6 +363,9 @@ final class TelemedicineIntakeService
             'photoTriage' => isset($base['photoTriage']) && is_array($base['photoTriage'])
                 ? $base['photoTriage']
                 : TelemedicinePhotoTriage::buildSummary($appointment),
+            'photoAiTriage' => isset($base['photoAiTriage']) && is_array($base['photoAiTriage'])
+                ? $base['photoAiTriage']
+                : [],
             'suitability' => (string) ($base['suitability'] ?? 'review_required'),
             'suitabilityReasons' => $base['suitabilityReasons'] ?? [],
             'reviewRequired' => (bool) ($base['reviewRequired'] ?? false),
@@ -357,6 +373,7 @@ final class TelemedicineIntakeService
             'status' => (string) ($base['status'] ?? 'draft'),
             'linkedAppointmentId' => isset($appointment['id']) ? (int) $appointment['id'] : ((int) ($base['linkedAppointmentId'] ?? 0)),
             'paymentContext' => $base['paymentContext'] ?? [],
+            'latestPatientConcern' => (string) ($base['latestPatientConcern'] ?? ''),
             'draftFingerprint' => (string) ($base['draftFingerprint'] ?? TelemedicineRepository::draftFingerprint($appointment)),
             'createdAt' => (string) ($base['createdAt'] ?? local_date('c')),
             'updatedAt' => local_date('c'),
@@ -389,6 +406,9 @@ final class TelemedicineIntakeService
         $appointment['telemedicineConsentSnapshot'] = isset($intake['consentSnapshot']) && is_array($intake['consentSnapshot'])
             ? $intake['consentSnapshot']
             : [];
+        $appointment['telemedicinePhotoAiTriage'] = isset($intake['photoAiTriage']) && is_array($intake['photoAiTriage'])
+            ? $intake['photoAiTriage']
+            : [];
 
         $encounterPlan = isset($intake['encounterPlan']) && is_array($intake['encounterPlan'])
             ? $intake['encounterPlan']
@@ -416,6 +436,20 @@ final class TelemedicineIntakeService
         $appointment['supportContactMethod'] = TelemedicineChannelMapper::supportContactMethod($appointment);
 
         return normalize_appointment($appointment);
+    }
+
+    private function applyPhotoClinicalSignals(array $intake, array $appointment = []): array
+    {
+        if (!isset($intake['photoTriage']) || !is_array($intake['photoTriage'])) {
+            $intake['photoTriage'] = TelemedicinePhotoTriage::buildSummary(
+                $appointment,
+                is_array($intake['clinicalMediaIds'] ?? null) ? $intake['clinicalMediaIds'] : []
+            );
+        }
+
+        $intake['photoAiTriage'] = TelemedicinePhotoAiTriage::evaluate($intake);
+
+        return $intake;
     }
 
     private function intakeNeedsReviewQueue(array $intake): bool

@@ -1648,6 +1648,40 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#pageTitle')).toHaveText('Historia clinica');
     });
 
+    test('dashboard destaca urgencia IA alta en telemedicina cuando hay intakes sensibles', async ({
+        page,
+    }) => {
+        await setupAuthenticatedAdminMocks(page, {
+            telemedicineMeta: {
+                summary: {
+                    reviewQueueCount: 2,
+                    intakes: {
+                        photoAiHighUrgencyCount: 1,
+                    },
+                },
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await openDashboardSection(page);
+
+        const telemedicineItem = page
+            .locator('#dashboardAttentionList .dashboard-attention-item')
+            .filter({ hasText: 'Telemedicina' });
+        await expect(telemedicineItem).toContainText(
+            '1 intake(s) con urgencia IA 4-5'
+        );
+
+        const clinicalAction = page
+            .locator('#dashboardClinicalHistoryActions .operations-action-item')
+            .filter({ hasText: 'Abrir frente clinico' });
+        await expect(clinicalAction).toContainText(
+            '1 intake(s) telemedicina con urgencia IA 4-5'
+        );
+    });
+
     test('acciones secundarias del dashboard siguen llevando a triage util', async ({
         page,
     }) => {

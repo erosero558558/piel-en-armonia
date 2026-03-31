@@ -79,7 +79,7 @@ test.describe('Teleconsultation room', () => {
         ).toContainText('Primer plano');
         await expect(
             page.locator('[data-tele-room-role-card="contexto"]')
-        ).toContainText('Contexto');
+        ).toContainText('Luz natural');
 
         await page.locator('[data-tele-room-photo-input]').setInputFiles([
             {

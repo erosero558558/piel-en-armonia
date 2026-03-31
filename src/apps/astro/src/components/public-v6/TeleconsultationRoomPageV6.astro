@@ -109,8 +109,8 @@ const photoRoles = Array.isArray(photos.roleGuides)
           },
           {
               key: 'contexto',
-              label: 'Contexto',
-              detail: 'Cierre con una toma que muestre orientacion corporal o comparativa para no perder referencia.',
+              label: 'Luz natural',
+              detail: 'Cierre con una toma en luz natural o de contexto corporal para no perder referencia visual del cambio.',
           },
       ];
 
@@ -500,7 +500,7 @@ const supportStatus = {
         const photoRoles = [
             { id: 'zona', label: 'Zona' },
             { id: 'primer_plano', label: 'Primer plano' },
-            { id: 'contexto', label: 'Contexto' },
+            { id: 'contexto', label: 'Luz natural' },
         ];
         const uploadedFiles = [];
         let previewUrls = [];
@@ -702,7 +702,7 @@ const supportStatus = {
                     renderPreview(files);
                     if (photoStatus instanceof HTMLElement) {
                         photoStatus.textContent =
-                            'Fotos listas. Se enviaran como zona, primer plano y contexto en ese orden.';
+                            'Fotos listas. Se enviaran como zona, primer plano y luz natural en ese orden.';
                     }
                 } catch (error) {
                     renderPreview([]);

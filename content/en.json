@@ -223,7 +223,7 @@
     "evolution_12m": "3 to 12 months",
     "evolution_year": "More than 1 year",
     "label_case_photos": "Support images (optional, up to 3)",
-    "case_photos_help": "You may upload up to 3 images (max 5 MB each) to improve the initial clinical reading.",
+    "case_photos_help": "You may upload up to 3 images (max 5 MB each): area, close-up, and one in natural light to improve the initial clinical reading.",
     "privacy_consent_label": "I accept data processing to manage my appointment and initial medical evaluation.",
     "privacy_images_note": "Images and contact data are used only for clinical care and appointment operations.",
     "privacy_link_label": "View privacy policy",

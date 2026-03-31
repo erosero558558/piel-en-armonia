@@ -30,6 +30,7 @@ run_test('Telemedicine draft bridge persists intake for video service', function
     assert_true(is_array($result['intake']));
     assert_equals('secure_video', $result['intake']['channel']);
     assert_equals('awaiting_payment', $result['intake']['status']);
+    assert_equals('gather_more_info', $result['intake']['photoAiTriage']['suggestedConsultType']);
     assert_equals(1, count($result['store']['telemedicine_intakes']));
 });
 

@@ -82,6 +82,16 @@ final class TelemedicineAdminReadModelTest extends TestCase
                 'phone' => '0990000002',
             ],
             'clinicalMediaIds' => [],
+            'photoAiTriage' => [
+                'status' => 'ready',
+                'urgencyLevel' => 4,
+                'urgencyLabel' => 'Alta',
+                'suggestedConsultType' => 'priority_video',
+                'suggestedConsultTypeLabel' => 'Teleconsulta prioritaria',
+                'signals' => ['progressive_visual_change'],
+                'summary' => 'Urgencia 4/5. La preclasificacion sugiere teleconsulta prioritaria.',
+                'doctorValidationStatus' => 'pending',
+            ],
             'requestedDate' => '2026-03-11',
             'requestedTime' => '11:30',
             'requestedDoctor' => 'narvaez',
@@ -117,6 +127,16 @@ final class TelemedicineAdminReadModelTest extends TestCase
         $this->assertSame('manual_review', $telemedicineMeta['reviewQueue'][0]['escalationRecommendation']);
         $this->assertSame('pending', $telemedicineMeta['reviewQueue'][0]['reviewStatus']);
         $this->assertSame('missing', $telemedicineMeta['reviewQueue'][0]['photoTriageStatus']);
+        $this->assertSame(1, (int) ($telemedicineMeta['summary']['intakes']['photoAiHighUrgencyCount'] ?? 0));
+        $this->assertSame(4, (int) ($telemedicineMeta['reviewQueue'][0]['photoAiUrgencyLevel'] ?? 0));
+        $this->assertSame(
+            'Teleconsulta prioritaria',
+            (string) ($telemedicineMeta['reviewQueue'][0]['photoAiSuggestedConsultTypeLabel'] ?? '')
+        );
+        $this->assertSame(
+            'pending',
+            (string) ($telemedicineMeta['reviewQueue'][0]['photoAiDoctorValidationStatus'] ?? '')
+        );
     }
 
     private function removeDirectory(string $dir): void

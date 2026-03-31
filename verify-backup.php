@@ -142,11 +142,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
     ], 405);
 }
 
-if (!verify_backup_authorized()) {
+$providedToken = verify_backup_extract_token();
+if ($providedToken === '') {
     verify_backup_json([
         'ok' => false,
         'error' => 'No autorizado'
     ], 401);
+} elseif (!verify_backup_authorized()) {
+    verify_backup_json([
+        'ok' => false,
+        'error' => 'No autorizado'
+    ], 403);
 }
 
 $storageRoot = backup_receiver_storage_root();
@@ -155,7 +161,7 @@ if (!is_dir($storageRoot)) {
         'ok' => false,
         'error' => 'No existe almacenamiento de backups',
         'code' => 'storage_not_found'
-    ], 404);
+    ], 500);
 }
 
 $requestedFile = isset($_GET['file']) ? trim((string) $_GET['file']) : '';
@@ -183,7 +189,7 @@ if ($targetFile === '') {
 }
 
 $verification = backup_receiver_verify_stored_file($targetFile);
-$statusCode = ($verification['ok'] ?? false) ? 200 : 422;
+$statusCode = ($verification['ok'] ?? false) ? 200 : 409;
 $storageRootReal = realpath($storageRoot);
 $relativeFile = $targetFile;
 if (is_string($storageRootReal) && $storageRootReal !== '' && strpos($targetFile, $storageRootReal) === 0) {

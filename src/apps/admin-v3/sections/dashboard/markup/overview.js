@@ -20,6 +20,9 @@ export function buildAttentionItems(state) {
     const telemedicineReviewQueueCount = normalizeNumber(
         telemedicineMeta?.summary?.reviewQueueCount
     );
+    const telemedicineHighUrgencyCount = normalizeNumber(
+        telemedicineMeta?.summary?.intakes?.photoAiHighUrgencyCount
+    );
     const patientCasesTotal = normalizeNumber(patientFlowMeta?.casesTotal);
     const patientCasesOpen = normalizeNumber(patientFlowMeta?.casesOpen);
     const patientPendingApprovals = normalizeNumber(
@@ -67,11 +70,15 @@ export function buildAttentionItems(state) {
             telemedicineReviewQueueCount,
             !clinicalReady
                 ? 'Pausada por gate clinico hasta storage cifrado.'
+                : telemedicineHighUrgencyCount > 0
+                  ? `${telemedicineHighUrgencyCount} intake(s) con urgencia IA 4-5 esperan validacion medica.`
                 : telemedicineReviewQueueCount > 0
                   ? 'Intakes pendientes de decision clinica.'
                   : 'Sin intakes pendientes de revision.',
-            !clinicalReady || telemedicineReviewQueueCount > 0
-                ? 'warning'
+            !clinicalReady || telemedicineHighUrgencyCount > 0
+                ? 'danger'
+                : telemedicineReviewQueueCount > 0
+                  ? 'warning'
                 : 'success'
         ),
         attentionItem(

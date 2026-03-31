@@ -50,6 +50,19 @@ final class TelemedicineOpsSnapshot
         'resolved',
     ];
 
+    private const PHOTO_AI_URGENCY_KEYS = [
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+    ];
+
+    private const PHOTO_AI_VALIDATION_KEYS = [
+        'pending',
+        'validated',
+    ];
+
     private const MEDIA_KIND_KEYS = [
         'case_photo',
         'supporting_document',
@@ -98,6 +111,8 @@ final class TelemedicineOpsSnapshot
         $channelCounts = self::initializeCounters(self::CHANNEL_KEYS);
         $reviewDecisionCounts = self::initializeCounters(self::REVIEW_DECISION_KEYS);
         $reviewStateCounts = self::initializeCounters(self::REVIEW_STATE_KEYS);
+        $photoAiUrgencyCounts = self::initializeCounters(self::PHOTO_AI_URGENCY_KEYS);
+        $photoAiValidationCounts = self::initializeCounters(self::PHOTO_AI_VALIDATION_KEYS);
         $kindCounts = self::initializeCounters(self::MEDIA_KIND_KEYS);
         $storageCounts = self::initializeCounters(self::STORAGE_MODE_KEYS);
 
@@ -106,6 +121,8 @@ final class TelemedicineOpsSnapshot
         $danglingAppointmentLinksCount = 0;
         $unlinkedIntakesCount = 0;
         $latestActivityAt = '';
+        $photoAiHighUrgencyCount = 0;
+        $photoAiPendingValidationCount = 0;
 
         foreach ($intakes as $intake) {
             $status = trim((string) ($intake['status'] ?? 'draft'));
@@ -142,6 +159,27 @@ final class TelemedicineOpsSnapshot
                 }
             }
             $reviewStateCounts[$reviewState] = ($reviewStateCounts[$reviewState] ?? 0) + 1;
+
+            $photoAiTriage = isset($intake['photoAiTriage']) && is_array($intake['photoAiTriage'])
+                ? $intake['photoAiTriage']
+                : [];
+            $photoAiUrgency = (int) ($photoAiTriage['urgencyLevel'] ?? 0);
+            if ($photoAiUrgency >= 1 && $photoAiUrgency <= 5) {
+                $photoAiUrgencyCounts[(string) $photoAiUrgency] = ($photoAiUrgencyCounts[(string) $photoAiUrgency] ?? 0) + 1;
+                if ($photoAiUrgency >= 4) {
+                    $photoAiHighUrgencyCount++;
+                }
+            }
+            $photoAiValidationStatus = trim((string) ($photoAiTriage['doctorValidationStatus'] ?? 'pending'));
+            if ($photoAiValidationStatus === '') {
+                $photoAiValidationStatus = 'pending';
+            }
+            if (isset($photoAiValidationCounts[$photoAiValidationStatus])) {
+                $photoAiValidationCounts[$photoAiValidationStatus] += 1;
+            }
+            if ($photoAiValidationStatus !== 'validated') {
+                $photoAiPendingValidationCount++;
+            }
 
             $linkedAppointmentId = (int) ($intake['linkedAppointmentId'] ?? 0);
             if ($linkedAppointmentId > 0) {
@@ -210,6 +248,10 @@ final class TelemedicineOpsSnapshot
                 'byChannel' => $channelCounts,
                 'byReviewDecision' => $reviewDecisionCounts,
                 'byReviewState' => $reviewStateCounts,
+                'byPhotoAiUrgency' => $photoAiUrgencyCounts,
+                'byPhotoAiValidation' => $photoAiValidationCounts,
+                'photoAiPendingValidationCount' => $photoAiPendingValidationCount,
+                'photoAiHighUrgencyCount' => $photoAiHighUrgencyCount,
             ],
             'media' => [
                 'total' => count($uploads),
@@ -350,6 +392,14 @@ final class TelemedicineOpsSnapshot
             $lines[] = '# TYPE auroraderm_telemedicine_review_state_total gauge';
             $lines[] = 'auroraderm_telemedicine_review_state_total{state="' . self::escapeLabel((string) $reviewState) . '"} ' . (int) $count;
         }
+        foreach ((array) ($intakes['byPhotoAiUrgency'] ?? []) as $level => $count) {
+            $lines[] = '# TYPE auroraderm_telemedicine_photo_ai_urgency_total gauge';
+            $lines[] = 'auroraderm_telemedicine_photo_ai_urgency_total{level="' . self::escapeLabel((string) $level) . '"} ' . (int) $count;
+        }
+        foreach ((array) ($intakes['byPhotoAiValidation'] ?? []) as $validationStatus => $count) {
+            $lines[] = '# TYPE auroraderm_telemedicine_photo_ai_validation_total gauge';
+            $lines[] = 'auroraderm_telemedicine_photo_ai_validation_total{status="' . self::escapeLabel((string) $validationStatus) . '"} ' . (int) $count;
+        }
         foreach ((array) ($media['byKind'] ?? []) as $kind => $count) {
             $lines[] = '# TYPE auroraderm_telemedicine_media_by_kind_total gauge';
             $lines[] = 'auroraderm_telemedicine_media_by_kind_total{kind="' . self::escapeLabel((string) $kind) . '"} ' . (int) $count;
@@ -371,6 +421,10 @@ final class TelemedicineOpsSnapshot
         $lines[] = 'auroraderm_telemedicine_case_photos_missing_private_path_total ' . (int) ($integrity['casePhotosWithoutPrivatePathCount'] ?? 0);
         $lines[] = '# TYPE auroraderm_telemedicine_staged_legacy_uploads_total gauge';
         $lines[] = 'auroraderm_telemedicine_staged_legacy_uploads_total ' . (int) ($integrity['stagedLegacyUploadsCount'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_photo_ai_high_urgency_total gauge';
+        $lines[] = 'auroraderm_telemedicine_photo_ai_high_urgency_total ' . (int) ($intakes['photoAiHighUrgencyCount'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_photo_ai_pending_validation_total gauge';
+        $lines[] = 'auroraderm_telemedicine_photo_ai_pending_validation_total ' . (int) ($intakes['photoAiPendingValidationCount'] ?? 0);
         $lines[] = '# TYPE auroraderm_telemedicine_shadow_mode_enabled gauge';
         $lines[] = 'auroraderm_telemedicine_shadow_mode_enabled ' . ((bool) ($policy['shadowModeEnabled'] ?? true) ? 1 : 0);
         $lines[] = '# TYPE auroraderm_telemedicine_enforce_unsuitable_enabled gauge';
@@ -409,6 +463,9 @@ final class TelemedicineOpsSnapshot
         $photoTriage = isset($intake['photoTriage']) && is_array($intake['photoTriage'])
             ? $intake['photoTriage']
             : [];
+        $photoAiTriage = isset($intake['photoAiTriage']) && is_array($intake['photoAiTriage'])
+            ? $intake['photoAiTriage']
+            : [];
 
         return [
             'intakeId' => (int) ($intake['id'] ?? 0),
@@ -428,6 +485,14 @@ final class TelemedicineOpsSnapshot
             'photoTriageStatus' => (string) ($photoTriage['status'] ?? 'missing'),
             'photoTriageRoles' => array_values(is_array($photoTriage['roles'] ?? null) ? $photoTriage['roles'] : []),
             'photoTriageMissingRoles' => array_values(is_array($photoTriage['missingRoles'] ?? null) ? $photoTriage['missingRoles'] : []),
+            'photoAiTriageStatus' => (string) ($photoAiTriage['status'] ?? 'insufficient_data'),
+            'photoAiUrgencyLevel' => (int) ($photoAiTriage['urgencyLevel'] ?? 0),
+            'photoAiUrgencyLabel' => (string) ($photoAiTriage['urgencyLabel'] ?? ''),
+            'photoAiSuggestedConsultType' => (string) ($photoAiTriage['suggestedConsultType'] ?? ''),
+            'photoAiSuggestedConsultTypeLabel' => (string) ($photoAiTriage['suggestedConsultTypeLabel'] ?? ''),
+            'photoAiSignals' => array_values(is_array($photoAiTriage['signals'] ?? null) ? $photoAiTriage['signals'] : []),
+            'photoAiSummary' => (string) ($photoAiTriage['summary'] ?? ''),
+            'photoAiDoctorValidationStatus' => (string) ($photoAiTriage['doctorValidationStatus'] ?? 'pending'),
             'reviewDecision' => (string) ($intake['reviewDecision'] ?? ''),
             'reviewStatus' => (string) ($intake['reviewStatus'] ?? 'pending'),
             'reviewNotes' => (string) ($intake['reviewNotes'] ?? ''),

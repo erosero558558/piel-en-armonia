@@ -221,7 +221,7 @@
     "evolution_12m": "3 a 12 meses",
     "evolution_year": "Mas de 1 ano",
     "label_case_photos": "Imagenes de apoyo (opcional, maximo 3)",
-    "case_photos_help": "Puede adjuntar hasta 3 imagenes (maximo 5 MB cada una) para orientar la primera lectura clinica.",
+    "case_photos_help": "Puede adjuntar hasta 3 imagenes (maximo 5 MB cada una): zona, primer plano y una con luz natural para orientar mejor la primera lectura clinica.",
     "privacy_consent_label": "Acepto el tratamiento de mis datos para gestionar la cita y la evaluacion medica inicial.",
     "privacy_images_note": "Las imagenes y datos de contacto se usan exclusivamente para atencion clinica y gestion operativa de la cita.",
     "privacy_link_label": "Ver politica de privacidad",

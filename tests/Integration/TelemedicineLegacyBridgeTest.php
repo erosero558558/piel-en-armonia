@@ -8,6 +8,10 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../helpers/StripeMock.php';
 
+/**
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 final class TelemedicineLegacyBridgeTest extends TestCase
 {
     private string $tempDir;
@@ -294,6 +298,18 @@ final class TelemedicineLegacyBridgeTest extends TestCase
         $this->assertSame(
             ['zona', 'contexto'],
             $roundtrip['telemedicine_intakes'][0]['photoTriage']['missingRoles'] ?? []
+        );
+        $this->assertSame(
+            'insufficient_data',
+            (string) ($roundtrip['telemedicine_intakes'][0]['photoAiTriage']['status'] ?? '')
+        );
+        $this->assertSame(
+            'gather_more_info',
+            (string) ($roundtrip['telemedicine_intakes'][0]['photoAiTriage']['suggestedConsultType'] ?? '')
+        );
+        $this->assertSame(
+            'pending',
+            (string) ($roundtrip['telemedicine_intakes'][0]['photoAiTriage']['doctorValidationStatus'] ?? '')
         );
 
         $privatePath = $roundtrip['clinical_uploads'][0]['privatePath'];
