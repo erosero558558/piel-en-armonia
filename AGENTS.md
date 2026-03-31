@@ -1510,7 +1510,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S9-07** `[S]` Origen de lead consistente — normalizar campos `source`, `campaign`, `surface` y `service_intent` en leads de WhatsApp, booking, pre-consulta y telemedicina. Verificable: `LeadOpsService` siempre persiste estos 4 campos. Sin ellos marketing queda ciego.
 - [x] **S9-08** `[M]` Lead scoring operativo — score (0-100) por lead basado en: urgencia clínica, valor estimado del servicio, no-show previo, canal, servicio premium. Visible en admin al lado del nombre del lead. Sin ML complejo — reglas simples primero. `lib/lead/LeadScoringService.php`.
 - [x] **S9-09** `[M]` `[UI]` Callback cockpit — vista para recepción con: leads sin responder en orden de score, tiempo desde ingreso, último contacto, próximo paso recomendado. Dashboard en admin, filtrable por día. Entregable: `admin.html` sección "Callbacks pendientes".
-- [ ] **S9-10** `[M]` Plantillas de seguimiento WhatsApp — biblioteca de mensajes operativos listos: no-show → "Te esperamos", reagendamiento → oferta de slot, pre-consulta incompleta → recordatorio, post-procedimiento → cuidados, receta lista → link. El operador elige plantilla + la personaliza → 1 clic enviar.
+- [x] **S9-10** `[M]` Plantillas de seguimiento WhatsApp — biblioteca de mensajes operativos listos: no-show → "Te esperamos", reagendamiento → oferta de slot, pre-consulta incompleta → recordatorio, post-procedimiento → cuidados, receta lista → link. El operador elige plantilla + la personaliza → 1 clic enviar.
 
 #### 9.3 Catálogo comercial
 

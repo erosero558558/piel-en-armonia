@@ -14,6 +14,14 @@ import {
     waitingLabel,
     waitingMinutes,
 } from '../utils.js';
+import {
+    buildCallbackWhatsappUrl,
+    callbackWhatsappComposerHint,
+    getCallbackWhatsappDraft,
+    getCallbackWhatsappTemplate,
+    getCallbackWhatsappTemplateKey,
+    listCallbackWhatsappTemplates,
+} from '../whatsapp-templates.js';
 
 function actionButtons(item, status) {
     const id = Number(item.id || 0);
@@ -31,6 +39,45 @@ function actionButtons(item, status) {
                     ? `<button type="button" class="ghost" data-action="callback-copy-ai" data-callback-id="${id}">Copiar borrador</button>`
                     : ''
             }
+        </div>
+    `;
+}
+
+function whatsappComposer(item) {
+    const id = Number(item.id || 0);
+    const templateKey = getCallbackWhatsappTemplateKey(item);
+    const draft = getCallbackWhatsappDraft(item);
+    const template = getCallbackWhatsappTemplate(templateKey);
+    const sendUrl = buildCallbackWhatsappUrl(item, draft);
+    const helperText = callbackWhatsappComposerHint(item);
+
+    return `
+        <div class="callback-message-composer">
+            <div class="callback-message-head">
+                <span>Plantillas WhatsApp</span>
+                <small>${escapeHtml(template?.description || helperText)}</small>
+            </div>
+            <label class="callback-message-field">
+                <span>Plantilla</span>
+                <select data-callback-template-select data-callback-id="${id}">
+                    <option value="">Elegir plantilla</option>
+                    ${listCallbackWhatsappTemplates()
+                        .map(
+                            (option) =>
+                                `<option value="${escapeHtml(option.key)}"${option.key === templateKey ? ' selected' : ''}>${escapeHtml(option.label)}</option>`
+                        )
+                        .join('')}
+                </select>
+            </label>
+            <label class="callback-message-field">
+                <span>Mensaje listo</span>
+                <textarea data-callback-template-draft data-callback-id="${id}" rows="4" placeholder="Selecciona una plantilla para comenzar.">${escapeHtml(draft)}</textarea>
+            </label>
+            <p class="callback-message-footnote">${escapeHtml(helperText)}</p>
+            <div class="callback-actions callback-actions--composer">
+                <button type="button" class="ghost" data-action="callback-copy-template" data-callback-id="${id}" ${draft ? '' : 'disabled'}>Copiar mensaje</button>
+                <button type="button" data-action="callback-send-whatsapp-template" data-callback-id="${id}" ${sendUrl ? '' : 'disabled'}>Enviar por WhatsApp</button>
+            </div>
         </div>
     `;
 }
@@ -79,6 +126,7 @@ export function callbackCard(
                     ? `<div class="callback-card-draft"><span>Borrador IA</span><p>${escapeHtml(draft)}</p></div>`
                     : ''
             }
+            ${whatsappComposer(item)}
             ${actionButtons(item, status)}
         </article>
     `;

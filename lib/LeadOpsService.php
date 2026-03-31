@@ -11,6 +11,13 @@ final class LeadOpsService
     private const OUTCOMES = ['', 'contactado', 'cita_cerrada', 'sin_respuesta', 'descartado'];
     private const PRIORITY_BANDS = ['hot', 'warm', 'cold'];
     private const LEAD_ORIGIN_FIELDS = ['source', 'campaign', 'surface', 'service_intent'];
+    private const WHATSAPP_TEMPLATE_KEYS = [
+        'no_show',
+        'rebooking_slot',
+        'pre_consult_incomplete',
+        'post_procedure',
+        'prescription_ready',
+    ];
 
     /** @var array{path:string,mtime:int,services:array<int,array<string,mixed>>}|null */
     private static ?array $catalogCache = null;
@@ -726,6 +733,7 @@ final class LeadOpsService
         $aiObjective = self::normalizeObjective((string) ($leadOps['aiObjective'] ?? ''));
         $aiStatus = self::normalizeAiStatus((string) ($leadOps['aiStatus'] ?? 'idle'));
         $outcome = self::normalizeOutcome((string) ($leadOps['outcome'] ?? ''));
+        $whatsappTemplateKey = self::normalizeWhatsappTemplateKey((string) ($leadOps['whatsappTemplateKey'] ?? ''));
 
         return array_merge($origin, [
             'heuristicScore' => self::clampInt((int) ($leadOps['heuristicScore'] ?? 0), 0, 100),
@@ -744,6 +752,10 @@ final class LeadOpsService
             'completedAt' => self::normalizeTimestamp((string) ($leadOps['completedAt'] ?? '')),
             'contactedAt' => self::normalizeTimestamp((string) ($leadOps['contactedAt'] ?? '')),
             'outcome' => $outcome,
+            'whatsappTemplateKey' => $whatsappTemplateKey,
+            'whatsappMessageDraft' => truncate_field(sanitize_xss((string) ($leadOps['whatsappMessageDraft'] ?? '')), 2400),
+            'whatsappLastPreparedAt' => self::normalizeTimestamp((string) ($leadOps['whatsappLastPreparedAt'] ?? '')),
+            'whatsappLastOpenedAt' => self::normalizeTimestamp((string) ($leadOps['whatsappLastOpenedAt'] ?? '')),
         ]);
     }
 
@@ -767,6 +779,10 @@ final class LeadOpsService
             'campaign',
             'surface',
             'service_intent',
+            'whatsappTemplateKey',
+            'whatsappMessageDraft',
+            'whatsappLastPreparedAt',
+            'whatsappLastOpenedAt',
         ] as $field) {
             if (!array_key_exists($field, $incomingLeadOps)) {
                 continue;
@@ -2114,6 +2130,14 @@ final class LeadOpsService
     {
         $outcome = self::normalizeToken($outcome);
         return in_array($outcome, self::OUTCOMES, true) ? $outcome : '';
+    }
+
+    private static function normalizeWhatsappTemplateKey(string $value): string
+    {
+        $value = self::normalizeToken($value);
+        return in_array($value, self::WHATSAPP_TEMPLATE_KEYS, true)
+            ? $value
+            : '';
     }
 
     private static function normalizePriorityBand(string $band): string

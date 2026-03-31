@@ -1,5 +1,6 @@
 export {
     acceptCallbackAiDraft,
+    applyCallbackWhatsappTemplate,
     clearCallbacksFilters,
     clearCallbacksSelection,
     focusNextPendingCallback,
@@ -7,9 +8,11 @@ export {
     markCallbackContacted,
     markSelectedCallbacksContacted,
     mutateCallbackRecord,
+    openCallbackWhatsappComposer,
     renderCallbacksSection,
     requestCallbackAiDraft,
     selectVisibleCallbacks,
+    setCallbackWhatsappDraft,
     setCallbackOutcome,
     setCallbacksDay,
     setCallbacksFilter,

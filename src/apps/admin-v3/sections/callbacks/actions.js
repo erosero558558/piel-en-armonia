@@ -1,6 +1,13 @@
 import { apiRequest } from '../../shared/core/api-client.js';
 import { getState } from '../../shared/core/store.js';
 import { mutateCallbackRecord, mutateCallbackStatus } from './state.js';
+import {
+    buildCallbackWhatsappMessage,
+    buildCallbackWhatsappUrl,
+    getCallbackWhatsappDraft,
+    getCallbackWhatsappTemplateKey,
+    normalizeCallbackWhatsappTemplateKey,
+} from './whatsapp-templates.js';
 
 async function patchCallback(id, body) {
     const callbackId = Number(id || 0);
@@ -15,6 +22,42 @@ async function patchCallback(id, body) {
     });
 
     return response?.data || null;
+}
+
+function findCallbackById(id) {
+    const callbackId = Number(id || 0);
+    if (callbackId <= 0) return null;
+
+    return (getState().data.callbacks || []).find(
+        (item) => Number(item.id || 0) === callbackId
+    );
+}
+
+async function persistCallbackLeadOps(id, leadOpsPatch) {
+    const callbackId = Number(id || 0);
+    if (callbackId <= 0) return null;
+
+    const updated = await patchCallback(callbackId, {
+        leadOps: leadOpsPatch,
+    });
+
+    if (updated) {
+        mutateCallbackRecord(updated);
+        return updated;
+    }
+
+    const current = findCallbackById(callbackId);
+    if (current) {
+        mutateCallbackRecord({
+            ...current,
+            leadOps: {
+                ...(current.leadOps || {}),
+                ...leadOpsPatch,
+            },
+        });
+    }
+
+    return current;
 }
 
 export async function markCallbackContacted(id, callbackDate = '') {
@@ -82,6 +125,79 @@ export async function acceptCallbackAiDraft(id) {
     }
 
     return updated;
+}
+
+export async function applyCallbackWhatsappTemplate(id, templateKey) {
+    const callback = findCallbackById(id);
+    if (!callback) return null;
+
+    const normalizedKey = normalizeCallbackWhatsappTemplateKey(templateKey);
+    const messageDraft = normalizedKey
+        ? buildCallbackWhatsappMessage(normalizedKey, callback)
+        : '';
+    const now = new Date().toISOString();
+
+    return persistCallbackLeadOps(id, {
+        whatsappTemplateKey: normalizedKey,
+        whatsappMessageDraft: messageDraft,
+        whatsappLastPreparedAt: messageDraft ? now : '',
+    });
+}
+
+export async function setCallbackWhatsappDraft(id, draft, templateKey = '') {
+    const callback = findCallbackById(id);
+    if (!callback) return null;
+
+    const normalizedKey = normalizeCallbackWhatsappTemplateKey(
+        templateKey || getCallbackWhatsappTemplateKey(callback)
+    );
+    const nextDraft = String(draft || '').trim();
+    const now = new Date().toISOString();
+
+    return persistCallbackLeadOps(id, {
+        whatsappTemplateKey: normalizedKey,
+        whatsappMessageDraft: nextDraft,
+        whatsappLastPreparedAt: nextDraft ? now : '',
+    });
+}
+
+export async function openCallbackWhatsappComposer(
+    id,
+    { templateKey = '', message = '' } = {}
+) {
+    const callback = findCallbackById(id);
+    if (!callback) {
+        throw new Error('Lead no encontrado');
+    }
+
+    const normalizedKey = normalizeCallbackWhatsappTemplateKey(
+        templateKey || getCallbackWhatsappTemplateKey(callback)
+    );
+    const draft =
+        String(message || '').trim() || getCallbackWhatsappDraft(callback);
+    if (!draft) {
+        throw new Error('Primero prepara un mensaje');
+    }
+
+    const url = buildCallbackWhatsappUrl(callback, draft);
+    if (!url) {
+        throw new Error('Lead sin telefono');
+    }
+
+    const now = new Date().toISOString();
+    await persistCallbackLeadOps(id, {
+        whatsappTemplateKey: normalizedKey,
+        whatsappMessageDraft: draft,
+        whatsappLastPreparedAt: now,
+        whatsappLastOpenedAt: now,
+    });
+
+    const popup = window.open(url, '_blank', 'noopener');
+    if (popup && typeof popup.focus === 'function') {
+        popup.focus();
+    }
+
+    return url;
 }
 
 export async function markSelectedCallbacksContacted() {

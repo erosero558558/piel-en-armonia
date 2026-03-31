@@ -1,6 +1,9 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { installLegacyAdminAuthMock } = require('./helpers/admin-auth-mocks');
+const {
+    installLegacyAdminAuthMock,
+    installWindowOpenRecorder,
+} = require('./helpers/admin-auth-mocks');
 
 test.use({
     serviceWorkers: 'block',
@@ -549,5 +552,57 @@ test.describe('Admin callbacks triage', () => {
             .click();
         await expect(primaryLeadCard).toContainText('Cita cerrada');
         await expect(primaryLeadCard).not.toContainText('Sin contacto');
+    });
+
+    test('lead ops permite elegir plantilla WhatsApp, personalizarla y abrir el envio en un clic', async ({
+        page,
+    }) => {
+        await installWindowOpenRecorder(page);
+        await setupLeadOpsAdminApiMocks(page);
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('a.nav-item[data-section="callbacks"]').click();
+        await expect(page.locator('#callbacks')).toHaveClass(/active/);
+
+        const primaryLeadCard = page.locator(
+            '#callbacksGrid .callback-card[data-callback-id="301"]'
+        );
+        const templateSelect = primaryLeadCard.locator(
+            '[data-callback-template-select]'
+        );
+        const draftInput = primaryLeadCard.locator(
+            '[data-callback-template-draft]'
+        );
+        const sendButton = primaryLeadCard.locator(
+            '[data-action="callback-send-whatsapp-template"]'
+        );
+
+        await expect(sendButton).toBeDisabled();
+        await templateSelect.selectOption('rebooking_slot');
+        await expect(primaryLeadCard).toContainText('Slot abierto');
+        await expect(draftInput).toHaveValue(/Se abrio un cupo/);
+        await expect(sendButton).toBeEnabled();
+
+        const customMessage =
+            'Hola, se abrio un cupo para Botox medico hoy a las 16:30. Si te sirve, te lo reservo ahora mismo.';
+        await draftInput.fill(customMessage);
+        await draftInput.dispatchEvent('change');
+        await sendButton.click();
+
+        await page.waitForFunction(
+            () =>
+                Array.isArray(window.__openedUrls) &&
+                window.__openedUrls.length === 1
+        );
+        const openedUrl = await page.evaluate(() => window.__openedUrls[0]);
+        expect(openedUrl).toContain(
+            'https://wa.me/593991110001?text='
+        );
+        expect(
+            decodeURIComponent(openedUrl.split('?text=')[1] || '')
+        ).toContain('16:30');
+        await expect(
+            primaryLeadCard.locator('[data-callback-template-draft]')
+        ).toHaveValue(customMessage);
     });
 });

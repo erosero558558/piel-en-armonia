@@ -165,6 +165,33 @@ try {
     leadops_assert_equals('unknown', $normalized['surface'], 'Missing surface should normalize to unknown');
     leadops_assert_equals('unknown', $normalized['service_intent'], 'Missing service intent should normalize to unknown');
 
+    $normalizedWhatsapp = LeadOpsService::normalizeLeadOps([
+        'whatsappTemplateKey' => 'rebooking_slot',
+        'whatsappMessageDraft' => '<b>Hola</b> se abrio un cupo',
+        'whatsappLastPreparedAt' => '2026-03-31T15:45:00-05:00',
+        'whatsappLastOpenedAt' => 'bad timestamp',
+    ]);
+    leadops_assert_equals(
+        'rebooking_slot',
+        $normalizedWhatsapp['whatsappTemplateKey'],
+        'WhatsApp template key should be preserved when valid'
+    );
+    leadops_assert_equals(
+        '&lt;b&gt;Hola&lt;/b&gt; se abrio un cupo',
+        $normalizedWhatsapp['whatsappMessageDraft'],
+        'WhatsApp message draft should be sanitized'
+    );
+    leadops_assert_equals(
+        '2026-03-31T15:45:00-05:00',
+        $normalizedWhatsapp['whatsappLastPreparedAt'],
+        'WhatsApp prepared timestamp should normalize valid ISO strings'
+    );
+    leadops_assert_equals(
+        '',
+        $normalizedWhatsapp['whatsappLastOpenedAt'],
+        'Invalid WhatsApp opened timestamp should be dropped'
+    );
+
     $callbackWithContext = normalize_callback([
         'id' => 202,
         'telefono' => '+593 98 111 2222',
@@ -241,6 +268,8 @@ try {
             'aiObjective' => 'whatsapp_draft',
             'contactedAt' => gmdate('c', $createdAt + 3600),
             'outcome' => 'cita_cerrada',
+            'whatsappTemplateKey' => 'rebooking_slot',
+            'whatsappMessageDraft' => 'Hola, te compartimos el slot disponible.',
         ],
         ['callbacks' => []],
         $funnelMetrics
@@ -264,6 +293,16 @@ try {
     leadops_assert_equals(60.0, (float) ($meta['firstContact']['p95Minutes'] ?? 0.0), 'Meta should expose p95 first-contact minutes');
     leadops_assert_equals(100.0, (float) ($meta['rates']['aiAcceptancePct'] ?? 0.0), 'Meta should expose IA acceptance rate');
     leadops_assert_equals(100.0, (float) ($meta['rates']['closedFromContactedPct'] ?? 0.0), 'Meta should expose close rate from contacted leads');
+    leadops_assert_equals(
+        'rebooking_slot',
+        $contactedLeadOps['whatsappTemplateKey'],
+        'Lead ops merge should keep the selected WhatsApp template'
+    );
+    leadops_assert_equals(
+        'Hola, te compartimos el slot disponible.',
+        $contactedLeadOps['whatsappMessageDraft'],
+        'Lead ops merge should keep the WhatsApp draft'
+    );
 
     leadops_assert_equals(1, (int) ($health['contactedCount'] ?? 0), 'Health snapshot should expose contacted count');
     leadops_assert_equals(1, (int) ($health['aiAccepted'] ?? 0), 'Health snapshot should expose accepted IA count');

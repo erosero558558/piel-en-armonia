@@ -5,14 +5,33 @@ import {
     focusNextPendingCallback,
     markCallbackContacted,
     markSelectedCallbacksContacted,
+    openCallbackWhatsappComposer,
     requestCallbackAiDraft,
     selectVisibleCallbacks,
     setCallbackOutcome,
+    setCallbackWhatsappDraft,
     setCallbacksFilter,
 } from '../../../../sections/callbacks.js';
 import { getState } from '../../../../shared/core/store.js';
 import { createToast } from '../../../../shared/ui/render.js';
 import { navigateToSection } from '../../navigation.js';
+
+function readCallbackComposer(element) {
+    const card = element.closest('.callback-card');
+    const templateSelect =
+        card?.querySelector('[data-callback-template-select]') || null;
+    const draftField =
+        card?.querySelector('[data-callback-template-draft]') || null;
+
+    return {
+        templateKey:
+            templateSelect instanceof HTMLSelectElement
+                ? templateSelect.value
+                : '',
+        message:
+            draftField instanceof HTMLTextAreaElement ? draftField.value : '',
+    };
+}
 
 export async function handleCallbackAction(action, element) {
     switch (action) {
@@ -65,6 +84,33 @@ export async function handleCallbackAction(action, element) {
             await navigator.clipboard.writeText(draft);
             await acceptCallbackAiDraft(callbackId);
             createToast('Borrador copiado', 'success');
+            return true;
+        }
+        case 'callback-copy-template': {
+            const callbackId = Number(element.dataset.callbackId || 0);
+            const { message, templateKey } = readCallbackComposer(element);
+            const draft = String(message || '').trim();
+            if (!draft) {
+                createToast('Primero prepara un mensaje', 'error');
+                return true;
+            }
+            if (!navigator?.clipboard?.writeText) {
+                createToast('Clipboard no disponible', 'error');
+                return true;
+            }
+            await setCallbackWhatsappDraft(callbackId, draft, templateKey);
+            await navigator.clipboard.writeText(draft);
+            createToast('Mensaje copiado', 'success');
+            return true;
+        }
+        case 'callback-send-whatsapp-template': {
+            const callbackId = Number(element.dataset.callbackId || 0);
+            const { message, templateKey } = readCallbackComposer(element);
+            await openCallbackWhatsappComposer(callbackId, {
+                message,
+                templateKey,
+            });
+            createToast('WhatsApp listo para enviar', 'success');
             return true;
         }
         case 'callbacks-bulk-select-visible':

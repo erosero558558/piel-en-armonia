@@ -4,11 +4,14 @@ import {
     setAppointmentSort,
 } from '../../../sections/appointments.js';
 import {
+    applyCallbackWhatsappTemplate,
+    setCallbackWhatsappDraft,
     setCallbacksDay,
     setCallbacksFilter,
     setCallbacksSearch,
     setCallbacksSort,
 } from '../../../sections/callbacks.js';
+import { createToast } from '../../../shared/ui/render.js';
 import { hideCommandPalette } from '../../../ui/frame.js';
 import { setQueueSearch } from '../../../shared/modules/queue.js';
 import { parseQuickCommand, runQuickAction } from '../navigation.js';
@@ -89,4 +92,46 @@ export function attachInputListeners() {
     if (quickCommand instanceof HTMLInputElement) {
         attachQuickCommandInput(quickCommand);
     }
+
+    document.addEventListener('change', async (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+
+        const templateSelect = target.closest('[data-callback-template-select]');
+        if (templateSelect instanceof HTMLSelectElement) {
+            try {
+                await applyCallbackWhatsappTemplate(
+                    Number(templateSelect.dataset.callbackId || 0),
+                    templateSelect.value
+                );
+            } catch (error) {
+                createToast(
+                    error?.message || 'No se pudo preparar la plantilla',
+                    'error'
+                );
+            }
+            return;
+        }
+
+        const draftInput = target.closest('[data-callback-template-draft]');
+        if (draftInput instanceof HTMLTextAreaElement) {
+            const card = draftInput.closest('.callback-card');
+            const linkedTemplate =
+                card?.querySelector('[data-callback-template-select]');
+            try {
+                await setCallbackWhatsappDraft(
+                    Number(draftInput.dataset.callbackId || 0),
+                    draftInput.value,
+                    linkedTemplate instanceof HTMLSelectElement
+                        ? linkedTemplate.value
+                        : ''
+                );
+            } catch (error) {
+                createToast(
+                    error?.message || 'No se pudo guardar el mensaje',
+                    'error'
+                );
+            }
+        }
+    });
 }

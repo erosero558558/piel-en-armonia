@@ -2637,6 +2637,43 @@ body.admin-v3-mode .review-card.is-featured {
     box-shadow: 0 16px 32px rgba(23, 66, 209, 0.08);
 }
 
+body.admin-v3-mode .callback-message-composer {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(23, 66, 209, 0.12);
+    background: rgba(23, 66, 209, 0.04);
+}
+
+body.admin-v3-mode .callback-message-head,
+body.admin-v3-mode .callback-message-field {
+    display: grid;
+    gap: 6px;
+}
+
+body.admin-v3-mode .callback-message-head span,
+body.admin-v3-mode .callback-message-field span {
+    font-size: 0.82rem;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .callback-message-head small,
+body.admin-v3-mode .callback-message-footnote {
+    margin: 0;
+    color: var(--admin3-muted);
+    font-size: 0.82rem;
+}
+
+body.admin-v3-mode .callback-message-field textarea {
+    min-height: 112px;
+    resize: vertical;
+}
+
+body.admin-v3-mode .callback-actions--composer {
+    justify-content: flex-end;
+}
+
 body.admin-v3-mode .reviews-spotlight-card {
     display: grid;
     gap: 16px;
