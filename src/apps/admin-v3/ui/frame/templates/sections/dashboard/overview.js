@@ -106,6 +106,48 @@ export function renderDashboardOperationsGrid() {
                 <ul id="dashboardPaymentAccountList" class="sony-list dashboard-attention-list"></ul>
             </article>
 
+            <article class="sony-panel dashboard-card-multi-clinic">
+                <header>
+                    <div>
+                        <h3>Red multi-clinica</h3>
+                        <small id="dashboardMultiClinicMeta">Comparativa operativa por sucursal del tenant.</small>
+                    </div>
+                    <span
+                        class="dashboard-signal-chip"
+                        id="dashboardMultiClinicChip"
+                        data-state="neutral"
+                    >
+                        Sin red
+                    </span>
+                </header>
+                <div class="sony-panel-stats">
+                    <div><span>Clinicas</span><strong id="multiClinicCount">0</strong></div>
+                    <div><span>Turnos hoy</span><strong id="multiClinicAppointmentsToday">0</strong></div>
+                    <div><span>Ingresos</span><strong id="multiClinicRevenueLabel">$0.00</strong></div>
+                    <div><span>Pacientes</span><strong id="multiClinicPatientCount">0</strong></div>
+                </div>
+                <p id="dashboardMultiClinicSummary">
+                    Cuando el tenant tenga mas de una sucursal veras aqui el comparativo de turnos, pacientes e ingresos por clinica.
+                </p>
+                <div class="dashboard-signal-stack">
+                    <article class="dashboard-signal-card">
+                        <span>Sucursal lider</span>
+                        <strong id="dashboardMultiClinicRevenueLeaderHeadline">Sin datos</strong>
+                        <small id="dashboardMultiClinicRevenueLeaderMeta">
+                            La sede con mayor ingreso liquidado aparecera aqui.
+                        </small>
+                    </article>
+                    <article class="dashboard-signal-card">
+                        <span>Mayor demanda</span>
+                        <strong id="dashboardMultiClinicDemandLeaderHeadline">Sin datos</strong>
+                        <small id="dashboardMultiClinicDemandLeaderMeta">
+                            La sede con mas turnos del dia aparecera aqui.
+                        </small>
+                    </article>
+                </div>
+                <ul id="dashboardMultiClinicList" class="sony-list dashboard-attention-list"></ul>
+            </article>
+
             <article class="sony-panel dashboard-card-assistant" id="dashboardAssistantUtility">
                 <header>
                     <div>

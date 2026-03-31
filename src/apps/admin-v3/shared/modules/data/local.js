@@ -36,6 +36,10 @@ export function persistLocalAdminData(data) {
         data.paymentAccountMeta || null
     );
     setStorageJson(
+        LOCAL_DATA_KEYS.multiClinicOverview,
+        data.multiClinicOverview || null
+    );
+    setStorageJson(
         LOCAL_DATA_KEYS.queueSurfaceStatus,
         data.queueSurfaceStatus || null
     );
@@ -94,6 +98,10 @@ export function loadLocalAdminFallback() {
         ),
         paymentAccountMeta: getStorageJson(
             LOCAL_DATA_KEYS.paymentAccountMeta,
+            null
+        ),
+        multiClinicOverview: getStorageJson(
+            LOCAL_DATA_KEYS.multiClinicOverview,
             null
         ),
         queueSurfaceStatus: getStorageJson(

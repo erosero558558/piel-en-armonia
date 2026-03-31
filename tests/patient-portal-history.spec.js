@@ -13,7 +13,7 @@ const SESSION = {
 
 test.describe('Patient portal history timeline', () => {
     test('renders document states and downloads PDFs with the active bearer token', async ({ page }) => {
-        const downloadAuthorizations = [];
+        const downloadRequests = [];
 
         await page.addInitScript((session) => {
             window.localStorage.setItem('auroraPatientPortalSession', JSON.stringify(session));
@@ -30,6 +30,12 @@ test.describe('Patient portal history timeline', () => {
                         patient: {
                             patientId: 'pt_lucia_001',
                             name: 'Lucia Portal',
+                        },
+                        export: {
+                            available: true,
+                            ctaLabel: 'Exportar mi historia completa',
+                            downloadUrl: '/api.php?resource=patient-portal-document&type=history&id=pt_lucia_001',
+                            fileName: 'historia-clinica-lucia-portal.pdf',
                         },
                         consultations: [
                             {
@@ -154,12 +160,17 @@ test.describe('Patient portal history timeline', () => {
         });
 
         await page.route('**/api.php?resource=patient-portal-document**', async (route) => {
-            downloadAuthorizations.push(route.request().headers().authorization || '');
+            downloadRequests.push({
+                authorization: route.request().headers().authorization || '',
+                url: route.request().url(),
+            });
             await route.fulfill({
                 status: 200,
                 contentType: 'application/pdf',
                 headers: {
-                    'content-disposition': 'inline; filename="certificado-AD-2026-00021.pdf"',
+                    'content-disposition': route.request().url().includes('type=history')
+                        ? 'inline; filename="historia-clinica-lucia-portal.pdf"'
+                        : 'inline; filename="certificado-AD-2026-00021.pdf"',
                 },
                 body: '%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF',
             });
@@ -180,11 +191,18 @@ test.describe('Patient portal history timeline', () => {
         await expect(page.getByText('Pendiente', { exact: true })).toBeVisible();
         await expect(page.getByText('No emitido', { exact: true })).toBeVisible();
         await expect(page.locator('[data-portal-document-link]')).toHaveCount(2);
+        await expect(page.locator('[data-portal-history-export-link]')).toBeVisible();
+
+        await page.locator('[data-portal-history-export-link]').click();
+
+        await expect.poll(() => downloadRequests.length).toBe(1);
+        expect(downloadRequests[0].authorization).toBe('Bearer header.payload.signature');
+        expect(downloadRequests[0].url).toContain('type=history&id=pt_lucia_001');
 
         await page.locator('[data-portal-document-link]').first().click();
 
-        await expect.poll(() => downloadAuthorizations.length).toBe(1);
-        expect(downloadAuthorizations[0]).toBe('Bearer header.payload.signature');
+        await expect.poll(() => downloadRequests.length).toBe(2);
+        expect(downloadRequests[1].authorization).toBe('Bearer header.payload.signature');
     });
 
     test('shows an empty state when the patient still has no downloadable history', async ({ page }) => {

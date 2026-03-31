@@ -16,6 +16,7 @@ require_once __DIR__ . '/../lib/FlowOsJourney.php';
 require_once __DIR__ . '/../lib/DoctorProfileStore.php';
 require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 require_once __DIR__ . '/../lib/CheckoutOrderService.php';
+require_once __DIR__ . '/../lib/MultiClinicDashboardService.php';
 
 class AdminDataController
 {
@@ -127,6 +128,7 @@ class AdminDataController
         );
         $store['checkoutReviewMeta'] = CheckoutOrderService::buildAdminReviewMeta($store);
         $store['paymentAccountMeta'] = CheckoutOrderService::buildAdminAccountMeta($store);
+        $store['multiClinicOverview'] = MultiClinicDashboardService::buildAdminOverview($store);
         $store['internalConsoleMeta'] = function_exists('internal_console_readiness_snapshot')
             ? internal_console_readiness_snapshot()
             : null;
