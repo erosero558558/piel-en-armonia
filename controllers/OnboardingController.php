@@ -39,13 +39,14 @@ final class OnboardingController
         $stepId   = trim((string) ($payload['step_id'] ?? ''));
         $status   = trim((string) ($payload['status'] ?? 'done'));
         $blocker  = trim((string) ($payload['blocker'] ?? ''));
+        $stepPayload = is_array($payload['payload'] ?? null) ? $payload['payload'] : [];
 
         if ($stepId === '') {
             json_response(['ok' => false, 'error' => 'step_id requerido'], 400);
             return;
         }
 
-        $result = OnboardingService::updateStep($store, $clinicId, $stepId, $status, $blocker);
+        $result = OnboardingService::updateStep($store, $clinicId, $stepId, $status, $blocker, $stepPayload);
         if (($result['ok'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => $result['error'] ?? 'Error'], 422);
             return;
@@ -57,7 +58,12 @@ final class OnboardingController
             return;
         }
 
-        json_response(['ok' => true, 'data' => $result['progress']]);
+        json_response(['ok' => true, 'data' => [
+            'progress' => $result['progress'],
+            'step' => $stepId,
+            'percent' => $result['progress']['percent'] ?? 0,
+            'blockers' => array_values(array_filter(array_column($result['progress']['steps'], 'blocker')))
+        ]]);
     }
 
     // ── S18-03: Walkthrough config ────────────────────────────────

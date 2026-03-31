@@ -141,6 +141,7 @@ class AdminDataController
         $store['appDownloads'] = self::buildAppDownloads();
         $store['queueSurfaceStatus'] = QueueSurfaceStatusStore::readSummary();
         $store['turneroV2Readiness'] = self::buildTurneroV2Readiness($store);
+        $store['reviewsMeta'] = self::buildReviewsMeta($store);
 
         if (($context['isQueueOperator'] ?? false) === true && ($context['isAdmin'] ?? false) !== true) {
             $store = self::buildQueueOperatorStore($store, $context);
@@ -632,6 +633,47 @@ class AdminDataController
             'ready' => $ready,
             'state' => $ready ? 'ready' : 'warning',
             'detail' => $detail,
+        ];
+    }
+
+    private static function buildReviewsMeta(array $store): array
+    {
+        $surveys = is_array($store['nps_surveys'] ?? null) ? $store['nps_surveys'] : [];
+        if (count($surveys) === 0) {
+            return [
+                'totalReviews' => 0,
+                'averageRating' => 0.0,
+                'last5Reviews' => [],
+            ];
+        }
+
+        $totalRating = 0;
+        $count = 0;
+        $last5 = [];
+        
+        // Assume surveys are chronologically appended to store
+        $reversed = array_reverse($surveys);
+
+        foreach ($reversed as $index => $survey) {
+            $rating = (int) ($survey['rating'] ?? 0);
+            if ($rating >= 1 && $rating <= 5) {
+                $totalRating += $rating;
+                $count++;
+                if ($index < 5) {
+                    $last5[] = [
+                        'name' => trim((string) ($survey['name'] ?? 'Anónimo')),
+                        'rating' => $rating,
+                        'text' => trim((string) ($survey['text'] ?? '')),
+                        'date' => format_date_label(trim((string) ($survey['date'] ?? '')))
+                    ];
+                }
+            }
+        }
+
+        return [
+            'totalReviews' => $count,
+            'averageRating' => $count > 0 ? (float) ($totalRating / $count) : 0.0,
+            'last5Reviews' => $last5,
         ];
     }
 }

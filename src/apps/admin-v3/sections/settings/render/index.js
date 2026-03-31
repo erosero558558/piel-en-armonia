@@ -38,6 +38,7 @@ function normalizeClinicProfile(profile) {
         address: String(source.address || '').trim(),
         phone: String(source.phone || '').trim(),
         logoImage: String(source.logoImage || '').trim(),
+        software_plan: String(source.software_plan || 'Básico').trim(),
         updatedAt: String(source.updatedAt || '').trim(),
     };
 }
@@ -77,12 +78,14 @@ function readClinicProfileFromForm(root) {
     const clinicName = qs('#clinicProfileName', root);
     const address = qs('#clinicProfileAddress', root);
     const phone = qs('#clinicProfilePhone', root);
+    const softwarePlan = qs('#clinicProfileSoftwarePlan', root);
 
     return normalizeClinicProfile({
         clinicName: clinicName instanceof HTMLInputElement ? clinicName.value : '',
         address: address instanceof HTMLInputElement ? address.value : '',
         phone: phone instanceof HTMLInputElement ? phone.value : '',
         logoImage: activeLogoImage,
+        software_plan: softwarePlan instanceof HTMLSelectElement ? softwarePlan.value : 'Básico',
         updatedAt: getClinicProfileFromState().updatedAt,
     });
 }
@@ -199,6 +202,7 @@ function applyClinicProfileToForm(root, profile) {
     const address = qs('#clinicProfileAddress', root);
     const phone = qs('#clinicProfilePhone', root);
     const logoFile = qs('#clinicProfileLogoFile', root);
+    const softwarePlan = qs('#clinicProfileSoftwarePlan', root);
 
     if (clinicName instanceof HTMLInputElement) {
         clinicName.value = profile.clinicName;
@@ -208,6 +212,9 @@ function applyClinicProfileToForm(root, profile) {
     }
     if (phone instanceof HTMLInputElement) {
         phone.value = profile.phone;
+    }
+    if (softwarePlan instanceof HTMLSelectElement) {
+        softwarePlan.value = profile.software_plan || 'Básico';
     }
     if (logoFile instanceof HTMLInputElement) {
         logoFile.value = '';

@@ -6,6 +6,7 @@ require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/AppConfig.php';
 require_once __DIR__ . '/ServiceCatalog.php';
+require_once __DIR__ . '/TurneroClinicProfile.php';
 
 /**
  * Email sending logic.
@@ -128,7 +129,11 @@ function send_mail(string $to, string $subject, string $body, bool $isHtml = fal
     // Fallback a mail() nativo
     $from = AppConfig::getNoReplyEmail();
     $contentType = $isHtml ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
-    $headers = "From: " . AppConfig::BRAND_NAME . " <{$from}>\r\nContent-Type: {$contentType}";
+
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+
+    $headers = "From: " . $brandName . " <{$from}>\r\nContent-Type: {$contentType}";
 
     $sent = @mail($to, $subject, $body, $headers);
     if (!$sent) {
@@ -169,7 +174,11 @@ function generate_ics_content(array $appointment): string
         ? get_doctor_label((string) ($appointment['doctor'] ?? ''))
         : (string) ($appointment['doctor'] ?? '');
 
-    $summary = 'Cita ' . AppConfig::BRAND_NAME . ' - ' . $serviceLabel;
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+    $address = !empty($profile['branding']['address']) ? $profile['branding']['address'] : AppConfig::ADDRESS;
+
+    $summary = 'Cita ' . $brandName . ' - ' . $serviceLabel;
     $description = "Servicio: {$serviceLabel}\\nDoctor: {$doctorLabel}\\n";
     $location = AppConfig::ADDRESS;
 
@@ -186,7 +195,7 @@ function generate_ics_content(array $appointment): string
         'DTEND;TZID=America/Guayaquil:' . date('Ymd\\THis', $endTs),
         'SUMMARY:' . $summary,
         'DESCRIPTION:' . $description,
-        'LOCATION:' . $location,
+        'LOCATION:' . $address,
         'STATUS:CONFIRMED',
         'END:VEVENT',
         'END:VCALENDAR'
@@ -201,9 +210,16 @@ function get_email_template(string $title, string $content, string $preheader = 
         ? '<div style="display:none;font-size:1px;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;font-family: sans-serif;">' . $preheader . '</div>'
         : '';
 
-    $brandName = AppConfig::BRAND_NAME;
-    $address = AppConfig::ADDRESS;
-    $whatsapp = AppConfig::WHATSAPP_NUMBER;
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+    $address = !empty($profile['branding']['address']) ? $profile['branding']['address'] : AppConfig::ADDRESS;
+    $whatsapp = !empty($profile['branding']['whatsapp']) ? $profile['branding']['whatsapp'] : AppConfig::WHATSAPP_NUMBER;
+    $primaryColor = !empty($profile['branding']['theme']['primary_color']) ? $profile['branding']['theme']['primary_color'] : '#0d1a2f';
+    $logoUrl = !empty($profile['branding']['logo_url']) ? $profile['branding']['logo_url'] : '';
+
+    $headerContent = $logoUrl !== ''
+        ? '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') . ' Logo" style="max-height: 50px; display: inline-block;">'
+        : '<h1 style="margin:0;font-size:24px;color:#ffffff;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">' . htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') . '</h1>';
 
     return '<!DOCTYPE html>
 <html lang="es">
@@ -225,8 +241,8 @@ function get_email_template(string $title, string $content, string $preheader = 
             <td align="center" style="padding:40px 0;">
                 <table class="container" role="presentation" style="width:100%;max-width:600px;border-collapse:collapse;text-align:left;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);margin:0 auto;">
                     <tr>
-                        <td style="padding:30px 40px;background-color:#0d1a2f;text-align:center;">
-                            <h1 style="margin:0;font-size:24px;color:#ffffff;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">' . htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') . '</h1>
+                        <td style="padding:30px 40px;background-color:' . htmlspecialchars($primaryColor, ENT_QUOTES, 'UTF-8') . ';text-align:center;">
+                            ' . $headerContent . '
                         </td>
                     </tr>
                     <tr>
@@ -241,7 +257,7 @@ function get_email_template(string $title, string $content, string $preheader = 
                                 ' . htmlspecialchars($address, ENT_QUOTES, 'UTF-8') . '
                             </p>
                             <p style="margin:0 0 10px;font-size:14px;color:#5a6d85;">
-                                <a href="https://wa.me/' . preg_replace('/[^0-9]/', '', $whatsapp) . '" style="color:#0284c7;text-decoration:none;">WhatsApp: ' . htmlspecialchars($whatsapp, ENT_QUOTES, 'UTF-8') . '</a>
+                                <a href="https://wa.me/' . preg_replace('/[^0-9]/', '', $whatsapp) . '" style="color:' . htmlspecialchars($primaryColor, ENT_QUOTES, 'UTF-8') . ';text-decoration:none;">WhatsApp: ' . htmlspecialchars($whatsapp, ENT_QUOTES, 'UTF-8') . '</a>
                             </p>
                             <p style="margin:0;font-size:12px;color:#8b9bb4;">
                                 &copy; ' . date('Y') . ' ' . htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') . '. Todos los derechos reservados.
@@ -274,7 +290,9 @@ function email_recipient_or_empty(string $email): string
  */
 function build_email_subject(string $subject): string
 {
-    return $subject . ' - ' . AppConfig::BRAND_NAME;
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+    return $subject . ' - ' . $brandName;
 }
 
 /**
@@ -384,8 +402,11 @@ function build_appointment_detail_table(array $context, string $tableStyle, stri
  */
 function build_email_cta_button(string $href, string $label): string
 {
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $primaryColor = !empty($profile['branding']['theme']['primary_color']) ? $profile['branding']['theme']['primary_color'] : '#0284c7';
+
     return '<div style="text-align:center;margin-bottom:30px;">'
-        . '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background-color:#0284c7;color:#ffffff;text-decoration:none;padding:12px 25px;border-radius:6px;font-weight:bold;">'
+        . '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background-color:' . htmlspecialchars($primaryColor, ENT_QUOTES, 'UTF-8') . ';color:#ffffff;text-decoration:none;padding:12px 25px;border-radius:6px;font-weight:bold;">'
         . htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
         . '</a>'
         . '</div>';
@@ -530,8 +551,11 @@ function build_reschedule_notification_footer(array $context): string
         $footer .= $context['rescheduleUrl'] . "\n\n";
     }
 
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+
     $footer .= "Te esperamos. ¡Gracias por confiar en nosotros!\n";
-    $footer .= "- Equipo " . AppConfig::BRAND_NAME;
+    $footer .= "- Equipo " . $brandName;
 
     return $footer;
 }
@@ -675,6 +699,11 @@ function build_appointment_email_text(array $appointment): string
     $body .= "Instrucciones previas:\n";
     $body .= $prepInstructions . "\n\n";
 
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+    $address = !empty($profile['branding']['address']) ? $profile['branding']['address'] : AppConfig::ADDRESS;
+    $whatsapp = !empty($profile['branding']['whatsapp']) ? $profile['branding']['whatsapp'] : AppConfig::WHATSAPP_NUMBER;
+
     if ($context['checkinToken'] !== '') {
         $body .= "Codigo de llegada al kiosco: " . $context['checkinToken'] . "\n";
         $body .= "Puedes usar este codigo o tu QR de confirmacion cuando llegues.\n\n";
@@ -682,8 +711,8 @@ function build_appointment_email_text(array $appointment): string
     
     $body .= "Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.\n\n";
     $body .= "Si deseas reprogramar, visita: " . $context['rescheduleUrl'] . "\n\n";
-    $body .= "Si tienes dudas, responde este correo o escribe por WhatsApp: " . AppConfig::WHATSAPP_NUMBER . ".\n\n";
-    $body .= AppConfig::BRAND_NAME . "\n" . AppConfig::ADDRESS;
+    $body .= "Si tienes dudas, responde este correo o escribe por WhatsApp: " . $whatsapp . ".\n\n";
+    $body .= $brandName . "\n" . $address;
 
     return $body;
 }
@@ -720,12 +749,16 @@ function build_reminder_email_text(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
 
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+    $whatsapp = !empty($profile['branding']['whatsapp']) ? $profile['branding']['whatsapp'] : AppConfig::WHATSAPP_NUMBER;
+
     $body = "Hola " . $context['name'] . ",\n\n";
     $body .= "Te recordamos que tienes una cita programada para mañana.\n\n";
     $body .= build_appointment_detail_text($context, true);
     $body .= "Te esperamos. ¡Gracias por confiar en nosotros!\n\n";
-    $body .= "- Equipo " . AppConfig::BRAND_NAME . "\n";
-    $body .= "WhatsApp: " . AppConfig::WHATSAPP_NUMBER;
+    $body .= "- Equipo " . $brandName . "\n";
+    $body .= "WhatsApp: " . $whatsapp;
 
     return $body;
 }
@@ -761,13 +794,17 @@ function build_cancellation_email_text(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
 
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+    $whatsapp = !empty($profile['branding']['whatsapp']) ? $profile['branding']['whatsapp'] : AppConfig::WHATSAPP_NUMBER;
+
     $body = "Hola " . $context['name'] . ",\n\n";
     $body .= "Tu cita ha sido cancelada.\n\n";
     $body .= "Detalles de la cita cancelada:\n";
     $body .= build_appointment_detail_text($context, false);
-    $body .= "Si deseas reprogramar, visita " . AppConfig::BASE_URL . "/#citas o escríbenos por WhatsApp: " . AppConfig::WHATSAPP_NUMBER . ".\n\n";
+    $body .= "Si deseas reprogramar, visita " . AppConfig::BASE_URL . "/#citas o escríbenos por WhatsApp: " . $whatsapp . ".\n\n";
     $body .= "Gracias por confiar en nosotros.\n\n";
-    $body .= "- Equipo " . AppConfig::BRAND_NAME;
+    $body .= "- Equipo " . $brandName;
 
     return $body;
 }
@@ -805,11 +842,15 @@ function maybe_send_appointment_whatsapp(array $appointment): bool
     $body .= "💡 *Preparación previa:*\n";
     $body .= $prepInstructions . "\n\n";
 
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+    $address = !empty($profile['branding']['address']) ? $profile['branding']['address'] : AppConfig::ADDRESS;
+
     if ($context['checkinToken'] !== '') {
         $body .= "🔑 *Tu código para ingreso:* " . $context['checkinToken'] . "\n\n";
     }
 
-    $body .= "📍 " . AppConfig::BRAND_NAME . "\n" . AppConfig::ADDRESS . "\n\n";
+    $body .= "📍 " . $brandName . "\n" . $address . "\n\n";
     $body .= "Si necesitas *reprogramar*, entra a este enlace:\n" . $context['rescheduleUrl'];
 
     try {
@@ -1006,10 +1047,13 @@ function maybe_send_gift_card_reminder_email($giftCard): bool
     $amount = number_format(($cardArray['balance_cents'] ?? 0) / 100, 2);
     $code = $cardArray['code'] ?? '';
     
+    $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
+    $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
+
     $subject = build_email_subject('Tu Gift Card vence pronto');
     
     $body = "Hola,\n\n";
-    $body .= "Te recordamos que tienes una Gift Card con saldo pendiente de $" . $amount . " en " . AppConfig::BRAND_NAME . ".\n\n";
+    $body .= "Te recordamos que tienes una Gift Card con saldo pendiente de $" . $amount . " en " . $brandName . ".\n\n";
     $body .= "El código es: " . $code . "\n";
     
     if (!empty($cardArray['expires_at'])) {
@@ -1018,7 +1062,7 @@ function maybe_send_gift_card_reminder_email($giftCard): bool
     
     $body .= "Puedes usar este saldo en tus próximos tratamientos dermatológicos.\n";
     $body .= "Visita " . AppConfig::BASE_URL . "/#citas o contáctanos para agendar.\n\n";
-    $body .= "Saludos,\n" . AppConfig::BRAND_NAME . "\n";
+    $body .= "Saludos,\n" . $brandName . "\n";
     
     return send_mail_to_recipient($recipient, $subject, $body, false);
 }

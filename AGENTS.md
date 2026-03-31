@@ -1224,7 +1224,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 5.4 Experiencia clínica premium
 
 - [x] **S5-19** `[M]` Before/after real — en el portal del paciente, slider de comparación con sus propias fotos (Día 1 vs Semana 12). Reutilizar componente BA de `index.html`.
-- [ ] **S5-20** `[L]` Encuesta de satisfacción — 72h después de la cita: NPS de 1-5 + comentario libre. Guardar en admin. Usar para mejorar servicio.
+- [x] **S5-20** `[L]` Encuesta de satisfacción — 72h después de la cita: NPS de 1-5 + comentario libre. Guardar en admin. Usar para mejorar servicio.
 - [x] **S5-21** `[M]` Red flags para el paciente — si en los últimos 30 días hay una nota de "cambio sospechoso" en su caso, notificar al paciente: "Su seguimiento recomienda una consulta pronto."
 - [x] **S5-22** `[S]` Exportar mi historia — botón en el portal: descargar PDF completo de la historia clínica propia. Legal compliance: el paciente tiene derecho a su información.
 
@@ -1236,22 +1236,22 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 6.1 Onboarding de nuevas clínicas
 
-- [ ] **S6-01** `[XL]` Wizard de onboarding — `es/software/turnero-clinicas/empezar/index.html`: flujo en 5 pasos: datos de la clínica → doctores → servicios → personalización → URL activa. Completable en <10 minutos.
-- [ ] **S6-02** `[L]` Perfil de clínica — `TurneroClinicProfile` completo: nombre, logo, colores, dirección, horarios, WhatsApp, especialidades. Cada clínica tiene su propio subdomain `{slug}.flowos.ec`.
-- [ ] **S6-03** `[M]` Invitar staff — desde el admin: enviar WhatsApp/email para que un médico cree su perfil. Rol: admin, doctor, recepcionista. Permisos por rol.
-- [ ] **S6-04** `[M]` Activación de servicios — checklist: qué módulos activa la clínica (turnero, HCE, telemedicina, portal paciente, analytics). Modular y cobrable por módulo.
-- [ ] **S6-05** `[L]` Datos de demo — al crear una clínica nueva, opcionar "cargar datos de ejemplo": 3 pacientes ficticios, agenda de prueba, citas simuladas. Para que el admin vea el sistema funcionando antes de agregar datos reales.
+- [x] **S6-01** `[XL]` Wizard de onboarding — `es/software/turnero-clinicas/empezar/index.html`: flujo en 5 pasos: datos de la clínica → doctores → servicios → personalización → URL activa. Completable en <10 minutos.
+- [x] **S6-02** `[L]` Perfil de clínica — `TurneroClinicProfile` completo: nombre, logo, colores, dirección, horarios, WhatsApp, especialidades. Cada clínica tiene su propio subdomain `{slug}.flowos.ec`.
+- [x] **S6-03** `[M]` Invitar staff — desde el admin: enviar WhatsApp/email para que un médico cree su perfil. Rol: admin, doctor, recepcionista. Permisos por rol.
+- [x] **S6-04** `[M]` Activación de servicios — checklist: qué módulos activa la clínica (turnero, HCE, telemedicina, portal paciente, analytics). Modular y cobrable por módulo.
+- [x] **S6-05** `[L]` Datos de demo — al crear una clínica nueva, opcionar "cargar datos de ejemplo": 3 pacientes ficticios, agenda de prueba, citas simuladas. Para que el admin vea el sistema funcionando antes de agregar datos reales.
 
 #### 6.2 Whitelabel y personalización
 
-- [ ] **S6-06** `[L]` Theme engine — en admin: subir logo, elegir color primario (con previsualización en tiempo real). El CSS cambia dinámicamente usando variables. Sin tocar código.
-- [ ] **S6-07** `[M]` Dominio propio — guía paso a paso para que la clínica apunte su dominio a Flow OS. DNS + SSL automático via Let's Encrypt.
-- [ ] **S6-08** `[M]` Email branding — emails del sistema (confirmación de cita, receta, follow-up) salen con la marca de la clínica: su logo, su nombre, sus colores.
+- [x] **S6-06** `[L]` Theme engine — en admin: subir logo, elegir color primario (con previsualización en tiempo real). El CSS cambia dinámicamente usando variables. Sin tocar código.
+- [x] **S6-07** `[M]` Dominio propio — guía paso a paso para que la clínica apunte su dominio a Flow OS. DNS + SSL automático via Let's Encrypt.
+- [x] **S6-08** `[M]` Email branding — emails del sistema (confirmación de cita, receta, follow-up) salen con la marca de la clínica: su logo, su nombre, sus colores.
 - [x] **S6-09** `[S]` App name — el paciente que agrega el portal a la pantalla de inicio ve el nombre de la clínica, no "Flow OS".
 
 #### 6.3 Modelo de negocio y pagos
 
-- [ ] **S6-10** `[L]` Pricing SaaS — definir y publicar: Free (1 doctor, 50 citas/mes), Starter ($29/mes, 3 doctores), Pro ($79/mes, 10 doctores + IA), Enterprise (contactar). Comparativa en `es/software/turnero-clinicas/precios/index.html`.
+- [x] **S6-10** `[L]` Pricing SaaS — definir y publicar: Free (1 doctor, 50 citas/mes), Starter ($29/mes, 3 doctores), Pro ($79/mes, 10 doctores + IA), Enterprise (contactar). Comparativa en `es/software/turnero-clinicas/precios/index.html`.
 - [ ] **S6-11** `[L]` Suscripción Stripe — integrar Stripe para cobros mensuales recurrentes. Admin puede ver su plan activo, fecha de renovación, facturas.
 - [ ] **S6-12** `[M]` Trial 14 días — toda clínica nueva empieza con 14 días de Pro gratis. Al día 12: recordatorio de renovación. Al día 14 si no renueva: downgrade a Free.
 - [ ] **S6-13** `[M]` Revenue dashboard (owner) — vista interna para el dueño de Flow OS: MRR, churn, clínicas activas, conversión trial→pago. Solo visible con rol `superadmin`.
@@ -1479,7 +1479,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 8.5 Telemedicina — deuda técnica
 
-- [ ] **S8-12** `[M]` Telemedicine legacy uploads cleanup — `stagedLegacyUploadsCount > 0` en diagnósticos. Migrar todos los uploads pendientes fuera del staging legacy. Verificable: `TelemedicineOpsDiagnostics.stagedLegacyUploadsCount === 0` en producción.
+- [x] **S8-12** `[M]` Telemedicine legacy uploads cleanup — `stagedLegacyUploadsCount > 0` en diagnósticos. Migrar todos los uploads pendientes fuera del staging legacy. Verificable: `TelemedicineOpsDiagnostics.stagedLegacyUploadsCount === 0` en producción.
 - [ ] **S8-13** `[M]` Telemedicine source contract — origen `legacy_booking` aparece en sesiones de telemedicina sin trazabilidad real. Reemplazar defaults ambiguos por fuentes explícitas: `intake_form`, `booking_public`, `operator_manual`, `whatsapp_lead`. Verificable: `grep -rn "legacy_booking" lib/` → 0 resultados en código nuevo.
 - [ ] **S8-14** `[M]` Telemedicine diagnostics surface — `TelemedicineOpsDiagnostics` existe en el controller pero solo es accesible desde backend. Exponer `GET /api.php?resource=telemedicine-ops-diagnostics` en admin con card visual: staging count, pending evals, suitability score. El médico puede ver el estado real sin revisar logs.
 
@@ -1651,7 +1651,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 🚨 13.0 Reversión de tareas done incorrectas (URGENTE)
 
-- [ ] **S13-00** `[S]` REVERSIÓN: S4-08 marcada done pero no existe — `verify.js` detectó que `es/software/turnero-clinicas/precios/index.html` **no existe** a pesar de estar marcada `[x]`. Crear la página referenciada en la tarea original. Sin el archivo, la tarea no está done. Verificable: `ls es/software/turnero-clinicas/precios/index.html` → existe.
+- [x] **S13-00** `[S]` REVERSIÓN: S4-08 marcada done pero no existe — `verify.js` detectó que `es/software/turnero-clinicas/precios/index.html` **no existe** a pesar de estar marcada `[x]`. Crear la página referenciada en la tarea original. Sin el archivo, la tarea no está done. Verificable: `ls es/software/turnero-clinicas/precios/index.html` → existe.
 
 #### 13.1 Fundamentos de producción — nadie los auditó
 
@@ -1659,13 +1659,13 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S13-02** `[M]` sitemap.xml — actualización y cobertura completa — sitemap tiene 73 URLs pero falta: `/es/paquetes/` (recién creada S4-13), todas las URLs nuevas de Sprint 2/3/UI. `lastmod` desactualizado en muchas. Añadir generación automática al `sync-backlog.js` o crear `bin/gen-sitemap.js`. Verificable: `grep "paquetes" sitemap.xml` → existe.
 - [x] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
 - [ ] **S13-04** `[M]` Security headers en nginx — `nginx-pielarmonia.conf` no tiene `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Sin estos headers, la clínica es vulnerable a clickjacking y XSS reflejado. Verificable: `curl -I https://aurora-derm.com | grep -i "x-frame"` → match.
-- [ ] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
+- [x] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
 - [ ] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
 
 #### 13.2 `tele-head-links.html` — regresión silenciosa detectada
 
 - [x] **S13-07** `[M]` `[UI]` `tele-head-links.html` usa CSS legacy — el partial `templates/partials/tele-head-links.html` carga `styles.css?v=figo-20260227-redesignfix3` y `styles-deferred.css`. Estos son archivos del sistema **anterior a la migración "Clinical Luxury"**. El partial tiene 1 referencia a tokens pero aún arrastra el CSS viejo. Resultado: las páginas de telemedicina tienen regresión visual. Reemplazar imports por: `tokens.css` + `base.css` + `aurora-public.css`. Verificable: `grep "styles.css" templates/partials/tele-head-links.html` → 0.
-- [ ] **S13-08** `[S]` Partial órfano — `tele-head-links.html` no es incluido por ninguna plantilla (0 includes detectados). O es un dead file o las plantillas que deberían usarlo lo están ignorando. Investigar: si ninguna plantilla lo usa → `git rm`. Si debería usarse → conectar. Verificable: `grep -r "tele-head-links" templates/ | wc -l` → ≥1 o archivo eliminado.
+- [x] **S13-08** `[S]` Partial órfano — `tele-head-links.html` no es incluido por ninguna plantilla (0 includes detectados). O es un dead file o las plantillas que deberían usarlo lo están ignorando. Investigar: si ninguna plantilla lo usa → `git rm`. Si debería usarse → conectar. Verificable: `grep -r "tele-head-links" templates/ | wc -l` → ≥1 o archivo eliminado.
 
 #### 13.3 `lib/common.php` — deuda técnica crítica
 
@@ -1873,12 +1873,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 17.5 Conversión de páginas a ventas
 
 - [x] **S17-10** `[M]` Motor de promociones con elegibilidad — `es/promociones/index.html` existe como copy estático. Crear `lib/promotions/PromotionEngine.php`: promotional rule (vigencia, elegibilidad: primera_vez|miembro|referido, descuento, exclusiones). Admin puede activar/desactivar promos. En booking: `GET /api.php?resource=active-promotions` → lista de promos aplicables al paciente. Verificable: un paciente nueva visita ve promo "Primera consulta" y otro con membresía no la ve (exclusión).
-- [ ] **S17-15** `[M]` Social proof dinámico por servicio — `es/servicios/*/index.html` tiene testimonios estáticos. Conectar con reviews reales: `GET /api.php?resource=reviews?service=botox` → `{rating, count, latest[3]}`. Mostrar rating con estrellas y los 3 testimonios más recientes en cada página de servicio. Fallback elegante si no hay reviews. Verificable: `grep "dynamic-reviews" es/servicios/botox/index.html` → match.
+- [x] **S17-15** `[M]` Social proof dinámico por servicio — `es/servicios/*/index.html` tiene testimonios estáticos. Conectar con reviews reales: `GET /api.php?resource=reviews?service=botox` → `{rating, count, latest[3]}`. Mostrar rating con estrellas y los 3 testimonios más recientes en cada página de servicio. Fallback elegante si no hay reviews. Verificable: `grep "dynamic-reviews" es/servicios/botox/index.html` → match.
 
 #### 17.6 Turnero como producto vendible
 
-- [ ] **S17-16** `[M]` Clinic onboarding wizard persistente — el onboarding console actual es JS estático sin persistencia. Convertir en flujo con progreso real: Paso 1 Config básica → Paso 2 Staff → Paso 3 Servicios → Paso 4 Superficies → Paso 5 Test final. Progreso guardado en store. "Next best action" visible. Backend: `GET /api.php?resource=onboarding-status?clinic_id=X` → `{step, percent, blockers[]}`. Verificable: interrumpir onboarding y retomar → estado conservado.
-- [ ] **S17-17** `[M]` Package selector integrado al clinic profile — al completar el onboarding, mostrar packages/planes disponibles del software (Básico/Pro/Enterprise) con features comparativas. Selección persiste en `clinic-profile`. Admin puede ver qué plan tiene cada clínica. Verificable: `GET /api.php?resource=clinic-profile?clinic_id=X` → campo `software_plan` present.
+- [x] **S17-16** `[M]` Clinic onboarding wizard persistente — el onboarding console actual es JS estático sin persistencia. Convertir en flujo con progreso real: Paso 1 Config básica → Paso 2 Staff → Paso 3 Servicios → Paso 4 Superficies → Paso 5 Test final. Progreso guardado en store. "Next best action" visible. Backend: `GET /api.php?resource=onboarding-status?clinic_id=X` → `{step, percent, blockers[]}`. Verificable: interrumpir onboarding y retomar → estado conservado.
+- [x] **S17-17** `[M]` Package selector integrado al clinic profile — al completar el onboarding, mostrar packages/planes disponibles del software (Básico/Pro/Enterprise) con features comparativas. Selección persiste en `clinic-profile`. Admin puede ver qué plan tiene cada clínica. Verificable: `GET /api.php?resource=clinic-profile?clinic_id=X` → campo `software_plan` present.
 
 ---
 

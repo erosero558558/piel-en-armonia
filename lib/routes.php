@@ -43,6 +43,7 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'flow-os-intake', [IntakeController::class, 'store']);
     $router->add('POST', 'patient-portal-auth-start', [PatientPortalController::class, 'start']);
     $router->add('POST', 'patient-portal-auth-complete', [PatientPortalController::class, 'complete']);
+    $router->add('POST', 'patient-portal-submit-survey', [PatientPortalController::class, 'submitSurvey']);
     $router->add('GET', 'patient-portal-auth-status', [PatientPortalController::class, 'status']);
     $router->add('GET', 'patient-portal-dashboard', [PatientPortalController::class, 'dashboard']);
     $router->add('GET', 'patient-portal-history', [PatientPortalController::class, 'history']);
@@ -75,6 +76,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'telemedicine-preconsultation', [TelemedicinePublicController::class, 'preConsultation']);
     $router->add('POST', 'telemedicine-preconsultation', [TelemedicinePublicController::class, 'submitPreConsultation']);
     $router->add('GET', 'telemedicine-room-token', [TelemedicineRoomController::class, 'token']);
+    $router->add('POST', 'telemedicine-recording-consent', [TelemedicineRoomController::class, 'recordingConsent']);
     $router->add('POST', 'telemedicine-recording', [TelemedicineRoomController::class, 'uploadRecording']);
     $router->add('GET', 'clinical-history-session', [ClinicalHistoryController::class, 'sessionGet']);
     $router->add('POST', 'clinical-history-session', [ClinicalHistoryController::class, 'sessionPost']);
@@ -170,14 +172,16 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'package-activate', [MembershipController::class, 'activatePackage']);
     $router->add('POST', 'package-consume', [MembershipController::class, 'consumeSession']);
 
-    // Onboarding + Walkthrough — S18-02, S18-03
+    // Onboarding + Walkthrough — S18-02, S18-03, S17-16
     $router->add('GET', 'onboarding-progress', [OnboardingController::class, 'progress']);
+    $router->add('GET', 'onboarding-status', [OnboardingController::class, 'progress']);
     $router->add('POST', 'onboarding-step', [OnboardingController::class, 'updateStep']);
     $router->add('GET', 'walkthrough-config', [OnboardingController::class, 'walkthroughConfig']);
 
     // Branding
     require_once __DIR__ . '/../controllers/BrandingController.php';
     $router->add('GET', 'clinic-branding-meta', [BrandingController::class, 'meta']);
+    $router->add('GET', 'clinic-manifest', [BrandingController::class, 'manifest']);
     $router->add('GET', 'clinic-branding-css', [BrandingController::class, 'css']);
 
     $router->add('GET', 'reviews', [ReviewController::class, 'index']);

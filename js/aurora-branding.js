@@ -19,6 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.aurora-brand-name').forEach(el => {
           el.textContent = name;
         });
+
+        // Hydrate PWA names for homescreen
+        document.querySelectorAll('meta[name="application-name"]').forEach(el => el.setAttribute('content', name));
+        document.querySelectorAll('meta[name="apple-mobile-web-app-title"]').forEach(el => el.setAttribute('content', name));
+        
+        // Dynamically point manifest to Whitelabel endpoint
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        if (manifestLink) {
+          manifestLink.setAttribute('href', '/api.php?resource=clinic-manifest');
+        }
       }
 
       // 3. Hydrate Short Name

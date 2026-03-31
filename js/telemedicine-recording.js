@@ -7,6 +7,7 @@
     let recordedChunks = [];
     let isRecording = false;
     let patientParticipantId = null;
+    let pendingRequestId = null;
 
     const recordBtn = document.getElementById('record-btn');
     const stopRecordBtn = document.getElementById('stop-record-btn');
@@ -15,7 +16,7 @@
     const denyBtn = document.getElementById('deny-recording-btn');
     const acceptBtn = document.getElementById('accept-recording-btn');
 
-    document.addEventListener('telemedicine:ready', (event) => {
+    window.addEventListener('telemedicine:ready', (event) => {
         api = event.detail.api;
         role = event.detail.role;
 
@@ -37,23 +38,87 @@
         return urlParams.get('token') || null;
     }
 
+    function getPortalBearer() {
+        const portalShell = window.AuroraPatientPortalShell || null;
+        const session = portalShell && typeof portalShell.getSession === 'function'
+            ? portalShell.getSession()
+            : null;
+        return session ? session.token : null;
+    }
+
+    function buildResourceUrl(resource) {
+        const appointmentId = getAppointmentId();
+        const token = getTokenParam();
+        const params = new URLSearchParams();
+        if (appointmentId) {
+            params.set('id', appointmentId);
+        } else if (token) {
+            params.set('token', token);
+        }
+
+        return `/api.php?resource=${resource}${params.toString() ? `&${params.toString()}` : ''}`;
+    }
+
+    async function persistRecordingConsent(action, requestId) {
+        const body = new URLSearchParams();
+        body.set('action', action);
+        if (requestId) {
+            body.set('requestId', requestId);
+        }
+
+        const res = await fetch(buildResourceUrl('telemedicine-recording-consent'), {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                ...(getPortalBearer() ? { Authorization: `Bearer ${getPortalBearer()}` } : {})
+            },
+            body: body.toString()
+        });
+
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok || !payload.ok) {
+            throw new Error(payload.error || 'No se pudo registrar el consentimiento.');
+        }
+
+        return payload.data && payload.data.consent ? payload.data.consent : {};
+    }
+
     function setupModeratorListeners() {
-        recordBtn.addEventListener('click', () => {
+        recordBtn.addEventListener('click', async () => {
             const participants = api.getParticipantsInfo();
-            const patient = participants.find(p => p.role !== 'moderator');
-            
+            const patient = participants.find((participant) => participant.role !== 'moderator');
+
             if (!patient) {
                 alert('Aún no hay ningún paciente en la sala para solicitar el consenso.');
+                return;
+            }
+
+            const confirmed = window.confirm(
+                'Confirmo que necesito grabar esta teleconsulta con fines clínicos y que la grabación solo se archivará si ambas partes aceptan expresamente.'
+            );
+            if (!confirmed) {
                 return;
             }
 
             patientParticipantId = patient.participantId;
             recordBtn.disabled = true;
             recordBtn.textContent = 'Solicitando permiso...';
-            
-            api.executeCommand('sendEndpointTextMessage', patientParticipantId, JSON.stringify({
-                type: 'RECORDING_REQUEST'
-            }));
+
+            try {
+                const consent = await persistRecordingConsent('request');
+                pendingRequestId = consent.requestId || null;
+
+                api.executeCommand('sendEndpointTextMessage', patientParticipantId, JSON.stringify({
+                    type: 'RECORDING_REQUEST',
+                    requestId: pendingRequestId
+                }));
+            } catch (error) {
+                console.error('Error requesting recording consent:', error);
+                alert(error.message || 'No se pudo registrar la solicitud de consentimiento.');
+                recordBtn.disabled = false;
+                recordBtn.textContent = 'Grabar Consulta';
+            }
         });
 
         stopRecordBtn.addEventListener('click', stopRecording);
@@ -62,14 +127,18 @@
             try {
                 const message = JSON.parse(event.data.text);
                 if (message.type === 'RECORDING_CONSENT_GRANTED') {
+                    if (pendingRequestId && message.requestId && pendingRequestId !== message.requestId) {
+                        return;
+                    }
                     startRecordingWrapper();
                 } else if (message.type === 'RECORDING_CONSENT_DENIED') {
                     alert('El paciente ha denegado el permiso para grabar la consulta.');
+                    pendingRequestId = null;
                     recordBtn.disabled = false;
                     recordBtn.textContent = 'Grabar Consulta';
                 }
-            } catch (e) {
-                console.error('Error parsing endpoint message', e);
+            } catch (error) {
+                console.error('Error parsing endpoint message', error);
             }
         });
     }
@@ -79,11 +148,12 @@
             try {
                 const message = JSON.parse(event.data.text);
                 if (message.type === 'RECORDING_REQUEST') {
+                    pendingRequestId = message.requestId || null;
                     const moderatorId = event.data.senderInfo.id;
-                    showConsentModal(moderatorId);
+                    showConsentModal(moderatorId, pendingRequestId);
                 }
-            } catch (e) {
-                console.error('Error parsing endpoint message', e);
+            } catch (error) {
+                console.error('Error parsing endpoint message', error);
             }
         });
 
@@ -92,35 +162,58 @@
         });
     }
 
-    function showConsentModal(moderatorId) {
+    function showConsentModal(moderatorId, requestId) {
         consentModal.classList.remove('hidden');
 
-        denyBtn.onclick = () => {
-            consentModal.classList.add('hidden');
-            api.executeCommand('sendEndpointTextMessage', moderatorId, JSON.stringify({
-                type: 'RECORDING_CONSENT_DENIED'
-            }));
+        denyBtn.onclick = async () => {
+            denyBtn.disabled = true;
+            acceptBtn.disabled = true;
+            try {
+                await persistRecordingConsent('deny', requestId);
+                consentModal.classList.add('hidden');
+                api.executeCommand('sendEndpointTextMessage', moderatorId, JSON.stringify({
+                    type: 'RECORDING_CONSENT_DENIED',
+                    requestId: requestId || null
+                }));
+            } catch (error) {
+                console.error('Error denying recording consent', error);
+                alert(error.message || 'No se pudo guardar la decision de rechazo.');
+            } finally {
+                denyBtn.disabled = false;
+                acceptBtn.disabled = false;
+            }
         };
 
-        acceptBtn.onclick = () => {
-            consentModal.classList.add('hidden');
-            api.executeCommand('sendEndpointTextMessage', moderatorId, JSON.stringify({
-                type: 'RECORDING_CONSENT_GRANTED'
-            }));
+        acceptBtn.onclick = async () => {
+            denyBtn.disabled = true;
+            acceptBtn.disabled = true;
+            try {
+                await persistRecordingConsent('grant', requestId);
+                consentModal.classList.add('hidden');
+                api.executeCommand('sendEndpointTextMessage', moderatorId, JSON.stringify({
+                    type: 'RECORDING_CONSENT_GRANTED',
+                    requestId: requestId || null
+                }));
+            } catch (error) {
+                console.error('Error granting recording consent', error);
+                alert(error.message || 'No se pudo guardar la decision de consentimiento.');
+            } finally {
+                denyBtn.disabled = false;
+                acceptBtn.disabled = false;
+            }
         };
     }
 
     async function startRecordingWrapper() {
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: { mediaSource: "browser", width: { ideal: 1280 }, frameRate: { ideal: 15 } },
-                audio: true 
+                video: { mediaSource: 'browser', width: { ideal: 1280 }, frameRate: { ideal: 15 } },
+                audio: true
             });
 
-            // If we also want the doctor's microphone, we can request it and merge streams:
             try {
                 const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                micStream.getAudioTracks().forEach(track => {
+                micStream.getAudioTracks().forEach((track) => {
                     stream.addTrack(track);
                 });
             } catch (micErr) {
@@ -128,7 +221,7 @@
             }
 
             startMediaRecorder(stream);
-            
+
             stream.getVideoTracks()[0].onended = function () {
                 stopRecording();
             };
@@ -137,9 +230,8 @@
             stopRecordBtn.style.display = 'inline-flex';
             recordingIndicator.style.display = 'flex';
             isRecording = true;
-
         } catch (err) {
-            console.error("Error starting screen capture: ", err);
+            console.error('Error starting screen capture: ', err);
             alert('No se pudo compartir la pantalla para la grabación. Detalle: ' + err.message);
             recordBtn.disabled = false;
             recordBtn.textContent = 'Grabar Consulta';
@@ -149,7 +241,7 @@
     function startMediaRecorder(stream) {
         recordedChunks = [];
         let options = { mimeType: 'video/webm; codecs=vp9,opus' };
-        
+
         if (!MediaRecorder.isTypeSupported(options.mimeType)) {
             options = { mimeType: 'video/webm; codecs=vp8,opus' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -159,17 +251,17 @@
 
         mediaRecorder = new MediaRecorder(stream, options);
 
-        mediaRecorder.ondataavailable = function (e) {
-            if (e.data.size > 0) {
-                recordedChunks.push(e.data);
+        mediaRecorder.ondataavailable = function (event) {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
             }
         };
 
         mediaRecorder.onstop = function () {
             const blob = new Blob(recordedChunks, { type: options.mimeType });
             uploadRecording(blob);
-            
-            stream.getTracks().forEach(track => track.stop());
+
+            stream.getTracks().forEach((track) => track.stop());
             recordBtn.style.display = 'inline-flex';
             recordBtn.disabled = false;
             recordBtn.textContent = 'Grabar Consulta';
@@ -178,7 +270,7 @@
             isRecording = false;
         };
 
-        mediaRecorder.start(2000); // 2 seconds chunks to keep memory usage lower
+        mediaRecorder.start(2000);
     }
 
     function stopRecording() {
@@ -190,49 +282,35 @@
     async function uploadRecording(blob) {
         stopRecordBtn.textContent = 'Subiendo...';
         stopRecordBtn.disabled = true;
-        stopRecordBtn.style.display = 'inline-flex'; // show while uploading
+        stopRecordBtn.style.display = 'inline-flex';
 
         const appointmentId = getAppointmentId();
-        const token = getTokenParam(); // if there is a reschedule token, but usually doctor uses ?id= for admin backend
         const fd = new FormData();
         fd.append('video', blob, 'telemedicina-recording.webm');
-        
-        let url = `/api.php?resource=telemedicine-recording`;
-        if (appointmentId) url += `&id=${appointmentId}`;
-        else if (token) url += `&token=${token}`;
-
-        // Get admin token if available (cookie or local storage)
-        // Usually admin requests are cookie-based, so fetch will send cookies automatically.
-        // We'll also try to extract bearer token if they are from a portal session for any reason.
-        const portalShell = window.AuroraPatientPortalShell || null;
-        const session = portalShell && typeof portalShell.getSession === 'function' ? portalShell.getSession() : null;
-        const bearer = session ? session.token : null;
 
         try {
-            const res = await fetch(url, {
+            const res = await fetch(buildResourceUrl('telemedicine-recording'), {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
-                    ...(bearer ? { Authorization: `Bearer ${bearer}` } : {})
+                    ...(getPortalBearer() ? { Authorization: `Bearer ${getPortalBearer()}` } : {})
                 },
                 body: fd
             });
-            
+
             const body = await res.json().catch(() => ({}));
-            
             if (!res.ok || !body.ok) {
                 throw new Error(body.error || 'Fallo HTTP al subir');
             }
 
             alert('La grabación ha sido almacenada exitosamente en el historial del caso clínico.');
-
+            pendingRequestId = null;
         } catch (error) {
             console.error('Error uploading recording:', error);
-            // Fallback for safety so doctor doesn't lose the video if upload fails!
             const objectUrl = window.URL.createObjectURL(blob);
             const anchor = document.createElement('a');
             anchor.href = objectUrl;
-            anchor.download = `backup-recording-${appointmentId}.webm`;
+            anchor.download = `backup-recording-${appointmentId || 'teleconsulta'}.webm`;
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
@@ -243,5 +321,4 @@
             stopRecordBtn.disabled = false;
         }
     }
-
 })(window, document);

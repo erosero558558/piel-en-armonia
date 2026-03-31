@@ -71,6 +71,7 @@ final class OnboardingService
                 'blocker'     => $blocker,
                 'completedAt' => (string) ($saved_s['completedAt'] ?? ''),
                 'isNextAction' => $stepId === $firstPending,
+                'payload'     => is_array($saved_s['payload'] ?? null) ? $saved_s['payload'] : []
             ];
         }
 
@@ -107,7 +108,8 @@ final class OnboardingService
         string $clinicId,
         string $stepId,
         string $status,
-        string $blocker = ''
+        string $blocker = '',
+        array $payload = []
     ): array {
         $clinicId = trim($clinicId);
         $stepId   = trim($stepId);
@@ -138,6 +140,7 @@ final class OnboardingService
                 'blocker'     => trim($blocker),
                 'updatedAt'   => date('c'),
                 'completedAt' => in_array($status, ['done', 'skipped'], true) ? date('c') : '',
+                'payload'     => count($payload) > 0 ? $payload : (is_array($store['onboarding_progress'][$clinicId][$stepId]['payload'] ?? null) ? $store['onboarding_progress'][$clinicId][$stepId]['payload'] : []),
             ]
         );
 

@@ -13,7 +13,6 @@ import {
 } from './turnero-surface-helpers.js';
 
 const STYLE_ID = 'turneroAdminClinicOnboardingConsoleInlineStyles';
-const STORAGE_KEY = 'turnero-admin-clinic-onboarding-console/v1';
 
 function ensureConsoleStyles() {
     if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) {
@@ -60,81 +59,44 @@ function ensureConsoleStyles() {
     document.head.appendChild(styleEl);
 }
 
-function getStorage(storage) {
-    if (storage && typeof storage.getItem === 'function') {
-        return storage;
+
+
+
+async function fetchBackendState(clinicId) {
+    try {
+        const res = await fetch(`/api.php?resource=onboarding-status&clinic_id=${encodeURIComponent(clinicId)}`);
+        if (!res.ok) return null;
+        const json = await res.json();
+        return json.data || null;
+    } catch (e) {
+        return null;
     }
-    if (typeof window !== 'undefined' && window.localStorage) {
-        return window.localStorage;
+}
+
+async function submitStep(clinicId, stepId, payload) {
+    try {
+        const res = await fetch('/api.php?resource=onboarding-step', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clinic_id: clinicId, step_id: stepId, status: 'done', payload })
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        return json.data || null;
+    } catch (e) {
+        return null;
     }
-    if (typeof localStorage !== 'undefined') {
-        return localStorage;
-    }
-    return null;
 }
 
 function cloneRows(rows = []) {
     return toArray(rows).map((entry) => ({ ...asObject(entry) }));
 }
 
-function loadPersistedState(storage, fallbackState) {
-    if (!storage || typeof storage.getItem !== 'function') {
-        return fallbackState;
-    }
 
-    try {
-        const raw = storage.getItem(STORAGE_KEY);
-        if (!raw) {
-            return fallbackState;
-        }
-        const parsed = JSON.parse(raw);
-        return {
-            clinicDraft: {
-                ...fallbackState.clinicDraft,
-                ...asObject(parsed.clinicDraft),
-            },
-            staffRows:
-                cloneRows(parsed.staffRows).length > 0
-                    ? cloneRows(parsed.staffRows)
-                    : fallbackState.staffRows,
-            serviceRows:
-                cloneRows(parsed.serviceRows).length > 0
-                    ? cloneRows(parsed.serviceRows)
-                    : fallbackState.serviceRows,
-        };
-    } catch (_error) {
-        return fallbackState;
-    }
-}
 
-function persistState(storage, state) {
-    if (!storage || typeof storage.setItem !== 'function') {
-        return;
-    }
-    try {
-        storage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({
-                clinicDraft: state.clinicDraft,
-                staffRows: state.staffRows,
-                serviceRows: state.serviceRows,
-            })
-        );
-    } catch (_error) {
-        // best effort only
-    }
-}
 
-function clearPersistedState(storage) {
-    if (!storage || typeof storage.removeItem !== 'function') {
-        return;
-    }
-    try {
-        storage.removeItem(STORAGE_KEY);
-    } catch (_error) {
-        // best effort only
-    }
-}
+
+
 
 function getFieldValue(host, selector, fallback = '') {
     return toString(host.querySelector(selector)?.value, fallback);
@@ -281,7 +243,27 @@ function renderConsoleHtml(state) {
     const profile = asObject(state.pack?.turneroClinicProfile);
     const urls = toArray(state.pack?.urls);
 
+    const p = state.backendProgress;
+    let progressHtml = '';
+    if (p) {
+        progressHtml = `
+        <div style="background: rgb(240 253 244 / 90%); border: 1px solid rgb(22 163 74 / 30%); padding: 1rem; border-radius: 12px; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="color: #166534; font-size: 1.1rem;">🚀 Progreso Onboarding: ${escapeHtml(String(p.percent))}%</strong>
+                    <p style="margin: 0; font-size: 0.85rem; color: #166534;">${escapeHtml(p.nextActionLabel || 'Completado')}</p>
+                </div>
+                ${p.blockers && p.blockers.length > 0 ? `<span style="color: #9f1239; font-size: 0.85rem; font-weight: 500;">Blockers: ${escapeHtml(String(p.blockers.length))}</span>` : ''}
+            </div>
+            <div style="width: 100%; height: 6px; background: #dcfce7; border-radius: 3px; margin-top: 0.6rem; overflow: hidden;">
+                <div style="width: ${escapeHtml(String(p.percent))}%; height: 100%; background: #16a34a; transition: width 0.3s ease;"></div>
+            </div>
+        </div>`;
+    }
+
+
     return `
+        ${progressHtml}
         <section class="turnero-admin-clinic-onboarding-console" data-role="console" data-state="${escapeHtml(
             summary.state || 'blocked'
         )}">
@@ -465,6 +447,22 @@ function renderConsoleHtml(state) {
                             `
                         )}
                     </section>
+                    <section class="turnero-admin-clinic-onboarding-console__section" data-state="ready">
+                        <div>
+                            <h4>Suscripción Software</h4>
+                            <p class="turnero-admin-clinic-onboarding-console__meta">Plan operativo Básico, Pro o Enterprise.</p>
+                        </div>
+                        <div class="turnero-admin-clinic-onboarding-console__forms turnero-admin-clinic-onboarding-console__form">
+                            <div class="turnero-admin-clinic-onboarding-console__form-grid">
+                                <label><span>Plan</span><select data-field="software-plan">
+                                    <option value="Básico">Básico (Turnero, 1 sala)</option>
+                                    <option value="Pro">Pro (+ Historia Clínica, SMS)</option>
+                                    <option value="Enterprise">Enterprise (+ Telemed, Multi-suc)</option>
+                                </select></label>
+                            </div>
+                            <button type="button" class="turnero-admin-clinic-onboarding-console__button" data-action="save-package" data-tone="primary">Asignar plan</button>
+                        </div>
+                    </section>
                 </div>
                 <div class="turnero-admin-clinic-onboarding-console__preview">
                     <section class="turnero-admin-clinic-onboarding-console__section" data-state="${escapeHtml(
@@ -543,13 +541,16 @@ export function mountTurneroAdminClinicOnboardingConsole(target, options = {}) {
 
     ensureConsoleStyles();
 
-    const storage = getStorage(options.storage);
+    
+    const clinicId = options.clinicId || 'default';
     const baseState = {
         clinicDraft: getDefaultTurneroClinicOnboardingDraft(options),
         staffRows: cloneRows(options.staffRows || options.staff || []),
         serviceRows: cloneRows(options.serviceRows || options.services || []),
+        backendProgress: null
     };
-    const state = loadPersistedState(storage, baseState);
+    const state = baseState;
+
 
     function recompute() {
         state.pack = buildTurneroClinicOnboardingPack({
@@ -568,21 +569,25 @@ export function mountTurneroAdminClinicOnboardingConsole(target, options = {}) {
         host.innerHTML = renderConsoleHtml(state);
         host.dataset.state = toString(state.pack?.summary?.state, 'blocked');
         host.__turneroClinicOnboardingConsoleModel = model;
-        persistState(storage, state);
     }
 
     async function handleAction(action) {
         switch (action) {
-            case 'save-clinic':
+            case 'save-clinic': {
                 state.clinicDraft = getClinicDraftFromForm(host, state.clinicDraft);
+                const ret = await submitStep(clinicId, 'basic_config', { clinicDraft: state.clinicDraft });
+                if (ret && ret.progress) state.backendProgress = ret.progress;
                 render();
                 break;
+            }
             case 'add-staff': {
                 const row = getStaffRowFromForm(host);
                 if (!row.name) {
                     return;
                 }
                 state.staffRows = [...state.staffRows, row];
+                const ret = await submitStep(clinicId, 'staff', { staffRows: state.staffRows });
+                if (ret && ret.progress) state.backendProgress = ret.progress;
                 render();
                 clearFormFields(host, ['[data-field="staff-name"]']);
                 break;
@@ -593,6 +598,8 @@ export function mountTurneroAdminClinicOnboardingConsole(target, options = {}) {
                     return;
                 }
                 state.serviceRows = [...state.serviceRows, row];
+                const ret = await submitStep(clinicId, 'services', { serviceRows: state.serviceRows });
+                if (ret && ret.progress) state.backendProgress = ret.progress;
                 render();
                 clearFormFields(host, ['[data-field="service-label"]']);
                 const durationField = host.querySelector(
@@ -600,6 +607,23 @@ export function mountTurneroAdminClinicOnboardingConsole(target, options = {}) {
                 );
                 if (durationField) {
                     durationField.value = '30';
+                }
+                break;
+            }
+            case 'save-package': {
+                const planSelect = host.querySelector('[data-field="software-plan"]');
+                if (planSelect) {
+                    const plan = planSelect.value;
+                    try {
+                        await fetch('/api.php?resource=clinic-profile', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ clinicProfile: { software_plan: plan } })
+                        });
+                        alert(`Plan ${plan} guardado en el perfil.`);
+                    } catch (e) {
+                        alert('Error guardando plan: ' + e.message);
+                    }
                 }
                 break;
             }
@@ -616,7 +640,6 @@ export function mountTurneroAdminClinicOnboardingConsole(target, options = {}) {
                 );
                 break;
             case 'reset-console':
-                clearPersistedState(storage);
                 state.clinicDraft = getDefaultTurneroClinicOnboardingDraft(options);
                 state.staffRows = cloneRows(options.staffRows || options.staff || []);
                 state.serviceRows = cloneRows(
@@ -640,6 +663,7 @@ export function mountTurneroAdminClinicOnboardingConsole(target, options = {}) {
         await handleAction(action);
     };
 
+
     const model = {
         host,
         state,
@@ -647,6 +671,26 @@ export function mountTurneroAdminClinicOnboardingConsole(target, options = {}) {
         handleAction,
     };
 
-    render();
+    host.innerHTML = '<div style="padding: 2rem; color: #666;">Cargando wizard de onboarding...</div>';
+
+    fetchBackendState(clinicId).then(data => {
+        if (data) {
+            state.backendProgress = data.progress;
+            const steps = data.progress?.steps || [];
+            steps.forEach(s => {
+                if (s.id === 'basic_config' && s.payload?.clinicDraft) {
+                    state.clinicDraft = { ...state.clinicDraft, ...s.payload.clinicDraft };
+                }
+                if (s.id === 'staff' && s.payload?.staffRows) {
+                    state.staffRows = s.payload.staffRows;
+                }
+                if (s.id === 'services' && s.payload?.serviceRows) {
+                    state.serviceRows = s.payload.serviceRows;
+                }
+            });
+        }
+        render();
+    });
+
     return model;
 }

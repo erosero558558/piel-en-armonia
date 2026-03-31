@@ -11,6 +11,10 @@ import { bindFrameHooks } from '../ui/dom.js';
 import { hydrateAppointmentPreferences } from '../sections/appointments.js';
 import { hydrateCallbacksPreferences } from '../sections/callbacks.js';
 import { hydrateAvailabilityPreferences } from '../sections/availability.js';
+import { bootStaffSection } from '../sections/staff.js';
+import { bootServicesSection } from '../sections/services.js';
+import { bootBrandingSection } from '../sections/branding.js';
+import { bootDomainSection } from '../sections/domain.js';
 import { initPushModule } from '../shared/modules/push.js';
 import { focusAgentPrompt } from '../shared/modules/agent.js';
 import {
@@ -80,6 +84,10 @@ export async function bootAdminV3() {
     hydrateAvailabilityPreferences();
     restoreUiPrefs();
     applyQueueRuntimeDefaults();
+    bootStaffSection();
+    bootServicesSection();
+    bootBrandingSection();
+    bootDomainSection();
 
     if (
         window.PielOpsTheme &&

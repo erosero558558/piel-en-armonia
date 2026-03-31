@@ -23,6 +23,7 @@ function read_clinic_profile(): array
         'address' => '',
         'phone' => '',
         'logoImage' => '',
+        'software_plan' => 'Básico',
     ];
 
     $path = clinic_profile_config_path();
@@ -87,6 +88,13 @@ function clinic_profile_merge(array $current, array $source): array
 
     if (isset($source['logoImage']) && is_string($source['logoImage'])) {
         $next['logoImage'] = trim($source['logoImage']);
+    }
+
+    if (isset($source['software_plan']) && is_string($source['software_plan'])) {
+        $plan = trim($source['software_plan']);
+        if (in_array($plan, ['Básico', 'Pro', 'Enterprise'], true)) {
+            $next['software_plan'] = $plan;
+        }
     }
 
     return $next;

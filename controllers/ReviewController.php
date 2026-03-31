@@ -17,6 +17,39 @@ class ReviewController
             }
         }
 
+        $service = isset($_GET['service']) ? trim((string) $_GET['service']) : '';
+        if ($service !== '') {
+            $filtered = array_values(array_filter($reviews, static function(array $r) use ($service): bool {
+                return isset($r['service']) && $r['service'] === $service && $r['service'] !== '';
+            }));
+            
+            // Fallback: If no service-specific reviews exist, use all clinic reviews
+            if (count($filtered) === 0) {
+                $filtered = $reviews;
+            }
+            
+            usort($filtered, static function (array $a, array $b): int {
+                return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
+            });
+            
+            $ratingSum = 0;
+            $count = count($filtered);
+            foreach ($filtered as $r) {
+                $ratingSum += isset($r['rating']) ? (int) $r['rating'] : 5;
+            }
+            $rating = $count > 0 ? round($ratingSum / $count, 1) : 5.0;
+            $latest = array_slice($filtered, 0, 3);
+            
+            json_response([
+                'ok' => true,
+                'data' => [
+                    'rating' => $rating,
+                    'count' => $count,
+                    'latest' => $latest
+                ]
+            ]);
+        }
+
         usort($reviews, static function (array $a, array $b): int {
             return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
         });

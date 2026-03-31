@@ -24,7 +24,13 @@ function turnero_clinic_profile_defaults(): array
             'short_name' => AppConfig::BRAND_NAME,
             'city' => 'Quito',
             'base_url' => AppConfig::BASE_URL,
+            'system_domain' => 'flowos.ec',
             'logo_url' => '',
+            'address' => '',
+            'phone' => '',
+            'whatsapp' => '',
+            'business_hours' => [],
+            'specialties' => [],
             'theme' => [
                 'primary_color' => '#248a65',
                 'accent_color' => '#e6aa16',
@@ -124,7 +130,17 @@ function turnero_clinic_profile_normalize(array $profile): array
             'short_name' => (string) ($branding['short_name'] ?? ($branding['name'] ?? AppConfig::BRAND_NAME)),
             'city' => (string) ($branding['city'] ?? 'Quito'),
             'base_url' => (string) ($branding['base_url'] ?? AppConfig::BASE_URL),
+            'system_domain' => (string) ($branding['system_domain'] ?? 'flowos.ec'),
             'logo_url' => (string) ($branding['logo_url'] ?? ''),
+            'address' => (string) ($branding['address'] ?? ''),
+            'phone' => (string) ($branding['phone'] ?? ''),
+            'whatsapp' => (string) ($branding['whatsapp'] ?? ''),
+            'business_hours' => isset($branding['business_hours']) && is_array($branding['business_hours'])
+                ? array_map('strval', $branding['business_hours'])
+                : [],
+            'specialties' => isset($branding['specialties']) && is_array($branding['specialties'])
+                ? array_values(array_filter(array_map('trim', $branding['specialties']), fn($s) => $s !== ''))
+                : [],
             'theme' => [
                 'primary_color' => preg_match('/^#[a-fA-F0-9]{6}$/', (string) ($theme['primary_color'] ?? '')) ? strtolower($theme['primary_color']) : '#248a65',
                 'accent_color' => preg_match('/^#[a-fA-F0-9]{6}$/', (string) ($theme['accent_color'] ?? '')) ? strtolower($theme['accent_color']) : '#e6aa16',

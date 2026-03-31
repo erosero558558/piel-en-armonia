@@ -497,6 +497,9 @@ final class TelemedicineIntakeService
             'affectedArea' => (string) ($appointment['affectedArea'] ?? ''),
             'evolutionTime' => (string) ($appointment['evolutionTime'] ?? ''),
             'consentSnapshot' => $base['consentSnapshot'] ?? [],
+            'telemedicineRecordingConsent' => isset($base['telemedicineRecordingConsent']) && is_array($base['telemedicineRecordingConsent'])
+                ? $base['telemedicineRecordingConsent']
+                : [],
             'clinicalMediaIds' => $base['clinicalMediaIds'] ?? [],
             'photoTriage' => isset($base['photoTriage']) && is_array($base['photoTriage'])
                 ? $base['photoTriage']
@@ -546,6 +549,9 @@ final class TelemedicineIntakeService
         $appointment['telemedicineEscalationRecommendation'] = (string) ($intake['escalationRecommendation'] ?? 'manual_review');
         $appointment['telemedicineConsentSnapshot'] = isset($intake['consentSnapshot']) && is_array($intake['consentSnapshot'])
             ? $intake['consentSnapshot']
+            : [];
+        $appointment['telemedicineRecordingConsent'] = isset($intake['telemedicineRecordingConsent']) && is_array($intake['telemedicineRecordingConsent'])
+            ? $intake['telemedicineRecordingConsent']
             : [];
         $appointment['telemedicinePhotoAiTriage'] = isset($intake['photoAiTriage']) && is_array($intake['photoAiTriage'])
             ? $intake['photoAiTriage']

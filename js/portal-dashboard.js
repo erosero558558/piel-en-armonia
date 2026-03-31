@@ -40,6 +40,76 @@
                 font-size: 0.95em;
                 color: var(--admin-text);
             }
+            .portal-survey-card {
+                background: linear-gradient(145deg, var(--pub-bg-surface), rgba(201, 169, 110, 0.05));
+                border: 1px solid var(--pub-border);
+                margin: 24px 24px 0 24px;
+                border-radius: 12px;
+                padding: 24px;
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            }
+            .portal-survey-card h3 {
+                margin: 0;
+                color: var(--pub-text-primary);
+                font-size: 1.1em;
+            }
+            .portal-survey-card p {
+                margin: 0;
+                color: var(--pub-text-muted);
+                font-size: 0.9em;
+            }
+            .star-rating {
+                display: flex;
+                gap: 8px;
+                flex-direction: row-reverse;
+                justify-content: flex-end;
+            }
+            .star-rating input {
+                display: none;
+            }
+            .star-rating label {
+                font-size: 28px;
+                color: #ccc;
+                cursor: pointer;
+                transition: color 0.2s;
+            }
+            .star-rating input:checked ~ label,
+            .star-rating label:hover,
+            .star-rating label:hover ~ label {
+                color: var(--color-gold-500);
+            }
+            .portal-survey-input {
+                width: 100%;
+                border: 1px solid var(--pub-border);
+                background: var(--pub-bg-body);
+                border-radius: 8px;
+                padding: 12px;
+                color: var(--pub-text-primary);
+                font-family: inherit;
+                resize: vertical;
+                min-height: 80px;
+            }
+            .portal-survey-submit {
+                background: var(--color-slate-900);
+                color: var(--color-white);
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s;
+                align-self: flex-start;
+            }
+            .portal-survey-submit:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+            .portal-survey-submit:hover:not(:disabled) {
+                background: var(--color-gold-600);
+            }
         `;
         document.head.appendChild(style);
     }
@@ -91,6 +161,84 @@
             body,
         };
     }
+
+    function renderSurvey(survey) {
+        if (!survey || !survey.appointmentId) {
+            return '';
+        }
+        return `
+            <form class="portal-survey-card" id="npsSurveyForm" data-appointment-id="${escapeHtml(survey.appointmentId)}">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h3>Cuéntanos cómo te fue</h3>
+                        <p>Nos importa tu experiencia en la cita del ${escapeHtml(survey.dateLabel)} con ${escapeHtml(survey.doctor)}.</p>
+                    </div>
+                </div>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="npsRating" value="5" />
+                    <label for="star5" title="5 estrellas">★</label>
+                    <input type="radio" id="star4" name="npsRating" value="4" />
+                    <label for="star4" title="4 estrellas">★</label>
+                    <input type="radio" id="star3" name="npsRating" value="3" />
+                    <label for="star3" title="3 estrellas">★</label>
+                    <input type="radio" id="star2" name="npsRating" value="2" />
+                    <label for="star2" title="2 estrellas">★</label>
+                    <input type="radio" id="star1" name="npsRating" value="1" />
+                    <label for="star1" title="1 estrella">★</label>
+                </div>
+                <textarea name="npsComment" class="portal-survey-input" placeholder="Comentario u observación (opcional)"></textarea>
+                <div id="surveyFormError" style="color:var(--admin-error); font-size:14px; display:none;">Selecciona una calificación</div>
+                <button type="submit" class="portal-survey-submit" id="npsSubmitBtn">Enviar Encuesta</button>
+            </form>
+        `;
+    }
+
+    document.addEventListener('submit', async function(e) {
+        if (e.target && e.target.id === 'npsSurveyForm') {
+            e.preventDefault();
+            const form = e.target;
+            const btn = document.getElementById('npsSubmitBtn');
+            const errorP = document.getElementById('surveyFormError');
+
+            const ratingInput = form.querySelector('input[name="npsRating"]:checked');
+            if (!ratingInput) {
+                errorP.textContent = 'Selecciona una calificación de 1 a 5 estrellas.';
+                errorP.style.display = 'block';
+                return;
+            }
+            errorP.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+
+            const appointmentId = form.dataset.appointmentId;
+            const rating = ratingInput.value;
+            const text = form.querySelector('textarea[name="npsComment"]').value;
+            const session = readSession();
+
+            try {
+                const result = await window.fetch('/api.php?resource=patient-portal-submit-survey', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(session && session.token ? { Authorization: `Bearer ${session.token}` } : {}),
+                    },
+                    body: JSON.stringify({ appointmentId, rating, text })
+                }).then(r => r.json());
+
+                if (result.ok) {
+                    form.innerHTML = '<h3 style="color:var(--color-gold-500); text-align:center;">¡Gracias por tu retroalimentación!</h3><p style="text-align:center; color:var(--pub-text-muted);">Nos ayuda a mejorar continuamente nuestra atención.</p>';
+                    setTimeout(() => { form.style.display = 'none'; }, 6000);
+                } else {
+                    throw new Error(result.error || 'Error al enviar');
+                }
+            } catch (err) {
+                errorP.textContent = err.message;
+                errorP.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Intentar de nuevo';
+            }
+        }
+    });
 
     function isHttpContext() {
         return window.location
@@ -870,6 +1018,7 @@
         const actionsContainer = document.getElementById('portal-appointment-actions');
         const membershipContainer = document.getElementById('portal-membership-status');
         const alertsContainer = document.getElementById('portal-alerts-container');
+        const surveyContainer = document.getElementById('portal-survey-container');
 
         if (!(nextAppointmentContainer instanceof HTMLElement)) {
             return;
@@ -948,6 +1097,10 @@
                 alertsContainer.innerHTML = renderAlerts(alerts);
             }
 
+            if (surveyContainer instanceof HTMLElement) {
+                surveyContainer.innerHTML = renderSurvey(payload.pendingSurvey);
+            }
+
             nextAppointmentContainer.innerHTML = nextAppointment
                 ? renderNextAppointment(nextAppointment, crossSellSuggestion)
                 : renderEmptyState(support);
@@ -992,6 +1145,9 @@
             }
             if (alertsContainer instanceof HTMLElement) {
                 alertsContainer.innerHTML = '';
+            }
+            if (surveyContainer instanceof HTMLElement) {
+                surveyContainer.innerHTML = '';
             }
             if (actionsContainer instanceof HTMLElement) {
                 actionsContainer.innerHTML = renderSupportActions({

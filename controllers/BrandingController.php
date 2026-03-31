@@ -21,6 +21,35 @@ final class BrandingController
             ],
         ]);
     }
+    public static function manifest(array $context): void
+    {
+        $profile = read_turnero_clinic_profile();
+        $branding = $profile['branding'] ?? [];
+        $theme = $branding['theme'] ?? [];
+
+        $manifestPath = __DIR__ . '/../manifest.json';
+        if (!file_exists($manifestPath)) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Base manifest not found']);
+            exit;
+        }
+
+        $manifest = json_decode(file_get_contents($manifestPath), true) ?? [];
+
+        if (!empty($branding['name'])) {
+            $manifest['name'] = $branding['name'];
+            $manifest['short_name'] = $branding['name'];
+        }
+
+        if (!empty($theme['primary_color'])) {
+            $manifest['theme_color'] = $theme['primary_color'];
+        }
+
+        header('Content-Type: application/manifest+json; charset=utf-8');
+        header('Cache-Control: public, max-age=60');
+        echo json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
     public static function css(array $context): void
     {

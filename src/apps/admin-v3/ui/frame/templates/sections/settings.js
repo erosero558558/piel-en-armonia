@@ -132,6 +132,15 @@ export function renderSettingsSection() {
                                 >
                                 <small>PNG o JPG menores a 512KB. Recomendado diseño horizontal.</small>
                             </label>
+                            <label class="settings-field">
+                                <span>Software Plan</span>
+                                <select id="clinicProfileSoftwarePlan" name="softwarePlan">
+                                    <option value="Básico">Básico</option>
+                                    <option value="Pro">Pro</option>
+                                    <option value="Enterprise">Enterprise</option>
+                                </select>
+                                <small>Nivel de suscripción actual de la clínica.</small>
+                            </label>
                         </div>
 
                         <div class="settings-signature-block">

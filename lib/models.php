@@ -91,7 +91,33 @@ function normalize_review(array $review): array
         'rating' => $rating,
         'text' => truncate_field(sanitize_xss(isset($review['text']) ? trim((string) $review['text']) : ''), 2000),
         'date' => isset($review['date']) ? (string) $review['date'] : local_date('c'),
-        'verified' => isset($review['verified']) ? parse_bool($review['verified']) : true
+        'verified' => isset($review['verified']) ? parse_bool($review['verified']) : true,
+        'service' => truncate_field(sanitize_xss(isset($review['service']) ? trim((string) $review['service']) : ''), 50)
+    ];
+}
+
+function normalize_nps_survey(array $survey): array
+{
+    $rating = isset($survey['rating']) ? (int) $survey['rating'] : 0;
+    if ($rating < 1) {
+        $rating = 1;
+    }
+    if ($rating > 5) {
+        $rating = 5;
+    }
+    return [
+        'id' => isset($survey['id']) ? (int) $survey['id'] : (int) round(microtime(true) * 1000),
+        'tenantId' => isset($survey['tenantId']) && is_string($survey['tenantId']) && trim($survey['tenantId']) !== ''
+            ? trim($survey['tenantId'])
+            : get_current_tenant_id(),
+        'appointmentId' => isset($survey['appointmentId']) ? (int) $survey['appointmentId'] : 0,
+        'patientId' => truncate_field(trim((string) ($survey['patientId'] ?? '')), 80),
+        'doctor' => truncate_field(sanitize_xss(trim((string) ($survey['doctor'] ?? ''))), 100),
+        'name' => truncate_field(sanitize_xss(isset($survey['name']) ? trim((string) $survey['name']) : 'Anónimo'), 100),
+        'rating' => $rating,
+        'text' => truncate_field(sanitize_xss(isset($survey['text']) ? trim((string) $survey['text']) : ''), 2000),
+        'date' => isset($survey['date']) ? (string) $survey['date'] : local_date('c'),
+        'verified' => isset($survey['verified']) ? parse_bool($survey['verified']) : true
     ];
 }
 
@@ -213,6 +239,9 @@ function normalize_appointment(array $appointment): array
         'telemedicineEscalationRecommendation' => truncate_field(trim((string) ($appointment['telemedicineEscalationRecommendation'] ?? '')), 100),
         'telemedicineConsentSnapshot' => isset($appointment['telemedicineConsentSnapshot']) && is_array($appointment['telemedicineConsentSnapshot'])
             ? $appointment['telemedicineConsentSnapshot']
+            : [],
+        'telemedicineRecordingConsent' => isset($appointment['telemedicineRecordingConsent']) && is_array($appointment['telemedicineRecordingConsent'])
+            ? $appointment['telemedicineRecordingConsent']
             : [],
         'telemedicineEncounterPlan' => isset($appointment['telemedicineEncounterPlan']) && is_array($appointment['telemedicineEncounterPlan'])
             ? $appointment['telemedicineEncounterPlan']

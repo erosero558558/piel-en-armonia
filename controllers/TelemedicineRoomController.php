@@ -2,58 +2,19 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/models.php';
 require_once __DIR__ . '/../lib/PatientPortalAuth.php';
 require_once __DIR__ . '/../lib/telemedicine/TelemedicineChannelMapper.php';
+require_once __DIR__ . '/../lib/telemedicine/TelemedicineRepository.php';
 
 final class TelemedicineRoomController
 {
     public static function token(array $context): void
     {
-        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
-        $accessToken = trim((string) ($_GET['token'] ?? ''));
-        $appointment = $accessToken !== ''
-            ? self::findAppointmentByRescheduleToken($store, $accessToken)
-            : self::findAppointmentById($store, (int) ($_GET['id'] ?? 0));
-
-        if (!is_array($appointment)) {
-            json_response(['ok' => false, 'error' => 'Cita no encontrada'], 404);
-        }
-        if (!TelemedicineChannelMapper::isTelemedicineService((string) ($appointment['service'] ?? ''))) {
-            json_response(['ok' => false, 'error' => 'La cita no corresponde a telemedicina'], 400);
-        }
-
-        $isAdmin = ($context['isAdmin'] ?? false) === true;
-
-        if ($isAdmin) {
-            $role = 'moderator';
-            $displayName = 'Especialista Aurora Derm';
-        } elseif ($accessToken !== '') {
-            $role = 'participant';
-            $displayName = trim((string) ($appointment['name'] ?? 'Paciente'));
-            if ($displayName === '') {
-                $displayName = 'Paciente';
-            }
-        } else {
-            $session = PatientPortalAuth::authenticateSession(
-                $store,
-                PatientPortalAuth::bearerTokenFromRequest()
-            );
-
-            if (($session['ok'] ?? false) !== true) {
-                json_response(['ok' => false, 'error' => 'No autorizado para acceder a esta sala'], 401);
-            }
-
-            $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
-            $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
-            
-            if (!self::appointmentMatchesPatient($appointment, $snapshot)) {
-                json_response(['ok' => false, 'error' => 'No autorizado para acceder a esta cita'], 403);
-            }
-
-            $role = 'participant';
-            $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
-            $displayName = trim((string) ($patient['name'] ?? 'Paciente'));
-        }
+        $access = self::resolveAccess($context);
+        $appointment = $access['appointment'];
+        $role = (string) ($access['role'] ?? 'participant');
+        $displayName = (string) ($access['displayName'] ?? 'Paciente');
 
         $salt = defined('AURORA_SECRET_KEY') && is_string(AURORA_SECRET_KEY) ? AURORA_SECRET_KEY : 'AuroraTelemed2026!';
         $appointmentId = (int) ($appointment['id'] ?? 0);
@@ -71,23 +32,93 @@ final class TelemedicineRoomController
         ]);
     }
 
-    
+    public static function recordingConsent(array $context): void
+    {
+        $access = self::resolveAccess($context, true);
+        $action = strtolower(trim((string) ($_POST['action'] ?? '')));
+        $requestId = trim((string) ($_POST['requestId'] ?? ''));
+
+        if (!in_array($action, ['request', 'grant', 'deny'], true)) {
+            json_response(['ok' => false, 'error' => 'Accion de consentimiento no valida'], 400);
+        }
+
+        $lockResult = with_store_lock(function () use ($access, $action, $requestId): array {
+            $store = read_store();
+            $appointment = self::findAppointmentById($store, (int) ($access['appointment']['id'] ?? 0));
+            if (!is_array($appointment)) {
+                return [
+                    'ok' => false,
+                    'error' => 'Cita no encontrada',
+                    'code' => 404,
+                ];
+            }
+
+            if (!TelemedicineChannelMapper::isTelemedicineService((string) ($appointment['service'] ?? ''))) {
+                return [
+                    'ok' => false,
+                    'error' => 'La cita no corresponde a telemedicina',
+                    'code' => 400,
+                ];
+            }
+
+            $consent = self::normalizeRecordingConsent($appointment['telemedicineRecordingConsent'] ?? [], $appointment);
+            $mutation = self::mutateRecordingConsent($consent, $appointment, $access, $action, $requestId);
+            if (($mutation['ok'] ?? false) !== true) {
+                return $mutation;
+            }
+
+            $consent = is_array($mutation['consent'] ?? null) ? $mutation['consent'] : $consent;
+            $appointment['telemedicineRecordingConsent'] = $consent;
+            $appointment = normalize_appointment($appointment);
+            $store = TelemedicineRepository::replaceAppointment($store, $appointment);
+            $store = self::syncRecordingConsentToIntake($store, $appointment, $consent);
+
+            $timelineEvent = is_array($mutation['timelineEvent'] ?? null) ? $mutation['timelineEvent'] : [];
+            if ($timelineEvent !== []) {
+                $store = self::appendCaseTimelineEvent($store, $appointment, $timelineEvent);
+            }
+
+            if (!write_store($store, false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo guardar el consentimiento de grabacion',
+                    'code' => 503,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'store' => $store,
+                'appointment' => $appointment,
+                'consent' => $consent,
+                'message' => (string) ($mutation['message'] ?? 'Consentimiento actualizado'),
+            ];
+        });
+
+        $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : $lockResult;
+        if (($lockResult['ok'] ?? false) !== true || ($result['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo registrar el consentimiento'),
+            ], (int) ($result['code'] ?? 503));
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => [
+                'consent' => $result['consent'] ?? [],
+                'message' => (string) ($result['message'] ?? 'Consentimiento actualizado'),
+            ],
+        ]);
+    }
+
     public static function uploadRecording(array $context): void
     {
-        error_reporting(E_ALL);
-        ini_set('display_errors', '1');
-
-        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
-        $appointmentId = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
-        $token = trim((string) ($_GET['token'] ?? $_POST['token'] ?? ''));
-
-        $appointment = $appointmentId > 0 
-            ? self::findAppointmentById($store, $appointmentId)
-            : ($token !== '' ? self::findAppointmentByRescheduleToken($store, $token) : null);
-
-        if (!is_array($appointment)) {
-            json_response(['ok' => false, 'error' => 'Cita no encontrada'], 404);
+        $access = self::resolveAccess($context, true);
+        if (($access['role'] ?? '') !== 'moderator') {
+            json_response(['ok' => false, 'error' => 'Solo el personal clinico puede archivar grabaciones'], 403);
         }
+        $appointment = is_array($access['appointment'] ?? null) ? $access['appointment'] : [];
 
         if (!isset($_FILES['video']) || $_FILES['video']['error'] !== UPLOAD_ERR_OK) {
             json_response(['ok' => false, 'error' => 'No se recibio archivo de video valido.'], 400);
@@ -113,16 +144,48 @@ final class TelemedicineRoomController
 
         if (@move_uploaded_file($tmpName, $targetDiskPath) || @rename($tmpName, $targetDiskPath)) {
             @chmod($targetDiskPath, 0640);
-            
-            $lockResult = with_store_lock(function() use ($appointment, $filename, $targetDiskPath, $mime) {
+
+            $lockResult = with_store_lock(function () use ($access, $filename, $targetDiskPath, $mime): array {
                 $store = read_store();
-                $maxUploadId = 0;
-                foreach (($store['clinical_uploads'] ?? []) as $u) {
-                    $maxUploadId = max($maxUploadId, (int) ($u['id'] ?? 0));
+                $appointment = self::findAppointmentById($store, (int) ($access['appointment']['id'] ?? 0));
+                if (!is_array($appointment)) {
+                    return [
+                        'ok' => false,
+                        'error' => 'Cita no encontrada',
+                        'code' => 404,
+                    ];
                 }
 
+                $consent = self::normalizeRecordingConsent($appointment['telemedicineRecordingConsent'] ?? [], $appointment);
+                if (!self::recordingConsentAllowsUpload($consent)) {
+                    return [
+                        'ok' => false,
+                        'error' => 'La grabacion requiere consentimiento explicito de ambas partes antes de archivarse.',
+                        'code' => 409,
+                    ];
+                }
+
+                if ((int) ($consent['recordingUploadId'] ?? 0) > 0) {
+                    return [
+                        'ok' => false,
+                        'error' => 'Esta teleconsulta ya tiene una grabacion archivada.',
+                        'code' => 409,
+                    ];
+                }
+
+                $uploadId = self::nextClinicalUploadId($store);
+                $savedAt = local_date('c');
+                $doctorName = (string) (($consent['doctorConsent']['displayName'] ?? '') ?: self::resolveModeratorLabel($appointment));
+                $patientName = (string) (($consent['patientConsent']['displayName'] ?? '') ?: self::resolveParticipantLabel($appointment));
+                $consent['status'] = 'recorded';
+                $consent['recordingUploadId'] = $uploadId;
+                $consent['recordingSavedAt'] = $savedAt;
+                $consent['recordingMime'] = $mime;
+                $consent['recordingSize'] = filesize($targetDiskPath);
+                $consent['lastUpdatedAt'] = $savedAt;
+
                 $upload = [
-                    'id' => $maxUploadId + 1,
+                    'id' => $uploadId,
                     'tenantId' => $appointment['tenantId'] ?? get_current_tenant_id(),
                     'appointmentId' => (int) $appointment['id'],
                     'patientCaseId' => $appointment['patientCaseId'] ?? '',
@@ -133,25 +196,69 @@ final class TelemedicineRoomController
                     'size' => filesize($targetDiskPath),
                     'sha256' => hash_file('sha256', $targetDiskPath),
                     'originalName' => $_FILES['video']['name'] ?? 'recording.' . pathinfo($filename, PATHINFO_EXTENSION),
-                    'createdAt' => local_date('c'),
-                    'updatedAt' => local_date('c'),
+                    'recordingConsentSnapshot' => $consent,
+                    'recordingRequestId' => (string) ($consent['requestId'] ?? ''),
+                    'recordedByRole' => 'moderator',
+                    'recordedByLabel' => $doctorName,
+                    'patientLabel' => $patientName,
+                    'createdAt' => $savedAt,
+                    'updatedAt' => $savedAt,
                 ];
 
-                if (!isset($store['clinical_uploads'])) {
-                    $store['clinical_uploads'] = [];
-                }
+                $store['clinical_uploads'] = isset($store['clinical_uploads']) && is_array($store['clinical_uploads'])
+                    ? array_values($store['clinical_uploads'])
+                    : [];
                 $store['clinical_uploads'][] = $upload;
-                
+
+                $appointment['telemedicineRecordingConsent'] = $consent;
+                $appointment = normalize_appointment($appointment);
+                $store = TelemedicineRepository::replaceAppointment($store, $appointment);
+                $store = self::syncRecordingConsentToIntake($store, $appointment, $consent);
+                $store = self::appendCaseTimelineEvent($store, $appointment, [
+                    'type' => 'telemedicine_recording_saved',
+                    'title' => 'Grabacion de teleconsulta archivada',
+                    'createdAt' => $savedAt,
+                    'payload' => [
+                        'uploadId' => $uploadId,
+                        'requestId' => (string) ($consent['requestId'] ?? ''),
+                        'doctorName' => $doctorName,
+                        'patientName' => $patientName,
+                        'mime' => $mime,
+                        'size' => (int) ($upload['size'] ?? 0),
+                    ],
+                ]);
+
                 if (write_store($store, false)) {
-                    return ['ok' => true];
+                    return [
+                        'ok' => true,
+                        'consent' => $consent,
+                        'upload' => $upload,
+                    ];
                 }
-                return ['ok' => false];
+
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo registrar metadatos de grabacion',
+                    'code' => 500,
+                ];
             });
 
-            if (($lockResult['ok'] ?? false) === true) {
-                json_response(['ok' => true, 'message' => 'Grabacion guardada']);
+            $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : $lockResult;
+            if (($lockResult['ok'] ?? false) === true && ($result['ok'] ?? false) === true) {
+                json_response([
+                    'ok' => true,
+                    'message' => 'Grabacion guardada',
+                    'data' => [
+                        'consent' => $result['consent'] ?? [],
+                        'upload' => $result['upload'] ?? [],
+                    ],
+                ]);
             } else {
-                json_response(['ok' => false, 'error' => 'No se pudo registrar metadatos de grabacion'], 500);
+                @unlink($targetDiskPath);
+                json_response([
+                    'ok' => false,
+                    'error' => (string) ($result['error'] ?? 'No se pudo registrar metadatos de grabacion'),
+                ], (int) ($result['code'] ?? 500));
             }
         }
 
@@ -194,5 +301,318 @@ final class TelemedicineRoomController
         }
 
         return false;
+    }
+
+    private static function resolveAccess(array $context, bool $allowPostBody = false): array
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $appointmentId = (int) ($_GET['id'] ?? ($allowPostBody ? ($_POST['id'] ?? $_POST['appointmentId'] ?? 0) : 0));
+        $accessToken = trim((string) ($_GET['token'] ?? ($allowPostBody ? ($_POST['token'] ?? '') : '')));
+        $appointment = $accessToken !== ''
+            ? self::findAppointmentByRescheduleToken($store, $accessToken)
+            : self::findAppointmentById($store, $appointmentId);
+
+        if (!is_array($appointment)) {
+            json_response(['ok' => false, 'error' => 'Cita no encontrada'], 404);
+        }
+        if (!TelemedicineChannelMapper::isTelemedicineService((string) ($appointment['service'] ?? ''))) {
+            json_response(['ok' => false, 'error' => 'La cita no corresponde a telemedicina'], 400);
+        }
+
+        $isAdmin = ($context['isAdmin'] ?? false) === true;
+        if ($isAdmin) {
+            return [
+                'appointment' => $appointment,
+                'role' => 'moderator',
+                'displayName' => self::resolveModeratorLabel($appointment),
+                'authMode' => 'admin',
+                'token' => $accessToken,
+                'snapshot' => [],
+            ];
+        }
+
+        if ($accessToken !== '') {
+            return [
+                'appointment' => $appointment,
+                'role' => 'participant',
+                'displayName' => self::resolveParticipantLabel($appointment),
+                'authMode' => 'token',
+                'token' => $accessToken,
+                'snapshot' => [],
+            ];
+        }
+
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            json_response(['ok' => false, 'error' => 'No autorizado para acceder a esta sala'], 401);
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+
+        if (!self::appointmentMatchesPatient($appointment, $snapshot)) {
+            json_response(['ok' => false, 'error' => 'No autorizado para acceder a esta cita'], 403);
+        }
+
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+        $displayName = trim((string) ($patient['name'] ?? ''));
+        if ($displayName === '') {
+            $displayName = self::resolveParticipantLabel($appointment);
+        }
+
+        return [
+            'appointment' => $appointment,
+            'role' => 'participant',
+            'displayName' => $displayName,
+            'authMode' => 'portal',
+            'token' => '',
+            'snapshot' => $snapshot,
+        ];
+    }
+
+    private static function resolveModeratorLabel(array $appointment): string
+    {
+        $doctorAssigned = trim((string) ($appointment['doctorAssigned'] ?? ''));
+        if ($doctorAssigned !== '') {
+            return $doctorAssigned;
+        }
+
+        $doctor = trim((string) ($appointment['doctor'] ?? ''));
+        if ($doctor !== '') {
+            return get_doctor_label($doctor);
+        }
+
+        return 'Especialista Aurora Derm';
+    }
+
+    private static function resolveParticipantLabel(array $appointment): string
+    {
+        $displayName = trim((string) ($appointment['name'] ?? 'Paciente'));
+        return $displayName !== '' ? $displayName : 'Paciente';
+    }
+
+    private static function normalizeRecordingConsent($value, array $appointment): array
+    {
+        $existing = is_array($value) ? $value : [];
+        $doctor = is_array($existing['doctorConsent'] ?? null) ? $existing['doctorConsent'] : [];
+        $patient = is_array($existing['patientConsent'] ?? null) ? $existing['patientConsent'] : [];
+
+        return [
+            'requestId' => trim((string) ($existing['requestId'] ?? '')),
+            'status' => trim((string) ($existing['status'] ?? '')),
+            'requestedAt' => trim((string) ($existing['requestedAt'] ?? '')),
+            'lastUpdatedAt' => trim((string) ($existing['lastUpdatedAt'] ?? '')),
+            'doctorConsent' => [
+                'status' => trim((string) ($doctor['status'] ?? 'pending')),
+                'displayName' => trim((string) ($doctor['displayName'] ?? self::resolveModeratorLabel($appointment))),
+                'role' => 'moderator',
+                'consentedAt' => trim((string) ($doctor['consentedAt'] ?? '')),
+                'surface' => trim((string) ($doctor['surface'] ?? 'telemedicine_room_legacy')),
+            ],
+            'patientConsent' => [
+                'status' => trim((string) ($patient['status'] ?? 'pending')),
+                'displayName' => trim((string) ($patient['displayName'] ?? self::resolveParticipantLabel($appointment))),
+                'role' => 'participant',
+                'consentedAt' => trim((string) ($patient['consentedAt'] ?? '')),
+                'surface' => trim((string) ($patient['surface'] ?? 'telemedicine_room_legacy')),
+            ],
+            'recordingUploadId' => (int) ($existing['recordingUploadId'] ?? 0),
+            'recordingSavedAt' => trim((string) ($existing['recordingSavedAt'] ?? '')),
+            'recordingMime' => trim((string) ($existing['recordingMime'] ?? '')),
+            'recordingSize' => (int) ($existing['recordingSize'] ?? 0),
+        ];
+    }
+
+    private static function mutateRecordingConsent(
+        array $consent,
+        array $appointment,
+        array $access,
+        string $action,
+        string $requestId
+    ): array {
+        $now = local_date('c');
+        $doctorLabel = self::resolveModeratorLabel($appointment);
+        $patientLabel = self::resolveParticipantLabel($appointment);
+
+        if ($action === 'request') {
+            if (($access['role'] ?? '') !== 'moderator') {
+                return [
+                    'ok' => false,
+                    'error' => 'Solo el personal clinico puede solicitar la grabacion.',
+                    'code' => 403,
+                ];
+            }
+
+            $newRequestId = 'trec-' . bin2hex(random_bytes(8));
+            $consent['requestId'] = $newRequestId;
+            $consent['status'] = 'requested';
+            $consent['requestedAt'] = $now;
+            $consent['lastUpdatedAt'] = $now;
+            $consent['doctorConsent'] = [
+                'status' => 'granted',
+                'displayName' => $doctorLabel,
+                'role' => 'moderator',
+                'consentedAt' => $now,
+                'surface' => 'telemedicine_room_legacy',
+            ];
+            $consent['patientConsent'] = [
+                'status' => 'pending',
+                'displayName' => $patientLabel,
+                'role' => 'participant',
+                'consentedAt' => '',
+                'surface' => 'telemedicine_room_legacy',
+            ];
+            $consent['recordingUploadId'] = 0;
+            $consent['recordingSavedAt'] = '';
+            $consent['recordingMime'] = '';
+            $consent['recordingSize'] = 0;
+
+            return [
+                'ok' => true,
+                'consent' => $consent,
+                'message' => 'Solicitud de grabacion enviada al paciente.',
+                'timelineEvent' => [
+                    'type' => 'telemedicine_recording_consent_requested',
+                    'title' => 'Solicitud de grabacion enviada',
+                    'createdAt' => $now,
+                    'payload' => [
+                        'requestId' => $newRequestId,
+                        'doctorName' => $doctorLabel,
+                        'patientName' => $patientLabel,
+                    ],
+                ],
+            ];
+        }
+
+        if (($access['role'] ?? '') !== 'participant') {
+            return [
+                'ok' => false,
+                'error' => 'Solo el paciente puede responder el consentimiento.',
+                'code' => 403,
+            ];
+        }
+
+        if (trim((string) ($consent['requestId'] ?? '')) === '' || (string) ($consent['status'] ?? '') !== 'requested') {
+            return [
+                'ok' => false,
+                'error' => 'No hay una solicitud de grabacion pendiente para esta teleconsulta.',
+                'code' => 409,
+            ];
+        }
+
+        if ($requestId !== '' && $requestId !== (string) ($consent['requestId'] ?? '')) {
+            return [
+                'ok' => false,
+                'error' => 'La solicitud de grabacion ya no coincide con la version activa.',
+                'code' => 409,
+            ];
+        }
+
+        $granted = $action === 'grant';
+        $consent['status'] = $granted ? 'granted' : 'denied';
+        $consent['lastUpdatedAt'] = $now;
+        $consent['patientConsent'] = [
+            'status' => $granted ? 'granted' : 'denied',
+            'displayName' => $patientLabel,
+            'role' => 'participant',
+            'consentedAt' => $now,
+            'surface' => 'telemedicine_room_legacy',
+        ];
+
+        return [
+            'ok' => true,
+            'consent' => $consent,
+            'message' => $granted
+                ? 'Consentimiento de grabacion aceptado.'
+                : 'Consentimiento de grabacion rechazado.',
+            'timelineEvent' => [
+                'type' => $granted
+                    ? 'telemedicine_recording_consent_granted'
+                    : 'telemedicine_recording_consent_denied',
+                'title' => $granted
+                    ? 'Paciente acepto la grabacion'
+                    : 'Paciente rechazo la grabacion',
+                'createdAt' => $now,
+                'payload' => [
+                    'requestId' => (string) ($consent['requestId'] ?? ''),
+                    'patientName' => $patientLabel,
+                ],
+            ],
+        ];
+    }
+
+    private static function recordingConsentAllowsUpload(array $consent): bool
+    {
+        return (string) ($consent['status'] ?? '') === 'granted'
+            && (string) ($consent['doctorConsent']['status'] ?? '') === 'granted'
+            && (string) ($consent['patientConsent']['status'] ?? '') === 'granted';
+    }
+
+    private static function syncRecordingConsentToIntake(array $store, array $appointment, array $consent): array
+    {
+        $intake = TelemedicineRepository::findIntakeByAppointmentId($store, (int) ($appointment['id'] ?? 0));
+        if (!is_array($intake)) {
+            return $store;
+        }
+
+        $intake['telemedicineRecordingConsent'] = $consent;
+        $saved = TelemedicineRepository::upsertIntake($store, $intake);
+        return is_array($saved['store'] ?? null) ? $saved['store'] : $store;
+    }
+
+    private static function appendCaseTimelineEvent(array $store, array $appointment, array $event): array
+    {
+        $caseId = trim((string) ($appointment['patientCaseId'] ?? ''));
+        if ($caseId === '') {
+            return $store;
+        }
+
+        $tenantId = trim((string) ($appointment['tenantId'] ?? ''));
+        if ($tenantId === '') {
+            $tenantId = get_current_tenant_id();
+        }
+
+        $createdAt = trim((string) ($event['createdAt'] ?? local_date('c')));
+        $type = trim((string) ($event['type'] ?? 'status_changed'));
+        $payload = isset($event['payload']) && is_array($event['payload']) ? $event['payload'] : [];
+        $requestKey = trim((string) ($payload['requestId'] ?? ''));
+        $entityKey = trim((string) ($payload['uploadId'] ?? ''));
+
+        $store['patient_case_timeline_events'] = isset($store['patient_case_timeline_events']) && is_array($store['patient_case_timeline_events'])
+            ? array_values($store['patient_case_timeline_events'])
+            : [];
+        $store['patient_case_timeline_events'][] = [
+            'id' => 'pct-' . substr(hash('sha256', implode('|', [
+                $tenantId,
+                $caseId,
+                $type,
+                $createdAt,
+                $requestKey,
+                $entityKey,
+                (string) ($appointment['id'] ?? 0),
+            ])), 0, 24),
+            'tenantId' => $tenantId,
+            'patientCaseId' => $caseId,
+            'type' => $type,
+            'title' => trim((string) ($event['title'] ?? 'Actualizacion de telemedicina')),
+            'payload' => $payload,
+            'createdAt' => $createdAt,
+        ];
+
+        return $store;
+    }
+
+    private static function nextClinicalUploadId(array $store): int
+    {
+        $maxUploadId = 0;
+        foreach (($store['clinical_uploads'] ?? []) as $upload) {
+            $maxUploadId = max($maxUploadId, (int) ($upload['id'] ?? 0));
+        }
+
+        return $maxUploadId + 1;
     }
 }

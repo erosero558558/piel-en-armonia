@@ -84,6 +84,7 @@ final class PatientPortalController
                 'billing' => self::buildBillingSummary($store, $snapshot),
                 'evolution' => self::buildEvolutionSummary($store, $snapshot),
                 'alerts' => self::buildPatientRedFlags($store, $snapshot),
+                'pendingSurvey' => self::findPendingSurvey($store, $snapshot, $patient),
                 'support' => [
                     'bookingUrl' => '/#citas',
                     'historyUrl' => '/es/portal/historial/',
@@ -95,6 +96,73 @@ final class PatientPortalController
                 'generatedAt' => local_date('c'),
             ],
         ]);
+    }
+
+    public static function submitSurvey(array $context): void
+    {
+        $payload = require_json_body();
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+        $patientId = trim((string) ($patient['documentNumber'] ?? ''));
+
+        $appointmentId = (int) ($payload['appointmentId'] ?? 0);
+        $rating = (int) ($payload['rating'] ?? 0);
+        $text = trim((string) ($payload['text'] ?? ''));
+
+        if ($appointmentId <= 0 || $rating < 1 || $rating > 5) {
+            self::emit(['ok' => false, 'error' => 'Datos de encuesta inválidos']);
+            return;
+        }
+
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        $appointments = is_array($snapshot['appointments'] ?? null) ? $snapshot['appointments'] : [];
+        $validAppointment = null;
+
+        foreach ($appointments as $apt) {
+            if (isset($apt['id']) && (int) $apt['id'] === $appointmentId) {
+                $validAppointment = $apt;
+                break;
+            }
+        }
+
+        if (!$validAppointment || trim((string) ($validAppointment['patientId'] ?? '')) !== $patientId) {
+            self::emit(['ok' => false, 'error' => 'Cita no encontrada o no autorizada']);
+            return;
+        }
+
+        $surveys = is_array($store['nps_surveys'] ?? null) ? $store['nps_surveys'] : [];
+        foreach ($surveys as $survey) {
+            if (isset($survey['appointmentId']) && (int) $survey['appointmentId'] === $appointmentId) {
+                self::emit(['ok' => false, 'error' => 'Esta cita ya fue evaluada']);
+                return;
+            }
+        }
+
+        $store['nps_surveys'][] = normalize_nps_survey([
+            'appointmentId' => $appointmentId,
+            'patientId' => $patientId,
+            'doctor' => $validAppointment['doctor'] ?? '',
+            'rating' => $rating,
+            'text' => $text,
+            'name' => $patient['fullName'] ?? 'Anónimo',
+        ]);
+
+        if (write_store($store, false)) {
+            self::emit(['ok' => true]);
+        } else {
+            self::emit(['ok' => false, 'error' => 'No se pudo guardar la encuesta']);
+        }
     }
 
     public static function history(array $context): void
@@ -878,6 +946,56 @@ final class PatientPortalController
         ]);
     }
 
+
+    private static function findPendingSurvey(array $store, array $snapshot, array $patient): ?array
+    {
+        $patientId = trim((string) ($patient['documentNumber'] ?? ''));
+        if ($patientId === '') {
+            return null;
+        }
+
+        $surveys = is_array($store['nps_surveys'] ?? null) ? $store['nps_surveys'] : [];
+        $surveyedAppointments = [];
+        foreach ($surveys as $survey) {
+            $appointmentId = (int) ($survey['appointmentId'] ?? 0);
+            if ($appointmentId > 0) {
+                $surveyedAppointments[$appointmentId] = true;
+            }
+        }
+
+        $appointments = is_array($snapshot['appointments'] ?? null) ? $snapshot['appointments'] : [];
+        $now = time();
+        $targetDelay = 72 * 3600;
+
+        foreach ($appointments as $apt) {
+            if (!is_array($apt) || trim((string) ($apt['patientId'] ?? '')) !== $patientId || trim((string) ($apt['status'] ?? '')) !== 'completed') {
+                continue;
+            }
+
+            $aptId = (int) ($apt['id'] ?? 0);
+            if ($aptId <= 0 || isset($surveyedAppointments[$aptId])) {
+                continue;
+            }
+
+            // Using date and time to find if 72 hours have passed
+            $date = trim((string) ($apt['date'] ?? ''));
+            $time = trim((string) ($apt['time'] ?? '00:00:00'));
+            if ($date === '') {
+                continue;
+            }
+
+            $aptTime = strtotime("$date $time");
+            if ($aptTime > 0 && ($now - $aptTime) >= $targetDelay) {
+                return [
+                    'appointmentId' => $aptId,
+                    'doctor' => get_doctor_label(trim((string) ($apt['doctor'] ?? ''))),
+                    'dateLabel' => format_date_label($date),
+                ];
+            }
+        }
+
+        return null;
+    }
 
     private static function findNextAppointment(array $store, array $snapshot): array
     {

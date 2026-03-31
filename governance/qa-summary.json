@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-03-31T11:10:25.392Z",
+  "gate": "GREEN",
+  "criticalsFailed": 0,
+  "allPassed": false,
+  "checks": [
+    {
+      "name": "verify-scripts",
+      "label": "Scripts sin referencias rotas",
+      "pass": true,
+      "critical": true,
+      "detail": "0 referencias rotas",
+      "raw": "✅ verify:scripts — 0 referencias rotas en package.json"
+    },
+    {
+      "name": "gov-audit",
+      "label": "Governance audit",
+      "pass": true,
+      "critical": true,
+      "detail": "8/8 checks"
+    },
+    {
+      "name": "broken-scripts-report",
+      "label": "Script refs rotas (gov)",
+      "pass": true,
+      "critical": false,
+      "detail": "0 referencias rotas"
+    },
+    {
+      "name": "turnero-release-plan",
+      "label": "Turnero surfaces listas",
+      "pass": false,
+      "critical": false,
+      "detail": "BLOCKED"
+    },
+    {
+      "name": "backlog",
+      "label": "Backlog progress",
+      "pass": false,
+      "critical": false,
+      "detail": "Sin datos de progreso"
+    },
+    {
+      "name": "evidence-health",
+      "label": "Evidencia reconstruida",
+      "pass": true,
+      "critical": false,
+      "detail": "0 reconstruidas (umbral: ≤10)"
+    }
+  ]
+}

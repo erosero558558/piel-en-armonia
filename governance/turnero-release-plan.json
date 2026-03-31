@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-03-31T11:10:26.823Z",
+  "releaseVersion": "unknown",
+  "releaseChannel": "unknown",
+  "allSurfacesReady": false,
+  "gate": "BLOCKED",
+  "surfaces": [
+    {
+      "id": "admin",
+      "label": "Consola Admin",
+      "file": "admin.html",
+      "exists": true,
+      "sizeKb": 33,
+      "hasAuth": true,
+      "ready": true
+    },
+    {
+      "id": "operator",
+      "label": "Operador",
+      "file": "queue-operator.html",
+      "exists": false,
+      "sizeKb": 0,
+      "hasAuth": false,
+      "ready": false
+    },
+    {
+      "id": "kiosk",
+      "label": "Kiosco Paciente",
+      "file": "queue-kiosk.html",
+      "exists": false,
+      "sizeKb": 0,
+      "hasAuth": false,
+      "ready": false
+    },
+    {
+      "id": "display",
+      "label": "Sala / TV",
+      "file": "queue-display.html",
+      "exists": false,
+      "sizeKb": 0,
+      "hasAuth": false,
+      "ready": false
+    }
+  ],
+  "scripts": [
+    {
+      "path": "js/queue-operator.js",
+      "exists": true,
+      "sizeKb": 3182
+    },
+    {
+      "path": "js/queue-kiosk.js",
+      "exists": true,
+      "sizeKb": 510
+    },
+    {
+      "path": "js/queue-display.js",
+      "exists": true,
+      "sizeKb": 485
+    }
+  ],
+  "blockers": [
+    {
+      "surface": "operator",
+      "reason": "file_missing"
+    },
+    {
+      "surface": "kiosk",
+      "reason": "file_missing"
+    },
+    {
+      "surface": "display",
+      "reason": "file_missing"
+    }
+  ],
+  "recommendation": "3 superficie(s) no listas. Verificar build."
+}
