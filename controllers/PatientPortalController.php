@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../lib/PatientPortalAuth.php';
 require_once __DIR__ . '/../lib/business.php';
 require_once __DIR__ . '/../lib/ClinicProfileStore.php';
+require_once __DIR__ . '/../lib/DocumentVerificationService.php';
 require_once __DIR__ . '/../lib/api_helpers.php';
 require_once __DIR__ . '/../lib/openclaw/PrescriptionPdfRenderer.php';
 require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
@@ -84,6 +85,7 @@ final class PatientPortalController
                 'support' => [
                     'bookingUrl' => '/#citas',
                     'historyUrl' => '/es/portal/historial/',
+                    'prescriptionUrl' => '/es/portal/receta/',
                     'photosUrl' => '/es/portal/fotos/',
                     'whatsappUrl' => self::buildSupportWhatsappUrl($patient, $nextAppointment),
                 ],
@@ -143,6 +145,34 @@ final class PatientPortalController
                 'authenticated' => true,
                 'patient' => $patient,
                 'gallery' => self::buildPortalPhotoGallery($store, $snapshot),
+                'generatedAt' => local_date('c'),
+            ],
+        ]);
+    }
+
+    public static function prescription(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+
+        self::emit([
+            'ok' => true,
+            'data' => [
+                'authenticated' => true,
+                'patient' => $patient,
+                'prescription' => self::buildActivePrescriptionSummary($store, $snapshot),
                 'generatedAt' => local_date('c'),
             ],
         ]);
@@ -245,6 +275,100 @@ final class PatientPortalController
             (string) ($asset['contentType'] ?? 'application/octet-stream'),
             (string) ($asset['fileName'] ?? 'foto-clinica.jpg')
         );
+    }
+
+    public static function documentVerify(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $token = trim((string) ($_GET['token'] ?? ''));
+        if ($token === '') {
+            json_response(['ok' => false, 'error' => 'token requerido'], 400);
+        }
+
+        $claims = DocumentVerificationService::decodeToken($token);
+        if ($claims === []) {
+            self::emit([
+                'ok' => true,
+                'data' => [
+                    'valid' => false,
+                    'statusLabel' => 'No pudimos validar este documento',
+                    'message' => 'El código de verificación no es válido o fue alterado.',
+                ],
+            ]);
+            return;
+        }
+
+        $type = (string) ($claims['type'] ?? '');
+        $documentId = (string) ($claims['id'] ?? '');
+
+        if ($type === 'prescription') {
+            $document = self::findPrescriptionById($store, $documentId);
+            if (!is_array($document)) {
+                self::emit([
+                    'ok' => true,
+                    'data' => [
+                        'valid' => false,
+                        'statusLabel' => 'Documento no encontrado',
+                        'message' => 'Esta receta ya no está disponible para verificación.',
+                    ],
+                ]);
+                return;
+            }
+
+            $caseId = trim((string) ($document['caseId'] ?? ''));
+            $patient = self::resolveCasePatient($store, $caseId);
+            self::emit([
+                'ok' => true,
+                'data' => [
+                    'valid' => true,
+                    'document' => self::buildDocumentVerificationPayload(
+                        'prescription',
+                        $document,
+                        $patient
+                    ),
+                ],
+            ]);
+            return;
+        }
+
+        if ($type === 'certificate') {
+            $document = self::findCertificateById($store, $documentId);
+            if (!is_array($document)) {
+                self::emit([
+                    'ok' => true,
+                    'data' => [
+                        'valid' => false,
+                        'statusLabel' => 'Documento no encontrado',
+                        'message' => 'Este certificado ya no está disponible para verificación.',
+                    ],
+                ]);
+                return;
+            }
+
+            $caseId = trim((string) ($document['caseId'] ?? ''));
+            $patient = self::resolveCasePatient($store, $caseId);
+            self::emit([
+                'ok' => true,
+                'data' => [
+                    'valid' => true,
+                    'document' => self::buildDocumentVerificationPayload(
+                        'certificate',
+                        $document,
+                        $patient
+                    ),
+                ],
+            ]);
+            return;
+        }
+
+        self::emit([
+            'ok' => true,
+            'data' => [
+                'valid' => false,
+                'statusLabel' => 'Tipo no soportado',
+                'message' => 'Este código no corresponde a un documento verificable.',
+            ],
+        ]);
     }
 
     private static function findNextAppointment(array $store, array $snapshot): array
@@ -539,6 +663,305 @@ final class PatientPortalController
         }
 
         return is_array($latestPrescription) ? $latestPrescription : null;
+    }
+
+    private static function findLatestPrescriptionForCases(array $store, array $caseIds): ?array
+    {
+        $caseMap = [];
+        foreach ($caseIds as $caseId) {
+            $caseId = trim((string) $caseId);
+            if ($caseId !== '') {
+                $caseMap[$caseId] = true;
+            }
+        }
+
+        $latestPrescription = null;
+        $latestTimestamp = 0;
+
+        foreach (($store['prescriptions'] ?? []) as $prescriptionId => $prescription) {
+            if (!is_array($prescription)) {
+                continue;
+            }
+
+            $caseId = trim((string) ($prescription['caseId'] ?? ''));
+            if ($caseId === '' || !isset($caseMap[$caseId]) || !self::isIssuedPortalPrescription($prescription)) {
+                continue;
+            }
+
+            $prescription['id'] = trim((string) ($prescription['id'] ?? (string) $prescriptionId));
+            $timestamp = self::documentTimestamp($prescription, ['issued_at', 'issuedAt', 'createdAt']);
+            if ($timestamp >= $latestTimestamp) {
+                $latestTimestamp = $timestamp;
+                $latestPrescription = $prescription;
+            }
+        }
+
+        return is_array($latestPrescription) ? $latestPrescription : null;
+    }
+
+    private static function isIssuedPortalPrescription(array $prescription): bool
+    {
+        $status = strtolower(trim((string) ($prescription['status'] ?? '')));
+        if ($status === '') {
+            return true;
+        }
+
+        return !in_array($status, ['draft', 'pending', 'not_issued', 'cancelled', 'revoked', 'voided', 'replaced'], true);
+    }
+
+    private static function hasPendingPrescriptionDraftsForCases(array $store, array $caseIds): bool
+    {
+        foreach ($caseIds as $caseId) {
+            foreach (ClinicalHistorySessionRepository::findAllDraftsByCaseId($store, (string) $caseId) as $draft) {
+                $documents = is_array($draft['documents'] ?? null) ? $draft['documents'] : [];
+                $prescription = is_array($documents['prescription'] ?? null) ? $documents['prescription'] : [];
+                $status = strtolower(trim((string) ($prescription['status'] ?? '')));
+                $items = is_array($prescription['items'] ?? null) ? $prescription['items'] : [];
+                $medication = trim((string) ($prescription['medication'] ?? ''));
+                $directions = trim((string) ($prescription['directions'] ?? ''));
+
+                if ($items !== [] || $medication !== '' || $directions !== '') {
+                    return true;
+                }
+
+                if ($status !== '' && !in_array($status, ['draft', 'not_issued'], true)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static function buildActivePrescriptionSummary(array $store, array $snapshot): array
+    {
+        $caseIds = self::collectPatientCaseIds($store, $snapshot);
+        $prescription = self::findLatestPrescriptionForCases($store, $caseIds);
+        $hasPendingUpdate = self::hasPendingPrescriptionDraftsForCases($store, $caseIds);
+
+        if (!is_array($prescription)) {
+            return [
+                'title' => 'Mi receta activa',
+                'status' => $hasPendingUpdate ? 'pending' : 'not_issued',
+                'statusLabel' => $hasPendingUpdate ? 'En preparación' : 'Sin receta activa',
+                'description' => $hasPendingUpdate
+                    ? 'Tu receta se está terminando de firmar y aparecerá aquí cuando quede lista.'
+                    : 'Todavía no hay una receta emitida visible para esta cuenta.',
+                'medications' => [],
+                'medicationCount' => 0,
+                'medicationCountLabel' => '0 medicamentos activos',
+                'downloadUrl' => '',
+                'fileName' => '',
+                'issuedAt' => '',
+                'issuedAtLabel' => '',
+                'doctorName' => '',
+                'doctorSpecialty' => '',
+                'doctorMsp' => '',
+                'verificationUrl' => '',
+                'verificationApiUrl' => '',
+                'verificationQrImageUrl' => '',
+                'verificationCode' => '',
+                'hasPendingUpdate' => false,
+                'pendingUpdateLabel' => '',
+            ];
+        }
+
+        $document = self::buildPortalDocumentPayload('prescription', $prescription, false);
+        $caseId = trim((string) ($prescription['caseId'] ?? ''));
+        $caseRecord = self::findPatientCaseRecord($store, $caseId);
+        $doctor = self::resolveDocumentDoctor($prescription);
+        $medications = self::normalizePortalPrescriptionItems($prescription);
+        $medicationCount = count($medications);
+        $consultationDate = self::firstNonEmptyString(
+            (string) ($caseRecord['latestActivityAt'] ?? ''),
+            (string) ($prescription['issued_at'] ?? ''),
+            (string) ($prescription['issuedAt'] ?? '')
+        );
+        $serviceName = self::firstNonEmptyString(
+            (string) (($caseRecord['summary']['serviceName'] ?? '')),
+            'Consulta dermatológica'
+        );
+
+        return array_merge($document, [
+            'title' => 'Mi receta activa',
+            'status' => 'available',
+            'statusLabel' => 'Activa',
+            'description' => $hasPendingUpdate
+                ? 'Esta es tu última receta emitida. Si tu consulta más reciente generó cambios, la actualización aparecerá aquí cuando quede firmada.'
+                : 'PDF listo para descargar y consultar desde tu teléfono cuando lo necesites.',
+            'patientName' => self::buildPatientDisplayName(self::resolveCasePatient($store, $caseId)),
+            'doctorName' => (string) ($doctor['name'] ?? ''),
+            'doctorSpecialty' => (string) ($doctor['specialty'] ?? ''),
+            'doctorMsp' => (string) ($doctor['msp'] ?? ''),
+            'serviceName' => $serviceName,
+            'consultationDateLabel' => self::buildCaseDateLabel($consultationDate),
+            'medications' => $medications,
+            'medicationCount' => $medicationCount,
+            'medicationCountLabel' => $medicationCount === 1
+                ? '1 medicamento activo'
+                : $medicationCount . ' medicamentos activos',
+            'hasPendingUpdate' => $hasPendingUpdate,
+            'pendingUpdateLabel' => $hasPendingUpdate
+                ? 'Hay una actualización clínica en preparación desde tu atención más reciente.'
+                : '',
+            'verificationUrl' => (string) ($document['verificationUrl'] ?? ''),
+            'verificationApiUrl' => (string) ($document['verificationApiUrl'] ?? ''),
+            'verificationQrImageUrl' => (string) ($document['verificationQrImageUrl'] ?? ''),
+            'verificationCode' => (string) ($document['verificationCode'] ?? ''),
+        ]);
+    }
+
+    private static function normalizePortalPrescriptionItems(array $prescription): array
+    {
+        $rawItems = [];
+        if (is_array($prescription['medications'] ?? null)) {
+            $rawItems = $prescription['medications'];
+        } elseif (is_array($prescription['items'] ?? null)) {
+            $rawItems = $prescription['items'];
+        }
+
+        if ($rawItems !== [] && array_values($rawItems) !== $rawItems) {
+            $rawItems = [$rawItems];
+        }
+
+        if ($rawItems === []) {
+            $fallbackMedication = self::firstNonEmptyString(
+                (string) ($prescription['medication'] ?? ''),
+                (string) ($prescription['name'] ?? '')
+            );
+            if ($fallbackMedication !== '') {
+                $rawItems = [[
+                    'medication' => $fallbackMedication,
+                    'dose' => (string) ($prescription['dose'] ?? ''),
+                    'frequency' => (string) ($prescription['frequency'] ?? ''),
+                    'duration' => (string) ($prescription['duration'] ?? ''),
+                    'instructions' => self::firstNonEmptyString(
+                        (string) ($prescription['instructions'] ?? ''),
+                        (string) ($prescription['directions'] ?? '')
+                    ),
+                ]];
+            }
+        }
+
+        $items = [];
+        foreach ($rawItems as $index => $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $medication = self::firstNonEmptyString(
+                (string) ($item['medication'] ?? ''),
+                (string) ($item['name'] ?? ''),
+                (string) ($item['genericName'] ?? ''),
+                (string) ($item['drug'] ?? ''),
+                (string) ($item['title'] ?? '')
+            );
+            if ($medication === '') {
+                continue;
+            }
+
+            $dose = self::firstNonEmptyString(
+                (string) ($item['dose'] ?? ''),
+                (string) ($item['dosage'] ?? ''),
+                (string) ($item['presentation'] ?? '')
+            );
+            $frequency = self::firstNonEmptyString(
+                (string) ($item['frequency'] ?? ''),
+                (string) ($item['schedule'] ?? '')
+            );
+            $duration = self::firstNonEmptyString(
+                (string) ($item['duration'] ?? ''),
+                (string) ($item['length'] ?? ''),
+                (string) ($item['days'] ?? '')
+            );
+            $instructions = self::firstNonEmptyString(
+                (string) ($item['instructions'] ?? ''),
+                (string) ($item['directions'] ?? ''),
+                (string) ($item['indications'] ?? '')
+            );
+            $chips = array_values(array_filter([$dose, $frequency, $duration], static function ($value): bool {
+                return trim((string) $value) !== '';
+            }));
+
+            $items[] = [
+                'id' => (string) ($item['id'] ?? ('rx-item-' . ($index + 1))),
+                'medication' => $medication,
+                'dose' => $dose,
+                'frequency' => $frequency,
+                'duration' => $duration,
+                'instructions' => $instructions,
+                'summary' => implode(' · ', $chips),
+                'chips' => $chips,
+            ];
+        }
+
+        return $items;
+    }
+
+    private static function buildDocumentVerificationPayload(string $type, array $document, array $patient): array
+    {
+        $documentId = trim((string) ($document['id'] ?? ''));
+        $doctor = self::resolveDocumentDoctor($document);
+        $clinicProfile = read_clinic_profile();
+        $issuedAt = self::firstNonEmptyString(
+            (string) ($document['issued_at'] ?? ''),
+            (string) ($document['issuedAt'] ?? ''),
+            (string) ($document['createdAt'] ?? '')
+        );
+        $payload = [
+            'type' => $type,
+            'typeLabel' => $type === 'prescription' ? 'Receta médica' : 'Certificado médico',
+            'documentId' => $documentId,
+            'verificationCode' => DocumentVerificationService::verificationCode($documentId),
+            'statusLabel' => 'Documento válido',
+            'message' => 'La firma digital de este documento coincide con el registro actual de Aurora Derm.',
+            'issuedAt' => $issuedAt,
+            'issuedAtLabel' => self::buildDocumentIssuedLabel($issuedAt),
+            'patientName' => self::buildPatientDisplayName($patient),
+            'doctorName' => (string) ($doctor['name'] ?? ''),
+            'doctorSpecialty' => (string) ($doctor['specialty'] ?? ''),
+            'doctorMsp' => (string) ($doctor['msp'] ?? ''),
+            'clinicName' => self::firstNonEmptyString(
+                (string) ($document['clinicName'] ?? ''),
+                (string) ($clinicProfile['clinicName'] ?? ''),
+                'Aurora Derm'
+            ),
+        ];
+
+        if ($type === 'prescription') {
+            $items = self::normalizePortalPrescriptionItems($document);
+            $payload['medicationCount'] = count($items);
+            $payload['medicationSummary'] = $items !== []
+                ? (string) ($items[0]['medication'] ?? '')
+                : 'Sin medicamentos visibles';
+        } else {
+            $payload['certificateTypeLabel'] = self::firstNonEmptyString(
+                (string) ($document['typeLabel'] ?? ''),
+                self::humanizeValue((string) ($document['type'] ?? ''), 'Certificado médico')
+            );
+        }
+
+        return $payload;
+    }
+
+    private static function resolveDocumentDoctor(array $document): array
+    {
+        return function_exists('doctor_profile_document_fields')
+            ? doctor_profile_document_fields(
+                isset($document['doctor']) && is_array($document['doctor'])
+                    ? $document['doctor']
+                    : ['name' => (string) ($document['issued_by'] ?? 'Médico tratante')]
+            )
+            : (is_array($document['doctor'] ?? null) ? $document['doctor'] : []);
+    }
+
+    private static function buildPatientDisplayName(array $patient): string
+    {
+        return self::firstNonEmptyString(
+            trim((string) (($patient['firstName'] ?? '') . ' ' . ($patient['lastName'] ?? ''))),
+            trim((string) ($patient['name'] ?? '')),
+            'Paciente Aurora Derm'
+        );
     }
 
     private static function buildTreatmentPlanTasks(
@@ -1403,6 +1826,7 @@ final class PatientPortalController
                 (string) ($document['issuedAt'] ?? ''),
                 (string) ($document['createdAt'] ?? '')
             );
+            $verificationUrl = DocumentVerificationService::verificationPageUrlForDocument($type, $documentId);
 
             return [
                 'type' => $type,
@@ -1420,6 +1844,10 @@ final class PatientPortalController
                     : self::buildCertificateFileName($document, $documentId),
                 'issuedAt' => $issuedAt,
                 'issuedAtLabel' => self::buildDocumentIssuedLabel($issuedAt),
+                'verificationUrl' => $verificationUrl,
+                'verificationApiUrl' => DocumentVerificationService::apiVerificationUrlForDocument($type, $documentId),
+                'verificationQrImageUrl' => DocumentVerificationService::qrImageUrlForDocument($type, $documentId),
+                'verificationCode' => DocumentVerificationService::verificationCode($documentId),
             ];
         }
 
@@ -1436,6 +1864,10 @@ final class PatientPortalController
             'fileName' => '',
             'issuedAt' => '',
             'issuedAtLabel' => '',
+            'verificationUrl' => '',
+            'verificationApiUrl' => '',
+            'verificationQrImageUrl' => '',
+            'verificationCode' => '',
         ];
     }
 

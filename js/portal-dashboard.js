@@ -261,6 +261,12 @@
                 icon: 'docs',
             },
             {
+                href: String(safeSupport.prescriptionUrl || '/es/portal/receta/').trim() || '/es/portal/receta/',
+                label: 'Mi receta',
+                copy: 'Revisa tu receta activa, descarga el PDF firmado y valida su autenticidad con QR.',
+                icon: 'prescription',
+            },
+            {
                 href: String(safeSupport.photosUrl || '/es/portal/fotos/').trim() || '/es/portal/fotos/',
                 label: 'Mis fotos',
                 copy: 'Sigue tu evolución por zona y fecha con las imágenes visibles para tu portal.',
@@ -287,6 +293,8 @@
                 const icon =
                     item.icon === 'whatsapp'
                         ? 'W'
+                        : item.icon === 'prescription'
+                            ? 'R'
                         : item.icon === 'photos'
                             ? 'F'
                         : item.icon === 'calendar'

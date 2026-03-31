@@ -637,6 +637,117 @@ final class PatientPortalControllerTest extends TestCase
         self::assertSame('Receta lista', (string) ($second['events'][1]['label'] ?? ''));
     }
 
+    public function testPrescriptionReturnsLatestIssuedDocumentWithVerificationMetadata(): void
+    {
+        $token = $this->authenticatePortalSession();
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+
+        $prescription = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::prescription(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $prescription['status']);
+        self::assertTrue((bool) ($prescription['payload']['ok'] ?? false));
+        self::assertTrue((bool) ($prescription['payload']['data']['authenticated'] ?? false));
+        self::assertSame(
+            'available',
+            (string) ($prescription['payload']['data']['prescription']['status'] ?? '')
+        );
+        self::assertSame(
+            'rx_portal_002',
+            (string) ($prescription['payload']['data']['prescription']['documentId'] ?? '')
+        );
+        self::assertSame(
+            'Dra Ana Rosero',
+            (string) ($prescription['payload']['data']['prescription']['doctorName'] ?? '')
+        );
+        self::assertSame(
+            1,
+            (int) ($prescription['payload']['data']['prescription']['medicationCount'] ?? 0)
+        );
+        self::assertSame(
+            'Doxiciclina 100 mg',
+            (string) ($prescription['payload']['data']['prescription']['medications'][0]['medication'] ?? '')
+        );
+        self::assertSame(
+            true,
+            (bool) ($prescription['payload']['data']['prescription']['hasPendingUpdate'] ?? false)
+        );
+        self::assertStringContainsString(
+            '/api.php?resource=patient-portal-document&type=prescription&id=rx_portal_002',
+            (string) ($prescription['payload']['data']['prescription']['downloadUrl'] ?? '')
+        );
+        self::assertStringContainsString(
+            '/es/verificar-documento/?token=',
+            (string) ($prescription['payload']['data']['prescription']['verificationUrl'] ?? '')
+        );
+        self::assertStringContainsString(
+            'api.qrserver.com',
+            (string) ($prescription['payload']['data']['prescription']['verificationQrImageUrl'] ?? '')
+        );
+        self::assertSame(
+            'RX_PORTAL_002',
+            str_replace('-', '_', (string) ($prescription['payload']['data']['prescription']['verificationCode'] ?? ''))
+        );
+    }
+
+    public function testDocumentVerifyReturnsPublicPayloadForPrescriptionToken(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET['token'] = \DocumentVerificationService::tokenForDocument('prescription', 'rx_portal_002');
+
+        $response = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::documentVerify(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $response['status']);
+        self::assertTrue((bool) ($response['payload']['ok'] ?? false));
+        self::assertTrue((bool) ($response['payload']['data']['valid'] ?? false));
+        self::assertSame(
+            'Receta médica',
+            (string) ($response['payload']['data']['document']['typeLabel'] ?? '')
+        );
+        self::assertSame(
+            'Lucia Portal',
+            (string) ($response['payload']['data']['document']['patientName'] ?? '')
+        );
+        self::assertSame(
+            'Dra Ana Rosero',
+            (string) ($response['payload']['data']['document']['doctorName'] ?? '')
+        );
+        self::assertSame(
+            '12345',
+            (string) ($response['payload']['data']['document']['doctorMsp'] ?? '')
+        );
+        self::assertSame(
+            'Doxiciclina 100 mg',
+            (string) ($response['payload']['data']['document']['medicationSummary'] ?? '')
+        );
+    }
+
+    public function testDocumentVerifyReturnsInvalidForTamperedToken(): void
+    {
+        $token = \DocumentVerificationService::tokenForDocument('prescription', 'rx_portal_002');
+        $tampered = substr($token, 0, -1) . (substr($token, -1) === 'a' ? 'b' : 'a');
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET['token'] = $tampered;
+
+        $response = $this->captureJsonResponse(function (): void {
+            \PatientPortalController::documentVerify(['store' => \read_store()]);
+        });
+
+        self::assertSame(200, $response['status']);
+        self::assertTrue((bool) ($response['payload']['ok'] ?? false));
+        self::assertFalse((bool) ($response['payload']['data']['valid'] ?? true));
+        self::assertStringContainsString(
+            'no es válido',
+            strtolower((string) ($response['payload']['data']['message'] ?? ''))
+        );
+    }
+
     public function testDocumentEndpointReturnsPdfBinaryForOwnedCertificate(): void
     {
         $token = $this->authenticatePortalSession();

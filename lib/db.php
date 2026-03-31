@@ -298,6 +298,17 @@ function ensure_db_schema(): void
             value TEXT,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
+        "CREATE TABLE IF NOT EXISTS gift_cards (
+            id INTEGER PRIMARY KEY,
+            code TEXT UNIQUE NOT NULL,
+            amount_cents INTEGER NOT NULL,
+            balance_cents INTEGER NOT NULL,
+            issuer_id TEXT,
+            recipient_email TEXT,
+            status TEXT DEFAULT 'active',
+            issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME
+        )",
         "CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date)",
         "CREATE INDEX IF NOT EXISTS idx_appointments_email ON appointments(email)",
         "CREATE INDEX IF NOT EXISTS idx_appointments_rescheduleToken ON appointments(rescheduleToken)",
@@ -321,7 +332,9 @@ function ensure_db_schema(): void
             last_error TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
-        "CREATE INDEX IF NOT EXISTS idx_cron_failures_retry ON cron_failures(next_retry_at)"
+        "CREATE INDEX IF NOT EXISTS idx_cron_failures_retry ON cron_failures(next_retry_at)",
+        "CREATE INDEX IF NOT EXISTS idx_gift_cards_code ON gift_cards(code)",
+        "CREATE INDEX IF NOT EXISTS idx_gift_cards_status ON gift_cards(status)"
     ];
 
     foreach ($queries as $sql) {

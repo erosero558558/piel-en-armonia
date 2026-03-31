@@ -27,6 +27,12 @@ const AUDIT_STEPS = [
         args: ['bin/velocity.js'],
     },
     {
+        id: 'openapi_drift',
+        label: 'OpenAPI Drift',
+        command: 'node',
+        args: ['bin/check-openapi-drift.js'],
+    },
+    {
         id: 'verify',
         label: 'Verify',
         command: 'node',
@@ -128,6 +134,27 @@ function formatAuditText(report) {
     } else {
         lines.push('🚨 Audit falló — revisar el primer paso rojo antes de continuar.');
     }
+
+    try {
+        const { existsSync, readFileSync } = require('fs');
+        const perfJsonPath = require('path').resolve(__dirname, '../governance/performance-gate.json');
+        lines.push('');
+        lines.push('⚡ Performance Gate');
+        if (existsSync(perfJsonPath)) {
+            const pData = JSON.parse(readFileSync(perfJsonPath, 'utf8'));
+            let maxLcp = 0;
+            if (pData.routes && Array.isArray(pData.routes)) {
+                maxLcp = Math.max(...pData.routes.map(r => r.metrics?.lcpMs || 0));
+            }
+            if (pData.passed) {
+                lines.push(`   🟢 Budget OK (Max LCP: ${Math.round(maxLcp)}ms)`);
+            } else {
+                lines.push(`   🔴 LCP over budget (Max LCP: ${Math.round(maxLcp)}ms)`);
+            }
+        } else {
+            lines.push('   ⚪ No performance data available');
+        }
+    } catch (e) {}
 
     lines.push('');
     return lines.join('\n');

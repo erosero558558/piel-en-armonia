@@ -128,6 +128,22 @@ const keyFileCategories = {
 
 // ── Format output ─────────────────────────────────────────────────────────────
 
+const perfJsonPath = resolve(ROOT, 'governance/performance-gate.json');
+let perfStatus = null;
+if (existsSync(perfJsonPath)) {
+  try {
+    const pData = JSON.parse(readFileSync(perfJsonPath, 'utf8'));
+    let maxLcp = 0;
+    if (pData.routes && Array.isArray(pData.routes)) {
+      maxLcp = Math.max(...pData.routes.map(r => r.metrics?.lcpMs || 0));
+    }
+    perfStatus = {
+      passed: pData.passed === true,
+      maxLcp: Math.round(maxLcp)
+    };
+  } catch (e) {}
+}
+
 const now = new Date().toLocaleString('es-EC', { timeZone: 'America/Guayaquil' });
 const pct = Math.round((doneTotal / totalTasks) * 100);
 const progressBar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
@@ -144,6 +160,14 @@ if (asMarkdown) {
     `Completadas: ${doneTotal} / ${totalTasks} tareas`,
     `Pendientes:  ${pendingTotal}`,
     `\`\`\``,
+    ``,
+    `## ⚡ Performance Gate`,
+    ``,
+    perfStatus 
+      ? (perfStatus.passed 
+          ? `🟢 **Budget OK:** Rendimiento estable (Max LCP: ${perfStatus.maxLcp}ms)` 
+          : `🔴 **LCP over budget:** Revisar regresión de web vitals (Max LCP: ${perfStatus.maxLcp}ms)`)
+      : `_No performance data available._`,
     ``,
     `## Velocidad por Sprint`,
     ``,
@@ -224,6 +248,17 @@ if (asMarkdown) {
   console.log(`   ${now}\n`);
   console.log(`   [${progressBar}] ${pct}%`);
   console.log(`   ${doneTotal}/${totalTasks} tareas completadas, ${pendingTotal} pendientes\n`);
+
+  console.log(`⚡ Performance Gate:`);
+  if (perfStatus) {
+    if (perfStatus.passed) {
+      console.log(`   🟢 Budget OK (Max LCP: ${perfStatus.maxLcp}ms)\n`);
+    } else {
+      console.log(`   🔴 LCP over budget (Max LCP: ${perfStatus.maxLcp}ms)\n`);
+    }
+  } else {
+    console.log(`   ⚪ No performance data available\n`);
+  }
 
   console.log(`📈 Velocidad por sprint:`);
   Object.entries(sprintSections).forEach(([s, { done, total }]) => {

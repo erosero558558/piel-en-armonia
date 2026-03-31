@@ -47,8 +47,10 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'patient-portal-dashboard', [PatientPortalController::class, 'dashboard']);
     $router->add('GET', 'patient-portal-history', [PatientPortalController::class, 'history']);
     $router->add('GET', 'patient-portal-photos', [PatientPortalController::class, 'photos']);
+    $router->add('GET', 'patient-portal-prescription', [PatientPortalController::class, 'prescription']);
     $router->add('GET', 'patient-portal-photo-file', [PatientPortalController::class, 'photoFile']);
     $router->add('GET', 'patient-portal-document', [PatientPortalController::class, 'document']);
+    $router->add('GET', 'document-verify', [PatientPortalController::class, 'documentVerify']);
     $router->add('GET', 'patient-cases', [PatientCaseController::class, 'index']);
     $router->add('POST', 'patient-cases', [PatientCaseController::class, 'store']);
     $router->add('GET', 'patient-search', [PatientCaseController::class, 'search']);
@@ -122,6 +124,11 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'openclaw-interactions', [OpenclawController::class, 'checkInteractions']);
     $router->add('POST', 'openclaw-summarize', [OpenclawController::class, 'summarizeSession']);
     $router->add('GET', 'openclaw-router-status', [OpenclawController::class, 'routerStatus']);
+
+    // Gift Cards
+    $router->add('POST', 'gift-card-issue', [GiftCardController::class, 'issue']);
+    $router->add('POST', 'gift-card-redeem', [GiftCardController::class, 'redeem']);
+    $router->add('GET', 'gift-card-validate', [GiftCardController::class, 'validate']);
 
     // Certificados médicos — standalone (lista, crear, PDF)
     $router->add('GET', 'certificate', [CertificateController::class, 'index']);

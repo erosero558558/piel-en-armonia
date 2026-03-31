@@ -2,80 +2,82 @@
 'use strict';
 
 const fs = require('node:fs');
-const { spawn, spawnSync } = require('node:child_process');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
-async function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+function run() {
+    console.log('[perf:baseline] Orchestrating Lighthouse via performance-gate...');
 
-async function run() {
-    console.log('[perf:baseline] Starting local server...');
-    const serverProcess = spawn(
-        'php',
-        ['-S', '127.0.0.1:8011', '-t', '.', 'bin/local-stage-router.php'],
-        {
-            cwd: process.cwd(),
-            stdio: 'ignore',
-            shell: false,
-        }
-    );
+    const runDir = path.resolve('verification', 'baseline-run');
+    if (fs.existsSync(runDir)) {
+        fs.rmSync(runDir, { recursive: true, force: true });
+    }
 
-    await sleep(2000); // Wait for server to be ready
-
-    const targetUrl = 'http://127.0.0.1:8011/es/';
-    console.log(`[perf:baseline] Running Lighthouse on ${targetUrl}...`);
-
+    // Run the gate specifically for /es/ to get metrics
     const result = spawnSync(
-        'npx',
+        'node',
         [
-            '--yes',
-            'lighthouse',
-            targetUrl,
-            '--output=json',
-            '--quiet',
-            '--form-factor=mobile',
-            '--throttling-method=simulate',
-            '--only-categories=performance',
-            '--chrome-flags="--headless --no-sandbox --disable-gpu --disable-dev-shm-usage"'
+            'bin/run-public-performance-gate.js',
+            '--routes',
+            '/es/',
+            '--out-dir',
+            runDir,
+            '--label',
+            'baseline'
         ],
-        {
-            encoding: 'utf8',
-            shell: process.platform === 'win32'
-        }
+        { stdio: 'inherit', encoding: 'utf8', env: { ...process.env, npm_config_strict_ssl: 'false' } }
     );
 
-    // Make sure we kill the server
-    serverProcess.kill('SIGTERM');
+    // Parse the output directory payload
+    const outputDirs = fs.existsSync(runDir) ? fs.readdirSync(runDir) : [];
+    const baselineDir = outputDirs.find(d => d.includes('baseline'));
 
-    if (result.status !== 0) {
-        console.error('[perf:baseline] Lighthouse failed.');
-        if (result.stdout) console.error(result.stdout);
-        if (result.stderr) console.error(result.stderr);
+    if (!baselineDir) {
+        console.error('[perf:baseline] Could not find baseline output from performance-gate.');
         process.exit(1);
     }
 
-    let report;
-    try {
-        report = JSON.parse(result.stdout);
-    } catch (e) {
-        console.error('[perf:baseline] Could not parse Lighthouse JSON output.');
+    const payloadPath = path.join(runDir, baselineDir, 'performance-gate.json');
+    if (!fs.existsSync(payloadPath)) {
+        console.error(`[perf:baseline] Missing json payload at: ${payloadPath}`);
         process.exit(1);
     }
 
-    const categories = report.categories || {};
-    const audits = report.audits || {};
+    const data = JSON.parse(fs.readFileSync(payloadPath, 'utf8'));
+    const routeData = data.routes.find(r => r.route === '/es/');
 
-    const score = Number(categories.performance?.score || 0) * 100;
-    const lcp = audits['largest-contentful-paint']?.displayValue || 'N/A';
-    const cls = audits['cumulative-layout-shift']?.displayValue || 'N/A';
-    const tbt = audits['total-blocking-time']?.displayValue || 'N/A';
-    const fcp = audits['first-contentful-paint']?.displayValue || 'N/A';
+    if (!routeData) {
+        console.error('[perf:baseline] No route data for /es/ inside the JSON payload.');
+        process.exit(1);
+    }
 
-    console.log(`[perf:baseline] Score: ${score}`);
-    console.log(`[perf:baseline] LCP: ${lcp}`);
-    console.log(`[perf:baseline] CLS: ${cls}`);
-    console.log(`[perf:baseline] TBT: ${tbt}`);
-    console.log(`[perf:baseline] FCP: ${fcp}`);
+    // Lighthouse JSON report is actually saved nearby as lighthouse-home.report.json
+    const rawReportPath = path.join(runDir, baselineDir, 'lighthouse-home.report.json');
+    let fcp = 'N/A';
+    let tbt = 'N/A';
+
+    if (fs.existsSync(rawReportPath)) {
+        try {
+            const rawReport = JSON.parse(fs.readFileSync(rawReportPath, 'utf8'));
+            fcp = rawReport.audits['first-contentful-paint']?.displayValue || 'N/A';
+            tbt = rawReport.audits['total-blocking-time']?.displayValue || 'N/A';
+        } catch (e) {
+            console.log('[perf:baseline] Warning: Could not read raw report for FCP/TBT');
+        }
+    }
+
+    const score = (routeData.scores?.performance || 0) * 100;
+    const lcp = routeData.metrics?.lcpMs ? `${Math.round(routeData.metrics.lcpMs)} ms` : 'N/A';
+    const cls = routeData.metrics?.cls !== null && routeData.metrics?.cls !== undefined 
+        ? routeData.metrics.cls.toFixed(3) 
+        : 'N/A';
+
+    console.log(`\n\n[perf:baseline] Metrics Extracted:`);
+    console.log(`- Score: ${score}`);
+    console.log(`- LCP: ${lcp}`);
+    console.log(`- CLS: ${cls}`);
+    console.log(`- TBT: ${tbt}`);
+    console.log(`- FCP: ${fcp}`);
 
     const dateStr = new Date().toISOString();
     const mdContent = `# Performance Baseline
@@ -99,7 +101,9 @@ _Generated automatically via \`npm run perf:baseline\` on ${dateStr}_
     console.log(`[perf:baseline] Saved to ${docPath}`);
 }
 
-run().catch(e => {
+try {
+    run();
+} catch (e) {
     console.error(e);
     process.exit(1);
-});
+}

@@ -45,6 +45,7 @@ jobs:
                         - 'prometheus.rules.yml'
                         - 'bin/validate-plan-operativo.php'
                         - 'PLAN_MAESTRO_OPERATIVO_2026.md'
+                        - 'openapi-openclaw.yaml'
             - name: Setup PHP
               if: steps.changes.outputs.lint == 'true'
               uses: shivammathur/setup-php@v2
@@ -68,6 +69,9 @@ jobs:
             - name: Validate Plan Operativo anti-loop
               if: steps.changes.outputs.lint == 'true'
               run: php bin/validate-plan-operativo.php
+            - name: Check OpenAPI Drift
+              if: steps.changes.outputs.lint == 'true'
+              run: node bin/check-openapi-drift.js
             - name: Agent Orchestrator status
               if: steps.changes.outputs.lint == 'true'
               run: node agent-orchestrator.js status

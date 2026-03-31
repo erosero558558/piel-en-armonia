@@ -55,6 +55,7 @@ require_once __DIR__ . '/controllers/OpenclawController.php';
 require_once __DIR__ . '/controllers/CertificateController.php';
 require_once __DIR__ . '/controllers/PatientPortalController.php';
 require_once __DIR__ . '/controllers/MonitoringConfigController.php';
+require_once __DIR__ . '/controllers/GiftCardController.php';
 
 
 

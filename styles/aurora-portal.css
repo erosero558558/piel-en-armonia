@@ -1191,6 +1191,158 @@ body.portal-body {
     line-height: 1.6;
 }
 
+.portal-rx-summary-grid,
+.portal-rx-verify-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.portal-rx-summary-card,
+.portal-rx-med-card,
+.portal-rx-verify-card {
+    padding: var(--space-4);
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.72);
+    box-shadow: 0 24px 56px rgba(8, 15, 27, 0.2);
+}
+
+.portal-rx-summary-card--wide,
+.portal-rx-verify-card--wide {
+    grid-column: 1 / -1;
+}
+
+.portal-rx-summary-card strong,
+.portal-rx-med-card h3,
+.portal-rx-verify-card h3 {
+    display: block;
+    margin: 10px 0 6px;
+    color: #fff;
+    font-size: 1.02rem;
+    line-height: 1.35;
+}
+
+.portal-rx-summary-card small,
+.portal-rx-med-card p,
+.portal-rx-med-card small,
+.portal-rx-verify-card p,
+.portal-rx-verify-card small {
+    color: var(--admin-text-muted);
+    line-height: 1.55;
+}
+
+.portal-rx-summary-card small,
+.portal-rx-verify-card small {
+    display: block;
+}
+
+.portal-rx-summary-card__hero {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    align-items: flex-start;
+}
+
+.portal-rx-summary-card__hero strong {
+    margin-top: 0;
+    font-size: 1.4rem;
+}
+
+.portal-rx-summary-card__meta {
+    display: grid;
+    gap: 10px;
+}
+
+.portal-rx-banner {
+    margin-top: var(--space-3);
+    padding: 12px 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(250, 204, 21, 0.22);
+    background: rgba(120, 53, 15, 0.16);
+    color: #fde68a;
+    line-height: 1.55;
+}
+
+.portal-rx-med-list {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.portal-rx-med-card__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: var(--space-3);
+}
+
+.portal-rx-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(36, 138, 101, 0.16);
+    color: #d1fae5;
+    font-size: 0.83rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.portal-rx-verify-card__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 124px;
+    gap: var(--space-4);
+    align-items: center;
+}
+
+.portal-rx-verify-card__qr {
+    width: 124px;
+    height: 124px;
+    border-radius: 22px;
+    background: #fff;
+    padding: 10px;
+    object-fit: contain;
+    box-shadow: 0 14px 30px rgba(8, 15, 27, 0.18);
+}
+
+.portal-rx-verify-card__code {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #f8fafc;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.portal-rx-verify-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: var(--space-4);
+}
+
+.portal-rx-empty {
+    padding: var(--space-5);
+}
+
+.portal-rx-empty h2 {
+    margin: 0 0 var(--space-2);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+}
+
+.portal-rx-empty p {
+    margin: 0;
+    color: var(--admin-text-muted);
+    line-height: 1.6;
+}
+
 @media (max-width: 520px) {
     .portal-cta-row {
         grid-template-columns: 1fr;
@@ -1216,6 +1368,16 @@ body.portal-body {
     .portal-photo-summary-grid,
     .portal-photo-grid {
         grid-template-columns: 1fr;
+    }
+
+    .portal-rx-summary-grid,
+    .portal-rx-verify-grid,
+    .portal-rx-verify-card__row {
+        grid-template-columns: 1fr;
+    }
+
+    .portal-rx-verify-card__qr {
+        justify-self: start;
     }
 
     .portal-photo-group__header {
