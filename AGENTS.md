@@ -1515,7 +1515,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 9.3 Catálogo comercial
 
 - [x] **S9-11** `[M]` Catálogo comercial vivo — centralizar por servicio en `data/catalog/services.json`: nombre, slug, duración, precio base, preparación previa, contraindicaciones principales, upsell relacionado. Hoy está disperso entre `content/`, booking UI y servicio copias. Esta es la fuente única. Verificable: el booking, el portal y los PDFs leen de aquí.
-- [ ] **S9-12** `[S]` Matriz de cross-sell — en `data/catalog/cross-sell.json`: qué servicios se venden bien juntos (ej: láser + mesoterapia, peeling + botox). Mostrar en la confirmación de booking y en el portal del paciente. `1 línea de datos → sugerencia visible`.
+- [x] **S9-12** `[S]` Matriz de cross-sell — en `data/catalog/cross-sell.json`: qué servicios se venden bien juntos (ej: láser + mesoterapia, peeling + botox). Mostrar en la confirmación de booking y en el portal del paciente. `1 línea de datos → sugerencia visible`.
 - [ ] **S9-13** `[M]` Servicios premium readiness — marcar en el catálogo qué servicios requieren: pre-consulta obligatoria, anticipo de pago, consentimiento específico, fotos previas. Verificables en el flujo de booking: el sistema bloquea si el requisito no está cubierto.
 - [ ] **S9-14** `[M]` Pricing integrity audit — detectar diferencias entre precios en: contenido público (`es/servicios/*/`), booking UI, PDFs de plan, y `data/catalog/`. Entregable: `docs/PRICING_AUDIT.md` con tabla de discrepancias y plan de unificación.
 - [ ] **S9-15** `[S]` IVA visible al paciente — definir cómo se presenta subtotal + IVA (15% Ecuador) + total en: checkout, PDFs de plan y recibo. Consistente entre todos los puntos. Sin cambiar lógica de pago — solo presentación.
@@ -1935,4 +1935,3 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S19-16** `[M]` Sentry aterrizado en runtime — `SENTRY_AUTH_TOKEN` y `SENTRY_ORG` siguen como `missing_env` en runtime. Configurar en CI Secrets + `monitoring-loader.js`. Verificable: `node bin/audit.js` → `sentry.configured: true`, sin `missing_env` en Sentry section.
 - [ ] **S19-17** `[M]` Dead endpoints en routes.php — auditoría identificó rutas que apuntan a controllers inexistentes. Crear suite `tests/Unit/RoutesIntegrityTest.php` que para cada ruta registrada verifique que el controller::method existe. Verificable: 0 rutas huérfanas en PHPUnit.
 - [ ] **S19-18** `[S]` Métricas de WhatsApp OpenClaw en dashboard — `GET /api.php?resource=whatsapp-openclaw-metrics` con `{conversations_total, holds_active, handoff_pending, outbox_failed, conversion_rate}`. Verificable: el endpoint devuelve JSON con todos los campos aunque sean 0.
-

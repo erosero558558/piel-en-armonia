@@ -96,4 +96,53 @@ test.describe('Success Modal Engine Unit Tests', () => {
         );
         await expect(page.locator('#appointmentDetails img')).toHaveCount(0);
     });
+
+    test('muestra sugerencia de cross-sell cuando existe en el catalogo', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({
+                    suggestions: [
+                        {
+                            service_id: 'consulta',
+                            badge_es: 'Complemento frecuente',
+                            title_es: 'Diagnóstico integral de piel, cabello y uñas',
+                            description_es: 'Esta valoración suele ser el siguiente paso más útil después de una consulta general.',
+                            href: '/servicios/diagnostico-integral.html',
+                            cta_label_es: 'Ver valoración',
+                        },
+                    ],
+                }),
+            });
+            window.URL.createObjectURL = () => 'blob:test-success-modal';
+            window.URL.revokeObjectURL = () => {};
+
+            window.PielSuccessModalEngine.init({
+                getCurrentLang: () => 'es',
+                getClinicAddress: () => 'Av. Republica del Salvador',
+                getCurrentAppointment: () => ({
+                    doctor: 'rosero',
+                    date: '2026-03-30',
+                    time: '09:30',
+                    paymentMethod: 'cash',
+                    paymentStatus: 'pending_cash',
+                    price: '$40.00',
+                    service: 'consulta',
+                }),
+            });
+
+            window.PielSuccessModalEngine.showSuccessModal(true);
+        });
+
+        await expect(page.locator('[data-success-cross-sell-card]')).toBeVisible();
+        await expect(page.locator('[data-success-cross-sell-title]')).toContainText(
+            'Diagnóstico integral de piel, cabello y uñas'
+        );
+        await expect(page.locator('[data-success-cross-sell-cta]')).toHaveAttribute(
+            'href',
+            '/servicios/diagnostico-integral.html'
+        );
+    });
 });

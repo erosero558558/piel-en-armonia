@@ -2,6 +2,7 @@
     'use strict';
 
     const portalShell = window.AuroraPatientPortalShell || null;
+    let crossSellCatalogPromise = null;
 
     if (!document.getElementById('portal-skeleton-css')) {
         const style = document.createElement('style');
@@ -67,6 +68,107 @@
             status: response.status,
             body,
         };
+    }
+
+    function isHttpContext() {
+        return window.location
+            && (window.location.protocol === 'http:' || window.location.protocol === 'https:');
+    }
+
+    function normalizeCrossSellToken(value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+    }
+
+    async function loadCrossSellCatalog() {
+        if (crossSellCatalogPromise) {
+            return crossSellCatalogPromise;
+        }
+
+        if (typeof window.fetch !== 'function') {
+            crossSellCatalogPromise = Promise.resolve([]);
+            return crossSellCatalogPromise;
+        }
+
+        const url = isHttpContext()
+            ? `${window.location.origin}/data/catalog/cross-sell.json`
+            : '/data/catalog/cross-sell.json';
+        crossSellCatalogPromise = window.fetch(url, {
+            headers: {
+                Accept: 'application/json',
+            },
+        })
+            .then((response) => (response.ok ? response.json() : {}))
+            .then((payload) =>
+                Array.isArray(payload && payload.suggestions) ? payload.suggestions : []
+            )
+            .catch(() => []);
+
+        return crossSellCatalogPromise;
+    }
+
+    async function getCrossSellSuggestion(serviceId) {
+        const normalizedServiceId = normalizeCrossSellToken(serviceId);
+        if (!normalizedServiceId) {
+            return null;
+        }
+
+        const suggestions = await loadCrossSellCatalog();
+        const match = suggestions.find((entry) => {
+            if (!entry || typeof entry !== 'object') {
+                return false;
+            }
+
+            return normalizeCrossSellToken(entry.service_id) === normalizedServiceId;
+        });
+
+        return match && typeof match === 'object' ? match : null;
+    }
+
+    function localizedSuggestionValue(suggestion, baseKey) {
+        if (!suggestion || typeof suggestion !== 'object') {
+            return '';
+        }
+
+        return String(
+            suggestion[`${baseKey}_es`] ||
+                suggestion[baseKey] ||
+                ''
+        ).trim();
+    }
+
+    function renderCrossSellSuggestion(suggestion) {
+        if (!suggestion || typeof suggestion !== 'object') {
+            return '';
+        }
+
+        const href = String(suggestion.href || '').trim();
+        const badge = localizedSuggestionValue(suggestion, 'badge') || 'Complemento recomendado';
+        const title = localizedSuggestionValue(suggestion, 'title');
+        const description = localizedSuggestionValue(suggestion, 'description');
+        const ctaLabel = localizedSuggestionValue(suggestion, 'cta_label') || 'Ver servicio';
+
+        if (!href || !title || !description) {
+            return '';
+        }
+
+        return `
+            <div class="portal-cross-sell" data-portal-next-cross-sell>
+                <span class="portal-inline-label portal-cross-sell__badge">${escapeHtml(badge)}</span>
+                <strong data-portal-next-cross-sell-title>${escapeHtml(title)}</strong>
+                <p data-portal-next-cross-sell-description>${escapeHtml(description)}</p>
+                <a
+                    class="btn btn-secondary portal-cross-sell__cta"
+                    data-portal-next-cross-sell-cta
+                    href="${escapeHtml(href)}"
+                >${escapeHtml(ctaLabel)}</a>
+            </div>
+        `;
     }
 
     function renderBillingUnavailable() {
@@ -262,7 +364,7 @@
             .join('') || 'AD';
     }
 
-    function renderNextAppointment(appointment) {
+    function renderNextAppointment(appointment, crossSellSuggestion) {
         const safeAppointment =
             appointment && typeof appointment === 'object' ? appointment : {};
         const rescheduleUrl = String(safeAppointment.rescheduleUrl || '').trim();
@@ -313,6 +415,7 @@
                             : ''
                     }
                 </div>
+                ${renderCrossSellSuggestion(crossSellSuggestion)}
                 <div class="portal-cta-row">
                     ${
                         safeAppointment.appointmentType === 'telemedicine' &&
@@ -781,6 +884,9 @@
                 payload.nextAppointment && typeof payload.nextAppointment === 'object'
                     ? payload.nextAppointment
                     : null;
+            const crossSellSuggestion = nextAppointment
+                ? await getCrossSellSuggestion(nextAppointment.serviceId)
+                : null;
             const treatmentPlan =
                 payload.treatmentPlan && typeof payload.treatmentPlan === 'object'
                     ? payload.treatmentPlan
@@ -796,7 +902,7 @@
             }
 
             nextAppointmentContainer.innerHTML = nextAppointment
-                ? renderNextAppointment(nextAppointment)
+                ? renderNextAppointment(nextAppointment, crossSellSuggestion)
                 : renderEmptyState(support);
             if (treatmentPlanContainer instanceof HTMLElement) {
                 treatmentPlanContainer.innerHTML = treatmentPlan

@@ -3,6 +3,7 @@
 
 let deps = null;
 let activeIcsUrl = '';
+let crossSellCatalogPromise = null;
 
 function getLang() {
     return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
@@ -20,6 +21,163 @@ function getClinicAddress() {
         return String(deps.getClinicAddress() || '');
     }
     return '';
+}
+
+function isHttpContext() {
+    return typeof window !== 'undefined'
+        && window.location
+        && (window.location.protocol === 'http:' || window.location.protocol === 'https:');
+}
+
+function normalizeCrossSellToken(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+function loadCrossSellCatalog() {
+    if (crossSellCatalogPromise) {
+        return crossSellCatalogPromise;
+    }
+
+    if (typeof window.fetch !== 'function') {
+        crossSellCatalogPromise = Promise.resolve([]);
+        return crossSellCatalogPromise;
+    }
+
+    const url = isHttpContext()
+        ? `${window.location.origin}/data/catalog/cross-sell.json`
+        : '/data/catalog/cross-sell.json';
+    crossSellCatalogPromise = window.fetch(url, {
+        headers: {
+            Accept: 'application/json',
+        },
+    })
+        .then((response) => (response.ok ? response.json() : {}))
+        .then((payload) =>
+            Array.isArray(payload && payload.suggestions) ? payload.suggestions : []
+        )
+        .catch(() => []);
+
+    return crossSellCatalogPromise;
+}
+
+function getCrossSellSuggestion(serviceId) {
+    const normalizedServiceId = normalizeCrossSellToken(serviceId);
+    if (!normalizedServiceId) {
+        return Promise.resolve(null);
+    }
+
+    return loadCrossSellCatalog().then((suggestions) => {
+        const match = suggestions.find((entry) => {
+            if (!entry || typeof entry !== 'object') {
+                return false;
+            }
+
+            return normalizeCrossSellToken(entry.service_id) === normalizedServiceId;
+        });
+
+        return match && typeof match === 'object' ? match : null;
+    });
+}
+
+function localizedSuggestionValue(suggestion, baseKey, lang, fallback = '') {
+    if (!suggestion || typeof suggestion !== 'object') {
+        return fallback;
+    }
+
+    const langKey = `${baseKey}_${lang === 'en' ? 'en' : 'es'}`;
+    const localized = String(suggestion[langKey] || '').trim();
+    if (localized !== '') {
+        return localized;
+    }
+
+    const spanish = String(suggestion[`${baseKey}_es`] || '').trim();
+    if (spanish !== '') {
+        return spanish;
+    }
+
+    return String(suggestion[baseKey] || fallback).trim();
+}
+
+function renderCrossSellCard(suggestion, lang) {
+    if (!suggestion || typeof suggestion !== 'object') {
+        return '';
+    }
+
+    const href = String(suggestion.href || '').trim();
+    const badge = localizedSuggestionValue(
+        suggestion,
+        'badge',
+        lang,
+        lang === 'en' ? 'Recommended add-on' : 'Complemento recomendado'
+    );
+    const title = localizedSuggestionValue(suggestion, 'title', lang, '');
+    const description = localizedSuggestionValue(suggestion, 'description', lang, '');
+    const ctaLabel = localizedSuggestionValue(
+        suggestion,
+        'cta_label',
+        lang,
+        lang === 'en' ? 'View service' : 'Ver servicio'
+    );
+
+    if (!href || !title || !description) {
+        return '';
+    }
+
+    return `
+        <section
+            data-success-cross-sell-card
+            style="margin-top:20px;padding:18px;border-radius:18px;background:linear-gradient(180deg, rgba(15,23,42,0.04), rgba(82,113,255,0.10));border:1px solid rgba(82,113,255,0.20);"
+        >
+            <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5271ff;">
+                ${escapeHtml(badge)}
+            </p>
+            <p data-success-cross-sell-title style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">
+                ${escapeHtml(title)}
+            </p>
+            <p style="margin:0 0 14px;line-height:1.5;color:#475569;">
+                ${escapeHtml(description)}
+            </p>
+            <a
+                href="${escapeHtml(href)}"
+                data-success-cross-sell-cta
+                class="btn btn-secondary success-calendar-btn"
+                style="width:100%;justify-content:center;"
+            >
+                ${escapeHtml(ctaLabel)}
+            </a>
+        </section>
+    `;
+}
+
+function hydrateCrossSellSuggestion(detailsDiv, appointment, lang) {
+    const anchor = detailsDiv && typeof detailsDiv.querySelector === 'function'
+        ? detailsDiv.querySelector('[data-success-cross-sell-anchor]')
+        : null;
+    if (!anchor) {
+        return;
+    }
+
+    const serviceId = appointment && typeof appointment === 'object'
+        ? String(appointment.service || '')
+        : '';
+    if (!serviceId) {
+        anchor.innerHTML = '';
+        return;
+    }
+
+    getCrossSellSuggestion(serviceId)
+        .then((suggestion) => {
+            anchor.innerHTML = renderCrossSellCard(suggestion, lang);
+        })
+        .catch(() => {
+            anchor.innerHTML = '';
+        });
 }
 
 function escapeHtml(value) {
@@ -222,6 +380,7 @@ function showSuccessModal(emailSent) {
                 <p><strong>${lang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
             </div>
             ${checkinBlock}
+            <div data-success-cross-sell-anchor></div>
             <div class="success-calendar-actions">
                 <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary success-calendar-btn">
                     <i class="fab fa-google"></i> Google Calendar
@@ -231,6 +390,7 @@ function showSuccessModal(emailSent) {
                 </a>
             </div>
         `;
+        hydrateCrossSellSuggestion(detailsDiv, appointment, lang);
     }
 
     modal.classList.add('active');
