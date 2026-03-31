@@ -324,6 +324,111 @@ final class FunnelMetricsService
         ];
     }
 
+    /**
+     * @return array<string,mixed>
+     */
+    public static function buildBookingFunnelReport(array $context = []): array
+    {
+        $rawMetrics = class_exists('Metrics') ? Metrics::export() : '';
+        $series = PrometheusCounterParser::parseCounterSeries($rawMetrics, 'conversion_funnel_events_total');
+
+        $serviceDetailBreakdown = [];
+        $serviceBookingOpenBreakdown = [];
+        $serviceSlotSelectedBreakdown = [];
+        $serviceConfirmedBreakdown = [];
+
+        foreach ($series as $row) {
+            $labels = is_array($row['labels'] ?? null) ? $row['labels'] : [];
+            $value = (int) round((float) ($row['value'] ?? 0));
+            if ($value <= 0) {
+                continue;
+            }
+
+            $eventName = AnalyticsLabelNormalizer::normalize($labels['event'] ?? '', '');
+            if ($eventName === '') {
+                continue;
+            }
+
+            $serviceSlug = AnalyticsLabelNormalizer::normalize($labels['service_slug'] ?? ($labels['service'] ?? ''), '');
+            if ($serviceSlug === '') {
+                continue;
+            }
+
+            if ($eventName === 'view_service_detail') {
+                if (!isset($serviceDetailBreakdown[$serviceSlug])) {
+                    $serviceDetailBreakdown[$serviceSlug] = 0;
+                }
+                $serviceDetailBreakdown[$serviceSlug] += $value;
+                continue;
+            }
+
+            if ($eventName === 'start_booking_from_service') {
+                if (!isset($serviceBookingOpenBreakdown[$serviceSlug])) {
+                    $serviceBookingOpenBreakdown[$serviceSlug] = 0;
+                }
+                $serviceBookingOpenBreakdown[$serviceSlug] += $value;
+                continue;
+            }
+
+            if ($eventName === 'booking_confirmed') {
+                if (!isset($serviceConfirmedBreakdown[$serviceSlug])) {
+                    $serviceConfirmedBreakdown[$serviceSlug] = 0;
+                }
+                $serviceConfirmedBreakdown[$serviceSlug] += $value;
+                continue;
+            }
+
+            if ($eventName === 'booking_step_completed') {
+                $step = AnalyticsLabelNormalizer::normalize($labels['step'] ?? '', '');
+                if ($step !== 'time_selected') {
+                    continue;
+                }
+
+                if (!isset($serviceSlotSelectedBreakdown[$serviceSlug])) {
+                    $serviceSlotSelectedBreakdown[$serviceSlug] = 0;
+                }
+                $serviceSlotSelectedBreakdown[$serviceSlug] += $value;
+            }
+        }
+
+        $rows = self::buildBookingFunnelBreakdown(
+            $serviceDetailBreakdown,
+            $serviceBookingOpenBreakdown,
+            $serviceSlotSelectedBreakdown,
+            $serviceConfirmedBreakdown
+        );
+
+        $summary = [
+            'servicesTracked' => count($rows),
+            'detailViews' => 0,
+            'bookingOpened' => 0,
+            'slotSelected' => 0,
+            'bookingConfirmed' => 0,
+            'biggestDropoffService' => '',
+            'biggestDropoffStage' => '',
+            'biggestDropoffCount' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $summary['detailViews'] += (int) ($row['detailViews'] ?? 0);
+            $summary['bookingOpened'] += (int) ($row['bookingOpened'] ?? 0);
+            $summary['slotSelected'] += (int) ($row['slotSelected'] ?? 0);
+            $summary['bookingConfirmed'] += (int) ($row['bookingConfirmed'] ?? 0);
+        }
+
+        if (isset($rows[0]) && is_array($rows[0])) {
+            $summary['biggestDropoffService'] = (string) ($rows[0]['serviceSlug'] ?? '');
+            $summary['biggestDropoffStage'] = (string) ($rows[0]['largestDropoffStage'] ?? '');
+            $summary['biggestDropoffCount'] = (int) ($rows[0]['largestDropoffCount'] ?? 0);
+        }
+
+        return [
+            'summary' => $summary,
+            'rows' => $rows,
+            'generatedAt' => gmdate('c'),
+        ];
+    }
+
     public static function recordDerivedMetrics(string $event, array $labels): void
     {
         if (!class_exists('Metrics')) {
@@ -540,6 +645,92 @@ final class FunnelMetricsService
             $detailB = (int) ($b['detailViews'] ?? 0);
             if ($detailA !== $detailB) {
                 return $detailB <=> $detailA;
+            }
+
+            return strcmp((string) ($a['serviceSlug'] ?? ''), (string) ($b['serviceSlug'] ?? ''));
+        });
+
+        return $rows;
+    }
+
+    /**
+     * @param array<string,int> $serviceDetailBreakdown
+     * @param array<string,int> $serviceBookingOpenBreakdown
+     * @param array<string,int> $serviceSlotSelectedBreakdown
+     * @param array<string,int> $serviceConfirmedBreakdown
+     * @return array<int,array<string,int|float|string>>
+     */
+    private static function buildBookingFunnelBreakdown(
+        array $serviceDetailBreakdown,
+        array $serviceBookingOpenBreakdown,
+        array $serviceSlotSelectedBreakdown,
+        array $serviceConfirmedBreakdown
+    ): array {
+        $serviceKeys = array_values(array_unique(array_merge(
+            array_keys($serviceDetailBreakdown),
+            array_keys($serviceBookingOpenBreakdown),
+            array_keys($serviceSlotSelectedBreakdown),
+            array_keys($serviceConfirmedBreakdown)
+        )));
+
+        $rows = [];
+        foreach ($serviceKeys as $serviceSlug) {
+            $detailViews = (int) ($serviceDetailBreakdown[$serviceSlug] ?? 0);
+            $bookingOpened = (int) ($serviceBookingOpenBreakdown[$serviceSlug] ?? 0);
+            $slotSelected = (int) ($serviceSlotSelectedBreakdown[$serviceSlug] ?? 0);
+            $bookingConfirmed = (int) ($serviceConfirmedBreakdown[$serviceSlug] ?? 0);
+
+            $detailToOpenDropoff = max(0, $detailViews - $bookingOpened);
+            $openToSlotDropoff = max(0, $bookingOpened - $slotSelected);
+            $slotToConfirmedDropoff = max(0, $slotSelected - $bookingConfirmed);
+
+            $largestDropoffStage = 'detail_to_open';
+            $largestDropoffCount = $detailToOpenDropoff;
+
+            if ($openToSlotDropoff > $largestDropoffCount) {
+                $largestDropoffStage = 'open_to_slot';
+                $largestDropoffCount = $openToSlotDropoff;
+            }
+            if ($slotToConfirmedDropoff > $largestDropoffCount) {
+                $largestDropoffStage = 'slot_to_confirmed';
+                $largestDropoffCount = $slotToConfirmedDropoff;
+            }
+
+            $rows[] = [
+                'serviceSlug' => (string) $serviceSlug,
+                'detailViews' => $detailViews,
+                'bookingOpened' => $bookingOpened,
+                'slotSelected' => $slotSelected,
+                'bookingConfirmed' => $bookingConfirmed,
+                'detailToOpenPct' => $detailViews > 0 ? round(($bookingOpened / $detailViews) * 100, 1) : 0.0,
+                'openToSlotPct' => $bookingOpened > 0 ? round(($slotSelected / $bookingOpened) * 100, 1) : 0.0,
+                'slotToConfirmedPct' => $slotSelected > 0 ? round(($bookingConfirmed / $slotSelected) * 100, 1) : 0.0,
+                'detailToConfirmedPct' => $detailViews > 0 ? round(($bookingConfirmed / $detailViews) * 100, 1) : 0.0,
+                'detailToOpenDropoff' => $detailToOpenDropoff,
+                'openToSlotDropoff' => $openToSlotDropoff,
+                'slotToConfirmedDropoff' => $slotToConfirmedDropoff,
+                'largestDropoffStage' => $largestDropoffStage,
+                'largestDropoffCount' => $largestDropoffCount,
+            ];
+        }
+
+        usort($rows, static function (array $a, array $b): int {
+            $dropoffA = (int) ($a['largestDropoffCount'] ?? 0);
+            $dropoffB = (int) ($b['largestDropoffCount'] ?? 0);
+            if ($dropoffA !== $dropoffB) {
+                return $dropoffB <=> $dropoffA;
+            }
+
+            $openedA = (int) ($a['bookingOpened'] ?? 0);
+            $openedB = (int) ($b['bookingOpened'] ?? 0);
+            if ($openedA !== $openedB) {
+                return $openedB <=> $openedA;
+            }
+
+            $confirmedA = (int) ($a['bookingConfirmed'] ?? 0);
+            $confirmedB = (int) ($b['bookingConfirmed'] ?? 0);
+            if ($confirmedA !== $confirmedB) {
+                return $confirmedB <=> $confirmedA;
             }
 
             return strcmp((string) ($a['serviceSlug'] ?? ''), (string) ($b['serviceSlug'] ?? ''));

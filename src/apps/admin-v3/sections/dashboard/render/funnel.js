@@ -396,6 +396,145 @@ function buildTopServicesList(rows) {
         .join('');
 }
 
+function formatBookingDropoffStage(stage) {
+    switch (String(stage || '').trim().toLowerCase()) {
+        case 'detail_to_open':
+            return 'vista -> apertura';
+        case 'open_to_slot':
+            return 'apertura -> hora';
+        case 'slot_to_confirmed':
+            return 'hora -> cita';
+        default:
+            return 'sin fuga';
+    }
+}
+
+function normalizeBookingFunnelReport(raw) {
+    const source = asObject(raw);
+    const rows = asArray(firstValue(source, ['rows', 'services'], []))
+        .map((entry) => ({
+            serviceSlug: String(entry?.serviceSlug || entry?.service_slug || '')
+                .trim()
+                .toLowerCase(),
+            detailViews: readCount(entry, ['detailViews', 'detail_views']),
+            bookingOpened: readCount(entry, [
+                'bookingOpened',
+                'booking_opened',
+            ]),
+            slotSelected: readCount(entry, ['slotSelected', 'slot_selected']),
+            bookingConfirmed: readCount(entry, [
+                'bookingConfirmed',
+                'booking_confirmed',
+            ]),
+            detailToConfirmedPct: Number(
+                firstValue(
+                    entry,
+                    ['detailToConfirmedPct', 'detail_to_confirmed_pct'],
+                    0
+                )
+            ),
+            largestDropoffStage: String(
+                firstValue(
+                    entry,
+                    ['largestDropoffStage', 'largest_dropoff_stage'],
+                    ''
+                ) || ''
+            )
+                .trim()
+                .toLowerCase(),
+            largestDropoffCount: readCount(entry, [
+                'largestDropoffCount',
+                'largest_dropoff_count',
+            ]),
+        }))
+        .filter((entry) => entry.serviceSlug !== '')
+        .sort((left, right) => {
+            if (right.largestDropoffCount !== left.largestDropoffCount) {
+                return right.largestDropoffCount - left.largestDropoffCount;
+            }
+            if (right.bookingOpened !== left.bookingOpened) {
+                return right.bookingOpened - left.bookingOpened;
+            }
+            return right.bookingConfirmed - left.bookingConfirmed;
+        });
+
+    const summarySource = asObject(source.summary);
+    const summary = {
+        servicesTracked:
+            readCount(summarySource, ['servicesTracked', 'services_tracked']) ||
+            rows.length,
+        detailViews:
+            readCount(summarySource, ['detailViews', 'detail_views']) ||
+            rows.reduce((total, entry) => total + entry.detailViews, 0),
+        bookingOpened:
+            readCount(summarySource, ['bookingOpened', 'booking_opened']) ||
+            rows.reduce((total, entry) => total + entry.bookingOpened, 0),
+        slotSelected:
+            readCount(summarySource, ['slotSelected', 'slot_selected']) ||
+            rows.reduce((total, entry) => total + entry.slotSelected, 0),
+        bookingConfirmed:
+            readCount(summarySource, [
+                'bookingConfirmed',
+                'booking_confirmed',
+            ]) ||
+            rows.reduce((total, entry) => total + entry.bookingConfirmed, 0),
+    };
+
+    return {
+        summary,
+        rows,
+        topDropoff: rows[0] || null,
+    };
+}
+
+function buildBookingFunnelDropoffMeta(report) {
+    const top = report.topDropoff;
+    if (!top) {
+        return 'Esperando eventos con servicio y hora seleccionada para detectar fugas reales.';
+    }
+
+    if (top.largestDropoffCount <= 0) {
+        return `Sin fuga dominante visible. ${formatNumber(
+            top.bookingConfirmed
+        )} cita(s) creada(s) desde ${formatNumber(
+            top.bookingOpened
+        )} apertura(s) en booking.`;
+    }
+
+    return `${formatNumber(top.largestDropoffCount)} paciente(s) se caen en ${formatBookingDropoffStage(
+        top.largestDropoffStage
+    )}. Cierra ${Number(top.detailToConfirmedPct || 0).toFixed(
+        1
+    )}% desde la vista.`;
+}
+
+function buildBookingFunnelList(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+        return '<li><div><span>Sin funnel</span><small>Esperando eventos por servicio para medir apertura, hora y cita creada.</small></div><strong>0</strong></li>';
+    }
+
+    return rows
+        .slice(0, 5)
+        .map(
+            (entry) => `<li data-booking-funnel-service="true"><div><span>${escapeHtml(
+                humanizeLabel(entry.serviceSlug, 'Sin datos')
+            )}</span><small>Vista ${escapeHtml(
+                formatNumber(entry.detailViews)
+            )} · Abre ${escapeHtml(
+                formatNumber(entry.bookingOpened)
+            )} · Hora ${escapeHtml(
+                formatNumber(entry.slotSelected)
+            )} · Cita ${escapeHtml(
+                formatNumber(entry.bookingConfirmed)
+            )}</small></div><strong>${escapeHtml(
+                entry.largestDropoffCount > 0
+                    ? `${formatNumber(entry.largestDropoffCount)} · ${formatBookingDropoffStage(entry.largestDropoffStage)}`
+                    : '0 · sin fuga'
+            )}</strong></li>`
+        )
+        .join('');
+}
+
 function setAssistantUtilityMetrics(metrics) {
     const { today, last7d, topIntent, topHelpReason, topReviewOutcome } =
         metrics;
@@ -540,6 +679,24 @@ export function setFunnelMetrics(funnel) {
     setHtml(
         '#dashboardConversionTopServices',
         buildTopServicesList(conversion.topServices)
+    );
+    const bookingFunnel = normalizeBookingFunnelReport(
+        funnel.bookingFunnelReport || funnel.booking_funnel_report || {}
+    );
+    const bookingTopDropoff = bookingFunnel.topDropoff;
+    setText(
+        '#dashboardBookingFunnelDropoffService',
+        bookingTopDropoff
+            ? humanizeLabel(bookingTopDropoff.serviceSlug, 'Sin datos')
+            : 'Sin datos'
+    );
+    setText(
+        '#dashboardBookingFunnelDropoffMeta',
+        buildBookingFunnelDropoffMeta(bookingFunnel)
+    );
+    setHtml(
+        '#dashboardBookingFunnelList',
+        buildBookingFunnelList(bookingFunnel.rows)
     );
     const queueAssistant = normalizeQueueAssistant(
         funnel.queueAssistant || funnel.queue_assistant || {}

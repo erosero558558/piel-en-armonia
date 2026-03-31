@@ -217,7 +217,7 @@ export function renderDashboardOperationsGrid() {
                 <header>
                     <div>
                         <h3>Conversion publica</h3>
-                        <small id="dashboardConversionMeta">Visitas al flujo, clicks a WhatsApp y servicios con mejor traccion.</small>
+                        <small id="dashboardConversionMeta">Visitas al flujo, clicks a WhatsApp y drop-off de booking por servicio.</small>
                     </div>
                     <span class="dashboard-signal-chip" id="dashboardConversionChip" data-state="neutral">
                         Sin datos
@@ -253,6 +253,13 @@ export function renderDashboardOperationsGrid() {
                             Aun no hay serie diaria suficiente para resumir el embudo reciente.
                         </small>
                     </article>
+                    <article class="dashboard-signal-card">
+                        <span>Mayor drop-off</span>
+                        <strong id="dashboardBookingFunnelDropoffService">Sin datos</strong>
+                        <small id="dashboardBookingFunnelDropoffMeta">
+                            Cuando existan vistas y citas por servicio, aqui se mostrara la mayor fuga del booking.
+                        </small>
+                    </article>
                 </div>
                 <div class="dashboard-conversion-grid">
                     <article class="dashboard-signal-card dashboard-conversion-list-card">
@@ -262,6 +269,10 @@ export function renderDashboardOperationsGrid() {
                     <article class="dashboard-signal-card dashboard-conversion-list-card">
                         <span>Top servicios</span>
                         <ul id="dashboardConversionTopServices" class="sony-list dashboard-attention-list dashboard-conversion-list"></ul>
+                    </article>
+                    <article class="dashboard-signal-card dashboard-conversion-list-card">
+                        <span>Booking por servicio</span>
+                        <ul id="dashboardBookingFunnelList" class="sony-list dashboard-attention-list dashboard-conversion-list"></ul>
                     </article>
                 </div>
             </article>

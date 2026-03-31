@@ -156,10 +156,27 @@ function trackChatBookingStep(step, payload = {}, options = {}) {
         chatBooking.completedSteps[step] = true;
     }
 
+    const trackingPayload = {
+        ...(payload && typeof payload === 'object' ? payload : {}),
+    };
+
+    if (!trackingPayload.service && chatBooking.service) {
+        trackingPayload.service = chatBooking.service;
+    }
+    if (!trackingPayload.doctor && chatBooking.doctor) {
+        trackingPayload.doctor = chatBooking.doctor;
+    }
+    if (!trackingPayload.date && chatBooking.date) {
+        trackingPayload.date = chatBooking.date;
+    }
+    if (!trackingPayload.time && chatBooking.time) {
+        trackingPayload.time = chatBooking.time;
+    }
+
     deps.trackEvent('booking_step_completed', {
         step,
         source: 'chatbot',
-        ...payload,
+        ...trackingPayload,
     });
 }
 

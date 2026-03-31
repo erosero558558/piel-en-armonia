@@ -135,6 +135,7 @@ function buildAdminFunnelMetricsFixture(overrides = {}) {
         summary: summaryOverride = {},
         queueAssistant: queueAssistantRaw = {},
         conversionDashboard: conversionDashboardRaw = {},
+        bookingFunnelReport: bookingFunnelReportRaw = {},
         checkoutAbandonByStep = [],
         checkoutEntryBreakdown = [],
         paymentMethodBreakdown = [],
@@ -171,6 +172,15 @@ function buildAdminFunnelMetricsFixture(overrides = {}) {
         conversionDashboardOverride.last7d &&
         typeof conversionDashboardOverride.last7d === 'object'
             ? conversionDashboardOverride.last7d
+            : {};
+    const bookingFunnelReportOverride =
+        bookingFunnelReportRaw && typeof bookingFunnelReportRaw === 'object'
+            ? bookingFunnelReportRaw
+            : {};
+    const bookingFunnelSummaryOverride =
+        bookingFunnelReportOverride.summary &&
+        typeof bookingFunnelReportOverride.summary === 'object'
+            ? bookingFunnelReportOverride.summary
             : {};
 
     return {
@@ -211,6 +221,21 @@ function buildAdminFunnelMetricsFixture(overrides = {}) {
             dailySeries: conversionDashboardOverride.dailySeries || [],
             topServices: conversionDashboardOverride.topServices || [],
             generatedAt: conversionDashboardOverride.generatedAt || '',
+        },
+        bookingFunnelReport: {
+            summary: {
+                servicesTracked: 0,
+                detailViews: 0,
+                bookingOpened: 0,
+                slotSelected: 0,
+                bookingConfirmed: 0,
+                biggestDropoffService: '',
+                biggestDropoffStage: '',
+                biggestDropoffCount: 0,
+                ...bookingFunnelSummaryOverride,
+            },
+            rows: bookingFunnelReportOverride.rows || [],
+            generatedAt: bookingFunnelReportOverride.generatedAt || '',
         },
         queueAssistant: {
             today: {
@@ -456,6 +481,13 @@ async function installBasicAdminApiMocks(page, options = {}) {
             return fulfillJson(route, {
                 ok: true,
                 data: context.funnelMetrics,
+            });
+        }
+
+        if (resource === 'booking-funnel-report') {
+            return fulfillJson(route, {
+                ok: true,
+                data: context.funnelMetrics.bookingFunnelReport || {},
             });
         }
 

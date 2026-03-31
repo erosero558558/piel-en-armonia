@@ -139,6 +139,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'booked-slots', [AppointmentController::class, 'bookedSlots']);
     $router->add('POST', 'funnel-event', [AnalyticsController::class, 'recordEvent']);
     $router->add('GET', 'funnel-metrics', [AnalyticsController::class, 'getFunnelMetrics']);
+    $router->add('GET', 'booking-funnel-report', [AnalyticsController::class, 'getBookingFunnelReport']);
     $router->add('GET', 'retention-report', [AnalyticsController::class, 'getRetentionReport']);
 
     $router->add('POST', 'payment-intent', [PaymentController::class, 'createIntent']);

@@ -1506,7 +1506,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 9.2 Motor de conversión y seguimiento
 
-- [ ] **S9-06** `[M]` Booking funnel por servicio — instrumentar punta a punta: vista de servicio → apertura de booking → selección de hora → cita creada. Entregable: endpoint `GET /api.php?resource=booking-funnel-report` + card en admin con conversión por servicio. Identifica cuáles servicios tienen más drop-off.
+- [x] **S9-06** `[M]` Booking funnel por servicio — instrumentar punta a punta: vista de servicio → apertura de booking → selección de hora → cita creada. Entregable: endpoint `GET /api.php?resource=booking-funnel-report` + card en admin con conversión por servicio. Identifica cuáles servicios tienen más drop-off.
 - [ ] **S9-07** `[S]` Origen de lead consistente — normalizar campos `source`, `campaign`, `surface` y `service_intent` en leads de WhatsApp, booking, pre-consulta y telemedicina. Verificable: `LeadOpsService` siempre persiste estos 4 campos. Sin ellos marketing queda ciego.
 - [ ] **S9-08** `[M]` Lead scoring operativo — score (0-100) por lead basado en: urgencia clínica, valor estimado del servicio, no-show previo, canal, servicio premium. Visible en admin al lado del nombre del lead. Sin ML complejo — reglas simples primero. `lib/lead/LeadScoringService.php`.
 - [ ] **S9-09** `[M]` `[UI]` Callback cockpit — vista para recepción con: leads sin responder en orden de score, tiempo desde ingreso, último contacto, próximo paso recomendado. Dashboard en admin, filtrable por día. Entregable: `admin.html` sección "Callbacks pendientes".

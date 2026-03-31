@@ -666,6 +666,40 @@ test.describe('Panel de administracion', () => {
                         },
                     ],
                 },
+                bookingFunnelReport: {
+                    summary: {
+                        servicesTracked: 2,
+                        detailViews: 23,
+                        bookingOpened: 12,
+                        slotSelected: 6,
+                        bookingConfirmed: 3,
+                        biggestDropoffService: 'botox',
+                        biggestDropoffStage: 'open_to_slot',
+                        biggestDropoffCount: 5,
+                    },
+                    rows: [
+                        {
+                            serviceSlug: 'botox',
+                            detailViews: 18,
+                            bookingOpened: 8,
+                            slotSelected: 3,
+                            bookingConfirmed: 2,
+                            detailToConfirmedPct: 11.1,
+                            largestDropoffStage: 'open_to_slot',
+                            largestDropoffCount: 5,
+                        },
+                        {
+                            serviceSlug: 'acne_rosacea',
+                            detailViews: 5,
+                            bookingOpened: 4,
+                            slotSelected: 3,
+                            bookingConfirmed: 1,
+                            detailToConfirmedPct: 20,
+                            largestDropoffStage: 'slot_to_confirmed',
+                            largestDropoffCount: 2,
+                        },
+                    ],
+                },
             },
         });
 
@@ -692,6 +726,17 @@ test.describe('Panel de administracion', () => {
         await expect(
             page.locator(
                 '#dashboardConversionTopServices [data-conversion-service="true"]'
+            )
+        ).toHaveCount(2);
+        await expect(
+            page.locator('#dashboardBookingFunnelDropoffService')
+        ).toHaveText('Botox');
+        await expect(
+            page.locator('#dashboardBookingFunnelDropoffMeta')
+        ).toContainText('apertura -> hora');
+        await expect(
+            page.locator(
+                '#dashboardBookingFunnelList [data-booking-funnel-service="true"]'
             )
         ).toHaveCount(2);
     });

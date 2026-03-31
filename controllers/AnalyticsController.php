@@ -49,6 +49,14 @@ class AnalyticsController
         ]);
     }
 
+    public static function getBookingFunnelReport(array $context): void
+    {
+        json_response([
+            'ok' => true,
+            'data' => self::buildBookingFunnelReportData($context),
+        ]);
+    }
+
     public static function getRetentionReport(array $context): void
     {
         try {
@@ -79,6 +87,14 @@ class AnalyticsController
     public static function buildFunnelMetricsData(array $context): array
     {
         return FunnelMetricsService::buildData($context);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public static function buildBookingFunnelReportData(array $context): array
+    {
+        return FunnelMetricsService::buildBookingFunnelReport($context);
     }
 
     private static function respondRetentionCsv(array $data): void

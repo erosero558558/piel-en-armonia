@@ -252,6 +252,63 @@ function ensureReschedulePolicyHint(appointmentForm) {
     appointmentForm.appendChild(policyNote);
 }
 
+function readCurrentBookingSelection() {
+    const serviceSelect =
+        getBookingElement('v5-service-select', 'serviceSelect') ||
+        document.querySelector('select[name="service"]');
+    const doctorSelect =
+        getBookingElement('v5-doctor-select', 'doctorSelect') ||
+        document.querySelector('select[name="doctor"]');
+    const dateInput =
+        getBookingElement('v5-date', 'appointmentDate') ||
+        document.querySelector('input[name="date"]');
+    const timeSelect =
+        getBookingElement('v5-time', 'timeSelect') ||
+        document.querySelector('select[name="time"]');
+
+    return {
+        service:
+            serviceSelect && typeof serviceSelect.value === 'string'
+                ? serviceSelect.value
+                : '',
+        doctor:
+            doctorSelect && typeof doctorSelect.value === 'string'
+                ? doctorSelect.value
+                : '',
+        date:
+            dateInput && typeof dateInput.value === 'string'
+                ? dateInput.value
+                : '',
+        time:
+            timeSelect && typeof timeSelect.value === 'string'
+                ? timeSelect.value
+                : '',
+    };
+}
+
+function buildStepTrackingPayload(payload = {}) {
+    const source = payload && typeof payload === 'object' ? payload : {};
+    const current = readCurrentBookingSelection();
+    const enriched = {
+        ...source,
+    };
+
+    if (!enriched.service && !enriched.service_slug && current.service) {
+        enriched.service = current.service;
+    }
+    if (!enriched.doctor && current.doctor) {
+        enriched.doctor = current.doctor;
+    }
+    if (!enriched.date && current.date) {
+        enriched.date = current.date;
+    }
+    if (!enriched.time && current.time) {
+        enriched.time = current.time;
+    }
+
+    return enriched;
+}
+
 function trackFormStep(step, payload = {}, options = {}) {
     if (!deps || typeof deps.trackEvent !== 'function' || !step) {
         return;
@@ -269,10 +326,11 @@ function trackFormStep(step, payload = {}, options = {}) {
         completedFormSteps[step] = true;
     }
 
+    const trackingPayload = buildStepTrackingPayload(payload);
     const stepPayload = {
         step,
         source: 'booking_form',
-        ...payload,
+        ...trackingPayload,
     };
 
     deps.trackEvent('booking_step_completed', stepPayload);
@@ -280,7 +338,7 @@ function trackFormStep(step, payload = {}, options = {}) {
     if (typeof deps.setCheckoutStep === 'function') {
         deps.setCheckoutStep(step, {
             checkoutEntry: 'booking_form',
-            ...payload,
+            ...trackingPayload,
         });
     }
 }

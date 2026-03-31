@@ -178,6 +178,69 @@ class AnalyticsServiceFunnelMetricsTest extends TestCase
         $this->assertSame('botox', (string) ($topServices[0]['serviceSlug'] ?? ''));
     }
 
+    public function testBuildBookingFunnelReportDataIncludesSlotSelectionAndDropoffByService(): void
+    {
+        $this->incrementFunnel('view_service_detail', 'service_page', 18, [
+            'service_slug' => 'botox',
+            'service_category' => 'aesthetic',
+        ]);
+        $this->incrementFunnel('start_booking_from_service', 'service_page', 8, [
+            'service_slug' => 'botox',
+            'service_category' => 'aesthetic',
+        ]);
+        $this->incrementFunnel('booking_step_completed', 'booking_form', 3, [
+            'service_slug' => 'botox',
+            'step' => 'time_selected',
+        ]);
+        $this->incrementFunnel('booking_confirmed', 'booking_form', 2, [
+            'service_slug' => 'botox',
+            'service_category' => 'aesthetic',
+        ]);
+
+        $this->incrementFunnel('view_service_detail', 'service_page', 5, [
+            'service_slug' => 'acne_rosacea',
+            'service_category' => 'clinical',
+        ]);
+        $this->incrementFunnel('start_booking_from_service', 'service_page', 4, [
+            'service_slug' => 'acne_rosacea',
+            'service_category' => 'clinical',
+        ]);
+        $this->incrementFunnel('booking_step_completed', 'booking_form', 3, [
+            'service_slug' => 'acne_rosacea',
+            'step' => 'time_selected',
+        ]);
+        $this->incrementFunnel('booking_confirmed', 'booking_form', 1, [
+            'service_slug' => 'acne_rosacea',
+            'service_category' => 'clinical',
+        ]);
+
+        $payload = \AnalyticsController::buildBookingFunnelReportData([
+            'store' => ['appointments' => []],
+        ]);
+
+        $this->assertArrayHasKey('summary', $payload);
+        $this->assertArrayHasKey('rows', $payload);
+
+        $summary = is_array($payload['summary'] ?? null) ? $payload['summary'] : [];
+        $this->assertSame(2, (int) ($summary['servicesTracked'] ?? -1));
+        $this->assertSame('botox', (string) ($summary['biggestDropoffService'] ?? ''));
+        $this->assertSame('open_to_slot', (string) ($summary['biggestDropoffStage'] ?? ''));
+        $this->assertSame(5, (int) ($summary['biggestDropoffCount'] ?? -1));
+
+        $serviceFunnelMap = $this->serviceFunnelMap($payload['rows']);
+        $botox = $serviceFunnelMap['botox'] ?? [];
+        $this->assertSame(18, (int) ($botox['detailViews'] ?? -1));
+        $this->assertSame(8, (int) ($botox['bookingOpened'] ?? -1));
+        $this->assertSame(3, (int) ($botox['slotSelected'] ?? -1));
+        $this->assertSame(2, (int) ($botox['bookingConfirmed'] ?? -1));
+        $this->assertSame(44.4, (float) ($botox['detailToOpenPct'] ?? -1));
+        $this->assertSame(37.5, (float) ($botox['openToSlotPct'] ?? -1));
+        $this->assertSame(66.7, (float) ($botox['slotToConfirmedPct'] ?? -1));
+        $this->assertSame(11.1, (float) ($botox['detailToConfirmedPct'] ?? -1));
+        $this->assertSame('open_to_slot', (string) ($botox['largestDropoffStage'] ?? ''));
+        $this->assertSame(5, (int) ($botox['largestDropoffCount'] ?? -1));
+    }
+
     public function testRecordEventBuildsDailyConversionDashboard(): void
     {
         $events = [

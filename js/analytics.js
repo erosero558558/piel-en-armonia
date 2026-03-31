@@ -286,6 +286,14 @@ function buildFunnelServerParams(params = {}) {
         return normalized;
     }
 
+    const serviceSlug = normalizeFunnelLabelClient(
+        params.service_slug || params.service,
+        ''
+    );
+    if (serviceSlug) {
+        normalized.service_slug = serviceSlug;
+    }
+
     FUNNEL_SERVER_ALLOWED_PARAMS.forEach((key) => {
         if (key === 'source') {
             return;

@@ -10,6 +10,36 @@ async function fetchFunnelMetrics(data) {
     return funnelPayload?.data || null;
 }
 
+async function fetchBookingFunnelReport(data) {
+    const embeddedReport =
+        data?.bookingFunnelReport ||
+        data?.funnelMetrics?.bookingFunnelReport ||
+        null;
+    if (embeddedReport) return embeddedReport;
+
+    const reportPayload = await apiRequest('booking-funnel-report').catch(
+        () => null
+    );
+    return reportPayload?.data || null;
+}
+
+function mergeFunnelMetrics(funnelMetrics, bookingFunnelReport) {
+    const merged =
+        funnelMetrics && typeof funnelMetrics === 'object'
+            ? { ...funnelMetrics }
+            : {};
+
+    if (
+        bookingFunnelReport &&
+        typeof bookingFunnelReport === 'object' &&
+        Object.keys(bookingFunnelReport).length > 0
+    ) {
+        merged.bookingFunnelReport = bookingFunnelReport;
+    }
+
+    return Object.keys(merged).length > 0 ? merged : null;
+}
+
 function normalizeList(value) {
     return Array.isArray(value) ? value : [];
 }
@@ -117,12 +147,21 @@ export async function refreshAdminData() {
         ]);
 
         const data = dataPayload.data || {};
+        const [funnelMetrics, bookingFunnelReport, reviews] =
+            await Promise.all([
+                fetchFunnelMetrics(data),
+                fetchBookingFunnelReport(data),
+                fetchReviews(data),
+            ]);
         const fallbackState = loadLocalAdminFallback();
         const normalized = normalizeAdminDataPayload(
             {
                 ...data,
-                funnelMetrics: await fetchFunnelMetrics(data),
-                reviews: await fetchReviews(data),
+                funnelMetrics: mergeFunnelMetrics(
+                    funnelMetrics,
+                    bookingFunnelReport
+                ),
+                reviews,
             },
             healthPayload,
             fallbackState
