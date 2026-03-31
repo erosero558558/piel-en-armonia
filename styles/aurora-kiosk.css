@@ -5,18 +5,18 @@
 
 /* 1. Base Framework: Bloqueo de scroll y ajuste 100vh */
 body.queue-kiosk-body {
-    background-color: var(--admin-bg-base) !important;
-    color: var(--admin-text-primary) !important;
-    font-family: var(--font-body) !important;
-    height: 100vh !important;
-    width: 100vw !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important; /* No-scroll policy */
-    display: flex !important;
-    flex-direction: column !important;
-    user-select: none !important; /* Touch kiosks shouldn't select text */
-    -webkit-user-select: none !important;
+    background-color: var(--reborn-color-oled-black, #050810);
+    color: var(--admin-text-primary);
+    font-family: var(--reborn-font-body, var(--font-body));
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* No-scroll policy */
+    display: flex;
+    flex-direction: column;
+    user-select: none; /* Touch kiosks shouldn't select text */
+    -webkit-user-select: none;
 }
 
 /* 2. Ocultamientos Estratégicos (Reducción de Ruido) */
@@ -27,242 +27,248 @@ body.queue-kiosk-body .kiosk-progress-hint,
 body.queue-kiosk-body .kiosk-status,
 body.queue-kiosk-body .kiosk-next-step,
 body.queue-kiosk-body .kiosk-flow-cards {
-    display: none !important; 
+    display: none; 
     /* El paciente solo debe ver 2 botones o 1 formulario y nada más */
 }
 
 /* 3. Header simplificado (Solo la marca Aurora Derm) */
 body.queue-kiosk-body .kiosk-header {
-    background: transparent !important;
-    border-bottom: none !important;
-    padding: var(--space-8) var(--space-12) !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
+    background: transparent;
+    border-bottom: none;
+    padding: var(--space-8) var(--space-12);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 body.queue-kiosk-body .kiosk-brand {
-    text-align: center !important;
+    text-align: center;
 }
 
 body.queue-kiosk-body .kiosk-brand strong {
-    font-family: var(--font-display) !important;
-    font-size: 3.5rem !important; /* Enorme */
-    color: var(--color-gold-400) !important;
-    display: block !important;
-    letter-spacing: normal !important;
+    font-family: var(--reborn-font-display, var(--font-display));
+    font-size: 3.5rem; /* Enorme */
+    color: var(--reborn-color-aurora-gold, var(--color-gold-400));
+    display: block;
+    letter-spacing: normal;
 }
 
 body.queue-kiosk-body .kiosk-brand span {
-    font-size: 1.5rem !important;
-    color: var(--admin-text-muted) !important;
-    text-transform: uppercase !important;
-    letter-spacing: var(--tracking-widest) !important;
+    font-size: 1.5rem;
+    color: var(--admin-text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
 }
 
 /* 4. Canvas Principal de Interacción */
 body.queue-kiosk-body .kiosk-layout {
-    flex: 1 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important; /* Centrado vertical absoluto */
-    max-width: 1000px !important;
-    margin: 0 auto !important;
-    padding: 0 var(--space-8) !important;
-    width: 100% !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centrado vertical absoluto */
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 var(--space-8);
+    width: 100%;
 }
 
 body.queue-kiosk-body .kiosk-checkin-card {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    text-align: center !important;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    text-align: center;
 }
 
 /* 5. Títulos Introductorios */
 body.queue-kiosk-body .kiosk-checkin-card > h1 {
-    font-family: var(--font-display) !important;
-    font-size: 4rem !important;
-    color: var(--admin-text-primary) !important;
-    margin-bottom: var(--space-2) !important;
-    line-height: 1.1 !important;
+    font-family: var(--reborn-font-display, var(--font-display));
+    font-size: 4rem;
+    color: var(--admin-text-primary);
+    margin-bottom: var(--space-2);
+    line-height: 1.1;
 }
 
 body.queue-kiosk-body .kiosk-checkin-card > .kiosk-intro-copy {
-    font-size: 2rem !important;
-    color: var(--admin-text-muted) !important;
-    margin-bottom: var(--space-16) !important;
+    font-size: 2rem;
+    color: var(--admin-text-muted);
+    margin-bottom: var(--space-16);
 }
 
 body.queue-kiosk-body .kiosk-stage-kicker,
 body.queue-kiosk-body .kiosk-clinic-context,
 body.queue-kiosk-body .kiosk-profile-status {
-    display: none !important; /* Ocultar para limpiar interfaz paciente */
+    display: none; /* Ocultar para limpiar interfaz paciente */
 }
 
 /* 6. Botones Táctiles Gigantes (> 120px) */
 body.queue-kiosk-body .kiosk-quick-actions {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: var(--space-8) !important;
-    margin-bottom: var(--space-12) !important;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+    margin-bottom: var(--space-12);
 }
 
 body.queue-kiosk-body .kiosk-quick-action {
-    height: 300px !important;
-    border-radius: var(--radius-3xl) !important;
-    font-size: 2.5rem !important;
-    font-weight: 600 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
-    transition: all var(--transition-normal) !important;
-    cursor: pointer !important;
+    height: 300px;
+    border-radius: var(--radius-3xl);
+    font-size: 2.5rem;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 400ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 200ms ease;
+    cursor: pointer;
 }
 
 /* "Tengo cita" - Primary */
 body.queue-kiosk-body #kioskQuickCheckin {
-    background: linear-gradient(135deg, rgba(82, 113, 255, 0.1), rgba(82, 113, 255, 0.02)) !important;
-    border: 2px solid var(--color-aurora-500) !important;
-    color: var(--color-aurora-400) !important;
-    box-shadow: 0 10px 40px rgba(82, 113, 255, 0.1) !important;
+    background: var(--reborn-surface-glass);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--reborn-color-aurora-gold);
+    box-shadow: 0 16px 40px rgba(3, 8, 18, 0.4);
 }
 
 body.queue-kiosk-body #kioskQuickCheckin:active {
-    background: rgba(82, 113, 255, 0.2) !important;
-    transform: scale(0.97) !important;
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(0.96);
 }
 
 /* "No tengo cita" - Secondary Glass */
 body.queue-kiosk-body #kioskQuickWalkin {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 2px solid var(--admin-border) !important;
-    color: var(--admin-text-primary) !important;
+    background: rgba(8, 12, 18, 0.4);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--reborn-color-chalk-white);
 }
 
 body.queue-kiosk-body #kioskQuickWalkin:active {
-    background: rgba(255, 255, 255, 0.08) !important;
-    transform: scale(0.97) !important;
+    background: rgba(255, 255, 255, 0.06);
+    transform: scale(0.96);
 }
 
 /* 7. Formularios Expansivos (Cuando hacen tap) */
 body.queue-kiosk-body .kiosk-form-grid {
-    display: flex !important;
-    justify-content: center !important;
+    display: flex;
+    justify-content: center;
 }
 
 body.queue-kiosk-body .kiosk-form {
-    background: var(--admin-bg-surface) !important;
-    border: 1px solid var(--admin-border) !important;
-    border-radius: var(--radius-3xl) !important;
-    padding: var(--space-12) !important;
-    width: 100% !important;
-    max-width: 800px !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4) !important;
+    background: var(--reborn-surface-glass);
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-3xl);
+    padding: var(--space-12);
+    width: 100%;
+    max-width: 800px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
 }
 
 body.queue-kiosk-body .kiosk-form h2 {
-    font-family: var(--font-display) !important;
-    font-size: 3rem !important;
-    color: var(--color-gold-400) !important;
-    text-align: center !important;
-    margin-bottom: var(--space-8) !important;
+    font-family: var(--reborn-font-display, var(--font-display));
+    font-size: 3rem;
+    color: var(--reborn-color-aurora-gold, var(--color-gold-400));
+    text-align: center;
+    margin-bottom: var(--space-8);
 }
 
 body.queue-kiosk-body .kiosk-form label {
-    font-size: 1.5rem !important;
-    color: var(--admin-text-primary) !important;
-    margin-bottom: var(--space-4) !important;
-    display: block !important;
+    font-size: 1.5rem;
+    color: var(--admin-text-primary);
+    margin-bottom: var(--space-4);
+    display: block;
 }
 
 /* Inputs Gigantes = Touch Targets Perfectos */
 body.queue-kiosk-body .kiosk-form input,
 body.queue-kiosk-body .kiosk-form select {
-    width: 100% !important;
-    height: 100px !important; /* Massive inputs */
-    font-size: 2rem !important;
-    background: rgba(0, 0, 0, 0.4) !important;
-    border: 2px solid var(--admin-border) !important;
-    border-radius: var(--radius-xl) !important;
-    color: #fff !important;
-    padding: 0 var(--space-6) !important;
-    margin-bottom: var(--space-8) !important;
-    transition: border-color var(--transition-fast) !important;
+    width: 100%;
+    height: 100px; /* Massive inputs */
+    font-size: 2rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-xl);
+    color: #fff;
+    padding: 0 var(--space-6);
+    margin-bottom: var(--space-8);
+    transition: border-color var(--transition-fast);
 }
 
 body.queue-kiosk-body .kiosk-form input:focus,
 body.queue-kiosk-body .kiosk-form select:focus {
-    outline: none !important;
-    border-color: var(--color-aurora-500) !important;
-    box-shadow: 0 0 20px rgba(82, 113, 255, 0.2) !important;
+    outline: none;
+    border-color: var(--color-aurora-500);
+    box-shadow: 0 0 20px rgba(82, 113, 255, 0.2);
 }
 
 /* Fix iOS/Android virtual keyboard push-up */
 body.queue-kiosk-body .kiosk-form input::placeholder {
-    color: var(--admin-text-muted) !important;
+    color: var(--admin-text-muted);
 }
 
 body.queue-kiosk-body .kiosk-form button[type="submit"] {
-    width: 100% !important;
-    height: 120px !important; /* Massive confirm button */
-    background: var(--color-aurora-500) !important;
-    color: var(--color-slate-900) !important;
-    font-size: 2.5rem !important;
-    font-weight: 700 !important;
-    border-radius: var(--radius-2xl) !important;
-    border: none !important;
-    margin-top: var(--space-6) !important;
-    cursor: pointer !important;
+    width: 100%;
+    height: 120px; /* Massive confirm button */
+    background: var(--color-aurora-500);
+    color: var(--color-slate-900);
+    font-size: 2.5rem;
+    font-weight: 700;
+    border-radius: var(--radius-2xl);
+    border: none;
+    margin-top: var(--space-6);
+    cursor: pointer;
 }
 
 body.queue-kiosk-body .kiosk-form button[type="submit"]:active {
-    background: var(--color-aurora-400) !important;
-    transform: scale(0.98) !important;
+    background: var(--color-aurora-400);
+    transform: scale(0.98);
 }
 
 /* 8. Pantalla Generación de Ticket (QR Animado) */
 body.queue-kiosk-body .ticket-result {
-    position: fixed !important;
+    position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(15, 23, 42, 0.98) !important;
-    backdrop-filter: blur(40px) !important;
-    -webkit-backdrop-filter: blur(40px) !important;
-    z-index: 1000 !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
+    background: rgba(15, 23, 42, 0.98);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.5s ease !important;
+    transition: opacity 0.5s ease;
 }
 
 /* Override default behavior when ticket is shown by JS (usually display: block) */
 body.queue-kiosk-body .ticket-result[style*="block"] {
-    display: flex !important; /* Force flex center instead of block */
-    opacity: 1 !important;
-    pointer-events: auto !important;
+    display: flex; /* Force flex center instead of block */
+    opacity: 1;
+    pointer-events: auto;
 }
 
 body.queue-kiosk-body .ticket-result[hidden] {
-    display: none !important;
+    display: none;
 }
 
 /* Styling the ticket generated content if any */
 body.queue-kiosk-body .ticket-result > * {
-    font-size: 4rem !important;
-    color: var(--color-gold-400) !important;
-    font-family: var(--font-display) !important;
-    text-align: center !important;
+    font-size: 4rem;
+    color: var(--reborn-color-aurora-gold, var(--color-gold-400));
+    font-family: var(--reborn-font-display, var(--font-display));
+    text-align: center;
     max-width: 80%;
 }
 
 /* Accesibilidad: Reducción de movimiento */
 @media (prefers-reduced-motion: reduce) { 
   *, *::before, *::after { 
-    animation-duration: 0.01ms !important; 
-    transition-duration: 0.01ms !important; 
+    animation-duration: 0.01ms; 
+    transition-duration: 0.01ms; 
   } 
 }

@@ -1469,6 +1469,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **RB-05** `[XL]` `[UI]` Hero Screen Cinemático — imagen HD en `<picture>` con `object-fit: cover`, `filter: brightness(0.3)`, overlay gradient `#050810 → transparent`. Texto único h1 con tipografía RB-03. Ghost button CTA. **Restricción LCP ≤2.5s**: imagen con `fetchpriority="high"`, NO video autoplay en desktop. Verificable: `grep "fetchpriority.*high\|RB-05" es/index.html` → match; Lighthouse LCP score ≥85.
 - [x] **RB-06** `[XL]` `[UI]` Layout Bento Grid — grid CSS `grid-template-columns: repeat(3, 1fr)` con celdas de distintos tamaños (`grid-row: span 2`), `border-radius: 24px`, `background: rgba(28,28,30,0.65)`, `border: 1px solid rgba(255,255,255,0.06)`. Verificable: `grep "border-radius.*24px\|grid-row.*span\|bento" styles/reborn-layout.css` → match ≥3.
 
+#### 4.4 Liquid Reborn Operativo (Kiosko, TV, Operador, Admin)
+- [x] **RB-12** `[M]` `[UI]` TV / Sala de Espera OLED — Refactorizar `sala-turnos.html` y `styles/aurora-tv.css` al fondo \#050810, migrando la lista a celdas Bento `.lg-surface` transúcidas con animaciones spring. Tipografía monumental para turnos.
+- [x] **RB-13** `[M]` `[UI]` Kiosco Liquid Reborn — Actualizar `kiosco-turnos.html` y `styles/aurora-kiosk.css` para migrar tarjetas obsoletas al vidrio `.lg-surface`, agregando animaciones de interacción táctil.
+- [x] **RB-14** `[L]` `[UI]` Panel Operador Unificado — En `operador-turnos.html` y `styles/aurora-operator.css`, reemplazar fondos sólidos grises por la profundidad oscura OLED (`#050810`) y modales glass (`blur(20px)`).
+- [x] **RB-15** `[XL]` `[UI]` Admin Hegemónico — Refactorización visual de `admin.html`, `aurora-admin.css` y `aurora-clinical.css` (HCE). Paneles translúcidos integrados, modales de OpenClaw/FlowOS y tipografía estandarizada Liquid Reborn.
+
 #### RB-2 Interacción de Diagnóstico (ChatGPT-like UI)
 
 - [x] **RB-07** `[L]` `[UI]` Rediseño OpenClaw UI — SOLO la interfaz visual del chat en `admin.html`. NO tocar `OpenclawController.php` ni ningún archivo PHP. Lista plana de mensajes sin burbujas, input píldora fijo en bottom. Verificable: `grep "openclaw.*pill\|chat-flat\|RB-07" styles/aurora-clinical.css` → match; `git diff HEAD -- controllers/` → 0 cambios en controllers.
@@ -1479,6 +1485,13 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **RB-09** `[L]` `[UI]` App-like Booking Flow — pantallas como `<section data-step>` con `transform: translateX(100%→0)` spring `cubic-bezier(0.34,1.56,0.64,1)`, un input visible a la vez por paso. Verificable: `grep "data-step\|translateX\|RB-09" es/servicios/diagnostico-integral/index.html` → match ≥2.
 - [x] **RB-10** `[XL]` `[UI]` Patient Dashboard Minimalista — `<h1>Hola, [Paciente]</h1>` con `font-size: clamp(2rem,5vw,4rem)`, cards sin bordes visibles, fotos clínicas con `aspect-ratio: 4/3`. Verificable: `grep "Hola.*Paciente\|clamp.*4rem\|RB-10" es/portal/index.html` → match ≥2.
 - [x] **RB-11** `[L]` `[UI]` Slider OLED Antes/Después — línea de corte `<input type="range">` con CSS custom `clip-path`, `transition: none` en drag (60fps), `scroll-snap-align` para touch. Verificable: `grep "clip-path\|input.*range.*slider\|RB-11" es/servicios/*/index.html` → match ≥1.
+
+
+#### RB-4 Consolidación y Limpieza Post-Reborn
+
+- [ ] **RB-16** `[S]` `[UI]` `.lg-surface` class explícita — `aurora-tv.css` y `aurora-kiosk.css` aplican glassmorphism pero no exponen la clase `.lg-surface` que los verificables de RB-12/RB-13 exigen. Añadir `.lg-surface` como utility class en ambos archivos y en `reborn-tokens.css`. Verificable: `grep "lg-surface" styles/aurora-tv.css styles/aurora-kiosk.css styles/reborn-tokens.css` → match en los 3.
+- [ ] **RB-17** `[M]` `[UI]` Purga de `!important` en CSS Reborn operativo — `aurora-kiosk.css` y `aurora-operator.css` usan `!important` generalizado como override legacy. Crear `styles/queue-shared.css` (requerido S8-17), activar variables base, eliminar `!important` redundantes. Verificable: suma de `!important` en aurora-kiosk + aurora-operator + aurora-tv ≤ 10.
+- [ ] **RB-18** `[L]` `[UI]` Retire CSS legacy post-Reborn — auditar y eliminar `<link>` redundantes pre-Reborn de las 4 shells operativas. Verificable: Lighthouse CSS coverage ≥ 80% en `sala-turnos.html`, `kiosco-turnos.html`, `operador-turnos.html`, `admin.html`.
 
 ---
 
@@ -1707,7 +1720,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S13-11** `[S]` WhatsApp number — fuente única de verdad — el número de WhatsApp de la clínica aparece hardcodeado en múltiples lugares. Si cambia, hay que encontrarlo en 40+ páginas. Centralizar en `data/clinic-config.json`: `"whatsapp": "+593982453672"`. El sistema lo consume desde ahí. Script de audit: `grep -rn "wa.me" es/ | grep -v "593982453672"` → 0 resultados. Si hay un número diferente → bug.
 - [x] **S13-12** `[M]` `[UI]` Páginas de servicios sin `lang="es"` — audit detecta que varias páginas en `es/servicios/` no tienen `lang="es"` en `<html>`. Google y lectores de pantalla no saben el idioma. Crítico para SEO local en Ecuador. Verificable: `grep -rL 'lang="es"' es/servicios/*/index.html | wc -l` → 0.
-- [ ] **S13-13** `[S]` Canonical URLs en todas las páginas — muchas páginas no tienen `<link rel="canonical">`. Sin canonical, Google puede indexar versiones con y sin trailing slash como páginas distintas. Añadir a todas las páginas de servicios. Verificable: `grep -rl 'rel="canonical"' es/servicios/ | wc -l` → 20.
+- [x] **S13-13** `[S]` Canonical URLs en todas las páginas — muchas páginas no tienen `<link rel="canonical">`. Sin canonical, Google puede indexar versiones con y sin trailing slash como páginas distintas. Añadir a todas las páginas de servicios. Verificable: `grep -rl 'rel="canonical"' es/servicios/ | wc -l` → 20.
 
 #### 13.5 Herramientas de gobierno — gaps que impiden cerrar el loop
 

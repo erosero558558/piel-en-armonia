@@ -5,16 +5,16 @@
 
 /* 1. Reset Global del Canvas (Modo Kiosco Horizontal) */
 body.queue-display-body {
-    background-color: var(--color-slate-900) !important;
-    color: var(--admin-text-primary) !important;
-    font-family: var(--font-body) !important;
-    height: 100vh !important;
-    width: 100vw !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important; 
-    display: flex !important;
-    flex-direction: column !important;
+    background-color: var(--reborn-color-oled-black, #050810);
+    color: var(--admin-text-primary);
+    font-family: var(--reborn-font-body, var(--font-body));
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; 
+    display: flex;
+    flex-direction: column;
 }
 
 /* 2. Supresión de Ruido Operacional */
@@ -28,93 +28,96 @@ body.queue-display-body .display-privacy-pill,
 body.queue-display-body #displayConnectionState,
 body.queue-display-body #displayUpdatedAt,
 body.queue-display-body .display-privacy-note {
-    display: none !important; 
+    display: none; 
     /* El paciente solo debe ver: La Marca, La Hora, Los Turnos */
 }
 
 /* 3. El Super Header Bipartito */
 body.queue-display-body .display-header {
-    background: transparent !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-    padding: 2vh 4vw !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    height: 12vh !important;
-    box-sizing: border-box !important;
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2vh 4vw;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 12vh;
+    box-sizing: border-box;
 }
 
 body.queue-display-body #displayBrandName {
-    font-family: var(--font-display) !important;
-    font-size: 4vw !important;
-    color: var(--color-gold-400) !important;
-    letter-spacing: var(--tracking-wide) !important;
+    font-family: var(--font-display);
+    font-size: 4vw;
+    color: var(--color-gold-400);
+    letter-spacing: var(--tracking-wide);
 }
 
 body.queue-display-body #displayClock {
-    font-family: var(--font-display) !important;
-    font-size: 5vw !important;
-    color: var(--admin-text-primary) !important;
-    font-variant-numeric: tabular-nums !important;
+    font-family: var(--font-display);
+    font-size: 5vw;
+    color: var(--admin-text-primary);
+    font-variant-numeric: tabular-nums;
 }
 
 /* 4. Split Layout (70% Acción / 30% Fila) */
 body.queue-display-body .display-layout {
-    flex: 1 !important;
-    display: flex !important;
-    flex-direction: row !important;
-    height: 88vh !important;
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    height: 88vh;
 }
 
 /* Panel Izquierdo (Hero & Smart Lane) */
 body.queue-display-body .display-panel--hero {
-    width: 70vw !important;
-    padding: 4vw !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
-    position: relative !important;
+    width: 70vw;
+    padding: 4vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
 
 body.queue-display-body .display-panel--hero h1 {
-    font-family: var(--font-display) !important;
-    font-size: 3vw !important;
-    color: var(--admin-text-muted) !important;
-    text-transform: uppercase !important;
-    letter-spacing: var(--tracking-widest) !important;
-    margin-bottom: 4vh !important;
-    text-align: center !important;
-    width: 100% !important;
+    font-family: var(--font-display);
+    font-size: 3vw;
+    color: var(--admin-text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
+    margin-bottom: 4vh;
+    text-align: center;
+    width: 100%;
 }
 
 /* El Turno Actual (Gigante) */
 body.queue-display-body .display-called-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 2vh !important;
-    width: 100% !important;
-    align-items: center !important;
-    justify-content: center !important;
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Cada consultorio activo renderizado por JS */
 body.queue-display-body .display-called-grid > div {
-    background: linear-gradient(135deg, rgba(82, 113, 255, 0.1), rgba(82, 113, 255, 0.02)) !important;
-    border: 2px solid var(--color-aurora-500) !important;
-    border-radius: var(--radius-3xl) !important;
-    padding: 4vh 4vw !important;
-    width: 80% !important;
-    text-align: center !important;
-    box-shadow: 0 20px 50px rgba(82, 113, 255, 0.2) !important;
-    animation: tvPulse 3s infinite ease-in-out !important;
+    background: var(--reborn-surface-glass);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-3xl);
+    padding: 4vh 4vw;
+    width: 80%;
+    text-align: center;
+    box-shadow: 0 16px 40px rgba(3, 8, 18, 0.4);
+    animation: tvPulse 3s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Animación de Entrada Cinematic */
 @keyframes tvPulse {
-    0% { transform: scale(1); box-shadow: 0 20px 50px rgba(82, 113, 255, 0.2); }
-    50% { transform: scale(1.02); box-shadow: 0 30px 60px rgba(82, 113, 255, 0.4); border-color: var(--color-aurora-400); }
-    100% { transform: scale(1); box-shadow: 0 20px 50px rgba(82, 113, 255, 0.2); }
+    0% { transform: scale(1); box-shadow: 0 16px 40px rgba(3, 8, 18, 0.4); }
+    50% { transform: scale(1.04); box-shadow: 0 24px 60px rgba(3, 8, 18, 0.6); border-color: rgba(255, 255, 255, 0.15); }
+    100% { transform: scale(1); box-shadow: 0 16px 40px rgba(3, 8, 18, 0.4); }
 }
 
 @keyframes slideInScale {
@@ -124,81 +127,83 @@ body.queue-display-body .display-called-grid > div {
 
 /* Typography of the called ticket generated by JS */
 body.queue-display-body .display-called-grid > div > strong {
-    font-family: var(--font-display) !important;
-    font-size: 12vw !important; /* MASSIVE */
-    color: #fff !important;
-    display: block !important;
-    line-height: 1 !important;
-    margin-bottom: 1vh !important;
+    font-family: var(--reborn-font-display);
+    font-size: 14vw; /* MASSIVE Monumental Reborn */
+    color: var(--reborn-color-chalk-white);
+    letter-spacing: -0.04em;
+    display: block;
+    line-height: 1;
+    margin-bottom: 1vh;
 }
 
 body.queue-display-body .display-called-grid > div > span {
-    font-size: 3vw !important;
-    color: var(--color-aurora-400) !important;
-    text-transform: uppercase !important;
-    letter-spacing: var(--tracking-widest) !important;
+    font-size: 3vw;
+    color: var(--reborn-color-aurora-gold, var(--color-aurora-400));
+    font-family: var(--reborn-font-display);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
 }
 
 /* Fallback: Nunca Pantallas Blancas */
 body.queue-display-body .display-called-grid:empty::before {
     content: "Bienvenidos a Aurora Derm";
-    font-family: var(--font-display) !important;
-    font-size: 6vw !important;
-    color: var(--admin-text-muted) !important;
-    opacity: 0.3 !important;
-    display: block !important;
-    text-align: center !important;
+    font-family: var(--font-display);
+    font-size: 6vw;
+    color: var(--admin-text-muted);
+    opacity: 0.3;
+    display: block;
+    text-align: center;
 }
 
 /* Smart Lane (Cuando no hay llamadas urgentes) */
 body.queue-display-body .display-panel--smart {
-    position: absolute !important;
-    bottom: 4vh !important;
-    left: 4vw !important;
-    right: 34vw !important; /* Avoid hitting the right pane */
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-radius: var(--radius-2xl) !important;
-    padding: 2vh 2vw !important;
-    display: flex !important;
-    align-items: center !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    position: absolute;
+    bottom: 4vh;
+    left: 4vw;
+    right: 34vw; /* Avoid hitting the right pane */
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-2xl);
+    padding: 2vh 2vw;
+    display: flex;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 body.queue-display-body .display-smart-header {
-    margin-right: 2vw !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-    padding-right: 2vw !important;
+    margin-right: 2vw;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    padding-right: 2vw;
 }
 
 body.queue-display-body .display-smart-heading h2 {
-    font-family: var(--font-display) !important;
-    font-size: 2vw !important;
-    color: var(--color-gold-400) !important;
-    margin: 0 !important;
+    font-family: var(--font-display);
+    font-size: 2vw;
+    color: var(--color-gold-400);
+    margin: 0;
 }
 body.queue-display-body .display-smart-summary,
 body.queue-display-body .display-smart-kicker {
-    display: none !important;
+    display: none;
 }
 
 body.queue-display-body .display-smart-grid {
-    flex: 1 !important;
-    display: flex !important;
-    font-size: 1.5vw !important;
-    color: var(--admin-text-primary) !important;
+    flex: 1;
+    display: flex;
+    font-size: 1.5vw;
+    color: var(--admin-text-primary);
 }
 
 body.queue-display-body .display-smart-card {
-    display: none !important; /* Only show active ones generated by JS */
+    display: none; /* Only show active ones generated by JS */
 }
 
 /* JS usually toggles an active attribute or class here. 
    If JS injects text directly into these, we ensure they are readable */
 body.queue-display-body .display-smart-card[data-state="active"] {
-    display: block !important;
-    animation: fadeIn 1s ease-in-out !important;
+    display: block;
+    animation: fadeIn 1s ease-in-out;
 }
 
 @keyframes fadeIn {
@@ -208,61 +213,64 @@ body.queue-display-body .display-smart-card[data-state="active"] {
 
 /* Panel Derecho (Fila de Espera 30%) */
 body.queue-display-body .display-panel--queue {
-    width: 30vw !important;
-    background: rgba(0, 0, 0, 0.3) !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.05) !important;
-    padding: 4vh 2vw !important;
-    box-shadow: -10px 0 50px rgba(0, 0, 0, 0.5) !important;
-    display: flex !important;
-    flex-direction: column !important;
+    width: 30vw;
+    background: rgba(3, 8, 18, 0.4);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 4vh 2vw;
+    box-shadow: -10px 0 50px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
 }
 
 body.queue-display-body .display-panel--queue h2 {
-    font-family: var(--font-display) !important;
-    font-size: 2vw !important;
-    color: var(--admin-text-muted) !important;
-    text-transform: uppercase !important;
-    letter-spacing: var(--tracking-wide) !important;
-    margin-bottom: 2vh !important;
-    padding-bottom: 2vh !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    font-family: var(--font-display);
+    font-size: 2vw;
+    color: var(--admin-text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    margin-bottom: 2vh;
+    padding-bottom: 2vh;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 body.queue-display-body .display-next-list {
-    list-style: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 1.5vh !important;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
 }
 
 /* Lista generada por JS */
 body.queue-display-body .display-next-list li {
-    font-size: 2.5vw !important;
-    font-family: var(--font-display) !important;
-    color: var(--admin-text-primary) !important;
-    background: rgba(255, 255, 255, 0.02) !important;
-    padding: 2vh 1vw !important;
-    border-radius: var(--radius-xl) !important;
-    display: flex !important;
-    align-items: center !important;
+    font-size: 2.5vw;
+    font-family: var(--reborn-font-display);
+    color: var(--reborn-color-pale-white);
+    background: var(--reborn-surface-glass);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 2vh 1vw;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
 }
 
 /* Fallback list item when empty */
 body.queue-display-body .display-next-list li.display-empty {
-    font-family: var(--font-body) !important;
-    font-size: 1.5vw !important;
-    color: var(--admin-text-muted) !important;
-    background: transparent !important;
-    justify-content: center !important;
-    opacity: 0.5 !important;
+    font-family: var(--reborn-font-body, var(--font-body));
+    font-size: 1.5vw;
+    color: var(--admin-text-muted);
+    background: transparent;
+    justify-content: center;
+    opacity: 0.5;
 }
 
 /* Accesibilidad: Reducción de movimiento */
 @media (prefers-reduced-motion: reduce) { 
   *, *::before, *::after { 
-    animation-duration: 0.01ms !important; 
-    transition-duration: 0.01ms !important; 
+    animation-duration: 0.01ms; 
+    transition-duration: 0.01ms; 
   } 
 }

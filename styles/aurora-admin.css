@@ -5,13 +5,13 @@
 
 :root[data-theme-mode="system"] {
   /* Override the entire palette for the Admin App with pure Dark Mode tokens */
-  --admin-bg-base: #0f172a;       /* slate-900 */
-  --admin-bg-surface: #1e293b;    /* slate-800 */
-  --admin-bg-elevated: #334155;   /* slate-700 */
-  --admin-border: rgba(255, 255, 255, 0.1);
+  --admin-bg-base: var(--reborn-color-oled-black, #050810);
+  --admin-bg-surface: var(--reborn-surface-glass);
+  --admin-bg-elevated: rgba(255, 255, 255, 0.08); /* Transparent hover state */
+  --admin-border: rgba(255, 255, 255, 0.08);
   
-  --admin-text-primary: #f8fafc;
-  --admin-text-muted: #94a3b8;
+  --admin-text-primary: var(--reborn-color-chalk-white);
+  --admin-text-muted: var(--reborn-color-pale-white);
   
   --admin-accent: var(--color-aurora-500);
   --admin-accent-glow: rgba(106, 126, 150, 0.2);
@@ -24,7 +24,7 @@
 body.admin-body {
   background-color: var(--admin-bg-base);
   color: var(--admin-text-primary);
-  font-family: var(--font-body);
+  font-family: var(--reborn-font-body, var(--font-body));
   margin: 0;
   padding: 0;
   overflow: hidden; /* Stop main native scrolling, handle via layout */
@@ -44,9 +44,9 @@ body.admin-body {
 .admin-sidebar {
   width: var(--sidebar-collapsed);
   height: 100vh;
-  background: rgba(30, 41, 59, 0.6); /* Glassmorphism dark slate */
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: var(--reborn-surface-glass);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
   border-right: 1px solid var(--admin-border);
   display: flex;
   flex-direction: column;
@@ -68,7 +68,7 @@ body.admin-body {
   display: flex;
   align-items: center;
   padding: 0 24px;
-  font-family: var(--font-display);
+  font-family: var(--reborn-font-display, var(--font-display));
   font-size: var(--text-2xl);
   color: var(--admin-text-primary);
   border-bottom: 1px solid var(--admin-border);
@@ -162,7 +162,7 @@ body.admin-body {
   flex-direction: column;
   height: 100vh;
   position: relative;
-  background-color: var(--color-stone-900);
+  background-color: var(--admin-bg-base);
 }
 
 .admin-header {
@@ -285,7 +285,7 @@ body.admin-body {
 
 .admin-section header h2,
 .admin-section header h3 {
-  font-family: var(--font-display);
+  font-family: var(--reborn-font-display, var(--font-display));
   font-size: var(--text-4xl);
   color: var(--admin-text-primary);
   margin-bottom: var(--space-2);
@@ -329,7 +329,7 @@ body.admin-body {
   flex-direction: column;
   justify-content: space-between;
   gap: var(--space-2);
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 200ms ease;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
@@ -348,7 +348,7 @@ body.admin-body {
 }
 
 .kpi-card .kpi-value {
-  font-family: var(--font-display);
+  font-family: var(--reborn-font-display, var(--font-display));
   font-size: var(--text-4xl);
   color: var(--admin-text-primary);
   line-height: 1;
@@ -383,8 +383,10 @@ body.admin-body {
 }
 
 .bento-card {
-  background: var(--admin-bg-surface);
-  border: 1px solid var(--admin-border);
+  background: var(--reborn-surface-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
   display: flex;

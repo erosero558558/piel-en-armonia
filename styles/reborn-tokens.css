@@ -67,3 +67,10 @@ body {
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--reborn-color-border);
 }
+
+.lg-surface {
+    background: var(--reborn-surface-glass) !important;
+    backdrop-filter: blur(28px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}

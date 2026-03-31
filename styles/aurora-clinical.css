@@ -7,9 +7,9 @@
 #clinical-history,
 .clinical-history-dashboard,
 .clinical-history-export-layout {
-  background-color: var(--admin-bg-base);
-  color: var(--admin-text-primary);
-  font-family: var(--font-body);
+  background-color: var(--reborn-color-oled-black, var(--admin-bg-base));
+  color: var(--reborn-color-chalk-white, var(--admin-text-primary));
+  font-family: var(--reborn-font-body, var(--font-body));
   padding: var(--space-6);
   min-height: 100vh;
 }
@@ -18,7 +18,7 @@
 .clinical-history-event-head,
 .clinical-history-export-header h2,
 .clinical-history-export-header h3 {
-  font-family: var(--font-display) !important;
+  font-family: var(--reborn-font-display, var(--font-display)) !important;
   color: var(--admin-text-primary) !important;
   font-size: var(--text-2xl) !important;
   margin-bottom: var(--space-4) !important;
@@ -48,8 +48,10 @@
 /* 3. Event Card / Evolution Card */
 .clinical-history-event-card {
   position: relative;
-  background: var(--admin-bg-surface) !important;
-  border: 1px solid var(--admin-border) !important;
+  background: var(--reborn-surface-glass) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   border-radius: var(--radius-xl) !important;
   padding: var(--space-6) !important;
   margin-bottom: var(--space-6) !important;
