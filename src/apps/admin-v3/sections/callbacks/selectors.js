@@ -4,6 +4,7 @@ import {
     createdAtMs,
     heuristicScore,
     inToday,
+    lastContactAt,
     leadOps,
     nextActionLabel,
     normalize,
@@ -11,9 +12,28 @@ import {
     normalizeSort,
     normalizeStatus,
     priorityRank,
+    scoreSummary,
     serviceHint,
+    toDayKey,
     waitingMinutes,
 } from './utils.js';
+
+function statusRank(item) {
+    return normalizeStatus(item.status) === 'pending' ? 0 : 1;
+}
+
+function compareByPendingFirst(left, right) {
+    return statusRank(left) - statusRank(right);
+}
+
+export function applyDayFilter(items, day) {
+    const selectedDay = toDayKey(day);
+    if (!selectedDay) return items;
+
+    return items.filter(
+        (item) => toDayKey(item?.fecha || item?.createdAt || '') === selectedDay
+    );
+}
 
 export function applyFilter(items, filter) {
     const normalized = normalizeFilter(filter);
@@ -50,9 +70,12 @@ export function applySearch(items, search, workerMode = '') {
             item.preferencia,
             item.status,
             serviceHint(item),
+            scoreSummary(item),
             nextActionLabel(item),
+            lastContactAt(item),
             aiStatusLabel(item, workerMode),
             ...(Array.isArray(extra.reasonCodes) ? extra.reasonCodes : []),
+            ...(Array.isArray(extra.scoreFactors) ? extra.scoreFactors : []),
             ...(Array.isArray(extra.serviceHints) ? extra.serviceHints : []),
         ];
         return fields.some((field) => normalize(field).includes(term));
@@ -64,16 +87,27 @@ export function sortItems(items, sort) {
     const list = [...items];
 
     if (normalized === 'waiting_desc') {
-        list.sort((a, b) => createdAtMs(a) - createdAtMs(b));
+        list.sort((a, b) => {
+            const pendingDelta = compareByPendingFirst(a, b);
+            if (pendingDelta !== 0) return pendingDelta;
+            return createdAtMs(a) - createdAtMs(b);
+        });
         return list;
     }
 
     if (normalized === 'recent_desc') {
-        list.sort((a, b) => createdAtMs(b) - createdAtMs(a));
+        list.sort((a, b) => {
+            const pendingDelta = compareByPendingFirst(a, b);
+            if (pendingDelta !== 0) return pendingDelta;
+            return createdAtMs(b) - createdAtMs(a);
+        });
         return list;
     }
 
     list.sort((a, b) => {
+        const pendingDelta = compareByPendingFirst(a, b);
+        if (pendingDelta !== 0) return pendingDelta;
+
         const priorityDelta = priorityRank(b) - priorityRank(a);
         if (priorityDelta !== 0) return priorityDelta;
 
@@ -104,6 +138,8 @@ export function computeOps(items, leadOpsMeta = null) {
         pendingCount: pending.length,
         urgentCount: urgent.length,
         hotCount: hot.length,
+        withoutContactCount: pending.filter((item) => !lastContactAt(item))
+            .length,
         todayCount: items.filter((item) =>
             inToday(item.fecha || item.createdAt)
         ).length,

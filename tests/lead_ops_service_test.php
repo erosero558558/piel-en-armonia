@@ -125,12 +125,22 @@ try {
         $enriched['leadOps']['nextAction'],
         'Price intent should force closing next action'
     );
+    leadops_assert_true(
+        trim((string) ($enriched['leadOps']['scoreSummary'] ?? '')) !== '',
+        'Scored callback should expose a short score summary'
+    );
+    leadops_assert_true(
+        is_array($enriched['leadOps']['scoreFactors'] ?? null) && count($enriched['leadOps']['scoreFactors']) >= 1,
+        'Scored callback should expose visible score factors'
+    );
 
     $normalized = LeadOpsService::normalizeLeadOps([
         'aiStatus' => 'weird_status',
         'aiObjective' => 'bad objective',
         'outcome' => 'invalid-outcome',
         'reasonCodes' => ['ok', '', 'ok', '<b>x</b>'],
+        'scoreSummary' => '<b>Urgente</b>',
+        'scoreFactors' => ['Urgencia clinica', '', 'Urgencia clinica'],
     ]);
     leadops_assert_equals('idle', $normalized['aiStatus'], 'Invalid aiStatus should fallback to idle');
     leadops_assert_equals('', $normalized['aiObjective'], 'Invalid aiObjective should be dropped');
@@ -140,10 +150,47 @@ try {
         $normalized['reasonCodes'],
         'Reason codes should be sanitized and deduped'
     );
+    leadops_assert_equals(
+        '&lt;b&gt;Urgente&lt;/b&gt;',
+        $normalized['scoreSummary'],
+        'Score summary should be sanitized'
+    );
+    leadops_assert_equals(
+        ['Urgencia clinica'],
+        $normalized['scoreFactors'],
+        'Score factors should be sanitized and deduped'
+    );
     leadops_assert_equals('unknown', $normalized['source'], 'Missing source should normalize to unknown');
     leadops_assert_equals('unknown', $normalized['campaign'], 'Missing campaign should normalize to unknown');
     leadops_assert_equals('unknown', $normalized['surface'], 'Missing surface should normalize to unknown');
     leadops_assert_equals('unknown', $normalized['service_intent'], 'Missing service intent should normalize to unknown');
+
+    $normalizedWhatsapp = LeadOpsService::normalizeLeadOps([
+        'whatsappTemplateKey' => 'rebooking_slot',
+        'whatsappMessageDraft' => '<b>Hola</b> se abrio un cupo',
+        'whatsappLastPreparedAt' => '2026-03-31T15:45:00-05:00',
+        'whatsappLastOpenedAt' => 'bad timestamp',
+    ]);
+    leadops_assert_equals(
+        'rebooking_slot',
+        $normalizedWhatsapp['whatsappTemplateKey'],
+        'WhatsApp template key should be preserved when valid'
+    );
+    leadops_assert_equals(
+        '&lt;b&gt;Hola&lt;/b&gt; se abrio un cupo',
+        $normalizedWhatsapp['whatsappMessageDraft'],
+        'WhatsApp message draft should be sanitized'
+    );
+    leadops_assert_equals(
+        '2026-03-31T15:45:00-05:00',
+        $normalizedWhatsapp['whatsappLastPreparedAt'],
+        'WhatsApp prepared timestamp should normalize valid ISO strings'
+    );
+    leadops_assert_equals(
+        '',
+        $normalizedWhatsapp['whatsappLastOpenedAt'],
+        'Invalid WhatsApp opened timestamp should be dropped'
+    );
 
     $callbackWithContext = normalize_callback([
         'id' => 202,
@@ -221,6 +268,8 @@ try {
             'aiObjective' => 'whatsapp_draft',
             'contactedAt' => gmdate('c', $createdAt + 3600),
             'outcome' => 'cita_cerrada',
+            'whatsappTemplateKey' => 'rebooking_slot',
+            'whatsappMessageDraft' => 'Hola, te compartimos el slot disponible.',
         ],
         ['callbacks' => []],
         $funnelMetrics
@@ -244,6 +293,16 @@ try {
     leadops_assert_equals(60.0, (float) ($meta['firstContact']['p95Minutes'] ?? 0.0), 'Meta should expose p95 first-contact minutes');
     leadops_assert_equals(100.0, (float) ($meta['rates']['aiAcceptancePct'] ?? 0.0), 'Meta should expose IA acceptance rate');
     leadops_assert_equals(100.0, (float) ($meta['rates']['closedFromContactedPct'] ?? 0.0), 'Meta should expose close rate from contacted leads');
+    leadops_assert_equals(
+        'rebooking_slot',
+        $contactedLeadOps['whatsappTemplateKey'],
+        'Lead ops merge should keep the selected WhatsApp template'
+    );
+    leadops_assert_equals(
+        'Hola, te compartimos el slot disponible.',
+        $contactedLeadOps['whatsappMessageDraft'],
+        'Lead ops merge should keep the WhatsApp draft'
+    );
 
     leadops_assert_equals(1, (int) ($health['contactedCount'] ?? 0), 'Health snapshot should expose contacted count');
     leadops_assert_equals(1, (int) ($health['aiAccepted'] ?? 0), 'Health snapshot should expose accepted IA count');

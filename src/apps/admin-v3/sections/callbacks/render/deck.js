@@ -1,6 +1,8 @@
-import { setText } from '../../../shared/ui/render.js';
+import { formatDateTime, setText } from '../../../shared/ui/render.js';
 import {
     aiStatusLabel,
+    heuristicScore,
+    lastContactAt,
     nextActionLabel,
     phoneLabel,
     serviceHint,
@@ -11,13 +13,14 @@ import {
 export function renderCallbackDeck(
     ops,
     visibleCount,
+    scopedCount,
     totalCount,
     selectedCount
 ) {
     setText(
         '#callbacksDeckSummary',
         totalCount > 0
-            ? `${ops.pendingCount} pendiente(s), ${ops.hotCount} hot y ${visibleCount} visibles.`
+            ? `${ops.pendingCount} sin responder, ${ops.hotCount} hot y ${visibleCount} visibles.${scopedCount !== totalCount ? ` ${scopedCount} pertenecen al dia filtrado.` : ''}`
             : 'Sin callbacks pendientes.'
     );
     const queueChip = document.getElementById('callbacksQueueChip');
@@ -41,14 +44,23 @@ export function renderCallbackDeck(
     setText(
         '#callbacksNextSummary',
         next
-            ? `Prioriza ${phoneLabel(next)} antes de seguir con la cola.`
+            ? `${serviceHint(next)} · Prioriza ${phoneLabel(next)} antes de seguir con la cola.`
             : 'La siguiente llamada prioritaria aparecera aqui.'
     );
+    setText('#callbacksNextScore', next ? heuristicScore(next) : 0);
     setText(
         '#callbacksNextWait',
         next ? waitingLabel(waitingMinutes(next)) : '0 min'
     );
     setText('#callbacksNextPreference', next ? serviceHint(next) : '-');
+    setText(
+        '#callbacksNextLastContact',
+        next
+            ? lastContactAt(next)
+                ? formatDateTime(lastContactAt(next))
+                : 'Sin contacto'
+            : 'Sin contacto'
+    );
     setText('#callbacksNextState', next ? nextActionLabel(next) : 'Pendiente');
     setText(
         '#callbacksDeckHint',

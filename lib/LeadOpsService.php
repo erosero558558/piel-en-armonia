@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/lead/LeadScoringService.php';
+
 final class LeadOpsService
 {
     private const OBJECTIVES = ['service_match', 'call_opening', 'whatsapp_draft'];
@@ -9,6 +11,13 @@ final class LeadOpsService
     private const OUTCOMES = ['', 'contactado', 'cita_cerrada', 'sin_respuesta', 'descartado'];
     private const PRIORITY_BANDS = ['hot', 'warm', 'cold'];
     private const LEAD_ORIGIN_FIELDS = ['source', 'campaign', 'surface', 'service_intent'];
+    private const WHATSAPP_TEMPLATE_KEYS = [
+        'no_show',
+        'rebooking_slot',
+        'pre_consult_incomplete',
+        'post_procedure',
+        'prescription_ready',
+    ];
 
     /** @var array{path:string,mtime:int,services:array<int,array<string,mixed>>}|null */
     private static ?array $catalogCache = null;
@@ -651,6 +660,8 @@ final class LeadOpsService
             'reasonCodes' => $heuristic['reasonCodes'],
             'serviceHints' => $heuristic['serviceHints'],
             'nextAction' => $heuristic['nextAction'],
+            'scoreSummary' => $heuristic['scoreSummary'],
+            'scoreFactors' => $heuristic['scoreFactors'],
         ]);
 
         return $callback;
@@ -722,6 +733,7 @@ final class LeadOpsService
         $aiObjective = self::normalizeObjective((string) ($leadOps['aiObjective'] ?? ''));
         $aiStatus = self::normalizeAiStatus((string) ($leadOps['aiStatus'] ?? 'idle'));
         $outcome = self::normalizeOutcome((string) ($leadOps['outcome'] ?? ''));
+        $whatsappTemplateKey = self::normalizeWhatsappTemplateKey((string) ($leadOps['whatsappTemplateKey'] ?? ''));
 
         return array_merge($origin, [
             'heuristicScore' => self::clampInt((int) ($leadOps['heuristicScore'] ?? 0), 0, 100),
@@ -729,6 +741,8 @@ final class LeadOpsService
             'reasonCodes' => self::sanitizeList($leadOps['reasonCodes'] ?? [], 8, 60),
             'serviceHints' => self::sanitizeList($leadOps['serviceHints'] ?? [], 3, 80),
             'nextAction' => truncate_field(sanitize_xss((string) ($leadOps['nextAction'] ?? '')), 180),
+            'scoreSummary' => truncate_field(sanitize_xss((string) ($leadOps['scoreSummary'] ?? '')), 220),
+            'scoreFactors' => self::sanitizeList($leadOps['scoreFactors'] ?? [], 4, 80),
             'aiStatus' => $aiStatus,
             'aiObjective' => $aiObjective,
             'aiSummary' => truncate_field(sanitize_xss((string) ($leadOps['aiSummary'] ?? '')), 1600),
@@ -738,6 +752,10 @@ final class LeadOpsService
             'completedAt' => self::normalizeTimestamp((string) ($leadOps['completedAt'] ?? '')),
             'contactedAt' => self::normalizeTimestamp((string) ($leadOps['contactedAt'] ?? '')),
             'outcome' => $outcome,
+            'whatsappTemplateKey' => $whatsappTemplateKey,
+            'whatsappMessageDraft' => truncate_field(sanitize_xss((string) ($leadOps['whatsappMessageDraft'] ?? '')), 2400),
+            'whatsappLastPreparedAt' => self::normalizeTimestamp((string) ($leadOps['whatsappLastPreparedAt'] ?? '')),
+            'whatsappLastOpenedAt' => self::normalizeTimestamp((string) ($leadOps['whatsappLastOpenedAt'] ?? '')),
         ]);
     }
 
@@ -761,6 +779,10 @@ final class LeadOpsService
             'campaign',
             'surface',
             'service_intent',
+            'whatsappTemplateKey',
+            'whatsappMessageDraft',
+            'whatsappLastPreparedAt',
+            'whatsappLastOpenedAt',
         ] as $field) {
             if (!array_key_exists($field, $incomingLeadOps)) {
                 continue;
@@ -1153,38 +1175,30 @@ final class LeadOpsService
         $ageMinutes = $createdAt > 0
             ? max(0, (int) round((time() - $createdAt) / 60))
             : 0;
-        $score = $status === 'pendiente' ? 18 : 6;
-        $reasonCodes = [];
-
-        if ($ageMinutes >= 180) {
-            $score += 26;
-            $reasonCodes[] = 'sla_overdue';
-        } elseif ($ageMinutes >= 60) {
-            $score += 16;
-            $reasonCodes[] = 'waiting_queue';
-        } elseif ($ageMinutes >= 20) {
-            $score += 8;
-        }
+        [$serviceHints, , $serviceReasons] = self::resolveServiceHints($preference, $funnelMetrics);
+        $scoring = LeadScoringService::scoreCallback($callback, $store, [
+            'preference' => $preference,
+            'ageMinutes' => $ageMinutes,
+            'serviceHints' => $serviceHints,
+        ]);
+        $score = (int) ($scoring['score'] ?? 0);
+        $reasonCodes = array_merge(
+            is_array($scoring['reasonCodes'] ?? null) ? $scoring['reasonCodes'] : [],
+            $serviceReasons
+        );
 
         foreach ([
-            'urgencia' => ['urgente', 'ahora', 'hoy', 'ya', 'pronto', 'asap'],
             'precio' => ['precio', 'costo', 'cuanto', 'valor', 'tarifa'],
             'agenda' => ['agenda', 'cita', 'turno', 'hora', 'disponible', 'manana', 'tarde'],
-            'clinical' => ['lesion', 'lunar', 'sangra', 'ardor', 'dolor', 'cancer', 'mancha'],
         ] as $code => $tokens) {
             foreach ($tokens as $token) {
                 if (!str_contains($preference, $token)) {
                     continue;
                 }
-                $score += $code === 'urgencia' ? 14 : ($code === 'clinical' ? 12 : 8);
                 $reasonCodes[] = 'keyword_' . $code;
                 break;
             }
         }
-
-        [$serviceHints, $serviceScore, $serviceReasons] = self::resolveServiceHints($preference, $funnelMetrics);
-        $score += $serviceScore;
-        $reasonCodes = array_merge($reasonCodes, $serviceReasons);
 
         if (($funnelMetrics['summary']['checkoutAbandon'] ?? 0) > 0) {
             $score += 4;
@@ -1192,7 +1206,12 @@ final class LeadOpsService
         }
 
         $score = self::clampInt($score, 0, 100);
-        $priorityBand = $score >= 72 ? 'hot' : ($score >= 45 ? 'warm' : 'cold');
+        $priorityBand = (string) ($scoring['priorityBand'] ?? '');
+        if ($priorityBand === '') {
+            $priorityBand = $score >= 72 ? 'hot' : ($score >= 45 ? 'warm' : 'cold');
+        } elseif (($priorityBand === 'hot' && $score < 72) || ($priorityBand === 'warm' && $score < 45)) {
+            $priorityBand = $score >= 72 ? 'hot' : ($score >= 45 ? 'warm' : 'cold');
+        }
 
         $nextAction = $priorityBand === 'hot'
             ? 'Llamar en menos de 10 min'
@@ -1214,6 +1233,8 @@ final class LeadOpsService
             'reasonCodes' => array_slice(array_values(array_unique($reasonCodes)), 0, 8),
             'serviceHints' => array_slice($serviceHints, 0, 3),
             'nextAction' => $nextAction,
+            'scoreSummary' => truncate_field(sanitize_xss((string) ($scoring['summary'] ?? '')), 220),
+            'scoreFactors' => self::sanitizeList($scoring['factorLabels'] ?? [], 4, 80),
         ];
     }
 
@@ -2109,6 +2130,14 @@ final class LeadOpsService
     {
         $outcome = self::normalizeToken($outcome);
         return in_array($outcome, self::OUTCOMES, true) ? $outcome : '';
+    }
+
+    private static function normalizeWhatsappTemplateKey(string $value): string
+    {
+        $value = self::normalizeToken($value);
+        return in_array($value, self::WHATSAPP_TEMPLATE_KEYS, true)
+            ? $value
+            : '';
     }
 
     private static function normalizePriorityBand(string $band): string

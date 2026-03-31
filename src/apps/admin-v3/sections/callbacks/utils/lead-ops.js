@@ -6,6 +6,10 @@ export function leadOps(item) {
         : {};
 }
 
+export function lastContactAt(item) {
+    return String(leadOps(item).contactedAt || '').trim();
+}
+
 export function priorityBand(item) {
     const value = normalize(leadOps(item).priorityBand);
     return value === 'hot' || value === 'warm' ? value : 'cold';
@@ -62,4 +66,8 @@ export function aiDraftText(item) {
 export function heuristicScore(item) {
     const score = Number(leadOps(item).heuristicScore || 0);
     return Number.isFinite(score) ? score : 0;
+}
+
+export function scoreSummary(item) {
+    return String(leadOps(item).scoreSummary || '').trim();
 }

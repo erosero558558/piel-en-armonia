@@ -3,8 +3,8 @@ export function renderCallbacksCommandDeck() {
         <article class="sony-panel callbacks-command-deck">
             <header class="section-header callbacks-command-head">
                 <div>
-                    <p class="sony-kicker">SLA telefonico</p>
-                    <h3>Callbacks</h3>
+                    <p class="sony-kicker">Cockpit de recepcion</p>
+                    <h3>Callbacks pendientes</h3>
                     <p id="callbacksDeckSummary">Sin callbacks pendientes.</p>
                 </div>
                 <span class="callbacks-queue-chip" id="callbacksQueueChip">Cola estable</span>
@@ -12,7 +12,7 @@ export function renderCallbacksCommandDeck() {
             <div id="callbacksOpsPanel" class="callbacks-ops-grid">
                 <article class="callbacks-ops-card"><span>Pendientes</span><strong id="callbacksOpsPendingCount">0</strong></article>
                 <article class="callbacks-ops-card"><span>Hot</span><strong id="callbacksOpsUrgentCount">0</strong></article>
-                <article class="callbacks-ops-card"><span>Hoy</span><strong id="callbacksOpsTodayCount">0</strong></article>
+                <article class="callbacks-ops-card"><span>Sin contacto</span><strong id="callbacksOpsNoContactCount">0</strong></article>
                 <article class="callbacks-ops-card wide"><span>Estado</span><strong id="callbacksOpsQueueHealth">Cola: estable</strong></article>
             </div>
             <div class="callbacks-command-actions">

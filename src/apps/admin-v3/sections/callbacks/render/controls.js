@@ -1,6 +1,13 @@
 import { setText } from '../../../shared/ui/render.js';
 import { persistPreferences } from '../preferences.js';
-import { normalize, normalizeFilter, normalizeSort } from '../utils.js';
+import { normalize, normalizeFilter, normalizeSort, toDayKey } from '../utils.js';
+
+function formatDayLabel(value) {
+    const dayKey = toDayKey(value);
+    if (!dayKey) return '';
+    const [year, month, day] = dayKey.split('-');
+    return `${day}/${month}/${year}`;
+}
 
 function toolbarStateParts(callbacksState) {
     const stateParts = [];
@@ -17,6 +24,9 @@ function toolbarStateParts(callbacksState) {
     }
     if (normalize(callbacksState.search)) {
         stateParts.push(`Busqueda: ${callbacksState.search}`);
+    }
+    if (toDayKey(callbacksState.day)) {
+        stateParts.push(`Dia: ${formatDayLabel(callbacksState.day)}`);
     }
     if (normalizeSort(callbacksState.sort) === 'priority_desc') {
         stateParts.push('Orden: Prioridad comercial');
@@ -38,11 +48,17 @@ function updateQuickFilterButtons(filter) {
         });
 }
 
-export function syncCallbackControls(callbacksState, visibleCount, totalCount) {
-    setText(
-        '#callbacksToolbarMeta',
-        `Mostrando ${visibleCount} de ${totalCount}`
-    );
+export function syncCallbackControls(
+    callbacksState,
+    visibleCount,
+    scopedCount,
+    totalCount
+) {
+    const metaLabel =
+        toDayKey(callbacksState.day) && scopedCount !== totalCount
+            ? `Mostrando ${visibleCount} de ${scopedCount} · ${totalCount} total`
+            : `Mostrando ${visibleCount} de ${totalCount}`;
+    setText('#callbacksToolbarMeta', metaLabel);
     setText(
         '#callbacksToolbarState',
         toolbarStateParts(callbacksState).join(' | ')
@@ -64,6 +80,14 @@ export function syncCallbackControls(callbacksState, visibleCount, totalCount) {
         search.value !== callbacksState.search
     ) {
         search.value = callbacksState.search;
+    }
+
+    const dayFilter = document.getElementById('callbackDayFilter');
+    if (
+        dayFilter instanceof HTMLInputElement &&
+        dayFilter.value !== toDayKey(callbacksState.day)
+    ) {
+        dayFilter.value = toDayKey(callbacksState.day);
     }
 
     updateQuickFilterButtons(callbacksState.filter);

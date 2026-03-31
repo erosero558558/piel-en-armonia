@@ -1,6 +1,9 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { installLegacyAdminAuthMock } = require('./helpers/admin-auth-mocks');
+const {
+    installLegacyAdminAuthMock,
+    installWindowOpenRecorder,
+} = require('./helpers/admin-auth-mocks');
 
 test.use({
     serviceWorkers: 'block',
@@ -125,6 +128,8 @@ async function setupLeadOpsAdminApiMocks(page) {
             status: 'pending',
             leadOps: {
                 heuristicScore: 88,
+                scoreSummary:
+                    'Tiempo en cola + Urgencia clinica · Ajuste: Servicio premium',
                 priorityBand: 'hot',
                 reasonCodes: ['keyword_precio', 'keyword_urgencia'],
                 serviceHints: ['Botox medico'],
@@ -149,6 +154,7 @@ async function setupLeadOpsAdminApiMocks(page) {
             status: 'pending',
             leadOps: {
                 heuristicScore: 56,
+                scoreSummary: 'Tiempo en cola + Valor estimado',
                 priorityBand: 'warm',
                 reasonCodes: ['waiting_queue'],
                 serviceHints: ['Acne y rosacea'],
@@ -172,6 +178,7 @@ async function setupLeadOpsAdminApiMocks(page) {
             status: 'contactado',
             leadOps: {
                 heuristicScore: 24,
+                scoreSummary: 'Canal',
                 priorityBand: 'cold',
                 reasonCodes: [],
                 serviceHints: [],
@@ -304,11 +311,22 @@ async function setupLeadOpsAdminApiMocks(page) {
 
             if (callback) {
                 callback.status = String(payload.status || callback.status);
+                const contactedAt =
+                    callback.status === 'contacted' ||
+                    Boolean(payload?.leadOps?.outcome)
+                        ? new Date().toISOString()
+                        : callback.leadOps?.contactedAt || '';
                 callback.leadOps = {
                     ...(callback.leadOps || {}),
                     ...(payload.leadOps && typeof payload.leadOps === 'object'
                         ? payload.leadOps
                         : {}),
+                    contactedAt: String(
+                        payload?.leadOps?.contactedAt ||
+                            contactedAt ||
+                            callback.leadOps?.contactedAt ||
+                            ''
+                    ),
                 };
             }
 
@@ -378,7 +396,7 @@ async function openCallbacksSection(page) {
     await setupAdminApiMocks(page);
     await page.goto('/admin.html');
     await expect(page.locator('#adminDashboard')).toBeVisible();
-    await page.keyboard.press('Alt+Shift+Digit3');
+    await page.locator('a.nav-item[data-section="callbacks"]').click();
     await expect(page.locator('#callbacks')).toHaveClass(/active/);
     await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(4);
 }
@@ -451,6 +469,32 @@ test.describe('Admin callbacks triage', () => {
         );
     });
 
+    test('filtra el cockpit por dia y permite limpiar la cola filtrada', async ({
+        page,
+    }) => {
+        await openCallbacksSection(page);
+
+        const emptyDayKey = '1999-01-01';
+
+        await page.locator('#callbackDayFilter').evaluate((element, value) => {
+            element.value = String(value || '');
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+        }, emptyDayKey);
+        await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(0);
+        await expect(
+            page.locator('[data-admin-empty-state="callbacks"]')
+        ).toContainText('No hay callbacks');
+        await expect(page.locator('#callbacksToolbarState')).toContainText('Dia:');
+        await expect(page.locator('#callbacksToolbarMeta')).toContainText(
+            'Mostrando 0 de 0 · 4 total'
+        );
+
+        await page.locator('#clearCallbacksFiltersBtn').click();
+        await expect(page.locator('#callbackDayFilter')).toHaveValue('');
+        await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(4);
+    });
+
     test('lead ops prioriza la cola comercial y permite pedir IA y cerrar outcome', async ({
         page,
     }) => {
@@ -467,16 +511,31 @@ test.describe('Admin callbacks triage', () => {
         });
         await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.keyboard.press('Alt+Shift+Digit3');
+        await page.locator('a.nav-item[data-section="callbacks"]').click();
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
 
         const firstCard = page.locator('#callbacksGrid .callback-card').first();
+        const primaryLeadCard = page.locator(
+            '#callbacksGrid .callback-card[data-callback-id="301"]'
+        );
         await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(
             3
         );
         await expect(firstCard).toContainText('+593 99 111 0001');
+        await expect(firstCard).toContainText('Score 88');
+        await expect(firstCard).toContainText(
+            'Tiempo en cola + Urgencia clinica'
+        );
         await expect(firstCard).toContainText('Hot');
         await expect(firstCard).toContainText('Sin IA');
+        await expect(page.locator('#callbacksOpsNext')).toHaveText(
+            '+593 99 111 0001'
+        );
+        await expect(page.locator('#callbacksNextScore')).toHaveText('88');
+        await expect(page.locator('#callbacksNextLastContact')).toHaveText(
+            'Sin contacto'
+        );
+        await expect(page.locator('#callbacksOpsNoContactCount')).toHaveText('2');
         await expect(page.locator('#callbacksOpsQueueHealth')).toHaveText(
             'Cola estable, IA degradada'
         );
@@ -491,6 +550,59 @@ test.describe('Admin callbacks triage', () => {
                 'button[data-action="callback-outcome"][data-outcome="cita_cerrada"]'
             )
             .click();
-        await expect(firstCard).toContainText('Cita cerrada');
+        await expect(primaryLeadCard).toContainText('Cita cerrada');
+        await expect(primaryLeadCard).not.toContainText('Sin contacto');
+    });
+
+    test('lead ops permite elegir plantilla WhatsApp, personalizarla y abrir el envio en un clic', async ({
+        page,
+    }) => {
+        await installWindowOpenRecorder(page);
+        await setupLeadOpsAdminApiMocks(page);
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('a.nav-item[data-section="callbacks"]').click();
+        await expect(page.locator('#callbacks')).toHaveClass(/active/);
+
+        const primaryLeadCard = page.locator(
+            '#callbacksGrid .callback-card[data-callback-id="301"]'
+        );
+        const templateSelect = primaryLeadCard.locator(
+            '[data-callback-template-select]'
+        );
+        const draftInput = primaryLeadCard.locator(
+            '[data-callback-template-draft]'
+        );
+        const sendButton = primaryLeadCard.locator(
+            '[data-action="callback-send-whatsapp-template"]'
+        );
+
+        await expect(sendButton).toBeDisabled();
+        await templateSelect.selectOption('rebooking_slot');
+        await expect(primaryLeadCard).toContainText('Slot abierto');
+        await expect(draftInput).toHaveValue(/Se abrio un cupo/);
+        await expect(sendButton).toBeEnabled();
+
+        const customMessage =
+            'Hola, se abrio un cupo para Botox medico hoy a las 16:30. Si te sirve, te lo reservo ahora mismo.';
+        await draftInput.fill(customMessage);
+        await draftInput.dispatchEvent('change');
+        await sendButton.click();
+
+        await page.waitForFunction(
+            () =>
+                Array.isArray(window.__openedUrls) &&
+                window.__openedUrls.length === 1
+        );
+        const openedUrl = await page.evaluate(() => window.__openedUrls[0]);
+        expect(openedUrl).toContain(
+            'https://wa.me/593991110001?text='
+        );
+        expect(
+            decodeURIComponent(openedUrl.split('?text=')[1] || '')
+        ).toContain('16:30');
+        await expect(
+            primaryLeadCard.locator('[data-callback-template-draft]')
+        ).toHaveValue(customMessage);
     });
 });

@@ -1,7 +1,7 @@
 import { getState, updateState } from '../../shared/core/store.js';
 import { persistPreferences } from './preferences.js';
 import { renderCallbacksSection } from './render.js';
-import { normalizeFilter, normalizeSort } from './utils.js';
+import { normalizeFilter, normalizeSort, toDayKey } from './utils.js';
 
 function updateCallbacksState(patch, { persist = true } = {}) {
     updateState((state) => ({
@@ -33,6 +33,13 @@ export function setCallbacksSort(sort) {
     });
 }
 
+export function setCallbacksDay(day) {
+    updateCallbacksState({
+        day: toDayKey(day),
+        selected: [],
+    });
+}
+
 export function setCallbacksSearch(search) {
     updateCallbacksState({
         search: String(search || ''),
@@ -44,6 +51,7 @@ export function clearCallbacksFilters() {
     updateCallbacksState({
         filter: 'all',
         sort: 'priority_desc',
+        day: '',
         search: '',
         selected: [],
     });

@@ -1,5 +1,18 @@
 import { CALLBACK_URGENT_THRESHOLD_MINUTES } from '../constants.js';
 
+export function toDayKey(value) {
+    const raw = String(value || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        return raw;
+    }
+    const date = new Date(value || '');
+    if (Number.isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 export function createdAtMs(item) {
     const date = new Date(item?.fecha || item?.createdAt || '');
     return Number.isNaN(date.getTime()) ? 0 : date.getTime();
@@ -18,14 +31,7 @@ export function waitingLabel(minutes) {
 }
 
 export function inToday(value) {
-    const date = new Date(value || '');
-    if (Number.isNaN(date.getTime())) return false;
-    const now = new Date();
-    return (
-        date.getFullYear() === now.getFullYear() &&
-        date.getMonth() === now.getMonth() &&
-        date.getDate() === now.getDate()
-    );
+    return toDayKey(value) === toDayKey(new Date());
 }
 
 export function waitBand(minutes) {
