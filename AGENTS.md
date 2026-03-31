@@ -1674,7 +1674,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 13.4 Consistencia de marca y datos
 
-- [ ] **S13-11** `[S]` WhatsApp number — fuente única de verdad — el número de WhatsApp de la clínica aparece hardcodeado en múltiples lugares. Si cambia, hay que encontrarlo en 40+ páginas. Centralizar en `data/clinic-config.json`: `"whatsapp": "+593982453672"`. El sistema lo consume desde ahí. Script de audit: `grep -rn "wa.me" es/ | grep -v "593982453672"` → 0 resultados. Si hay un número diferente → bug.
+- [x] **S13-11** `[S]` WhatsApp number — fuente única de verdad — el número de WhatsApp de la clínica aparece hardcodeado en múltiples lugares. Si cambia, hay que encontrarlo en 40+ páginas. Centralizar en `data/clinic-config.json`: `"whatsapp": "+593982453672"`. El sistema lo consume desde ahí. Script de audit: `grep -rn "wa.me" es/ | grep -v "593982453672"` → 0 resultados. Si hay un número diferente → bug.
 - [x] **S13-12** `[M]` `[UI]` Páginas de servicios sin `lang="es"` — audit detecta que varias páginas en `es/servicios/` no tienen `lang="es"` en `<html>`. Google y lectores de pantalla no saben el idioma. Crítico para SEO local en Ecuador. Verificable: `grep -rL 'lang="es"' es/servicios/*/index.html | wc -l` → 0.
 - [ ] **S13-13** `[S]` Canonical URLs en todas las páginas — muchas páginas no tienen `<link rel="canonical">`. Sin canonical, Google puede indexar versiones con y sin trailing slash como páginas distintas. Añadir a todas las páginas de servicios. Verificable: `grep -rl 'rel="canonical"' es/servicios/ | wc -l` → 20.
 
