@@ -1161,7 +1161,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S4-07** `[XL]` Onboarding de clínica — flujo: registrar clínica → `TurneroClinicProfile` → cargar staff → activar servicios → generar URL.
 - [x] **S4-08** `[L]` Pricing page — `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor), Pro ($49/mes, 5 doctores), Enterprise (contactar). Design premium con comparativa.
 - [x] **S4-09** `[L]` Demo interactiva mejorada — `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. El visitante experimenta: kiosco → turno → operador lo llama.
-- [ ] **S4-10** `[L]` Dashboard multi-clínica — vista admin: stats de todas las clínicas del tenant. Turnos/día, ingresos, pacientes. Comparativa entre sucursales.
+- [x] **S4-10** `[L]` Dashboard multi-clínica — vista admin: stats de todas las clínicas del tenant. Turnos/día, ingresos, pacientes. Comparativa entre sucursales.
 - [ ] **S4-11** `[L]` Whitelabel — personalizar: logo, colores, nombre, dominio por clínica. Engine Flow OS intacto, branding customizable.
 - [x] **S4-12** `[L]` API docs — `es/software/turnero-clinicas/api-docs/index.html`: documentación OpenAPI de la API para integraciones externas.
 
@@ -1217,7 +1217,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 5.3 Telemedicina real
 
 - [x] **S5-15** `[XL]` Sala de videoconsulta — integrar Jitsi Meet embebido en `es/telemedicina/sala/index.html`. Link único por cita. Paciente entra desde el portal, doctor desde el admin. Sin instalación.
-- [ ] **S5-16** `[M]` Pre-consulta digital — `es/telemedicina/pre-consulta/index.html`: 10 min antes de la teleconsulta, el paciente completa: "¿Qué le preocupa hoy?", sube foto si tiene lesión nueva. El doctor la ve antes de entrar.
+- [x] **S5-16** `[M]` Pre-consulta digital — `es/telemedicina/pre-consulta/index.html`: 10 min antes de la teleconsulta, el paciente completa: "¿Qué le preocupa hoy?", sube foto si tiene lesión nueva. El doctor la ve antes de entrar.
 - [ ] **S5-17** `[M]` Grabación de consenso — opción de grabar la teleconsulta con consentimiento explícito de ambas partes. Guardar en el caso con metadatos.
 - [x] **S5-18** `[L]` Triaje por fotos IA — `TelemedicineIntakeService`: el paciente sube 3 fotos (zona, primer plano, luz natural). IA pre-clasifica urgencia (1-5) y sugiere tipo de consulta. El doctor valida.
 
@@ -1905,9 +1905,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 19.1 Push — Preferencias y automatizaciones
 
-- [ ] **S19-01** `[M]` Push preference center del paciente — `GET/POST /api.php?resource=push-preferences`: el paciente elige por categoría qué notificaciones recibe: `appointments`, `queue_updates`, `documents_ready`, `marketing`. El portal lee y guarda preferencias reales por paciente. Si `queue_updates=false`, los pushes de turno se omiten. Verificable: `POST push-preferences {queue_updates: false}` → siguiente push de turno no se envía.
-- [ ] **S19-02** `[M]` Push automations para journey real — conectar `NotificationService` y `PushService` a eventos ya existentes: confirmación de cita, recordatorio 24h, "le toca pasar" desde operador, documento listo. Verificable: cada evento genera payload estándar `{title, body, url, surface}` sin push huérfano.
-- [ ] **S19-03** `[S]` Push diagnostics en admin — `GET /api.php?resource=push-diagnostics`: `{configured, publicKeyPresent, subscriptionsTotal, subscriptionsBySurface, lastTestAt, lastSendStatus}`. Sin esto, el admin no sabe si Push está activo. Verificable: `curl /api.php?resource=push-diagnostics` → JSON con todos los campos sin error.
+- [x] **S19-01** `[M]` Push preference center del paciente — `GET/POST /api.php?resource=push-preferences`: el paciente elige por categoría qué notificaciones recibe: `appointments`, `queue_updates`, `documents_ready`, `marketing`. El portal lee y guarda preferencias reales por paciente. Si `queue_updates=false`, los pushes de turno se omiten. Verificable: `POST push-preferences {queue_updates: false}` → siguiente push de turno no se envía.
+- [x] **S19-02** `[M]` Push automations para journey real — conectar `NotificationService` y `PushService` a eventos ya existentes: confirmación de cita, recordatorio 24h, "le toca pasar" desde operador, documento listo. Verificable: cada evento genera payload estándar `{title, body, url, surface}` sin push huérfano.
+- [x] **S19-03** `[S]` Push diagnostics en admin — `GET /api.php?resource=push-diagnostics`: `{configured, publicKeyPresent, subscriptionsTotal, subscriptionsBySurface, lastTestAt, lastSendStatus}`. Sin esto, el admin no sabe si Push está activo. Verificable: `curl /api.php?resource=push-diagnostics` → JSON con todos los campos sin error.
 
 #### 19.2 WhatsApp OpenClaw — Ops y resiliencia
 

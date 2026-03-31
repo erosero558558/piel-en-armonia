@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:57:36 a. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 6:00:21 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -30,9 +30,9 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 14 | 3 | 11 | 21% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
-| ⏸ Sprint 17 | 9 | 3 | 75% |
+| ⏸ Sprint 17 | 8 | 4 | 67% |
 | ✅ Sprint 18 | 4 | 0 | 100% |
-| ⏸ Sprint 19 | 0 | 18 | 0% |
+| ⏸ Sprint 19 | 1 | 17 | 6% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -54,7 +54,7 @@ _Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S4-10** `[S4]` → _Codex-erosero558558_ (expira en 478min)
+- **S4-10** `[S4]` → _Antigravity_ (expira en 480min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -239,7 +239,7 @@ _Esperando que Sprint anterior esté completo. 10 tareas pendientes._
 _Sprint completado. 13/13 tareas._
 
 ## ⏸ Sprint 17 — Producto y Monetización Real
-_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 
 ### 🟢 Disponibles (3)
 
@@ -249,22 +249,26 @@ _Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 | **S17-16** | `[S17]` | M |
 | **S17-17** | `[S17]` | M |
 
+### 🔒 En progreso — NO tomar
+
+- **S17-10** `[S17]` → _Antigravity_ (expira en 220min)
+
 ## ✅ Sprint 18 — Customer Success y Adopción (Subset Seleccionado)
 _Sprint completado. 4/4 tareas._
 
 ## ⏸ Sprint 19 — Notificaciones, WhatsApp Ops y Android TV
-_Esperando que Sprint anterior esté completo. 18 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
 
-### 🟢 Disponibles (18)
+### 🟢 Disponibles (17)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S19-01** | `[S19]` | M |
 | **S19-02** | `[S19]` | M |
 | **S19-03** | `[S19]` | S |
 | **S19-04** | `[S19]` | M |
 | **S19-05** | `[S19]` | M |
-| ... | | _+13 más_ |
+| **S19-06** | `[S19]` | M |
+| ... | | _+12 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
