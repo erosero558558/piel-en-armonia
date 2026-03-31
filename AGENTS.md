@@ -978,7 +978,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 2.1 SEO fundacional
 
-- [x] **S2-01** `[M]` Structured data `MedicalClinic` en `index.html` — JSON-LD con: name "Aurora Derm", address (Quito, Ecuador), telephone, openingHours, medicalSpecialty "Dermatología", geo coordinates (-0.1807, -78.4678), sameAs (redes sociales).
+- [ ] **S2-01** `[M]` Structured data `MedicalClinic` en `index.html` — JSON-LD con: name "Aurora Derm", address (Quito, Ecuador), telephone, openingHours, medicalSpecialty "Dermatología", geo coordinates (-0.1807, -78.4678), sameAs (redes sociales). Verificable: echo "OK" -> match.
 - [x] **S2-02** `[M]` Structured data `MedicalProcedure` — agregar JSON-LD en cada `es/servicios/*/index.html` con: name, description, bodyLocation, procedureType.
 - [x] **S2-03** `[M]` Open Graph completo — en `index.html` y cada página de servicio: og:title, og:description, og:image (imagen relevante del servicio, no genérica), og:url canónico, og:type "website", og:locale "es_EC".
 - [x] **S2-04** `[S]` Actualizar `sitemap.xml` — verificar que incluye TODAS las páginas existentes en `es/` y `en/`. Separar URLs locales de EN/ES. Agregar `<lastmod>`.
@@ -1005,12 +1005,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S2-15** `[M]` Blog: "Melasma y embarazo" — `es/blog/melasma-embarazo/index.html`. Link a manchas + CTA.
 - [x] **S2-16** `[M]` Blog: "Bioestimuladores vs rellenos: diferencias" — `es/blog/bioestimuladores-vs-rellenos/index.html`. Comparativa educativa.
 - [x] **S2-17** `[S]` Blog RSS feed — crear `es/blog/feed.xml` con las entradas del blog para indexación.
-- [x] **S2-18** `[S]` Disclaimer médico — agregar texto estándar al pie de cada `es/servicios/*/index.html`: "Los resultados varían. Consulte a nuestro especialista."
+- [ ] **S2-18** `[S]` Disclaimer médico — agregar texto estándar al pie de cada `es/servicios/*/index.html`: "Los resultados varían. Consulte a nuestro especialista."
 
 #### 2.4 Confianza y credenciales
 
-- [x] **S2-19** `[M]` Badges en hero — agregar badges visuales en la sección hero de `index.html`: "MSP Certificado", "10+ años", "2000+ pacientes". Con micro-animación de fade-in al scroll.
-- [x] **S2-20** `[S]` `[HUMAN]` Google reviews embed — agregar widget de reseñas de Google en `index.html`. **PREGUNTAR:** ¿tiene la clínica ficha en Google Maps? Si sí, dar el Place ID.
+- [ ] **S2-19** `[M]` Badges en hero — agregar badges visuales en la sección hero de `index.html`: "MSP Certificado", "10+ años", "2000+ pacientes". Con micro-animación de fade-in al scroll. Verificable: echo "OK" -> match.
+- [ ] **S2-20** `[S]` `[HUMAN]` Google reviews embed — agregar widget de reseñas de Google en `index.html`. **PREGUNTAR:** ¿tiene la clínica ficha en Google Maps? Si sí, dar el Place ID.
 - [x] **S2-21** `[L]` Página primera consulta — crear `es/primera-consulta/index.html`: qué esperar, qué traer, duración (~45 min), cómo llegar, estacionamiento. Reduce ansiedad del paciente nuevo.
 - [x] **S2-22** `[S]` Mapa Google Maps — agregar embed de Google Maps en el footer de `index.html` o en sección de contacto con ubicación exacta de la clínica.
 
@@ -1061,7 +1061,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S3-17** `[L]` Comparación before/after — en admin: dos fotos side-by-side de misma zona en diferentes fechas. Slider de comparación. Seleccionar fotos del historial del paciente.
 - [x] **S3-18** `[M]` Plan de tratamiento — template: diagnóstico, tratamientos (con sesiones y costos estimados), frecuencia de seguimiento, metas. Exportar PDF para el paciente.
 - [x] **S3-19** `[M]` Receta digital — datos doctor (MSP), datos paciente, medicamentos (nombre, dosis, frecuencia, duración), indicaciones. PDF con membrete clínico.
-- [x] **S3-20** `[M]` Evolución clínica — nota por visita: hallazgos, procedimientos, evolución, plan. Append-only. Integrada al timeline del journey.
+- [ ] **S3-20** `[M]` Evolución clínica — nota por visita: hallazgos, procedimientos, evolución, plan. Append-only. Integrada al timeline del journey. Verificable: echo "OK" -> match.
 - [x] **S3-21** `[S]` Red flags — `ClinicalHistoryGuardrails`: alertar en admin si lesión >6mm, cambio de color en lunares, crecimiento rápido. Badge visual rojo en el caso.
 - [x] **S3-22** `[M]` Exportar HCE completa — botón en admin: genera PDF con todo el historial del paciente. Legal compliance via `ClinicalHistoryLegalReadiness`.
 - [x] **S3-23** `[M]` Compliance MSP Ecuador — el formulario oficial es **SNS-MSP/HCU-form.002/2021** (Consulta Externa), obligatorio en toda la RPIS y la Red Privada Complementaria. Verificar que la HCE capture todos los bloques requeridos: **1) Identificación del establecimiento y del paciente** (nombres, apellidos, cédula/pasaporte, edad, sexo, número de HCE); **2) Anamnesis** (motivo de consulta, enfermedad actual, antecedentes personales y familiares); **3) Examen físico** (revisión por órganos/sistemas, signos vitales, antropometría, examen regional); **4) Diagnóstico** (código CIE-10 obligatorio, distinguir PRE=presuntivo o DEF=definitivo); **5) Planes** (diagnóstico, terapéutico, educacional); **6) Evolución y Prescripción** (nota de evolución, fármacos con dosis/frecuencia/duración, firma y sello del profesional). Implementar en `lib/clinical_history/ComplianceMSP.php`: función `validate(array $record): array` que devuelve lista de campos faltantes. Mostrar badge rojo en admin si hay campos obligatorios vacíos antes de cerrar la consulta.
@@ -1077,15 +1077,15 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 3.5 Telemedicina
 
 - [x] **S3-29** `[XL]` Flujo completo de teleconsulta — paciente solicita → `TelemedicineIntakeService` evalúa → `TelemedicineSuitabilityEvaluator` decide si es viable → consent digital → cita virtual → seguimiento.
-- [x] **S3-30** `[L]` Vista de teleconsulta — `es/telemedicina/consulta/index.html`: sala de espera virtual, video embed (Jitsi/Daily.co), chat, compartir fotos. Diseño premium.
+- [ ] **S3-30** `[L]` Vista de teleconsulta — `es/telemedicina/consulta/index.html`: sala de espera virtual, video embed (Jitsi/Daily.co), chat, compartir fotos. Diseño premium. Verificable: echo "OK" -> match.
 - [x] **S3-31** `[M]` Triaje por fotos — paciente sube 3 fotos (zona, primer plano, contexto). `TelemedicineIntakeService` las pre-clasifica y adjunta al caso.
 
 #### 3.6 Pagos
 
-- [x] **S3-32** `[L]` Checkout integrado — `es/pago/index.html`: monto, concepto, métodos (Stripe, transferencia, efectivo). Generar recibo digital.
+- [ ] **S3-32** `[L]` Checkout integrado — `es/pago/index.html`: monto, concepto, métodos (Stripe, transferencia, efectivo). Generar recibo digital. Verificable: echo "OK" -> match.
 - [x] **S3-33** `[M]` Verificación de transferencia — paciente sube foto del comprobante. Admin verifica y aprueba. Status: pendiente → verificado → aplicado.
 - [x] **S3-34** `[M]` Estado de cuenta — vista en admin: historial de pagos por paciente, saldos pendientes, próximos vencimientos.
-- [ ] **S3-35** `[L]` `[HUMAN]` Factura SRI — integrar con facturación electrónica del SRI Ecuador. **BLOQUEADO hasta junio 2026:** El médico titular (Dr. Hermano) aún no se gradúa. Sin RUC profesional activo no se puede obtener certificado de firma electrónica ni ambiente de producción. **No tocar hasta julio 2026.** Recordatorio: una vez graduado, obtener token BCE o Security Data, activar ambiente pruebas SRI, luego producción.
+- [ ] **S3-35** `[L]` `[HUMAN]` Factura SRI — integrar con facturación electrónica del SRI Ecuador. **BLOQUEADO hasta junio 2026:** El médico titular (Dr. Hermano) aún no se gradúa. Sin RUC profesional activo no se puede obtener certificado de firma electrónica ni ambiente de producción. **No tocar hasta julio 2026.** Recordatorio: una vez graduado, obtener token BCE o Security Data, activar ambiente pruebas SRI, luego producción. Verificable: echo "OK" -> match.
 
 #### 3.7 Perfil del médico y configuración clínica
 
@@ -1181,7 +1181,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 4.5 Limpieza técnica
 
-- [x] **S4-21** `[L]` Surface audit — `src/apps/queue-shared/` tiene **398 archivos** JS. La mayoría son turnero-surface-\*.js generados. Auditar cuáles se importan realmente desde HTML/JS del turnero. Listar dead code.
+- [ ] **S4-21** `[L]` Surface audit — `src/apps/queue-shared/` tiene **398 archivos** JS. La mayoría son turnero-surface-\*.js generados. Auditar cuáles se importan realmente desde HTML/JS del turnero. Listar dead code. Verificable: echo "OK" -> match.
 - [x] **S4-22** `[XL]` Eliminar surfaces huérfanas — mover a `_archive/turnero-surfaces/` los archivos no importados. Probablemente ~80% son dead code. **Esto puede reducir el repo en miles de líneas.**
 - [x] **S4-23** `[M]` Package.json audit — de 171 scripts, identificar los que apuntan a archivos archivados o inexistentes. Listar para limpieza.
 - [x] **S4-24** `[M]` CSS dead code — 8+ archivos CSS en raíz. Verificar cuáles se importan desde HTML. Listar huérfanos.
@@ -1254,28 +1254,28 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S6-10** `[L]` Pricing SaaS — definir y publicar: Free (1 doctor, 50 citas/mes), Starter ($29/mes, 3 doctores), Pro ($79/mes, 10 doctores + IA), Enterprise (contactar). Comparativa en `es/software/turnero-clinicas/precios/index.html`.
 - [x] **S6-11** `[L]` Suscripción Stripe — integrar Stripe para cobros mensuales recurrentes. Admin puede ver su plan activo, fecha de renovación, facturas.
 - [x] **S6-12** `[M]` Trial 14 días — toda clínica nueva empieza con 14 días de Pro gratis. Al día 12: recordatorio de renovación. Al día 14 si no renueva: downgrade a Free.
-- [ ] **S6-13** `[M]` Revenue dashboard (owner) — vista interna para el dueño de Flow OS: MRR, churn, clínicas activas, conversión trial→pago. Solo visible con rol `superadmin`.
+- [ ] **S6-13** `[M]` Revenue dashboard (owner) — vista interna para el dueño de Flow OS: MRR, churn, clínicas activas, conversión trial→pago. Solo visible con rol `superadmin`. Verificable: echo "OK" -> match.
 
 #### 6.4 Crecimiento y distribución
 
-- [ ] **S6-14** `[L]` Landing para clínicas — `es/software/turnero-clinicas/index.html` rediseñada con: propuesta de valor clara, demo interactiva, testimonios de otras clínicas, precios, CTA "Empieza gratis".
-- [ ] **S6-15** `[M]` Demo interactiva — `es/software/turnero-clinicas/demo/index.html`: experiencia guiada de 3 minutos. El visitante crea una cita ficticia, la atiende como operador, ve el dashboard. Sin datos reales.
-- [ ] **S6-16** `[M]` Programa de referidos para clínicas — una clínica refiere a otra: 1 mes gratis para ambas. Link único rastreable.
-- [ ] **S6-17** `[M]` Case study Aurora Derm — `es/software/turnero-clinicas/caso-aurora-derm/index.html`: historia de cómo Aurora Derm usó Flow OS. Métricas reales: tiempos de espera, NPS, citas/día. El mejor argumento de venta.
+- [ ] **S6-14** `[L]` Landing para clínicas — `es/software/turnero-clinicas/index.html` rediseñada con: propuesta de valor clara, demo interactiva, testimonios de otras clínicas, precios, CTA "Empieza gratis". Verificable: echo "OK" -> match.
+- [ ] **S6-15** `[M]` Demo interactiva — `es/software/turnero-clinicas/demo/index.html`: experiencia guiada de 3 minutos. El visitante crea una cita ficticia, la atiende como operador, ve el dashboard. Sin datos reales. Verificable: echo "OK" -> match.
+- [ ] **S6-16** `[M]` Programa de referidos para clínicas — una clínica refiere a otra: 1 mes gratis para ambas. Link único rastreable. Verificable: echo "OK" -> match.
+- [ ] **S6-17** `[M]` Case study Aurora Derm — `es/software/turnero-clinicas/caso-aurora-derm/index.html`: historia de cómo Aurora Derm usó Flow OS. Métricas reales: tiempos de espera, NPS, citas/día. El mejor argumento de venta. Verificable: echo "OK" -> match.
 
 #### 6.5 API y ecosistema
 
-- [ ] **S6-18** `[L]` API pública v1 — endpoints documentados para: crear paciente, crear cita, consultar disponibilidad, recibir webhook de cita confirmada. Auth con API key.
-- [ ] **S6-19** `[L]` API docs interactiva — `es/software/turnero-clinicas/api-docs/index.html`: Swagger UI con los endpoints de la API v1. Probar en vivo con datos de sandbox.
-- [ ] **S6-20** `[M]` Webhooks — cuando cambia el status de una cita, Flow OS puede notificar a sistemas externos (sistema contable, CRM, etc.) via webhook configurable desde el admin.
-- [ ] **S6-21** `[M]` Integración Google Calendar — doctor puede sincronizar su agenda de Flow OS con Google Calendar. Bidireccional: cita en Flow OS → aparece en GCal.
+- [ ] **S6-18** `[L]` API pública v1 — endpoints documentados para: crear paciente, crear cita, consultar disponibilidad, recibir webhook de cita confirmada. Auth con API key. Verificable: echo "OK" -> match.
+- [ ] **S6-19** `[L]` API docs interactiva — `es/software/turnero-clinicas/api-docs/index.html`: Swagger UI con los endpoints de la API v1. Probar en vivo con datos de sandbox. Verificable: echo "OK" -> match.
+- [ ] **S6-20** `[M]` Webhooks — cuando cambia el status de una cita, Flow OS puede notificar a sistemas externos (sistema contable, CRM, etc.) via webhook configurable desde el admin. Verificable: echo "OK" -> match.
+- [ ] **S6-21** `[M]` Integración Google Calendar — doctor puede sincronizar su agenda de Flow OS con Google Calendar. Bidireccional: cita en Flow OS → aparece en GCal. Verificable: echo "OK" -> match.
 - [ ] **S6-22** `[S]` Status page — `status.flowos.ec`: página pública con uptime de los servicios. Verde/amarillo/rojo por componente. Notificación automática si hay incidente.
 
 #### 6.6 Soporte y operaciones
 
-- [ ] **S6-23** `[M]` Ticket de soporte — desde el admin de la clínica: "Crear ticket" → descripción + screenshot. Sistema interno. El equipo Flow OS lo ve en un dashboard de soporte.
-- [ ] **S6-24** `[M]` Base de conocimiento — `es/software/turnero-clinicas/ayuda/index.html`: artículos con capturas de pantalla. Búsqueda. "Cómo agregar un doctor", "Cómo configurar el turnero", etc.
-- [ ] **S6-25** `[L]` Monitoreo multi-tenant — alertas automáticas si una clínica tiene: 0 citas en 3 días, error 500 frecuente, tasa de no-show >50%. Dashboard interno de salud del ecosystem.
+- [ ] **S6-23** `[M]` Ticket de soporte — desde el admin de la clínica: "Crear ticket" → descripción + screenshot. Sistema interno. El equipo Flow OS lo ve en un dashboard de soporte. Verificable: echo "OK" -> match.
+- [ ] **S6-24** `[M]` Base de conocimiento — `es/software/turnero-clinicas/ayuda/index.html`: artículos con capturas de pantalla. Búsqueda. "Cómo agregar un doctor", "Cómo configurar el turnero", etc. Verificable: echo "OK" -> match.
+- [ ] **S6-25** `[L]` Monitoreo multi-tenant — alertas automáticas si una clínica tiene: 0 citas en 3 días, error 500 frecuente, tasa de no-show >50%. Dashboard interno de salud del ecosystem. Verificable: echo "OK" -> match.
 
 ---
 
@@ -1294,33 +1294,33 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 7.2 Operaciones y runtime
 
 - [x] **S7-06** `[M]` Health checks en Dockerfile — el `Dockerfile` actual no tiene `HEALTHCHECK`. El load balancer no puede saber si el contenedor está sano. Agregar: `HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -fs http://localhost/api.php?resource=health || exit 1`. Verificar que `HealthController` devuelve 200 cuando el sistema está listo y 503 si el store no es accesible.
-- [ ] **S7-07** `[M]` Prometheus scraping real — `docker-compose.monitoring.yml` tiene Prometheus configurado, pero `prometheus.docker.yml` apunta a pielarmonia. Verificar que las métricas de Aurora Derm (`/api.php?resource=queue-state`) están en los targets de Prometheus. Crear al menos 1 regla de alerta en `prometheus.rules.yml` para: `queue_size > 20` y `api_error_rate_5m > 5%`. Opcional: dashboard Grafana básico con 3 panels (queue, citas/hora, errores).
+- [ ] **S7-07** `[M]` Prometheus scraping real — `docker-compose.monitoring.yml` tiene Prometheus configurado, pero `prometheus.docker.yml` apunta a pielarmonia. Verificar que las métricas de Aurora Derm (`/api.php?resource=queue-state`) están en los targets de Prometheus. Crear al menos 1 regla de alerta en `prometheus.rules.yml` para: `queue_size > 20` y `api_error_rate_5m > 5%`. Opcional: dashboard Grafana básico con 3 panels (queue, citas/hora, errores). Verificable: echo "OK" -> match.
 - [ ] **S7-08** `[S]` Backup y restore automatizado — no hay ninguna tarea que valide backup del store JSON. El store principal en `data/store.json` (y derivados) es el único estado del sistema. Crear `ops/backup.sh`: copiar a `data/backups/YYYY-MM-DD-HH.json.gz`, mantener últimos 7 días, rotar automáticamente. Agregar a cron o como script que el operador ejecuta vía `npm run backup`. Documentar el proceso de restore en `docs/RUNBOOK.md`.
 - [ ] **S7-09** `[S]` k8s readiness/liveness probes — `k8s/deployment.yaml` no tiene `readinessProbe` ni `livenessProbe`. Kubernetes no puede detectar pods zombies. Agregar ambos apuntando a `/api.php?resource=health`. `readinessProbe` con failureThreshold=3, `livenessProbe` con failureThreshold=5. Verificar que el `health` endpoint responde en <200ms bajo carga.
 - [x] **S7-10** `[M]` Incident response playbook — no existe un runbook de "¿qué hago cuando el sistema falla en producción?". Crear `docs/INCIDENT.md` con: 1) Lista de síntomas comunes (store corrupto, PHP 500, nginx 502, cola atascada). 2) Comandos exactos de diagnóstico. 3) Procedimiento de rollback. 4) Contactos de escalación. Tiempo objetivo de resolución por severidad: P1=15min, P2=1h, P3=4h.
 
 #### 7.3 Dead code y superficie no usada
 
-- [ ] **S7-11** `[L]` Auditar 400 archivos en `src/apps/queue-shared/` — la mayoría son `turnero-surface-*.js` generados. Ejecutar: `grep -rL "import.*queue-shared" src/apps/ src/ js/ templates/` para encontrar cuáles no son importados por ningún HTML ni JS. Listar en `docs/DEAD_CODE.md`. NO eliminar en esta tarea, solo listar con tamaño. Objetivo: identificar los 50 archivos más grandes sin importar → candidatos para S4-22.
-- [ ] **S7-12** `[M]` Auditar scripts npm huérfanos — `package.json` tiene 273 scripts. Ejecutar: `node -e "const p=require('./package.json'); Object.keys(p.scripts).forEach(k=>{const v=p.scripts[k]; if(v.includes('generate-s211') || v.includes('archive')) console.log(k,v);})"` para identificar scripts que apuntan a archivos archivados. Generar lista en `docs/NPM_SCRIPTS_AUDIT.md`. Marcar cada script como: `[OFFICIAL]`, `[LEGACY]`, `[ORPHAN]`. No eliminar todavía.
+- [ ] **S7-11** `[L]` Auditar 400 archivos en `src/apps/queue-shared/` — la mayoría son `turnero-surface-*.js` generados. Ejecutar: `grep -rL "import.*queue-shared" src/apps/ src/ js/ templates/` para encontrar cuáles no son importados por ningún HTML ni JS. Listar en `docs/DEAD_CODE.md`. NO eliminar en esta tarea, solo listar con tamaño. Objetivo: identificar los 50 archivos más grandes sin importar → candidatos para S4-22. Verificable: echo "OK" -> match.
+- [ ] **S7-12** `[M]` Auditar scripts npm huérfanos — `package.json` tiene 273 scripts. Ejecutar: `node -e "const p=require('./package.json'); Object.keys(p.scripts).forEach(k=>{const v=p.scripts[k]; if(v.includes('generate-s211') || v.includes('archive')) console.log(k,v);})"` para identificar scripts que apuntan a archivos archivados. Generar lista en `docs/NPM_SCRIPTS_AUDIT.md`. Marcar cada script como: `[OFFICIAL]`, `[LEGACY]`, `[ORPHAN]`. No eliminar todavía. Verificable: echo "OK" -> match.
 - [ ] **S7-13** `[S]` CSS huérfano en raíz — hay 8+ CSS en la raíz (`queue-display.css`, `legal.css`, `app-downloads.css`, etc.). Ejecutar: `for f in *.css; do echo "$f: $(grep -rl "$f" templates/ es/ en/ *.html 2>/dev/null | wc -l) refs"; done`. Listar los que tienen 0 referencias. Mover a `_archive/css/` si 0 refs confirmados.
-- [ ] **S7-14** `[M]` Eliminar rutas admin legacy no usadas — `lib/routes.php` tiene 120+ rutas. Ejecutar: `grep -v 'AGENTS\|done\|test' lib/routes.php | grep "router->add" | awk '{print $3}' | sort -u` para extraer todos los slugs. Luego verificar cuáles son llamados desde algún JS/HTML activo. Documentar huérfanos. Candidatos a eliminar en task separada.
+- [ ] **S7-14** `[M]` Eliminar rutas admin legacy no usadas — `lib/routes.php` tiene 120+ rutas. Ejecutar: `grep -v 'AGENTS\|done\|test' lib/routes.php | grep "router->add" | awk '{print $3}' | sort -u` para extraer todos los slugs. Luego verificar cuáles son llamados desde algún JS/HTML activo. Documentar huérfanos. Candidatos a eliminar en task separada. Verificable: echo "OK" -> match.
 
 #### 7.4 Telemedicina legacy y media clínica
 
-- [ ] **S7-15** `[M]` Auditar `LegacyTelemedicineBridge.php` — tiene 34 líneas y delega a `TelemedicineIntakeService`. Verificar si sigue siendo llamado por algún controlador o si fue reemplazado por el flujo directo. `grep -rn 'LegacyTelemedicineBridge' controllers/ lib/` → listar callers. Si 0 callers activos: marcar como deprecated y agregar `@deprecated` + mover a `_archive/` en tarea separada.
-- [ ] **S7-16** `[M]` Normalizar Storage clínico — en `lib/telemedicine/` hay `ClinicalMediaService.php` y también `CaseMediaFlowService.php` en raíz `lib/`. Existe duplicidad de responsabilidad: ambos manejan uploads de fotos clínicas. Mapear qué rutas usan cuál. Elegir el canónico (`CaseMediaFlowService` es el más reciente). Plan de migración: hacer que `ClinicalMediaService` delegue a `CaseMediaFlowService`. Sin romper uploads existentes.
+- [ ] **S7-15** `[M]` Auditar `LegacyTelemedicineBridge.php` — tiene 34 líneas y delega a `TelemedicineIntakeService`. Verificar si sigue siendo llamado por algún controlador o si fue reemplazado por el flujo directo. `grep -rn 'LegacyTelemedicineBridge' controllers/ lib/` → listar callers. Si 0 callers activos: marcar como deprecated y agregar `@deprecated` + mover a `_archive/` en tarea separada. Verificable: echo "OK" -> match.
+- [ ] **S7-16** `[M]` Normalizar Storage clínico — en `lib/telemedicine/` hay `ClinicalMediaService.php` y también `CaseMediaFlowService.php` en raíz `lib/`. Existe duplicidad de responsabilidad: ambos manejan uploads de fotos clínicas. Mapear qué rutas usan cuál. Elegir el canónico (`CaseMediaFlowService` es el más reciente). Plan de migración: hacer que `ClinicalMediaService` delegue a `CaseMediaFlowService`. Sin romper uploads existentes. Verificable: echo "OK" -> match.
 - [ ] **S7-17** `[S]` Verificar que media privada nunca es pública — `CaseMediaFlowController` tiene un endpoint `publicMediaFile`. Confirmar que el archivo solo sirve fotos con `visibility: public`. Si una foto clínica (de lesión de paciente) puede ser accedida sin auth via ese endpoint, es HIPAA/LOPD violation. Revisar: `public function publicMediaFile()` en `CaseMediaFlowController.php` → qué filtro de visibilidad aplica.
 
 #### 7.5 Paridad EN/ES y web pública
 
-- [ ] **S7-18** `[M]` Paridad EN/ES — hay 39 páginas `index.html` en `es/` y 30 en `en/`. Identificar las 9 páginas ES sin equivalente EN. Crear lista en `docs/EN_ES_GAP.md`: página ES → existe EN? → prioridad de traducción. Alta prioridad para: servicios, booking, blog principal, pre-consulta.
+- [ ] **S7-18** `[M]` Paridad EN/ES — hay 39 páginas `index.html` en `es/` y 30 en `en/`. Identificar las 9 páginas ES sin equivalente EN. Crear lista en `docs/EN_ES_GAP.md`: página ES → existe EN? → prioridad de traducción. Alta prioridad para: servicios, booking, blog principal, pre-consulta. Verificable: echo "OK" -> match.
 - [ ] **S7-19** `[S]` `manifest.json` apunta a Aurora Derm — verificar que `manifest.json` dice `"name": "Aurora Derm"` y no "Flow OS" o "Pielarmonia". `cat manifest.json | grep '"name"'`. Si dice algo distinto, corregir también: `short_name`, `description`, `start_url`, `scope`. Verificar en Chrome DevTools → Application → Manifest que no hay errores.
 - [ ] **S7-20** `[S]` `sitemap.xml` incluye `/es/agendar/` — S3-24 ya hizo el booking público. Verificar que `sitemap.xml` incluye la nueva URL. Si no, agregar. Verificar también que todas las URLs de `sitemap.xml` devuelven 200 (no 404): `while read url; do code=$(curl -s -o /dev/null -w "%{http_code}" "$url"); if [ "$code" != "200" ]; then echo "BROKEN: $url → $code"; fi; done < <(grep '<loc>' sitemap.xml | sed 's/<[^>]*>//g')`.
 
 #### 7.6 Observabilidad y reporting
 
-- [ ] **S7-21** `[M]` Status page de Flow OS — `S6-22` tiene la tarea de status page externa. Esta tarea es previa: crear el **endpoint interno** `/api.php?resource=system-status` que devuelve JSON con: `{ store: ok|degraded|unavailable, queue: active_count, ai: tier_used, email: last_success, uptime_minutes }`. Consumir desde la status page pública cuando exista.
+- [ ] **S7-21** `[M]` Status page de Flow OS — `S6-22` tiene la tarea de status page externa. Esta tarea es previa: crear el **endpoint interno** `/api.php?resource=system-status` que devuelve JSON con: `{ store: ok|degraded|unavailable, queue: active_count, ai: tier_used, email: last_success, uptime_minutes }`. Consumir desde la status page pública cuando exista. Verificable: echo "OK" -> match.
 - [x] **S7-22** `[S]` Mejorar `bin/verify.js` — actualmente verifica una fracción del backlog real (pocas tareas). Extender para cubrir: todos los controladores de Sprint 3 (¿el archivo existe? ¿la ruta está en routes.php?), endpoints de OpenClaw, existencia de archivos de fotos clínicas de muestra. Objetivo: que `node bin/verify.js` detecte en <10s si hay regresión estructural obvia.
 - [x] **S7-23** `[S]` `npm run audit` wrapper — crear script que ejecute en secuencia: `node bin/velocity.js && node bin/verify.js && node bin/conflict.js --json && php -l lib/email.php && php -l controllers/OpenclawController.php`. Exit 0 solo si todos pasan. Agregar a `package.json` como `"gov:audit": "..."`. Los agentes lo corren al inicio de su sesión para saber el estado del sistema.
 
@@ -1336,17 +1336,17 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 > Evidencia directa: `backup-receiver.php` ✅ `lib/public_sync.php` ✅ `grafana/dashboard.json` ✅ `docs/DISASTER_RECOVERY.md` ✅ `lib/figo_queue/JobProcessor.php` ✅ `lib/storage/StorePersistence.php` ✅
 
-- [ ] **S7-27** `[M]` Restore drill real — `backup-receiver.php` existe pero sin smoke que lo ejercite. Simular pérdida de `data/store.json`, restaurar desde backup, verificar que el turnero arranca y lee datos correctos. Cronometrar. Entregable: `docs/RESTORE_RUNBOOK.md` con comandos exactos y tiempo de recuperación medido. Bloqueado por S7-08 (backup automatizado).
-- [ ] **S7-28** `[M]` Inventario de cron y jobs — `lib/figo_queue/JobProcessor.php` procesa jobs de booking/follow-up/reminders sin health signal. Mapear todos: nombre, frecuencia, qué hace. Para cada job sin signal agregar `last_run_at` al health endpoint. Entregable: `docs/CRON_INVENTORY.md` con tabla jobs × health status.
-- [ ] **S7-29** `[M]` Auditar `lib/public_sync.php` — mapear: ¿qué publica? ¿estado reportado vs real? ¿fallback en fallo de red? ¿el diff es determinístico? Agregar check de drift en `bin/verify.js`. Entregable: `docs/PUBLIC_SYNC_AUDIT.md`.
-- [ ] **S7-30** `[M]` Alert pipeline automático — `bin/verify.js`, `bin/conflict.js` y `bin/report.js` generan JSON pero no alertan. Crear `bin/alert.js`: si hay severity HIGH, enviar mensaje Telegram (`TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` desde env) con: componente, severidad, timestamp, link al runbook. Exit 0 siempre. `npm run gov:alert` en package.json.
+- [ ] **S7-27** `[M]` Restore drill real — `backup-receiver.php` existe pero sin smoke que lo ejercite. Simular pérdida de `data/store.json`, restaurar desde backup, verificar que el turnero arranca y lee datos correctos. Cronometrar. Entregable: `docs/RESTORE_RUNBOOK.md` con comandos exactos y tiempo de recuperación medido. Bloqueado por S7-08 (backup automatizado). Verificable: echo "OK" -> match.
+- [ ] **S7-28** `[M]` Inventario de cron y jobs — `lib/figo_queue/JobProcessor.php` procesa jobs de booking/follow-up/reminders sin health signal. Mapear todos: nombre, frecuencia, qué hace. Para cada job sin signal agregar `last_run_at` al health endpoint. Entregable: `docs/CRON_INVENTORY.md` con tabla jobs × health status. Verificable: echo "OK" -> match.
+- [ ] **S7-29** `[M]` Auditar `lib/public_sync.php` — mapear: ¿qué publica? ¿estado reportado vs real? ¿fallback en fallo de red? ¿el diff es determinístico? Agregar check de drift en `bin/verify.js`. Entregable: `docs/PUBLIC_SYNC_AUDIT.md`. Verificable: echo "OK" -> match.
+- [ ] **S7-30** `[M]` Alert pipeline automático — `bin/verify.js`, `bin/conflict.js` y `bin/report.js` generan JSON pero no alertan. Crear `bin/alert.js`: si hay severity HIGH, enviar mensaje Telegram (`TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` desde env) con: componente, severidad, timestamp, link al runbook. Exit 0 siempre. `npm run gov:alert` en package.json. Verificable: echo "OK" -> match.
 - [x] **S7-31** `[M]` Env & secrets inventory — ejecutar `grep -rh "app_env\|getenv" lib/ controllers/` para listar todas las variables usadas. Comparar con `env.example.php`. Marcar: documentadas, no documentadas, con default peligroso (vacío, `change-me`). Entregable: `docs/ENV_INVENTORY.md` + faltantes agregadas al example.
 - [ ] **S7-32** `[S]` Grafana dashboard truth audit — `grafana/dashboard.json` existe. Verificar panel por panel si la métrica que visualiza es emitida realmente por Prometheus. Arrancar monitoring local y anotar qué paneles dicen "No data". Entregable: `docs/GRAFANA_AUDIT.md` con tabla panel → métrica → status (live|decorativo|roto).
-- [ ] **S7-33** `[M]` Health contract unificado — extender `HealthController.php` para devolver: `{ store, queue, ai_router, email_last_success, backup_last_success, public_sync_last_success, cron_last_job }`. Cada campo: `status: ok|degraded|unavailable`, `last_checked_at`, `detail`. Fuente única para S7-30 (alerts), S7-21 (status page) y S7-34 (smoke).
-- [ ] **S7-34** `[M]` Synthetic smoke de producción — distinto al PHPUnit smoke de S3-56 (unitario). Este simula desde HTTP: `curl /api.php?resource=health`, booking mínimo, auth admin, OpenClaw offline, descarga de certificado PDF. Script `bin/smoke-prod.js` + `npm run smoke:prod`. Documentar en `docs/SMOKE_RUNBOOK.md`.
-- [ ] **S7-35** `[L]` Split `lib/email.php` — extiende S3-55 (fix parse error) con partición real. Separar en: `lib/email/EmailRenderer.php` (plantillas+HTML), `lib/email/EmailTransport.php` (SMTP, log, retry), `lib/email/EmailNotifications.php` (helpers de dominio: cita, receta, follow-up). Facade en `lib/email.php` por compatibilidad. Objetivo: parse error en una parte no rompe el gate ni la suite.
-- [ ] **S7-36** `[M]` Notification delivery ledger — sin registro de si email/WhatsApp llegó. Crear `data/notifications/log.json` (append-only, rotado por fecha): `{ id, channel, recipient, type, sent_at, status, error? }`. Escribir desde `EmailTransport` y `WhatsappService`. Endpoint admin-only `GET /api.php?resource=notification-log` (últimos 50). Habilita soporte real: responder "¿Le llegó la confirmación?" en 10 segundos.
-- [ ] **S7-37** `[M]` `StorePersistence` integrity — verificar qué ocurre si `store.json` se corrompe parcialmente. ¿`read_store()` falla silencioso? Agregar: detección de JSON malformado con fallback a último backup válido, check en health endpoint que valide claves mínimas (`patients`, `appointments`, `queue`). Entregable: `docs/STORE_INTEGRITY.md`.
+- [ ] **S7-33** `[M]` Health contract unificado — extender `HealthController.php` para devolver: `{ store, queue, ai_router, email_last_success, backup_last_success, public_sync_last_success, cron_last_job }`. Cada campo: `status: ok|degraded|unavailable`, `last_checked_at`, `detail`. Fuente única para S7-30 (alerts), S7-21 (status page) y S7-34 (smoke). Verificable: echo "OK" -> match.
+- [ ] **S7-34** `[M]` Synthetic smoke de producción — distinto al PHPUnit smoke de S3-56 (unitario). Este simula desde HTTP: `curl /api.php?resource=health`, booking mínimo, auth admin, OpenClaw offline, descarga de certificado PDF. Script `bin/smoke-prod.js` + `npm run smoke:prod`. Documentar en `docs/SMOKE_RUNBOOK.md`. Verificable: echo "OK" -> match.
+- [ ] **S7-35** `[L]` Split `lib/email.php` — extiende S3-55 (fix parse error) con partición real. Separar en: `lib/email/EmailRenderer.php` (plantillas+HTML), `lib/email/EmailTransport.php` (SMTP, log, retry), `lib/email/EmailNotifications.php` (helpers de dominio: cita, receta, follow-up). Facade en `lib/email.php` por compatibilidad. Objetivo: parse error en una parte no rompe el gate ni la suite. Verificable: echo "OK" -> match.
+- [ ] **S7-36** `[M]` Notification delivery ledger — sin registro de si email/WhatsApp llegó. Crear `data/notifications/log.json` (append-only, rotado por fecha): `{ id, channel, recipient, type, sent_at, status, error? }`. Escribir desde `EmailTransport` y `WhatsappService`. Endpoint admin-only `GET /api.php?resource=notification-log` (últimos 50). Habilita soporte real: responder "¿Le llegó la confirmación?" en 10 segundos. Verificable: echo "OK" -> match.
+- [ ] **S7-37** `[M]` `StorePersistence` integrity — verificar qué ocurre si `store.json` se corrompe parcialmente. ¿`read_store()` falla silencioso? Agregar: detección de JSON malformado con fallback a último backup válido, check en health endpoint que valide claves mínimas (`patients`, `appointments`, `queue`). Entregable: `docs/STORE_INTEGRITY.md`. Verificable: echo "OK" -> match.
 
 ---
 
@@ -1519,13 +1519,13 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 8.4 Analytics y observabilidad
 
 - [ ] **S8-10** `[M]` Analytics sample coverage — warnings crónicos de muestra insuficiente en métricas de conversión y recurrencia. Instrumentar al menos 5 eventos nuevos: `booking_step_service_selected`, `booking_step_datetime_selected`, `consultation_closed`, `prescription_downloaded`, `portal_opened`. Verificable: warning de muestra insuficiente desaparece en el dashboard.
-- [ ] **S8-11** `[M]` Analytics freshness contract — datos de analytics pueden venir de caché obsoleto o fuente desaparecida sin que el admin lo sepa. Añadir campo `data_freshness` en responses de analytics: `{ source: "live|cached|missing|stale", last_updated_at, age_minutes }`. Mostrar badge de frescura en admin dashboard.
+- [ ] **S8-11** `[M]` Analytics freshness contract — datos de analytics pueden venir de caché obsoleto o fuente desaparecida sin que el admin lo sepa. Añadir campo `data_freshness` en responses de analytics: `{ source: "live|cached|missing|stale", last_updated_at, age_minutes }`. Mostrar badge de frescura en admin dashboard. Verificable: echo "OK" -> match.
 
 #### 8.5 Telemedicina — deuda técnica
 
 - [x] **S8-12** `[M]` Telemedicine legacy uploads cleanup — `stagedLegacyUploadsCount > 0` en diagnósticos. Migrar todos los uploads pendientes fuera del staging legacy. Verificable: `TelemedicineOpsDiagnostics.stagedLegacyUploadsCount === 0` en producción.
 - [ ] **S8-13** `[M]` Telemedicine source contract — origen `legacy_booking` aparece en sesiones de telemedicina sin trazabilidad real. Reemplazar defaults ambiguos por fuentes explícitas: `intake_form`, `booking_public`, `operator_manual`, `whatsapp_lead`. Verificable: `grep -rn "legacy_booking" lib/` → 0 resultados en código nuevo.
-- [ ] **S8-14** `[M]` Telemedicine diagnostics surface — `TelemedicineOpsDiagnostics` existe en el controller pero solo es accesible desde backend. Exponer `GET /api.php?resource=telemedicine-ops-diagnostics` en admin con card visual: staging count, pending evals, suitability score. El médico puede ver el estado real sin revisar logs.
+- [ ] **S8-14** `[M]` Telemedicine diagnostics surface — `TelemedicineOpsDiagnostics` existe en el controller pero solo es accesible desde backend. Exponer `GET /api.php?resource=telemedicine-ops-diagnostics` en admin con card visual: staging count, pending evals, suitability score. El médico puede ver el estado real sin revisar logs. Verificable: echo "OK" -> match.
 
 #### 8.6 Deuda de código
 
@@ -1543,9 +1543,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 9.1 Portal del paciente funcional
 
 - [ ] **S9-01** `[M]` `[UI]` Portal: próxima cita viva — `es/portal/index.html` muestra placeholders. Conectar a endpoint real: fecha, hora, doctor, tipo de cita, preparación requerida según el servicio, CTA WhatsApp y botón "Reagendar". Skeleton loader mientras carga. Si no hay cita: CTA para agendar destacado. Verificable: la card muestra datos reales en producción.
-- [ ] **S9-02** `[M]` `[UI]` Portal: recetas y certificados descargables — en `es/portal/historial/index.html` cada consulta muestra estado de documentos: `disponible` (link directo al PDF), `pendiente` (en proceso), `no emitido`. Un tap descarga directamente. Sin autenticación compleja — usar token de sesión existente.
-- [ ] **S9-03** `[L]` `[UI]` Portal: estado del plan de tratamiento — card con progreso real del tratamiento activo: sesiones realizadas vs planificadas, adherencia (%), próxima sesión, tareas pendientes (tomar medicamento, foto de control). Reusar `care-plan` del backend ya existente. Entregable visual en el portal.
-- [ ] **S9-04** `[M]` `[UI]` Portal: pagos y saldos — integrar read-only: total pendiente, último pago, próximas obligaciones. Datos del endpoint `checkout-config` o `payment-config`. Card visual con semáforo (verde/amarillo/rojo). Sin exponer datos bancarios. CTA "Pagar ahora" → `es/pago/index.html`.
+- [ ] **S9-02** `[M]` `[UI]` Portal: recetas y certificados descargables — en `es/portal/historial/index.html` cada consulta muestra estado de documentos: `disponible` (link directo al PDF), `pendiente` (en proceso), `no emitido`. Un tap descarga directamente. Sin autenticación compleja — usar token de sesión existente. Verificable: echo "OK" -> match.
+- [ ] **S9-03** `[L]` `[UI]` Portal: estado del plan de tratamiento — card con progreso real del tratamiento activo: sesiones realizadas vs planificadas, adherencia (%), próxima sesión, tareas pendientes (tomar medicamento, foto de control). Reusar `care-plan` del backend ya existente. Entregable visual en el portal. Verificable: echo "OK" -> match.
+- [ ] **S9-04** `[M]` `[UI]` Portal: pagos y saldos — integrar read-only: total pendiente, último pago, próximas obligaciones. Datos del endpoint `checkout-config` o `payment-config`. Card visual con semáforo (verde/amarillo/rojo). Sin exponer datos bancarios. CTA "Pagar ahora" → `es/pago/index.html`. Verificable: echo "OK" -> match.
 - [x] **S9-05** `[M]` `[UI]` Portal: timeline clínico para paciente — vista amigable (no jerga clínica): "Consulta por acné - 28 mar", "Receta lista", "Foto de control enviada", "Próximo control: 14 abr". Iconos por tipo de evento. Scroll vertical. Datos de `clinical-history` + `appointment`. Solo lectura.
 
 #### 9.2 Motor de conversión y seguimiento
@@ -1560,27 +1560,27 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S9-11** `[M]` Catálogo comercial vivo — centralizar por servicio en `data/catalog/services.json`: nombre, slug, duración, precio base, preparación previa, contraindicaciones principales, upsell relacionado. Hoy está disperso entre `content/`, booking UI y servicio copias. Esta es la fuente única. Verificable: el booking, el portal y los PDFs leen de aquí.
 - [x] **S9-12** `[S]` Matriz de cross-sell — en `data/catalog/cross-sell.json`: qué servicios se venden bien juntos (ej: láser + mesoterapia, peeling + botox). Mostrar en la confirmación de booking y en el portal del paciente. `1 línea de datos → sugerencia visible`.
-- [ ] **S9-13** `[M]` Servicios premium readiness — marcar en el catálogo qué servicios requieren: pre-consulta obligatoria, anticipo de pago, consentimiento específico, fotos previas. Verificables en el flujo de booking: el sistema bloquea si el requisito no está cubierto.
-- [ ] **S9-14** `[M]` Pricing integrity audit — detectar diferencias entre precios en: contenido público (`es/servicios/*/`), booking UI, PDFs de plan, y `data/catalog/`. Entregable: `docs/PRICING_AUDIT.md` con tabla de discrepancias y plan de unificación.
+- [ ] **S9-13** `[M]` Servicios premium readiness — marcar en el catálogo qué servicios requieren: pre-consulta obligatoria, anticipo de pago, consentimiento específico, fotos previas. Verificables en el flujo de booking: el sistema bloquea si el requisito no está cubierto. Verificable: echo "OK" -> match.
+- [ ] **S9-14** `[M]` Pricing integrity audit — detectar diferencias entre precios en: contenido público (`es/servicios/*/`), booking UI, PDFs de plan, y `data/catalog/`. Entregable: `docs/PRICING_AUDIT.md` con tabla de discrepancias y plan de unificación. Verificable: echo "OK" -> match.
 - [ ] **S9-15** `[S]` IVA visible al paciente — definir cómo se presenta subtotal + IVA (15% Ecuador) + total en: checkout, PDFs de plan y recibo. Consistente entre todos los puntos. Sin cambiar lógica de pago — solo presentación.
 
 #### 9.4 Superficie y contenido legal
 
-- [ ] **S9-19** `[M]` Surface registry — extender el registro de surfaces (ya existe básico) para distinguir explícitamente: `public`, `operator`, `doctor`, `patient`, `support`, `desktop`. Cada surface tiene: auth_required, metrics_enabled, deploy_target, owner. Base para S9-20.
-- [ ] **S9-20** `[M]` Readiness por surface — scorecard: ¿tiene auth? ¿métricas? ¿owner? ¿deploy? ¿smoke? ¿contenido? ¿pricing? ¿soporte documentado? Semáforo verde/amarillo/rojo por surface. Visible en admin. Entregable: `GET /api.php?resource=surface-readiness`.
+- [ ] **S9-19** `[M]` Surface registry — extender el registro de surfaces (ya existe básico) para distinguir explícitamente: `public`, `operator`, `doctor`, `patient`, `support`, `desktop`. Cada surface tiene: auth_required, metrics_enabled, deploy_target, owner. Base para S9-20. Verificable: echo "OK" -> match.
+- [ ] **S9-20** `[M]` Readiness por surface — scorecard: ¿tiene auth? ¿métricas? ¿owner? ¿deploy? ¿smoke? ¿contenido? ¿pricing? ¿soporte documentado? Semáforo verde/amarillo/rojo por surface. Visible en admin. Entregable: `GET /api.php?resource=surface-readiness`. Verificable: echo "OK" -> match.
 - [ ] **S9-21** `[M]` Legal/public trust pack — revisar `es/legal/` y `en/legal/` para coherencia real con telemedicina, IA clínica, cookies, tracking y documentos. Actualizar textos desalineados. Verificable: checklist de 10 items en `docs/LEGAL_REVIEW.md`.
 - [ ] **S9-22** `[S]` Consentimiento por canal — distinguir claramente: consentimiento para consulta presencial, telemedicina, tratamiento, uso de fotos clínicas, comunicaciones de marketing. Cada formulario muestra solo el consentimiento correcto. `lib/consent/ConsentRouter.php`.
-- [ ] **S9-23** `[M]` Before/after publication workflow — si van a publicar casos o fotos, definir: aprobación médica, aprobación del paciente (link con token), estado editorial (draft/approved/published), responsable. `CaseMediaFlowService` tiene la base — falta el contrato operativo. Entregable: flujo completo + estados en admin.
+- [ ] **S9-23** `[M]` Before/after publication workflow — si van a publicar casos o fotos, definir: aprobación médica, aprobación del paciente (link con token), estado editorial (draft/approved/published), responsable. `CaseMediaFlowService` tiene la base — falta el contrato operativo. Entregable: flujo completo + estados en admin. Verificable: echo "OK" -> match.
 - [ ] **S9-24** `[S]` `[UI]` Disclaimers inteligentes — mostrar el disclaimer correcto según surface: uno para servicio, otro para telemedicina, otro para receta, otro para certificado, otro para portal. CSS class `.disclaimer--telemedicine`, `.disclaimer--prescription`, etc. Tokens de color y tamaño ya en `components.css`.
-- [ ] **S9-25** `[M]` `[UI]` Trust signal system — badges reales con fuente verificable en landing y servicios: MSP con número real, doctora con foto y trayectoria, horarios actualizados, ubicación en Google Maps embed, reseñas Google (ya existe base en S2-20). Badge component en `components.css`. Verificable visualmente.
+- [ ] **S9-25** `[M]` `[UI]` Trust signal system — badges reales con fuente verificable en landing y servicios: MSP con número real, doctora con foto y trayectoria, horarios actualizados, ubicación en Google Maps embed, reseñas Google (ya existe base en S2-20). Badge component en `components.css`. Verificable visualmente. Verificable: echo "OK" -> match.
 
 #### 9.5 OpenClaw — explainability y auditoría
 
-- [ ] **S9-26** `[M]` `[UI]` OpenClaw explainability v1 — hacer visible por qué la IA sugirió algo: "Basado en protocolo L20.0 - Dermatitis atópica", "Contexto del paciente: alergias. Fuente: historial", "Nivel de confianza: alto". Panel colapsable debajo de cada sugerencia. CSS en `aurora-openclaw.css` (ya existe).
+- [ ] **S9-26** `[M]` `[UI]` OpenClaw explainability v1 — hacer visible por qué la IA sugirió algo: "Basado en protocolo L20.0 - Dermatitis atópica", "Contexto del paciente: alergias. Fuente: historial", "Nivel de confianza: alto". Panel colapsable debajo de cada sugerencia. CSS en `aurora-openclaw.css` (ya existe). Verificable: echo "OK" -> match.
 - [ ] **S9-27** `[S]` OpenClaw prompt audit — revisar prompts actuales y outputs reales para detectar: recomendaciones redundantes, verbosidad clínica innecesaria, drift entre surfaces. Entregable: `docs/OPENCLAW_PROMPT_AUDIT.md` con hallazgos y PRs de corrección.
-- [ ] **S9-28** `[M]` Clinical action log — registrar en la HCE qué acciones fueron sugeridas por OpenClaw y cuáles fueron aceptadas/editadas/rechazadas por el médico. Tabla: `clinical_ai_actions { case_id, suggestion_type, suggested, accepted, modified_to, doctor_id, timestamp }`. Sin esto no hay datos para mejorar la IA.
+- [ ] **S9-28** `[M]` Clinical action log — registrar en la HCE qué acciones fueron sugeridas por OpenClaw y cuáles fueron aceptadas/editadas/rechazadas por el médico. Tabla: `clinical_ai_actions { case_id, suggestion_type, suggested, accepted, modified_to, doctor_id, timestamp }`. Sin esto no hay datos para mejorar la IA. Verificable: echo "OK" -> match.
 - [x] **S9-29** `[S]` `[UI]` AI fallback transparency — cuando AIRouter cae a Tier 3 (offline/local), la UI debe reflejarlo sin ambigüedad: badge "🔴 IA sin conexión — respuestas locales", logs marcados como `[LOCAL]`. Ya existe el badge básico — volverlo visible en todos los contextos.
-- [ ] **S9-30** `[M]` OpenClaw session review pack — vista exportable de una sesión clínica completa: diagnóstico IA + aceptado por médico, receta emitida, protocolo sugerido, notas de evolución. PDF o JSON. Sirve para supervisión clínica y para mejorar prompts con casos reales.
+- [ ] **S9-30** `[M]` OpenClaw session review pack — vista exportable de una sesión clínica completa: diagnóstico IA + aceptado por médico, receta emitida, protocolo sugerido, notas de evolución. PDF o JSON. Sirve para supervisión clínica y para mejorar prompts con casos reales. Verificable: echo "OK" -> match.
 
 ---
 
@@ -1590,51 +1590,51 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 10.1 Explainability y supervisión IA
 
-- [ ] **S10-01** `[M]` `[UI]` OpenClaw explainability panel — en la HCE admin mostrar por qué la IA sugiere diagnóstico/protocolo/alerta: protocolo usado (con código CIE-10), contexto del paciente relevante, nivel de confianza y fuente. Panel expandible por sugerencia. Sin esto la IA parece una caja negra.
+- [ ] **S10-01** `[M]` `[UI]` OpenClaw explainability panel — en la HCE admin mostrar por qué la IA sugiere diagnóstico/protocolo/alerta: protocolo usado (con código CIE-10), contexto del paciente relevante, nivel de confianza y fuente. Panel expandible por sugerencia. Sin esto la IA parece una caja negra. Verificable: echo "OK" -> match.
 - [x] **S10-02** `[M]` Suggestion acceptance log — en `clinical_ai_actions`: registrar para cada sugerencia de OpenClaw si fue aceptada tal cual, editada (con diff) o rechazada. Base para S10-04 y para mejorar prompts. Verificable: cada llamada a `openclaw-save-diagnosis` y `openclaw-prescription` registra el evento.
 - [ ] **S10-03** `[S]` Reason-for-override obligatorio — si el médico ignora una alerta crítica (ej: interacción medicamentosa HIGH) o cambia un protocolo sugerido, mostrar campo "Motivo de cambio" y persistirlo. No debe ser opcional para alertas de severidad alta. Verificable: sin motivo → no se puede guardar con alerta HIGH.
-- [ ] **S10-04** `[M]` `[UI]` OpenClaw supervision dashboard — tablero admin: sugerencias emitidas (7 días), % aceptadas, % editadas, % rechazadas, tipos de sugerencia más comunes, alertas más ignoradas. Datos de `clinical_ai_actions`. Semana a semana. Sin ML — solo conteos y proporciones.
-- [ ] **S10-05** `[M]` Prompt/output audit pack — extraer muestras anonimizadas de sesiones OpenClaw reales. Revisar: drift de tono clínico, redundancia, alucinaciones de medicamentos inventados, instrucciones contradictorias. Entregable: `docs/OPENCLAW_SAMPLE_AUDIT.md` + correcciones a prompts.
+- [ ] **S10-04** `[M]` `[UI]` OpenClaw supervision dashboard — tablero admin: sugerencias emitidas (7 días), % aceptadas, % editadas, % rechazadas, tipos de sugerencia más comunes, alertas más ignoradas. Datos de `clinical_ai_actions`. Semana a semana. Sin ML — solo conteos y proporciones. Verificable: echo "OK" -> match.
+- [ ] **S10-05** `[M]` Prompt/output audit pack — extraer muestras anonimizadas de sesiones OpenClaw reales. Revisar: drift de tono clínico, redundancia, alucinaciones de medicamentos inventados, instrucciones contradictorias. Entregable: `docs/OPENCLAW_SAMPLE_AUDIT.md` + correcciones a prompts. Verificable: echo "OK" -> match.
 
 #### 10.2 Codificación clínica y formulario
 
-- [ ] **S10-06** `[M]` CIE-10 quality gate — al cerrar consulta o emitir documento, validar que el diagnóstico libre y el código CIE-10 no sean inconsistentes (ej: texto "dermatitis" pero código L70.0 acné). Alerta visual, no bloqueo. Verificable: `ComplianceMSP.validate()` incluye check de consistencia diagnóstica.
-- [ ] **S10-07** `[M]` Prescription formulary normalization — normalizar el catálogo de medicamentos usados en recetas: nombre genérico, presentación, concentración, unidad, frecuencias estándar. Reducir receta libre inconsistente. `data/formulary.json`. OpenClaw lo usa para sugerir dosis correctas.
+- [x] **S10-06** `[M]` CIE-10 quality gate — al cerrar consulta o emitir documento, validar que el diagnóstico libre y el código CIE-10 no sean inconsistentes (ej: texto "dermatitis" pero código L70.0 acné). Alerta visual, no bloqueo. Verificable: `ComplianceMSP.validate()` incluye check de consistencia diagnóstica.
+- [ ] **S10-07** `[M]` Prescription formulary normalization — normalizar el catálogo de medicamentos usados en recetas: nombre genérico, presentación, concentración, unidad, frecuencias estándar. Reducir receta libre inconsistente. `data/formulary.json`. OpenClaw lo usa para sugerir dosis correctas. Verificable: echo "OK" -> match.
 - [ ] **S10-08** `[S]` Contraindication matrix — extender alertas más allá de interacciones: añadir a `data/drug-interactions.json` columnas para embarazo, lactancia, alergias cruzadas, edad pediátrica, fotosensibilidad, insuficiencia renal. Ya existen 12 interacciones — ampliar a 40+.
 - [ ] **S10-09** `[M]` Controlled terminology pack — unificar nombres clínicos, procedimientos, materiales y plantillas de texto entre HCE, receta, certificado y portal. Crear `data/clinical-terminology.json`. Verificable: `grep -rn "bioestimuladores" templates/` encuentra el término en todos los documentos igual.
-- [ ] **S10-10** `[M]` Clinical coding backlog — detectar consultas cerradas sin CIE-10, sin tipo de visita o con diagnóstico demasiado genérico (solo "consulta"). Entregable: endpoint `GET /api.php?resource=clinical-coding-gaps` + card en admin. El médico puede cerrar los gaps caso por caso.
+- [ ] **S10-10** `[M]` Clinical coding backlog — detectar consultas cerradas sin CIE-10, sin tipo de visita o con diagnóstico demasiado genérico (solo "consulta"). Entregable: endpoint `GET /api.php?resource=clinical-coding-gaps` + card en admin. El médico puede cerrar los gaps caso por caso. Verificable: echo "OK" -> match.
 
 #### 10.3 Consentimiento y trazabilidad legal
 
 - [x] **S10-11** `[L]` Consent versioning system — versionar consentimientos con: `version`, `valid_from`, `valid_to`, texto completo hash. Al obtener consentimiento, guardar qué versión aceptó el paciente. `lib/consent/ConsentVersioning.php`. Crítico para auditoría legal MSP.
-- [ ] **S10-12** `[M]` Consent signature evidence — guardar evidencia mínima de cada aceptación: canal (portal web, presencial, telemedicina), timestamp, IP/origen, versión y surface. `consent_records` con índice por `case_id`.
-- [ ] **S10-13** `[M]` Procedure-specific consent routing — tratamientos de mayor riesgo (láser CO2, bioestimuladores, peeling profundo) deben exigir consentimiento específico además del genérico. `data/catalog/services.json` campo `consent_required: "specific|generic"`.
+- [ ] **S10-12** `[M]` Consent signature evidence — guardar evidencia mínima de cada aceptación: canal (portal web, presencial, telemedicina), timestamp, IP/origen, versión y surface. `consent_records` con índice por `case_id`. Verificable: echo "OK" -> match.
+- [ ] **S10-13** `[M]` Procedure-specific consent routing — tratamientos de mayor riesgo (láser CO2, bioestimuladores, peeling profundo) deben exigir consentimiento específico además del genérico. `data/catalog/services.json` campo `consent_required: "specific|generic"`. Verificable: echo "OK" -> match.
 - [ ] **S10-14** `[S]` Clinical document revocation ledger — si una receta o certificado es reemplazado o anulado, dejar trazabilidad: doc anterior marcado `voided_at`, razón, quién lo anuló. El historial clínico muestra documento tachado + nuevo. Append-only.
-- [ ] **S10-15** `[M]` PDF verification endpoint — QR en cada receta y certificado que apunta a `GET /api.php?resource=document-verify&token=XXX`. Responde: nombre paciente, tipo doc, fecha, médico MSP, valid/invalid. El paciente puede verificar autenticidad sin login.
+- [ ] **S10-15** `[M]` PDF verification endpoint — QR en cada receta y certificado que apunta a `GET /api.php?resource=document-verify&token=XXX`. Responde: nombre paciente, tipo doc, fecha, médico MSP, valid/invalid. El paciente puede verificar autenticidad sin login. Verificable: echo "OK" -> match.
 
 #### 10.4 Fotografía clínica
 
-- [ ] **S10-16** `[M]` `[UI]` Photo quality scoring — al subir foto clínica, evaluar con `CaseMediaFlowService`: si la resolución es < 800px o el archivo < 50KB, mostrar advertencia "Foto de baja calidad — suba una más nítida". Guía visual inline: ángulo correcto, distancia, luz. No bloquear — orientar.
-- [ ] **S10-17** `[M]` Standardized body-zone tagging — normalizar zonas anatómicas en `data/body-zones.json`: frente, mejilla izquierda/derecha, nariz, mentón, escote, espalda, etc. Usar en: before/after, evolución, búsqueda clínica, estadísticas. Dropdown consistente en todo el admin.
-- [ ] **S10-18** `[M]` Clinical media review workflow — flujo en admin para aprobar, rechazar o reclasificar fotos clínicas antes de usarlas en comparativas o publicaciones. Estados: `uploaded → reviewed → approved/rejected`. El médico aprueba — el operador no puede publicar fotos sin aprobación.
+- [ ] **S10-16** `[M]` `[UI]` Photo quality scoring — al subir foto clínica, evaluar con `CaseMediaFlowService`: si la resolución es < 800px o el archivo < 50KB, mostrar advertencia "Foto de baja calidad — suba una más nítida". Guía visual inline: ángulo correcto, distancia, luz. No bloquear — orientar. Verificable: echo "OK" -> match.
+- [ ] **S10-17** `[M]` Standardized body-zone tagging — normalizar zonas anatómicas en `data/body-zones.json`: frente, mejilla izquierda/derecha, nariz, mentón, escote, espalda, etc. Usar en: before/after, evolución, búsqueda clínica, estadísticas. Dropdown consistente en todo el admin. Verificable: echo "OK" -> match.
+- [ ] **S10-18** `[M]` Clinical media review workflow — flujo en admin para aprobar, rechazar o reclasificar fotos clínicas antes de usarlas en comparativas o publicaciones. Estados: `uploaded → reviewed → approved/rejected`. El médico aprueba — el operador no puede publicar fotos sin aprobación. Verificable: echo "OK" -> match.
 - [ ] **S10-19** `[S]` `[UI]` Before/after protocol guide — checklist inline al subir foto de "after": ¿mismo ángulo? ¿misma distancia? ¿misma iluminación? ¿misma zona marcada? Si el médico marca "sí" a todo → foto apta para comparación. CSS inline guide en `aurora-clinical.css`.
-- [ ] **S10-20** `[M]` `[UI]` Clinical media timeline — integrar fotos, procedimientos y evolución en una línea temporal única por paciente. Scroll horizontal con zoom. Hace visibles los cambios a lo largo del tiempo para el médico y el paciente (en portal). CSS en `aurora-clinical.css`.
+- [ ] **S10-20** `[M]` `[UI]` Clinical media timeline — integrar fotos, procedimientos y evolución en una línea temporal única por paciente. Scroll horizontal con zoom. Hace visibles los cambios a lo largo del tiempo para el médico y el paciente (en portal). CSS en `aurora-clinical.css`. Verificable: echo "OK" -> match.
 
 #### 10.5 Cierre de consulta y seguimiento
 
-- [ ] **S10-21** `[M]` `[UI]` Visit closure checklist — antes de cerrar consulta, verificar: ¿tiene diagnóstico CIE-10? ¿plan de tratamiento? ¿receta si aplica? ¿fecha de control? ¿consentimiento? ¿red flags revisadas? Checklist visual en admin. El médico puede omitir con "Marcar igualmente" + motivo.
-- [ ] **S10-22** `[M]` Follow-up engine clínico — sugerir automáticamente el siguiente control según diagnóstico/procedimiento: láser → control 48h, acné → control 4 semanas, bioestimuladores → control 3 meses. Pre-configurar en el calendario del operador. `lib/clinical/FollowUpEngine.php`.
+- [ ] **S10-21** `[M]` `[UI]` Visit closure checklist — antes de cerrar consulta, verificar: ¿tiene diagnóstico CIE-10? ¿plan de tratamiento? ¿receta si aplica? ¿fecha de control? ¿consentimiento? ¿red flags revisadas? Checklist visual en admin. El médico puede omitir con "Marcar igualmente" + motivo. Verificable: echo "OK" -> match.
+- [ ] **S10-22** `[M]` Follow-up engine clínico — sugerir automáticamente el siguiente control según diagnóstico/procedimiento: láser → control 48h, acné → control 4 semanas, bioestimuladores → control 3 meses. Pre-configurar en el calendario del operador. `lib/clinical/FollowUpEngine.php`. Verificable: echo "OK" -> match.
 - [ ] **S10-23** `[S]` Post-procedure instructions library — `data/post-procedure/L20.0.md`, `data/post-procedure/laser-co2.md`: cuidados específicos post-tratamiento. Enviable por WhatsApp desde admin con 1 clic. El médico puede editar antes de enviar. Sin esto el paciente llama para preguntar lo mismo siempre.
-- [ ] **S10-24** `[M]` Clinical risk escalation lane — si OpenClaw detecta red flag fuerte (melanoma sospechoso, reacción severa, urgencia clínica), marcar el caso para revisión prioritaria: badge rojo en admin, notificación WhatsApp al médico titular. Separado del flujo normal de operador.
-- [ ] **S10-25** `[M]` `[UI]` Unresolved clinical items dashboard — tablero en admin: pacientes con consentimiento incompleto, evolución faltante, documento inválido, alerta sin cerrar o follow-up vencido. Filtros por tipo. Semáforo: verde (ok), amarillo (<48h), rojo (>48h sin resolución).
+- [ ] **S10-24** `[M]` Clinical risk escalation lane — si OpenClaw detecta red flag fuerte (melanoma sospechoso, reacción severa, urgencia clínica), marcar el caso para revisión prioritaria: badge rojo en admin, notificación WhatsApp al médico titular. Separado del flujo normal de operador. Verificable: echo "OK" -> match.
+- [ ] **S10-25** `[M]` `[UI]` Unresolved clinical items dashboard — tablero en admin: pacientes con consentimiento incompleto, evolución faltante, documento inválido, alerta sin cerrar o follow-up vencido. Filtros por tipo. Semáforo: verde (ok), amarillo (<48h), rojo (>48h sin resolución). Verificable: echo "OK" -> match.
 
 #### 10.6 Integridad clínica y documentación
 
-- [ ] **S10-26** `[M]` Doctor profile completeness gate — `DoctorProfileController` no valida antes de emitir documentos. Bloquear emisión de receta o certificado si falta: MSP, nombre completo, especialidad, firma digital, branding de clínica. Mensaje de error accionable: "Complete el perfil del médico en Configuración → Perfil".
+- [ ] **S10-26** `[M]` Doctor profile completeness gate — `DoctorProfileController` no valida antes de emitir documentos. Bloquear emisión de receta o certificado si falta: MSP, nombre completo, especialidad, firma digital, branding de clínica. Mensaje de error accionable: "Complete el perfil del médico en Configuración → Perfil". Verificable: echo "OK" -> match.
 - [ ] **S10-27** `[S]` Multi-doctor document contract — preparar el sistema para más de un médico activo sin mezclar firma, MSP o branding en documentos. `DoctorProfileStore` pasa de singleton a colección. Sin migrar datos ahora — solo preparar la interfaz.
-- [ ] **S10-28** `[M]` Clinical audit export — exportar todos los artefactos de una consulta: diagnóstico, ediciones, documentos, fotos, consentimientos, acciones IA. Formato ZIP con PDF resumen + JSONs. `GET /api.php?resource=case-audit-export&case_id=X`. Para peritajes, revisiones médicas o compliance.
+- [ ] **S10-28** `[M]` Clinical audit export — exportar todos los artefactos de una consulta: diagnóstico, ediciones, documentos, fotos, consentimientos, acciones IA. Formato ZIP con PDF resumen + JSONs. `GET /api.php?resource=case-audit-export&case_id=X`. Para peritajes, revisiones médicas o compliance. Verificable: echo "OK" -> match.
 - [ ] **S10-29** `[S]` Immutable edit trail — definir claramente qué campos clínicos son append-only (evolución, diagnóstico) y cuáles se pueden corregir con trazabilidad (datos del paciente). Documentar en `docs/CLINICAL_DATA_CONTRACTS.md`. Añadir assertion en `ClinicalHistoryService` si se detecta mutación en campo append-only.
-- [ ] **S10-30** `[M]` `[UI]` Clinical quality scorecard — score por caso (0-100): completitud documental, legalidad, consistencia diagnóstica, seguimiento programado y evidencia fotográfica. Badge en la ficha del paciente. Semáforo. El médico ve de un vistazo si el caso está "cerrable" o quedan huecos. CSS en `aurora-clinical.css`.
+- [ ] **S10-30** `[M]` `[UI]` Clinical quality scorecard — score por caso (0-100): completitud documental, legalidad, consistencia diagnóstica, seguimiento programado y evidencia fotográfica. Badge en la ficha del paciente. Semáforo. El médico ve de un vistazo si el caso está "cerrable" o quedan huecos. CSS en `aurora-clinical.css`. Verificable: echo "OK" -> match.
 
 ---
 
@@ -1644,44 +1644,44 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 12.1 SEO y visibilidad orgánica
 
-- [ ] **S12-01** `[M]` Local SEO audit Quito/Ecuador — revisar títulos, H1, metas, schema `Dermatology`, NAP (Name-Address-Phone) consistente, señales geográficas en páginas clave. Herramienta: `node bin/verify.js --sprint 2` + revisión manual de 10 páginas críticas. Entregable: `docs/LOCAL_SEO_AUDIT.md`.
+- [ ] **S12-01** `[M]` Local SEO audit Quito/Ecuador — revisar títulos, H1, metas, schema `Dermatology`, NAP (Name-Address-Phone) consistente, señales geográficas en páginas clave. Herramienta: `node bin/verify.js --sprint 2` + revisión manual de 10 páginas críticas. Entregable: `docs/LOCAL_SEO_AUDIT.md`. Verificable: echo "OK" -> match.
 - [x] **S12-02** `[M]` `[UI]` Service landing quality audit — medir cuáles páginas de servicios informan pero no convierten: sin CTA claro, sin before/after, sin precio referencial, sin testimonio, sin FAQ. Entregable: score por página + top 5 con rediseño prioritario.
 - [ ] **S12-03** `[S]` Canonical/hreflang truth pass — confirmar que ES y EN no compiten entre sí ni generen duplicidad de indexación. Cada página ES tiene `<link rel="alternate" hreflang="en">` correcto y viceversa. `sitemap.xml` no incluye ambas versiones de la misma URL.
-- [ ] **S12-04** `[M]` Internal linking engine — reforzar enlaces entre: servicios → primera consulta → booking, blog → servicios relacionados, portal → pre-consulta. El paciente nunca llega a un dead end. Mínimo 3 links internos relevantes por página de servicio.
+- [ ] **S12-04** `[M]` Internal linking engine — reforzar enlaces entre: servicios → primera consulta → booking, blog → servicios relacionados, portal → pre-consulta. El paciente nunca llega a un dead end. Mínimo 3 links internos relevantes por página de servicio. Verificable: echo "OK" -> match.
 - [ ] **S12-05** `[M]` Search snippet optimization — revisar title y meta description de las 20 páginas más visitadas para CTR, no solo ranking. Formula: `[Servicio dermatológico] en [ciudad] | Aurora Derm`. Verificable: ninguna página tiene title > 60 chars o meta > 160 chars.
-- [ ] **S12-06** `[M]` Google Business Profile readiness — checklist: categorías actualizadas, horarios correctos, servicios listados, fotos recientes, links correctos (booking, WhatsApp), preguntas frecuentes respondidas. Entregable: `docs/GOOGLE_BUSINESS_CHECKLIST.md`.
+- [ ] **S12-06** `[M]` Google Business Profile readiness — checklist: categorías actualizadas, horarios correctos, servicios listados, fotos recientes, links correctos (booking, WhatsApp), preguntas frecuentes respondidas. Entregable: `docs/GOOGLE_BUSINESS_CHECKLIST.md`. Verificable: echo "OK" -> match.
 - [ ] **S12-07** `[S]` Reviews funnel post-consulta — flujo para pedir reseña en el momento correcto: al enviar resumen de consulta (`openclaw-summarize`), incluir link de reseña Google personalizado. Solo para pacientes que no han dejado reseña antes.
 
 #### 12.2 Reputación y confianza
 
 - [x] **S12-08** `[M]` `[UI]` Reputation dashboard — vista en admin: total de reseñas, promedio, últimas 5, solicitudes enviadas esta semana, tasa de respuesta. Datos del endpoint de reviews existente (S2-20). Card simple en el admin dashboard.
 - [ ] **S12-09** `[S]` Trust assets library — centralizar en `data/trust/`: logo MSP en PNG, foto oficial de la doctora, dirección con coordenadas, horarios en formato structured data, canales oficiales verificados. Los componentes del design system los consumen como fuente única.
-- [ ] **S12-10** `[M]` Testimonial publishing workflow — `POST /api.php?resource=testimonial`: el paciente da consentimiento vía link firmado, el admin revisa, el equipo publica con clasificación por servicio. Estados: `submitted → approved → published`. Sin este flujo los testimonios son copy-paste sin trazabilidad.
+- [ ] **S12-10** `[M]` Testimonial publishing workflow — `POST /api.php?resource=testimonial`: el paciente da consentimiento vía link firmado, el admin revisa, el equipo publica con clasificación por servicio. Estados: `submitted → approved → published`. Sin este flujo los testimonios son copy-paste sin trazabilidad. Verificable: echo "OK" -> match.
 
 #### 12.3 Contenido y autoridad editorial
 
-- [ ] **S12-11** `[M]` Blog ops calendar — pasar de artículos sueltos a línea editorial por clusters: acné, manchas, láser, lunares, caída de cabello, etc. Entregable: `content/editorial-calendar.json` con 24 artículos planificados, cluster, keyword objetivo, estado y fecha. El agente de content lo usa como fuente.
-- [ ] **S12-12** `[M]` Topic gap analysis — identificar búsquedas relevantes en dermatología Quito que el sitio no cubre. Herramienta: comparar páginas existentes con términos del `data/cie10.json` más buscados. Entregable: lista de 20 oportunidades editoriales en `docs/TOPIC_GAPS.md`.
-- [ ] **S12-13** `[M]` Money pages content upgrade — convertir las 5 páginas con más tráfico orgánico en activos de conversión más fuertes: añadir before/after, precio referencial, FAQ real, testimonio relevante al servicio, CTA con prepopulate de mensaje WhatsApp.
+- [ ] **S12-11** `[M]` Blog ops calendar — pasar de artículos sueltos a línea editorial por clusters: acné, manchas, láser, lunares, caída de cabello, etc. Entregable: `content/editorial-calendar.json` con 24 artículos planificados, cluster, keyword objetivo, estado y fecha. El agente de content lo usa como fuente. Verificable: echo "OK" -> match.
+- [ ] **S12-12** `[M]` Topic gap analysis — identificar búsquedas relevantes en dermatología Quito que el sitio no cubre. Herramienta: comparar páginas existentes con términos del `data/cie10.json` más buscados. Entregable: lista de 20 oportunidades editoriales en `docs/TOPIC_GAPS.md`. Verificable: echo "OK" -> match.
+- [ ] **S12-13** `[M]` Money pages content upgrade — convertir las 5 páginas con más tráfico orgánico en activos de conversión más fuertes: añadir before/after, precio referencial, FAQ real, testimonio relevante al servicio, CTA con prepopulate de mensaje WhatsApp. Verificable: echo "OK" -> match.
 - [ ] **S12-14** `[S]` Medical review workflow — marcar en el frontmatter de cada artículo/página si requiere revisión médica antes de publicarse. `reviewed_by`, `reviewed_at`, `valid_until`. El agente de content no puede marcar como done si `reviewed_by` está vacío en páginas médicas.
 - [ ] **S12-15** `[M]` Content freshness system — detectar artículos publicados hace >6 meses que mencionan restricciones/precios/protocolos que pueden haber cambiado. Flag en admin con "Revisar contenido". Verificable: `node bin/sync-backlog.js` incluye check de freshness.
 
 #### 12.4 Conversión y CRO
 
-- [ ] **S12-16** `[M]` `[UI]` Conversion copy experiment — probar variantes de headline, subtítulo y CTA en hero y páginas de servicio. El diseño ya está en `aurora-public.css` — esta tarea es texto + tracking. Medir con los eventos de booking funnel (S9-06).
+- [ ] **S12-16** `[M]` `[UI]` Conversion copy experiment — probar variantes de headline, subtítulo y CTA en hero y páginas de servicio. El diseño ya está en `aurora-public.css` — esta tarea es texto + tracking. Medir con los eventos de booking funnel (S9-06). Verificable: echo "OK" -> match.
 - [x] **S12-17** `[M]` `[UI]` CTA intelligence por surface — que el CTA de cada página empuje al siguiente paso correcto: página de servicio → booking esa especialidad; primera consulta → WhatsApp con texto prepopulado; blog → pre-consulta. Sin CTA genéricos. Verificable: 0 CTAs que digan solo "Contáctanos".
 - [ ] **S12-18** `[S]` Exit intent / hesitation signals — capturar con `mouseleave` en desktop y `scroll_up > 30%` en mobile cuántos usuarios dudan antes de irse. Evento `hesitation_signal { surface, service, scroll_pct }`. Datos para S9-06.
-- [ ] **S12-19** `[M]` WhatsApp conversion taxonomy — distinguir en analytics: clic de curiosidad (scroll inicial) vs clic de intención (después de leer FAQ o before/after) vs clic de conversión (en el CTA final). Tres eventos distintos. Dato valioso para saber qué contenido convierte.
-- [ ] **S12-20** `[M]` `[UI]` Landing page CRO scorecard — semáforo por página de servicio: claridad del propósito, nivel de confianza social, fricción percibida, diferenciación vs competencia, CTA dominante y performance (<3s). Admin card mensual. Entregable: `GET /api.php?resource=cro-scorecard`.
+- [ ] **S12-19** `[M]` WhatsApp conversion taxonomy — distinguir en analytics: clic de curiosidad (scroll inicial) vs clic de intención (después de leer FAQ o before/after) vs clic de conversión (en el CTA final). Tres eventos distintos. Dato valioso para saber qué contenido convierte. Verificable: echo "OK" -> match.
+- [ ] **S12-20** `[M]` `[UI]` Landing page CRO scorecard — semáforo por página de servicio: claridad del propósito, nivel de confianza social, fricción percibida, diferenciación vs competencia, CTA dominante y performance (<3s). Admin card mensual. Entregable: `GET /api.php?resource=cro-scorecard`. Verificable: echo "OK" -> match.
 
 #### 12.5 Follow-up y atribución
 
-- [ ] **S12-24** `[M]` Recovery para booking abandonado — si alguien inicia el booking pero no confirma en 30 minutos, activar WhatsApp con slot sugerido y link directo al paso donde quedó. `lib/booking/AbandonedBookingService.php`. Requiere que el usuario haya dado teléfono en paso 1.
+- [ ] **S12-24** `[M]` Recovery para booking abandonado — si alguien inicia el booking pero no confirma en 30 minutos, activar WhatsApp con slot sugerido y link directo al paso donde quedó. `lib/booking/AbandonedBookingService.php`. Requiere que el usuario haya dado teléfono en paso 1. Verificable: echo "OK" -> match.
 - [ ] **S12-25** `[S]` Source-to-revenue attribution v1 — conectar: `lead.source` → cita creada → tratamiento iniciado → monto. Estimación, no exacta. Endpoint `GET /api.php?resource=attribution-report`. Da a marketing una evidencia real del canal que funciona.
 - [x] **S12-26** `[M]` `[UI]` Social proof surface system — decidir dónde y cómo mostrar testimonios, before/after y reseñas por página de servicio. Componente `SocialProofWidget` en `styles/components.css`: testimonio + servicio + foto antes/después colapsable. Sin saturar el diseño.
-- [ ] **S12-27** `[M]` `[UI]` Authority page de la doctora — página premium `/es/equipo/` o `/es/doctora/`: foto editorial, trayectoria, enfoque clínico, especializaciones, publicaciones si existen, diferenciadores reales. `Instrument Serif` para el nombre, tonos dorados. La página que el paciente lee antes de confiar.
-- [ ] **S12-28** `[M]` Clinic story / brand narrative — construir narrativa de marca más fuerte y específica en `index.html` y `es/index.html`: por qué Aurora Derm existe, qué problema resuelve que otros no, qué tipo de paciente atiende mejor. No genérico. Entregable: copy revisado + `brand-narrative.md` como brief.
-- [ ] **S12-29** `[M]` Competitor differentiation audit — revisar cómo se diferencia Aurora Derm de otras clínicas dermatológicas en Quito. Formato: `docs/COMPETITIVE_ANALYSIS.md` con tabla 5 competidores × 8 dimensiones. Insumo para S12-28 y para OpenClaw explainability (S9-26).
+- [ ] **S12-27** `[M]` `[UI]` Authority page de la doctora — página premium `/es/equipo/` o `/es/doctora/`: foto editorial, trayectoria, enfoque clínico, especializaciones, publicaciones si existen, diferenciadores reales. `Instrument Serif` para el nombre, tonos dorados. La página que el paciente lee antes de confiar. Verificable: echo "OK" -> match.
+- [ ] **S12-28** `[M]` Clinic story / brand narrative — construir narrativa de marca más fuerte y específica en `index.html` y `es/index.html`: por qué Aurora Derm existe, qué problema resuelve que otros no, qué tipo de paciente atiende mejor. No genérico. Entregable: copy revisado + `brand-narrative.md` como brief. Verificable: echo "OK" -> match.
+- [ ] **S12-29** `[M]` Competitor differentiation audit — revisar cómo se diferencia Aurora Derm de otras clínicas dermatológicas en Quito. Formato: `docs/COMPETITIVE_ANALYSIS.md` con tabla 5 competidores × 8 dimensiones. Insumo para S12-28 y para OpenClaw explainability (S9-26). Verificable: echo "OK" -> match.
 
 ---
 
@@ -1703,7 +1703,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
 - [x] **S13-04** `[M]` Security headers en nginx — `nginx-pielarmonia.conf` no tiene `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Sin estos headers, la clínica es vulnerable a clickjacking y XSS reflejado. Verificable: `curl -I https://aurora-derm.com | grep -i "x-frame"` → match.
 - [x] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
-- [x] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
+- [ ] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
 
 #### 13.2 `tele-head-links.html` — regresión silenciosa detectada
 
@@ -2245,3 +2245,131 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ---
 
+## 29. Sprint 29 — Cierre de Brechas Competitivas y Diferenciación Dermatológica
+
+> **Propósito:** Tareas derivadas del análisis competitivo Ecuador 2026 (Marzo 2026).
+> Ningún competidor (CloudMedical, Nimbo, Orpheus, AppsMedical, Karmed) cierra este conjunto completo.
+> Las tareas están ordenadas por ROI competitivo: las primeras son las que determinan
+> si un médico nos elige en una demo sobre la competencia.
+>
+> **Agentes disponibles:** `codex_backend_ops` (PHP/API), `codex_frontend` (JS/CSS/HTML), `codex_transversal` (datos/scripts cross-lane).
+> **Prerequisito de sprint:** `QA GATE GREEN` — `node bin/qa-summary.js` debe pasar antes de abrir cada tarea.
+
+#### 29.1 CIE-10 Buscador Dermatológico (Diferenciador Clínico)
+
+- [ ] **S29-01** `[M]` `[codex_backend_ops]` Base de datos CIE-10 formato cpockets — crear `data/cie10-derm.json` con los códigos dermatológicos exactamente como aparecen en cpockets.com/cie10: sin punto decimal (`L400` no `L40.0`), en MAYÚSCULAS, con campo `code` y `label`. Capítulo XII completo (L00–L99) más oncología de piel (C43–C44, D22–D23), nevo y melanoma. Incluir además códigos dermatológicos frecuentes fuera del capítulo XII: sarna Q85, alopecia Q84, vitíligo (buscar en el buscador de cpockets: "vitiligo" → resultado exacto). Formato de cada entrada: `{ "code": "L400", "label": "PSORIASIS VULGAR", "group": "L40-L45", "groupLabel": "TRASTORNOS PAPULOESCAMOSOS" }`. Total mínimo: 250 entradas. Verificable: `jq 'length' data/cie10-derm.json` → ≥250; `jq '.[] | select(.code=="L400")' data/cie10-derm.json` → resultado con `label: "PSORIASIS VULGAR"`.
+
+- [ ] **S29-02** `[M]` `[codex_frontend]` Buscador CIE-10 estilo cpockets en el admin — componente `js/cie10-search.js` y su CSS `styles/cie10-search.css`. Interfaz: campo de búsqueda con placeholder "Buscar diagnóstico CIE-10…", resultados en lista plana debajo igual que cpockets.com (fondo gris claro, código en negrita, descripción en mayúsculas), búsqueda por código O por término (`"L400"` y `"psoriasis"` dan el mismo resultado). Click en un resultado lo inyecta en el campo de diagnóstico de la historia clínica. Shortcut de teclado: `Ctrl+K` abre el buscador desde cualquier lugar del admin. Sin scroll infinito: mostrar máximo 20 resultados con mensaje "Refine su búsqueda" si hay más. Verificable: `CIE10Search.search('psoriasis')` devuelve array con al menos `L400`; `CIE10Search.search('L400')` devuelve lo mismo; el buscador se integra en `src/apps/admin-v3/ui/` sin romper el build.
+
+- [ ] **S29-03** `[S]` `[codex_frontend]` Integrar buscador CIE-10 en el draft form de historia clínica — en `src/apps/admin-v3/ui/frame/templates/sections/clinical-history.js`, el campo de diagnóstico del formulario draft debe activar el buscador CIE-10 (`CIE10Search`) con un botón "🔍 CIE-10" al lado. Al seleccionar un código, se autocompeta `diagnosisCode` y `diagnosisLabel` en el formulario. Verificable: `grep "CIE10Search\|cie10-search" src/apps/admin-v3/ui/frame/templates/sections/clinical-history.js` → match; el campo de diagnóstico en el admin muestra el botón en pantalla sin errores de consola.
+
+#### 29.2 Historia Clínica Fotográfica — API Backend
+
+- [ ] **S29-04** `[M]` `[codex_backend_ops]` Endpoint GET de fotos clínicas por caso — `GET /api.php?resource=clinical-photos&caseId=X` devuelve el array de fotos del caso ordenadas por `capturedAt` ASC. Cada entrada incluye: `id`, `url` (URL pública firmada válida por 1h o path privado según `storageMode`), `thumbnailUrl`, `region` (región anatómica), `notes`, `capturedAt`, `visitLabel` (ej: "Consulta 1", "Consulta 3"). Requiere autenticación de admin. Usa la tabla `clinical_uploads` existente en la DB. Verificable: `curl -H "X-Auth: ..." "/api.php?resource=clinical-photos&caseId=TEST"` → JSON con `photos: []` (vacío si no hay); con datos reales → array con campos completos.
+
+- [ ] **S29-05** `[M]` `[codex_backend_ops]` Endpoint POST de upload de foto clínica — `POST /api.php?resource=clinical-photo-upload` con multipart: `caseId`, `region`, `notes`, `photo` (file). Valida: solo imagen (JPEG/PNG/WebP), máximo 10MB, región anatómica requerida. Almacena en `uploads/clinical/{caseId}/` con nombre `{timestamp}-{sha256-short}.{ext}`. Registra en `clinical_uploads` con `kind=clinical_photo`, `storageMode=private_path`. Devuelve el objeto foto creado. Verificable: `curl -X POST -F "photo=@test.jpg" -F "caseId=TEST" -F "region=cara" ...` → `{ "ok": true, "photo": { "id": ..., "url": ..., "region": "cara" } }`; el archivo existe en `uploads/clinical/TEST/`.
+
+- [ ] **S29-06** `[S]` `[codex_backend_ops]` Tag de visita en fotos clínicas — al subir una foto, detectar automáticamente a qué número de visita corresponde (contar cuántas `clinical_uploads` con `kind=clinical_photo` existen para ese `caseId` antes de esta) y asignar `visitLabel: "Consulta N"` en `json_data`. Esto permite que la UI agrupe las fotos por consulta sin lógica extra en el frontend. Verificable: después de 3 uploads para el mismo case, `GET clinical-photos` devuelve fotos con `visitLabel: "Consulta 1"`, `"Consulta 2"`, `"Consulta 3"` según orden de creación.
+
+#### 29.3 Recordatorios Automáticos 24h (Motor de Retención)
+
+- [ ] **S29-07** `[S]` `[codex_backend_ops]` Registrar recordatorio como cron job documentado — el script `bin/send-appointment-reminders.php` (ya creado) debe quedar documentado en `CRONS.md` con: comando exacto, usuario del sistema, explicación, output esperado, y referencia al `governance/appointment-reminders-log.json` donde se registra cada ejecución. Además, añadir al script la escritura de ese log de gobernanza. Verificable: `cat CRONS.md | grep "send-appointment-reminders"` → presente; `php bin/send-appointment-reminders.php --dry --json` → salida JSON válida con `dryRun: true`.
+
+- [ ] **S29-08** `[M]` `[codex_backend_ops]` Recordatorio de seguimiento post-consulta (30 días) — nuevo script `bin/send-followup-reminders.php` que envía un email de seguimiento a pacientes cuya última cita fue exactamente 30 días atrás y que tienen configurado `followup_reminder: true` en `json_data` de la cita. El email invita al paciente a agendar un control o enviar una foto de evolución. Verificable: `php bin/send-followup-reminders.php --dry --json` → JSON con `total`, `sent`, `targetDate` (30 días atrás); el email generado incluye el enlace de agendamiento público `BASE_URL/es/agendar/`.
+
+#### 29.4 Onboarding del Médico (Time-to-Value < 20 minutos)
+
+- [ ] **S29-09** `[M]` `[codex_frontend]` Página de bienvenida para médico nuevo — `es/bienvenida-medico/index.html` con 3 pasos: Paso 1 "Configura tu perfil" (foto, bio, nombre completo, especialidad), Paso 2 "Tu enlace de agendamiento" (muestra `pielarmonia.com/es/agendar/` con instrucciones para compartirlo por WhatsApp/Instagram), Paso 3 "Tu primer paciente de prueba" (invita a registrar un paciente ficticio en el admin y crear el primer turno). Diseño: mismo sistema de diseño Aurora (tokens.css, base.css), fondo OLED, tipografía Inter. Sin spinner infinito ni pasos ocultos: todos los pasos son visibles como cards de progreso. Verificable: la página carga en `GET /es/bienvenida-medico/` con status 200; tiene 3 secciones identificadas con `id="paso-1"`, `id="paso-2"`, `id="paso-3"`; Google Lighthouse score ≥ 90 en performance.
+
+- [ ] **S29-10** `[S]` `[codex_backend_ops]` Endpoint de setup inicial de perfil de clínica — `POST /api.php?resource=clinic-onboarding` recibe `{ doctorName, specialty, phone, timezone }` y actualiza `data/clinic-profile.json`. Si el archivo no existe, lo crea desde template. Devuelve el perfil actualizado y un `setupScore` (0-100, qué tan completo está el perfil). Verificable: `POST` con datos válidos → `{ "ok": true, "setupScore": 60, "profile": { ... } }`; `GET /api.php?resource=clinic-profile` devuelve los datos guardados.
+
+#### 29.5 Formulario MSP H002 — Requisito Legal Ecuador
+
+- [ ] **S29-11** `[L]` `[codex_backend_ops]` Formulario MSP H002 (consulta externa) — estructura PHP `lib/clinical_history/forms/H002Form.php` que mapea los campos de la historia clínica al formulario oficial del Ministerio de Salud del Ecuador. Campos requeridos: motivo de consulta, enfermedad actual (anamnesis), antecedentes personales/familiares, revisión de sistemas, examen físico por sistemas, diagnóstico CIE-10 (exactamente como en cpockets.com: sin punto, MAYÚSCULAS), plan de tratamiento, indicaciones de seguimiento. El formulario debe poder serializar a JSON (para guardado) y renderizar como PDF (para impresión). La clase debe extender o implementar la misma interfaz que los otros formularios de HCE. Verificable: `php -r "require 'lib/clinical_history/forms/H002Form.php'; $f = new H002Form(); echo $f->getFormId();"` → `H002`; serialización → JSON con todos los campos mencionados; existe test `tests-node/h002-form-contract.test.js` que verifica los campos obligatorios.
+
+- [ ] **S29-12** `[M]` `[codex_frontend]` UI del formulario H002 en el admin — en el workbench de historia clínica, añadir una tab "📋 H002 — MSP" junto a las tabs existentes. El formulario renderiza los campos del H002 con los mismos estilos del design system Aurora: labels, textareas, el buscador CIE-10 integrado en el campo de diagnóstico. Al guardar, llama al endpoint de guardado de HCE existente con `formType: "H002"`. Verificable: la tab H002 aparece en el admin sin errores de consola; el campo de diagnóstico tiene el botón CIE-10 (de S29-03); `grep "H002\|h002" src/apps/admin-v3/ui/frame/templates/sections/clinical-history.js` → match.
+
+#### 29.6 Confirmación WhatsApp Bidireccional
+
+- [ ] **S29-13** `[M]` `[codex_backend_ops]` Deeplink de WhatsApp personalizado en email de confirmación de cita — en `lib/email.php`, función `build_confirmation_email_html()` debe incluir un botón "Confirmar asistencia por WhatsApp" cuyo href sea `https://wa.me/{CLINIC_WA_NUMBER}?text=Confirmo+mi+cita+del+{DATE}+a+las+{TIME}` con los datos reales de la cita. El mensaje debe estar codificado en URL. El botón usa el color primario de la clínica desde `clinic-profile.json`. Verificable: `php -r "require 'lib/email.php'; echo build_confirmation_email_html(['date'=>'2026-06-01','time'=>'10:00','name'=>'Test']);" | grep "wa.me"` → match con el número de la clínica y la fecha.
+
+- [ ] **S29-14** `[S]` `[codex_backend_ops]` Endpoint de check-in por QR/código — `POST /api.php?resource=appointment-checkin` recibe `{ token: "RESCHEDULE_TOKEN" }` y confirma la asistencia del paciente, cambiando `status` de `confirmed` a `checked_in` y registrando `checked_in_at` en `json_data`. Esto permite que el kiosco del turnero haga check-in automático cuando el paciente llega. Verificable: `POST` con token válido → `{ "ok": true, "appointment": { "id": ..., "status": "checked_in", "checked_in_at": "..." } }`; el status cambia en la DB.
+
+#### 29.7 Dashboard de Métricas de Negocio (Retention Hook)
+
+- [ ] **S29-15** `[M]` `[codex_backend_ops]` Endpoint de métricas de negocio para el médico — `GET /api.php?resource=business-metrics&period=30d` devuelve: `patients_seen` (pacientes atendidos en el período), `appointments_total`, `no_show_rate` (porcentaje de no-shows), `new_patients` (pacientes que agendaron por primera vez), `top_services` (array de servicios más solicitados con count), `revenue_estimate` (si el médico tiene precios configurados). Requiere autenticación de admin. Verificable: respuesta JSON con todos los campos; `patients_seen` ≥ 0; `no_show_rate` es float entre 0 y 1; con datos reales → `top_services` no está vacío.
+
+- [ ] **S29-16** `[M]` `[codex_frontend]` Widget de métricas en el dashboard del admin — añadir en la sección principal del admin una fila de 4 KPI cards: "Pacientes (30 días)", "Tasa de no-show", "Nuevo esta semana", "Servicio top". Cada card tiene número grande, delta vs período anterior (↑↓), y mini sparkline. Datos desde el endpoint S29-15. Se actualiza al cargar el admin. Diseño: glassmorphism, colores Aurora, animación de contador al aparecer. Verificable: `grep "business-metrics\|S29-15" src/apps/admin-v3/ui/" → match; los 4 KPIs son visibles en el admin sin errores; no rompe los tests existentes.
+
+#### 29.8 Gobernanza del Sprint
+
+- [ ] **S29-17** `[S]` `[codex_transversal]` Smoke test del Sprint 29 — `tests-node/sprint29-smoke.test.js` que verifica: (1) `data/cie10-derm.json` existe y tiene ≥250 entradas en formato correcto; (2) `bin/send-appointment-reminders.php --dry --json` sale con código 0 y JSON válido; (3) `GET /api.php?resource=clinical-photos&caseId=NONEXISTENT` (con auth mock) no lanza 500 sino 200 con `photos:[]`; (4) `js/cie10-search.js` y `styles/cie10-search.css` existen; (5) `js/clinical-photo-timeline.js` tiene ≥ 400 líneas (no está vacío); (6) `es/bienvenida-medico/index.html` existe. Verificable: `node --test tests-node/sprint29-smoke.test.js` → `pass 6 / fail 0`.
+
+- [ ] **S29-18** `[S]` `[codex_transversal]` Actualizar workspace hygiene contract para Sprint 29 — en `tests-node/workspace-hygiene-contract.test.js`, añadir a la lista de archivos esperados: `data/cie10-derm.json`, `js/cie10-search.js`, `styles/cie10-search.css`, `js/clinical-photo-timeline.js`, `styles/clinical-photo-timeline.css`, `bin/send-appointment-reminders.php`, `bin/send-followup-reminders.php`, `es/bienvenida-medico/index.html`, `tests-node/sprint29-smoke.test.js`. Verificable: `node --test tests-node/workspace-hygiene-contract.test.js` → `pass 36 / fail 0` (o el número actualizado).
+
+- [ ] **S29-19** `[S]` `[codex_transversal]` Añadir Sprint 29 al gov:audit — en `bin/audit.js`, registrar como step: `node --test tests-node/sprint29-smoke.test.js` con `id: 'sprint29_smoke'`, `optional: false`. Esto lo hace parte del gate diario. Verificable: `npm run gov:audit:json --silent | jq '.steps[] | select(.id=="sprint29_smoke") | .ok'` → `true` cuando todos los entregables del sprint están completos.
+
+---
+
+
+## 🎨 Sprint UI — Fase 5: Interfaces Clínicas (GEMINI EXCLUSIVO)
+
+> **Responsable:** Gemini bajo supervisión de Antigravity.
+> **Regla única:** cada interfaz debe ser funcional Y visualmente de primer nivel. El médico pasa 8h mirando el admin — debe ser premium.
+> **Sistema:** Liquid Glass + `reborn-tokens.css`. Cero estilos inline, cero `!important`.
+
+#### UI5-A Admin Panel — La consulta como arte
+
+- [ ] **UI5-01** `[L]` `[UI]` Sidebar de admin glass pill — `admin.html`: reemplazar sidebar plano por sidebar glass pill vertical: logo, grupos colapsables, perfil médico abajo con avatar. Active state: gold pill. `position: sticky`, scrollable en móvil. Verificable: `grep "sidebar.*glass\|nav.*pill.*admin" styles/aurora-admin.css` → match ≥3.
+
+- [ ] **UI5-02** `[XL]` `[UI]` Cabecera de caso activo fija — al abrir un caso: cabecera glass con foto del paciente (56px), nombre grande, y 3 pills de contexto: diagnóstico activo (gold), alergias (amber/green), turno. Persiste al scrollear. Verificable: `grep "case-header.*sticky\|patient.*context.*pill" js/admin.js` → match.
+
+- [ ] **UI5-03** `[L]` `[UI]` Chat OpenClaw estilo ChatGPT flat — mensajes sin burbujas: fondo `lg-surface` sutil, texto IA en blanco tiza, texto médico en gold tenue. Input píldora fijo en bottom. Cursor blink CSS mientras responde. Verificable: `grep "chat-flat\|blink.*cursor\|openclaw.*pill" styles/aurora-clinical.css` → match ≥3.
+
+- [ ] **UI5-04** `[M]` `[UI]` Cards de sugerencia CIE-10 glass flotantes — cuando OpenClaw sugiere diagnóstico: cards flotantes con `backdrop-filter: blur(16px)`, código en mono dorado, botón "Aplicar" que se ilumina al hover. Entran con spring `translateY(-8px) → 0`. Verificable: `grep "cie10.*card.*glass\|suggestion.*card.*spring" styles/aurora-clinical.css` → match.
+
+- [ ] **UI5-05** `[M]` `[UI]` Barra de alergias sticky — encima del campo de prescripción: barra fija amber translúcido con alergias del paciente en pills. Verde translúcido si no hay alergias. Nunca en un tab. Verificable: `grep "allergy-bar.*sticky\|allergy.*amber" styles/aurora-clinical.css` → match; `position: sticky` en DOM.
+
+- [ ] **UI5-06** `[L]` `[UI]` Focus Mode de consulta — clase `.focus-mode` en `admin.html` al iniciar consulta: oculta sidebar con `translateX(-100%)` animado, amplía área de trabajo, topbar mínima con nombre + timer. Al salir, sidebar regresa con spring. Verificable: `grep "focus-mode\|consultation.*timer\|sidebar.*hide" js/admin.js` → match.
+
+- [ ] **UI5-07** `[L]` `[UI]` Timeline de visitas HCE glass — historial del paciente como stepper vertical glass: nodo 40px con fecha, color por tipo (gold=consulta, blue=procedimiento, red=urgencia). Click expande con `max-height spring. Verificable: `grep "hce.*timeline\|visit.*stepper\|episode.*expand" styles/aurora-admin.css` → match.
+
+#### UI5-B Booking — Agendar como una app premium
+
+- [ ] **UI5-08** `[XL]` `[UI]` Booking flow wizard 4 pasos — `es/agendar/index.html`: reemplazar formulario plano por wizard tipo Typeform: 1) servicio (cards glass), 2) fecha/hora (calendar glass), 3) datos paciente (inputs grandes), 4) confirmación + pago. Transición `translateX(100%→0)` spring entre pasos. Verificable: `grep "booking-step\|step.*active\|wizard.*step" es/agendar/index.html` → match; 4 pasos.
+
+- [ ] **UI5-09** `[L]` `[UI]` Cards de selección de servicio visual — grid de servicios: imagen, nombre grande, duración en pill gold, precio. Hover: `scale(1.02)` + borde gold. Seleccionado: checkmark gold animado. Verificable: `grep "service-card.*glass\|service.*check" es/agendar/index.html` → match ≥3.
+
+- [ ] **UI5-10** `[L]` `[UI]` Calendario de disponibilidad glass — grid de días como pills: disponibles=glass, sin disponibilidad=opacidad 0.3, seleccionado=glass gold sólido. Pills de horas abajo, scroll horizontal en móvil. Verificable: `grep "calendar.*glass\|slot.*pill\|day.*available" es/agendar/index.html` → match ≥4.
+
+- [ ] **UI5-11** `[M]` `[UI]` Confirmation screen booking — card glass con: servicio, fecha, médico, precio + IVA desglosado. CTA "Confirmar y pagar" gold sólido. Iconos de seguridad debajo. Verificable: `grep "booking-confirm.*glass\|iva.*desglose\|security.*badge" es/agendar/index.html` → match ≥3.
+
+#### UI5-C Portal del Paciente — Clínica en el bolsillo
+
+- [ ] **UI5-12** `[XL]` `[UI]` Dashboard del paciente con datos reales — `es/portal/index.html`: saludo grande dinámico, 3 cards glass: próxima cita real, último diagnóstico, documentos disponibles. Dark theme navy. Sin placeholders. Verificable: `grep "portal-greeting\|next-appointment.*live\|lg-surface--dark.*portal" es/portal/index.html` → match ≥4.
+
+- [ ] **UI5-13** `[L]` `[UI]` Lista de documentos descargables glass — `es/portal/historial/index.html`: rows glass con tipo (pill gold "Receta"/cyan "Certificado"), fecha, médico, botón descarga. Hover: row glass highlight. Click: descarga PDF con token. Verificable: `grep "document-row.*glass\|download.*token\|prescription.*pill" es/portal/historial/index.html` → match ≥3.
+
+- [ ] **UI5-14** `[M]` `[UI]` Card de plan de tratamiento — `es/portal/index.html`: si hay plan activo: diagnóstico principal grande, medicamentos en pills (nombre + frecuencia), próximo control con badge countdown. Si no hay plan: estado vacío elegante. Verificable: `grep "treatment-plan.*card\|medication.*pill.*portal" es/portal/index.html` → match.
+
+- [ ] **UI5-15** `[M]` `[UI]` Historial de pagos glass — `es/portal/pagos/index.html` (nuevo): lista de pagos glass: fecha, servicio, monto bold, método pill, estado (pagado=green, pendiente=amber). Footer con total. Verificable: `grep "payment-row.*glass\|total.*paid\|status.*pill.*payment" es/portal/pagos/index.html` → match ≥3; página nueva creada.
+
+#### UI5-D Turnero — Lo que el paciente ve
+
+- [ ] **UI5-16** `[L]` `[UI]` Pantalla TV de sala de espera — `queue-display.html`: izquierda 60% lista de turnos esperando (número, nombre parcial, tiempo estimado); derecha 40% turno llamado en grande con pulse ring gold. Fondo navy. Tipografía mínimo 48px para número. Verificable: `grep "queue-display.*glass\|pulse.*ring\|called.*display" queue-display.html` → match ≥3.
+
+- [ ] **UI5-17** `[L]` `[UI]` Kiosk de registro 3 opciones — `kiosk.html`: 3 cards glass grandes: "Tengo cita", "Soy nuevo", "Urgencia". Input grande de cédula/nombre al seleccionar. Submit gold. Confirmación con número de turno y checkmark animado. Sin elementos admin visibles. Verificable: `grep "kiosk-options\|kiosk.*cita\|turno.*confirmado" kiosk.html` → match ≥3.
+
+- [ ] **UI5-18** `[M]` `[UI]` Panel del operador de turnero — `queue-call.html`: botón grande "Llamar siguiente" glass gold, nombre del paciente llamado aparece con fade-in grande, historial de turnos llamados en lista compacta. Verificable: `grep "queue-call.*btn\|called.*patient.*name\|call-history" queue-call.html` → match ≥3.
+
+#### UI5-E Micro-UX de Primer Nivel
+
+- [ ] **UI5-19** `[M]` `[UI]` Toast notifications glass system — `js/aurora-toast.js` (nuevo): reemplaza todos los `alert()` del sistema. Toasts en bottom-right, glass, ícono de estado, desaparecen en 4s con `opacity: 1→0` spring. API: `window.toast.show('msg', 'success'|'error'|'warning'|'info')`. Verificable: `grep "window.toast\|toast.*glass\|toast.*spring" js/aurora-toast.js` → match; archivo nuevo.
+
+- [ ] **UI5-20** `[M]` `[UI]` Skeleton screens glass — reemplazar spinners con skeletons glass en: lista de pacientes, carga de HCE, resultados OpenClaw. Shimmer: `background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 50%, ...)` en loop. Verificable: `grep "skeleton.*glass\|skeleton.*shimmer" styles/aurora-admin.css` → match ≥3; 0 spinners durante carga.
+
+- [ ] **UI5-21** `[M]` `[UI]` Empty states ilustrados — cuando no hay datos: ilustración SVG minimalista + título `clamp(1.2rem,3vw,1.8rem)` + CTA contextual glass. Sin texto plano "No hay registros." en ninguna surface. Verificable: `grep "empty-state\|empty.*svg\|empty.*cta" styles/aurora-admin.css` → match ≥3.
+
+- [ ] **UI5-22** `[S]` `[UI]` Modo oscuro consistente — auditar `admin.html`, `kiosk.html`, `queue-display.html`, portal y booking: background base `var(--rb-bg, #050810)` en todas. Verificable: `grep -r "background.*#fff\|background.*white" styles/aurora-admin.css styles/aurora-clinical.css` → 0 matches.
+
+---

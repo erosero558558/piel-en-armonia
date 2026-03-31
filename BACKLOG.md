@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 5:03:24 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 5:13:08 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,15 +7,15 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████░░░░░░░` **66%** completado (366/554)
+`████████████░░░░░░░░` **60%** completado (359/595)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
-| ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 66 | 1 | 99% |
-| ✅ Sprint 4 | 26 | 0 | 100% |
+| 🎯 Sprint 2 | 20 | 4 | 83% |
+| ⏸ Sprint 3 | 63 | 4 | 94% |
+| ⏸ Sprint 4 | 25 | 1 | 96% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
 | ⏸ Sprint 6 | 12 | 13 | 48% |
 | ⏸ Sprint 7 | 11 | 26 | 30% |
@@ -24,9 +24,9 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint UI | 0 | 0 | 0% |
 | ⏸ Sprint 8 | 10 | 7 | 59% |
 | ⏸ Sprint 9 | 9 | 18 | 33% |
-| ⏸ Sprint 10 | 2 | 28 | 7% |
+| ⏸ Sprint 10 | 3 | 27 | 10% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
-| ✅ Sprint 13 | 21 | 0 | 100% |
+| ⏸ Sprint 13 | 20 | 1 | 95% |
 | ⏸ Sprint UI | 19 | 1 | 95% |
 | ⏸ Sprint 14 | 11 | 3 | 79% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 18 | 50 | 26% |
+| ⏸ Sprint UI | 19 | 90 | 17% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -44,17 +44,43 @@ _Sprint completado. 0/0 tareas._
 ## ✅ Sprint 1 — Arreglar lo roto antes de vender
 _Sprint completado. 12/12 tareas._
 
-## ✅ Sprint 2 — Convertir visitantes en pacientes
-_Sprint completado. 24/24 tareas._
+## 🎯 Sprint 2 — Convertir visitantes en pacientes
 
-## 🎯 Sprint 3 — Construir Flow OS como plataforma
+### 🟢 Disponibles (3)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S2-01** | `[S2]` | M |
+| **S2-18** | `[S2]` | S |
+| **S2-19** | `[S2]` | M |
+
+### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
+
+- **S2-20** `[S2]` S...
+
+## ⏸ Sprint 3 — Construir Flow OS como plataforma
+_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
+
+### 🟢 Disponibles (3)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S3-20** | `[S3]` | M |
+| **S3-30** | `[S3]` | L |
+| **S3-32** | `[S3]` | L |
 
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
 
 - **S3-35** `[S3]` L...
 
-## ✅ Sprint 4 — Escalar el negocio
-_Sprint completado. 26/26 tareas._
+## ⏸ Sprint 4 — Escalar el negocio
+_Esperando que Sprint anterior esté completo. 1 tareas pendientes._
+
+### 🟢 Disponibles (1)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S4-21** | `[S4]` | L |
 
 ## ✅ Sprint 5 — Portal del Paciente (PWA)
 _Sprint completado. 22/22 tareas._
@@ -135,9 +161,9 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 | ... | | _+13 más_ |
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
-_Esperando que Sprint anterior esté completo. 28 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 27 tareas pendientes._
 
-### 🟢 Disponibles (28)
+### 🟢 Disponibles (27)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -145,8 +171,8 @@ _Esperando que Sprint anterior esté completo. 28 tareas pendientes._
 | **S10-03** | `[S10]` | S |
 | **S10-04** | `[S10]` | M |
 | **S10-05** | `[S10]` | M |
-| **S10-06** | `[S10]` | M |
-| ... | | _+23 más_ |
+| **S10-07** | `[S10]` | M |
+| ... | | _+22 más_ |
 
 ## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
 _Esperando que Sprint anterior esté completo. 22 tareas pendientes._
@@ -162,8 +188,14 @@ _Esperando que Sprint anterior esté completo. 22 tareas pendientes._
 | **S12-06** | `[S12]` | M |
 | ... | | _+17 más_ |
 
-## ✅ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Sprint completado. 21/21 tareas._
+## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
+_Esperando que Sprint anterior esté completo. 1 tareas pendientes._
+
+### 🟢 Disponibles (1)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S13-06** | `[S13]` | M |
 
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
@@ -229,9 +261,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 50 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 90 tareas pendientes._
 
-### 🟢 Disponibles (49)
+### 🟢 Disponibles (89)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -240,11 +272,11 @@ _Esperando que Sprint anterior esté completo. 50 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-04** | `[S24]` | L |
 | **S24-05** | `[S24]` | S |
-| ... | | _+44 más_ |
+| ... | | _+84 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **UI4-18** `[UI4]` → _Antigravity_ (expira en 237min)
+- **S29-01** `[S29]` → _Antigravity_ (expira en 479min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
