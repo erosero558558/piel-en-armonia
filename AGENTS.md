@@ -1252,7 +1252,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 6.3 Modelo de negocio y pagos
 
 - [x] **S6-10** `[L]` Pricing SaaS — definir y publicar: Free (1 doctor, 50 citas/mes), Starter ($29/mes, 3 doctores), Pro ($79/mes, 10 doctores + IA), Enterprise (contactar). Comparativa en `es/software/turnero-clinicas/precios/index.html`.
-- [ ] **S6-11** `[L]` Suscripción Stripe — integrar Stripe para cobros mensuales recurrentes. Admin puede ver su plan activo, fecha de renovación, facturas.
+- [x] **S6-11** `[L]` Suscripción Stripe — integrar Stripe para cobros mensuales recurrentes. Admin puede ver su plan activo, fecha de renovación, facturas.
 - [ ] **S6-12** `[M]` Trial 14 días — toda clínica nueva empieza con 14 días de Pro gratis. Al día 12: recordatorio de renovación. Al día 14 si no renueva: downgrade a Free.
 - [ ] **S6-13** `[M]` Revenue dashboard (owner) — vista interna para el dueño de Flow OS: MRR, churn, clínicas activas, conversión trial→pago. Solo visible con rol `superadmin`.
 
@@ -1723,7 +1723,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 13.5 Herramientas de gobierno — gaps que impiden cerrar el loop
 
-- [ ] **S13-14** `[M]` `bin/gate.js` — checks para S8/S9/S10/S12 — los nuevos sprints no tienen checks de gate. S4-08 está marcada done sin archivo. La gate debía haber bloqueado eso. Añadir checks mínimos para: S8-01 (DESKTOP_CATALOG.md existe), S8-07 (JSON parser no rompe con BOM), S9-11 (services.json tiene los 20 servicios), S10-06 (ComplianceMSP.validate existe), S12-06 (GOOGLE_BUSINESS_CHECKLIST.md existe). Cada sprint debe tener al menos 1 check de entrada en gate.
+- [x] **S13-14** `[M]` `bin/gate.js` — checks para S8/S9/S10/S12 — los nuevos sprints no tienen checks de gate. S4-08 está marcada done sin archivo. La gate debía haber bloqueado eso. Añadir checks mínimos para: S8-01 (DESKTOP_CATALOG.md existe), S8-07 (JSON parser no rompe con BOM), S9-11 (services.json tiene los 20 servicios), S10-06 (ComplianceMSP.validate existe), S12-06 (GOOGLE_BUSINESS_CHECKLIST.md existe). Cada sprint debe tener al menos 1 check de entrada en gate.
 - [x] **S13-15** `[M]` `bin/verify.js` — extender con checks de tareas verdaderamente done — `verify.js` actualmente verifica 50 tareas y encontró 2 falsas (S4-08, S4-13 posterior). Extender a 100 tareas con criterio de verificación siempre verificable con el sistema de archivos o grep. Las tareas `[x]` sin criterio verificable tienen `"evidencia: file_exists|grep|json_key"` en su registro. Esto impide que se repita el caso S4-08.
 - [x] **S13-16** `[S]` `bin/gen-sitemap.js` — generador automático — hoy el sitemap es manual y ya quedó atrás. Crear script que recorra `es/**/index.html` y genere `sitemap.xml` automático con `lastmod = git log --format=%cI -- <file>`. Ejecutar en `sync-backlog.js` post-sync. Verificable: `node bin/gen-sitemap.js && grep "paquetes" sitemap.xml` → match.
 - [x] **S13-17** `[S]` Audit de dead files — detectar archivos HTML/JS/CSS que existen en el repo pero no son referenciados desde ningún otro archivo. Candidato a `git rm` con confirmación. Lista current: `styles/archive/` tiene legacy CSS que ya no debería cargarse. Entregable: `docs/DEAD_FILES.md` con lista y plan de limpieza. Script: `node bin/dead-file-audit.js`.
