@@ -13,6 +13,13 @@ api_apply_cors(['GET', 'OPTIONS'], ['Authorization', 'X-Backup-Token', 'X-Cron-T
 
 function verify_backup_json(array $payload, int $status = 200): void
 {
+    if (defined('TESTING_ENV')) {
+        $GLOBALS['__TEST_RESPONSE'] = ['payload' => $payload, 'status' => $status];
+        if (!defined('TESTING_FORCE_EXIT')) {
+            throw new TestingExitException($payload, $status);
+        }
+    }
+
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit();
@@ -41,11 +48,16 @@ function verify_backup_extract_token(): string
     return '';
 }
 
-function verify_backup_authorized(): bool
+function verify_backup_authorization_state(): array
 {
     $providedToken = verify_backup_extract_token();
     if ($providedToken === '') {
-        return false;
+        return [
+            'ok' => false,
+            'status' => 401,
+            'code' => 'auth_missing',
+            'error' => 'Token de verificacion ausente',
+        ];
     }
 
     $expectedTokens = [
@@ -60,11 +72,21 @@ function verify_backup_authorized(): bool
             continue;
         }
         if (hash_equals(trim($expectedToken), $providedToken)) {
-            return true;
+            return [
+                'ok' => true,
+                'status' => 200,
+                'code' => '',
+                'error' => '',
+            ];
         }
     }
 
-    return false;
+    return [
+        'ok' => false,
+        'status' => 403,
+        'code' => 'auth_invalid',
+        'error' => 'Token de verificacion invalido',
+    ];
 }
 
 function verify_backup_list_encrypted_files(string $storageRoot, int $limit = 100): array
@@ -142,11 +164,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
     ], 405);
 }
 
-if (!verify_backup_authorized()) {
+/** @var array{ok:bool,status:int,code:string,error:string} $authorization */
+$authorization = verify_backup_authorization_state();
+if (($authorization['ok'] ?? false) !== true) {
     verify_backup_json([
         'ok' => false,
-        'error' => 'No autorizado'
-    ], 401);
+        'error' => (string) ($authorization['error'] ?? 'No autorizado'),
+        'code' => (string) ($authorization['code'] ?? 'auth_invalid'),
+    ], (int) ($authorization['status'] ?? 403));
 }
 
 $storageRoot = backup_receiver_storage_root();
@@ -155,7 +180,7 @@ if (!is_dir($storageRoot)) {
         'ok' => false,
         'error' => 'No existe almacenamiento de backups',
         'code' => 'storage_not_found'
-    ], 404);
+    ], 500);
 }
 
 $requestedFile = isset($_GET['file']) ? trim((string) $_GET['file']) : '';
@@ -183,18 +208,40 @@ if ($targetFile === '') {
 }
 
 $verification = backup_receiver_verify_stored_file($targetFile);
-$statusCode = ($verification['ok'] ?? false) ? 200 : 422;
+$verificationOk = (bool) ($verification['ok'] ?? false);
+$verificationReason = (string) ($verification['reason'] ?? '');
+$statusCode = 200;
+$errorCode = '';
+$errorMessage = '';
+if (!$verificationOk) {
+    if (in_array($verificationReason, ['metadata_checksum_mismatch', 'integrity_check_failed'], true)) {
+        $statusCode = 409;
+        $errorCode = 'checksum_mismatch';
+        $errorMessage = 'Checksum de backup no coincide';
+    } else {
+        $statusCode = 422;
+        $errorCode = 'verification_failed';
+        $errorMessage = 'No se pudo verificar el backup cifrado';
+    }
+}
 $storageRootReal = realpath($storageRoot);
 $relativeFile = $targetFile;
 if (is_string($storageRootReal) && $storageRootReal !== '' && strpos($targetFile, $storageRootReal) === 0) {
     $relativeFile = ltrim(substr($targetFile, strlen($storageRootReal)), DIRECTORY_SEPARATOR);
 }
 
-verify_backup_json([
+/** @var array<string,mixed> $payload */
+$payload = [
     'ok' => (bool) ($verification['ok'] ?? false),
     'service' => 'verify-backup',
     'file' => $relativeFile,
     'storageRoot' => $storageRoot,
     'verifiedAt' => gmdate('c'),
     'verification' => $verification
-], $statusCode);
+];
+if (!$verificationOk) {
+    $payload['code'] = $errorCode;
+    $payload['error'] = $errorMessage;
+}
+
+verify_backup_json($payload, $statusCode);
