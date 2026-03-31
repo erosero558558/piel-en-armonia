@@ -42,6 +42,20 @@ final class MembershipService
     // ────────────────────────────────────────────────────────────────
 
     /**
+     * Backward-compatible read used by legacy controllers/read-models.
+     *
+     * Returns the active membership record for the current store or null if none.
+     */
+    public function getStatus(string $patientId): ?array
+    {
+        if (!function_exists('read_store')) {
+            return null;
+        }
+
+        return self::getActiveMembership(read_store(), $patientId);
+    }
+
+    /**
      * Returns the active membership for a patient, or null if none.
      */
     public static function getActiveMembership(array $store, string $patientId): ?array

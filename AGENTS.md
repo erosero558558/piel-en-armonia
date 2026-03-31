@@ -1712,8 +1712,8 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 13.3 `lib/common.php` — deuda técnica crítica
 
-- [ ] **S13-09** `[L]` `lib/common.php` sin sanitización de input — 368 líneas, **0 referencias** a `htmlspecialchars`, `strip_tags`, `filter_input`, `intval` o `PDO::`. Las funciones comunes reciben input del usuario sin sanitizar antes de pasarlo a queries o a HTML. Esto es un vector directo de XSS/SQLi. Auditar toda la lib: añadir sanitización en el punto de entrada, no en cada uso. Entregable: `lib/common.php` con 100% de inputs sanitizados + `lib/input-validator.php` como helper.
-- [ ] **S13-10** `[M]` `admin.html` — `innerHTML` con datos de usuario — el audit detecta usos de `innerHTML = variable` sin escape en admin.html. Si un campo de texto del paciente contiene `<script>`, se ejecuta en el panel del médico. Reemplazar `innerHTML` por `textContent` donde el contenido es texto plano, y por `DOMPurify.sanitize()` donde se necesita HTML controlado. Añadir `DOMPurify` en `tele-head-links.html` y en `admin.html`.
+- [x] **S13-09** `[L]` `lib/common.php` sin sanitización de input — 368 líneas, **0 referencias** a `htmlspecialchars`, `strip_tags`, `filter_input`, `intval` o `PDO::`. Las funciones comunes reciben input del usuario sin sanitizar antes de pasarlo a queries o a HTML. Esto es un vector directo de XSS/SQLi. Auditar toda la lib: añadir sanitización en el punto de entrada, no en cada uso. Entregable: `lib/common.php` con 100% de inputs sanitizados + `lib/input-validator.php` como helper.
+- [x] **S13-10** `[M]` `admin.html` — `innerHTML` con datos de usuario — el audit detecta usos de `innerHTML = variable` sin escape en admin.html. Si un campo de texto del paciente contiene `<script>`, se ejecuta en el panel del médico. Reemplazar `innerHTML` por `textContent` donde el contenido es texto plano, y por `DOMPurify.sanitize()` donde se necesita HTML controlado. Añadir `DOMPurify` en `tele-head-links.html` y en `admin.html`.
 
 #### 13.4 Consistencia de marca y datos
 

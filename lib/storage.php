@@ -303,6 +303,66 @@ if (!function_exists('with_store_lock')) {
     }
 }
 
+if (!function_exists('mutate_store')) {
+    function mutate_store(callable $callback): array
+    {
+        $lock = with_store_lock(static function () use ($callback): array {
+            $store = read_store();
+            $result = $callback($store);
+
+            if (!is_array($result)) {
+                return [
+                    'ok' => false,
+                    'error' => 'Resultado de mutacion de store invalido',
+                    'statusCode' => 500,
+                    'store' => $store,
+                    'storeDirty' => false,
+                ];
+            }
+
+            $nextStore = isset($result['store']) && is_array($result['store'])
+                ? $result['store']
+                : $store;
+            $storeDirty = ($result['storeDirty'] ?? false) === true;
+
+            if ($storeDirty && !write_store($nextStore, false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo persistir el store',
+                    'statusCode' => 500,
+                    'store' => $nextStore,
+                    'storeDirty' => false,
+                ];
+            }
+
+            $result['store'] = $storeDirty ? $nextStore : $store;
+            $result['storeDirty'] = $storeDirty;
+            return $result;
+        });
+
+        if (($lock['ok'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'error' => (string) ($lock['error'] ?? 'No se pudo obtener lock de store'),
+                'statusCode' => (int) ($lock['code'] ?? 503),
+                'storeDirty' => false,
+            ];
+        }
+
+        $result = $lock['result'] ?? null;
+        if (!is_array($result)) {
+            return [
+                'ok' => false,
+                'error' => 'Resultado de mutacion de store invalido',
+                'statusCode' => 500,
+                'storeDirty' => false,
+            ];
+        }
+
+        return $result;
+    }
+}
+
 if (!function_exists('write_store')) {
     function write_store(array $store, bool $emitHttpErrors = true): bool
     {
