@@ -18,6 +18,28 @@
                 0% { background-position: 200% 0; }
                 100% { background-position: -200% 0; }
             }
+            .portal-red-flag {
+                background: rgba(220, 38, 38, 0.1);
+                border: 1px solid var(--admin-error);
+                padding: 16px;
+                margin: 24px 24px 0 24px;
+                border-radius: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .portal-red-flag strong {
+                color: var(--admin-error);
+                font-size: 1.05em;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .portal-red-flag p {
+                margin: 0;
+                font-size: 0.95em;
+                color: var(--admin-text);
+            }
         `;
         document.head.appendChild(style);
     }
@@ -362,6 +384,25 @@
             .slice(0, 2)
             .map((part) => part.charAt(0).toUpperCase())
             .join('') || 'AD';
+    }
+
+    function renderAlerts(alerts) {
+        if (!Array.isArray(alerts) || alerts.length === 0) {
+            return '';
+        }
+        return alerts.map(alert => `
+            <div class="portal-red-flag">
+                <strong>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Alerta de tu médico
+                </strong>
+                <p>${escapeHtml(alert.message)}</p>
+            </div>
+        `).join('');
     }
 
     function renderNextAppointment(appointment, crossSellSuggestion) {
@@ -828,6 +869,7 @@
         const billingContainer = document.getElementById('portal-billing-summary');
         const actionsContainer = document.getElementById('portal-appointment-actions');
         const membershipContainer = document.getElementById('portal-membership-status');
+        const alertsContainer = document.getElementById('portal-alerts-container');
 
         if (!(nextAppointmentContainer instanceof HTMLElement)) {
             return;
@@ -901,6 +943,11 @@
                 portalShell.updatePatient(patient);
             }
 
+            if (alertsContainer instanceof HTMLElement) {
+                const alerts = Array.isArray(payload.alerts) ? payload.alerts : [];
+                alertsContainer.innerHTML = renderAlerts(alerts);
+            }
+
             nextAppointmentContainer.innerHTML = nextAppointment
                 ? renderNextAppointment(nextAppointment, crossSellSuggestion)
                 : renderEmptyState(support);
@@ -942,6 +989,9 @@
             }
             if (billingContainer instanceof HTMLElement) {
                 billingContainer.innerHTML = renderBillingUnavailable();
+            }
+            if (alertsContainer instanceof HTMLElement) {
+                alertsContainer.innerHTML = '';
             }
             if (actionsContainer instanceof HTMLElement) {
                 actionsContainer.innerHTML = renderSupportActions({

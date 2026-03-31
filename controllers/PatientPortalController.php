@@ -83,6 +83,7 @@ final class PatientPortalController
                 'treatmentPlan' => self::buildTreatmentPlanSummary($store, $snapshot, $patient, $nextAppointment),
                 'billing' => self::buildBillingSummary($store, $snapshot),
                 'evolution' => self::buildEvolutionSummary($store, $snapshot),
+                'alerts' => self::buildPatientRedFlags($store, $snapshot),
                 'support' => [
                     'bookingUrl' => '/#citas',
                     'historyUrl' => '/es/portal/historial/',
@@ -995,6 +996,66 @@ final class PatientPortalController
             unset($consultation['sortTimestamp']);
             return $consultation;
         }, $consultations));
+    }
+
+    private static function buildPatientRedFlags(array $store, array $snapshot): array
+    {
+        $caseIds = self::collectPatientCaseIds($store, $snapshot);
+        $caseMap = [];
+        foreach ($caseIds as $caseId) {
+            $caseId = trim((string) $caseId);
+            if ($caseId !== '') {
+                $caseMap[$caseId] = true;
+            }
+        }
+
+        $flags = [];
+        $cutoff = time() - (30 * 86400); // 30 days
+
+        foreach (($store['clinical_history_drafts'] ?? []) as $draft) {
+            if (!is_array($draft)) {
+                continue;
+            }
+
+            $caseId = trim((string) ($draft['caseId'] ?? ''));
+            if ($caseId === '' || !isset($caseMap[$caseId])) {
+                continue;
+            }
+
+            // Check if draft is within the last 30 days
+            $candidateDate = self::firstNonEmptyString(
+                (string) ($draft['updatedAt'] ?? ''),
+                (string) ($draft['createdAt'] ?? '')
+            );
+            $ts = strtotime($candidateDate);
+            if ($ts === false || $ts < $cutoff) {
+                continue;
+            }
+
+            // Extract note texts
+            $documents = is_array($draft['documents'] ?? null) ? $draft['documents'] : [];
+            $finalNote = is_array($documents['finalNote'] ?? null) ? $documents['finalNote'] : [];
+            $sections = is_array($finalNote['sections'] ?? null) ? $finalNote['sections'] : [];
+            $hcu005 = is_array($sections['hcu005'] ?? null) ? $sections['hcu005'] : [];
+
+            $summary = trim((string) ($finalNote['summary'] ?? ''));
+            $evo = trim((string) ($hcu005['evolutionNote'] ?? ''));
+            $diag = trim((string) ($hcu005['diagnosticImpression'] ?? ''));
+
+            $fullText = mb_strtolower($summary . ' ' . $evo . ' ' . $diag, 'UTF-8');
+            
+            // Checking exact 'cambio sospechoso' flag
+            if (mb_strpos($fullText, 'cambio sospechoso', 0, 'UTF-8') !== false) {
+                $flags[] = [
+                    'id' => 'redflag_suspicious_change',
+                    'rule' => 'cambio_sospechoso_30d',
+                    'message' => 'Su seguimiento recomienda una consulta pronto.',
+                ];
+                break; // One flag of this type is enough per patient
+            }
+        }
+
+        return $flags;
     }
 
     private static function buildTreatmentPlanSummary(
