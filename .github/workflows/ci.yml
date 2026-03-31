@@ -26,11 +26,14 @@ jobs:
                         - 'controllers/**'
                         - 'lib/**'
                         - 'tests/**'
+                        - 'tests-node/check-openapi-drift.test.js'
+                        - 'tests-node/ci-openapi-drift-workflow-contract.test.js'
                         - 'js/**'
                         - 'src/**'
                         - '*.php'
                         - '*.html'
                         - '*.css'
+                        - 'openapi-openclaw.yaml'
                         - 'package.json'
                         - 'package-lock.json'
                         - 'composer.json'
@@ -41,6 +44,7 @@ jobs:
                         - 'rollup.config.mjs'
                         - 'playwright.config.js'
                         - '.github/workflows/ci.yml'
+                        - 'bin/check-openapi-drift.js'
                         - 'prometheus.docker.yml'
                         - 'prometheus.rules.yml'
                         - 'bin/validate-plan-operativo.php'
@@ -59,6 +63,9 @@ jobs:
             - name: Install dependencies
               if: steps.changes.outputs.lint == 'true'
               run: npm ci
+            - name: Run OpenClaw OpenAPI drift guard
+              if: steps.changes.outputs.lint == 'true'
+              run: node bin/check-openapi-drift.js
             - name: Lint JS
               if: steps.changes.outputs.lint == 'true'
               run: npm run lint:js
