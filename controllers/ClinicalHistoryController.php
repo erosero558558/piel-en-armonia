@@ -558,6 +558,195 @@ final class ClinicalHistoryController
         ], 201);
     }
 
+    public static function getClinicalPhotos(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $caseId = trim((string) ($_GET['caseId'] ?? ''));
+        if ($caseId === '') {
+            json_response(['ok' => false, 'error' => 'caseId es requerido'], 400);
+        }
+
+        $store = read_store();
+        $photos = [];
+
+        foreach (($store['clinical_uploads'] ?? []) as $upload) {
+            $uCaseId = trim((string) ($upload['patientCaseId'] ?? ''));
+            $uKind = trim((string) ($upload['kind'] ?? ''));
+            if ($uCaseId === $caseId && $uKind === 'clinical_photo') {
+                $privatePath = $upload['privatePath'] ?? '';
+                $url = $privatePath !== '' 
+                    ? '/api.php?resource=media-flow-private-asset&type=clinical_media&path=' . urlencode($privatePath)
+                    : '';
+                
+                $photos[] = [
+                    'id' => (int) ($upload['id'] ?? 0),
+                    'url' => $url,
+                    'thumbnailUrl' => $url,
+                    'region' => $upload['bodyZone'] ?? '',
+                    'notes' => $upload['notes'] ?? '',
+                    'capturedAt' => $upload['createdAt'] ?? '',
+                    'visitLabel' => $upload['visitLabel'] ?? 'Consulta',
+                ];
+            }
+        }
+
+        usort($photos, static function($a, $b) {
+            return $a['capturedAt'] <=> $b['capturedAt'];
+        });
+
+        json_response([
+            'ok' => true,
+            'photos' => array_values($photos)
+        ]);
+    }
+
+    public static function uploadClinicalPhoto(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $caseId = trim((string) ($_POST['caseId'] ?? ''));
+        $region = trim((string) ($_POST['region'] ?? ''));
+        $notes = trim((string) ($_POST['notes'] ?? ''));
+
+        if ($caseId === '' || $region === '') {
+            json_response(['ok' => false, 'error' => 'caseId y region son requeridos'], 400);
+        }
+
+        if (!isset($_FILES['photo']) || (int) ($_FILES['photo']['error']) !== UPLOAD_ERR_OK) {
+            json_response(['ok' => false, 'error' => 'No se recibio un archivo valido'], 400);
+        }
+
+        $lockResult = with_store_lock(static function () use ($context, $caseId, $region, $notes): array {
+            $store = read_store();
+            $tenantId = get_current_tenant_id();
+
+            $maxId = 0;
+            $previousPhotoUploads = 0;
+            foreach (($store['clinical_uploads'] ?? []) as $upload) {
+                if (is_array($upload)) {
+                    $maxId = max($maxId, (int) ($upload['id'] ?? 0));
+                    $uCaseId = trim((string) ($upload['patientCaseId'] ?? ''));
+                    if ($uCaseId === $caseId && ($upload['kind'] ?? '') === 'clinical_photo') {
+                        $previousPhotoUploads++;
+                    }
+                }
+            }
+            $nextUploadId = $maxId + 1;
+            $visitLabel = 'Consulta ' . ($previousPhotoUploads + 1);
+
+            $file = $_FILES['photo'];
+            $tmpName = trim((string) ($file['tmp_name'] ?? ''));
+            $size = (int) ($file['size'] ?? 0);
+
+            if ($size > 10485760) {
+                return ['ok' => false, 'code' => 400, 'error' => 'Cada foto debe pesar maximo 10 MB.'];
+            }
+
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = $finfo ? (string) finfo_file($finfo, $tmpName) : '';
+            if ($finfo) {
+                finfo_close($finfo);
+            }
+
+            $allowed = [
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+            ];
+            if (!isset($allowed[$mime])) {
+                return ['ok' => false, 'code' => 400, 'error' => 'Las fotos deben ser JPG, PNG o WEBP.'];
+            }
+
+            if (!ensure_clinical_media_dir()) {
+                return ['ok' => false, 'code' => 500, 'error' => 'Error preparando almacenamiento.'];
+            }
+
+            $patientSlug = preg_replace('/[^a-zA-Z0-9_-]/', '', $caseId);
+            $fullTargetDir = clinical_media_dir_path() . DIRECTORY_SEPARATOR . $patientSlug;
+            
+            if (!is_dir($fullTargetDir)) {
+                @mkdir($fullTargetDir, 0750, true);
+            }
+
+            $suffix = substr(hash('sha256', (string) random_bytes(16)), 0, 8);
+            $filename = local_date('His') . '-' . $suffix . '.' . $allowed[$mime];
+            $targetDiskPath = $fullTargetDir . DIRECTORY_SEPARATOR . $filename;
+
+            if (is_uploaded_file($tmpName)) {
+                if (!@move_uploaded_file($tmpName, $targetDiskPath)) {
+                    return ['ok' => false, 'code' => 500, 'error' => 'Error guardando archivo fisico.'];
+                }
+            } else {
+                return ['ok' => false, 'code' => 400, 'error' => 'Archivo invalido.'];
+            }
+
+            @chmod($targetDiskPath, 0640);
+            $sha256 = @hash_file('sha256', $targetDiskPath);
+
+            $record = [
+                'id' => max(1, $nextUploadId),
+                'tenantId' => $tenantId,
+                'patientCaseId' => $caseId,
+                'bodyZone' => $region,
+                'notes' => $notes,
+                'visitLabel' => $visitLabel,
+                'kind' => 'clinical_photo',
+                'storageMode' => \ClinicalMediaService::STORAGE_PRIVATE_CLINICAL,
+                'privatePath' => 'clinical-media/' . $patientSlug . '/' . $filename,
+                'mime' => $mime,
+                'size' => $size,
+                'sha256' => is_string($sha256) ? $sha256 : '',
+                'createdAt' => local_date('c'),
+                'updatedAt' => local_date('c'),
+            ];
+
+            $store['clinical_uploads'] = isset($store['clinical_uploads']) && is_array($store['clinical_uploads'])
+                ? array_values($store['clinical_uploads'])
+                : [];
+            
+            $store['clinical_uploads'][] = $record;
+
+            if (!write_store($store, false)) {
+                @unlink($targetDiskPath);
+                return ['ok' => false, 'code' => 500, 'error' => 'No se pudo registrar la subida.'];
+            }
+
+            return ['ok' => true, 'record' => $record];
+        });
+
+        if (($lockResult['ok'] ?? false) !== true || (isset($lockResult['result']) && ($lockResult['result']['ok'] ?? false) !== true)) {
+            $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : $lockResult;
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'Error desconocido de subida')
+            ], (int) ($result['code'] ?? 500));
+        }
+
+        $uploadRecord = $lockResult['result']['record'] ?? [];
+        $privatePath = $uploadRecord['privatePath'] ?? '';
+        $url = $privatePath !== '' 
+            ? '/api.php?resource=media-flow-private-asset&type=clinical_media&path=' . urlencode($privatePath)
+            : '';
+
+        json_response([
+            'ok' => true,
+            'photo' => [
+                'id' => (int) ($uploadRecord['id'] ?? 0),
+                'url' => $url,
+                'thumbnailUrl' => $url,
+                'region' => (string) ($uploadRecord['bodyZone'] ?? ''),
+                'notes' => (string) ($uploadRecord['notes'] ?? ''),
+                'capturedAt' => (string) ($uploadRecord['createdAt'] ?? ''),
+                'visitLabel' => (string) ($uploadRecord['visitLabel'] ?? ''),
+            ]
+        ], 201);
+    }
+
     private static function mutateStore(callable $callback): array
     {
         $lockResult = with_store_lock(static function () use ($callback): array {

@@ -90,12 +90,16 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'clinical-episode-action', [ClinicalHistoryController::class, 'episodeActionPost']);
     $router->add('GET', 'care-plan-pdf', [ClinicalHistoryController::class, 'getCarePlanPdf']);
     $router->add('POST', 'clinical-media-upload', [ClinicalHistoryController::class, 'uploadMedia']);
+    $router->add('GET', 'clinical-photos', [ClinicalHistoryController::class, 'getClinicalPhotos']);
+    $router->add('POST', 'clinical-photo-upload', [ClinicalHistoryController::class, 'uploadClinicalPhoto']);
     $router->add('GET', 'media-flow-queue', [CaseMediaFlowController::class, 'queue']);
     $router->add('GET', 'media-flow-case', [CaseMediaFlowController::class, 'caseGet']);
     $router->add('POST', 'media-flow-proposal-generate', [CaseMediaFlowController::class, 'proposalGenerate']);
     $router->add('POST', 'media-flow-proposal-review', [CaseMediaFlowController::class, 'proposalReview']);
     $router->add('POST', 'media-flow-publication-state', [CaseMediaFlowController::class, 'publicationState']);
     $router->add('GET', 'media-flow-private-asset', [CaseMediaFlowController::class, 'privateAsset']);
+    $router->add('GET', 'clinical-photos', [ClinicalPhotosController::class, 'index']);
+    $router->add('POST', 'clinical-photo-upload', [ClinicalPhotosController::class, 'upload']);
     $router->add('GET', 'public-case-stories', [CaseMediaFlowController::class, 'publicStories']);
     $router->add('GET', 'public-case-media-file', [CaseMediaFlowController::class, 'publicMediaFile']);
 

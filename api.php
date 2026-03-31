@@ -63,6 +63,7 @@ require_once __DIR__ . '/controllers/MembershipController.php';
 require_once __DIR__ . '/controllers/OnboardingController.php';
 require_once __DIR__ . '/controllers/PromotionController.php';
 require_once __DIR__ . '/controllers/TvController.php';
+require_once __DIR__ . '/controllers/ClinicalPhotosController.php';
 
 
 
