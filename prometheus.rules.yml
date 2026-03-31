@@ -1,6 +1,18 @@
 groups:
-  - name: pielarmonia
+  - name: auroraderm_runtime
     rules:
+      - record: auroraderm_api_error_rate_5m
+        expr: sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m])) / clamp_min(sum(rate(http_request_duration_seconds_count[5m])), 0.001)
+
+      - alert: AuroraDermQueueBacklogHigh
+        expr: max_over_time(auroraderm_queue_size[5m]) > 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Queue backlog above safe threshold (instance {{ $labels.instance }})"
+          description: "auroraderm_queue_size stayed above 20 for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
       - alert: APIHighLatency
         expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
         for: 5m
@@ -10,14 +22,14 @@ groups:
           summary: "High API Latency (instance {{ $labels.instance }})"
           description: "95th percentile latency is > 2s for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
-      - alert: APIHighErrorRate
-        expr: sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m])) / sum(rate(http_request_duration_seconds_count[5m])) > 0.05
+      - alert: AuroraDermApiErrorRateHigh
+        expr: auroraderm_api_error_rate_5m > 0.05
         for: 5m
         labels:
           severity: critical
         annotations:
           summary: "High Error Rate (instance {{ $labels.instance }})"
-          description: "API 5xx error rate is > 5% for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          description: "auroraderm_api_error_rate_5m is > 5% for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
       - alert: InstanceDown
         expr: up == 0

@@ -3,15 +3,23 @@ version: '3.8'
 services:
     prometheus:
         image: prom/prometheus:latest
-        container_name: pielarmonia_prometheus
+        container_name: AURORADERM_prometheus
         volumes:
-            - ./prometheus.docker.yml:/etc/prometheus/prometheus.yml
+            - ./prometheus.docker.yml:/etc/prometheus/prometheus.yml:ro
             - ./prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml
+        environment:
+            - AURORADERM_DIAGNOSTICS_ACCESS_TOKEN=${AURORADERM_DIAGNOSTICS_ACCESS_TOKEN:-}
+        entrypoint:
+            - /bin/sh
+            - -lc
         command:
-            - '--config.file=/etc/prometheus/prometheus.yml'
-            - '--storage.tsdb.path=/prometheus'
-            - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-            - '--web.console.templates=/usr/share/prometheus/consoles'
+            - |
+              printf '%s' "${AURORADERM_DIAGNOSTICS_ACCESS_TOKEN:-}" > /tmp/prometheus_diagnostics.token
+              exec /bin/prometheus \
+                --config.file=/etc/prometheus/prometheus.yml \
+                --storage.tsdb.path=/prometheus \
+                --web.console.libraries=/usr/share/prometheus/console_libraries \
+                --web.console.templates=/usr/share/prometheus/consoles
         ports:
             - '9090:9090'
         restart: unless-stopped
@@ -20,7 +28,7 @@ services:
 
     grafana:
         image: grafana/grafana:latest
-        container_name: pielarmonia_grafana
+        container_name: AURORADERM_grafana
         ports:
             - '3000:3000'
         volumes:
