@@ -27,4 +27,7 @@ const navModel = getV6SoftwareNavigationModel(locale, pathname);
     ogImageSrc={page.ogImageSrc}
 >
     <SoftwareLandingV6 page={page} locale={locale} navModel={navModel} />
+    <script is:inline>
+        (function(){try{var p=new URLSearchParams(window.location.search),r=p.get("ref")||sessionStorage.getItem("v6_b2b_referral");if(r){sessionStorage.setItem("v6_b2b_referral",r);document.querySelectorAll('a[href*="wa.me"]').forEach(function(a){try{var u=new URL(a.href);if(u.searchParams.has("text")){var t=u.searchParams.get("text");if(t.indexOf("(Referido")===-1){u.searchParams.set("text",t+" (Referido por: "+decodeURIComponent(r)+")");a.href=u.toString();}}}catch(e){}})}}catch(e){}})();
+    </script>
 </PublicShellV6>
