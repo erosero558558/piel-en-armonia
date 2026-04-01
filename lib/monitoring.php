@@ -27,28 +27,54 @@ function init_monitoring(): void
     }
 }
 
+function resolve_public_ga_measurement_id(): string
+{
+    $ga = getenv('PIELARMONIA_GA_MEASUREMENT_ID');
+    if (!is_string($ga) || trim($ga) === '') {
+        $ga = getenv('AURORADERM_GA_MEASUREMENT_ID');
+    }
+
+    if (!is_string($ga) || trim($ga) === '') {
+        return 'G-2DWZ5PJ4MC';
+    }
+
+    return trim($ga);
+}
+
+function resolve_clarity_project_id(): string
+{
+    $candidateKeys = [
+        'CLARITY_ID',
+        'PIELARMONIA_CLARITY_PROJECT_ID',
+        'MICROSOFT_CLARITY_PROJECT_ID',
+    ];
+
+    foreach ($candidateKeys as $key) {
+        $value = getenv($key);
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+    }
+
+    return '';
+}
+
 function get_monitoring_config(): array
 {
     $dsn = getenv('PIELARMONIA_SENTRY_DSN_PUBLIC');
-    $env = getenv('PIELARMONIA_SENTRY_ENV');
-
     if (!is_string($dsn) || trim($dsn) === '') {
-        return [
-            'enabled' => false
-        ];
+        $dsn = getenv('AURORADERM_SENTRY_DSN_FRONTEND');
     }
 
-    if (!is_string($env) || trim($env) === '') {
-        $env = 'production';
+    if (!is_string($dsn)) {
+        $dsn = '';
     }
 
     return [
-        'enabled' => true,
-        'dsn' => trim($dsn),
-        'environment' => trim($env),
-        'tracesSampleRate' => 1.0,
-        'replaysSessionSampleRate' => 0.1,
-        'replaysOnErrorSampleRate' => 1.0,
+        'ok' => true,
+        'sentry_dsn_frontend' => trim($dsn),
+        'ga_measurement_id' => resolve_public_ga_measurement_id(),
+        'clarity_id' => resolve_clarity_project_id(),
     ];
 }
 

@@ -34,7 +34,7 @@ spl_autoload_register(function (string $className) {
     if (file_exists($subdirFile)) {
         require_once $subdirFile;
     }
-}, /* throw */ false, /* prepend */ false);
+});
 
 // Instantiate and Handle
 $kernel = new ApiKernel();

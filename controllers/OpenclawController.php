@@ -307,6 +307,11 @@ final class OpenclawController
         ]);
     }
 
+    public static function suggestCie10(array $context): void
+    {
+        self::cie10Suggest($context);
+    }
+
     // ── protocol ─────────────────────────────────────────────────────────────
 
     /**
@@ -333,6 +338,11 @@ final class OpenclawController
         // Protocolo genérico por categoría CIE-10
         $generic = self::genericProtocol($code);
         json_response(['ok' => true] + $generic);
+    }
+
+    public static function getTreatmentProtocol(array $context): void
+    {
+        self::protocol($context);
     }
 
     // ── chat ─────────────────────────────────────────────────────────────────
@@ -530,6 +540,11 @@ final class OpenclawController
         });
 
         json_response(['ok' => true, 'id' => $result['id'] ?? '', 'saved_at' => gmdate('c')]);
+    }
+
+    public static function saveEvolutionNote(array $context): void
+    {
+        self::saveEvolution($context);
     }
 
     // ── savePrescription ─────────────────────────────────────────────────────

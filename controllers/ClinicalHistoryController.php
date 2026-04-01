@@ -519,6 +519,44 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
+    public static function galleryGet(array $context): void
+    {
+        if (($context['isAdmin'] ?? false) !== true) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        self::requireClinicalStorageReady([]);
+
+        $caseId = ClinicalHistoryRepository::trimString(
+            $_GET['case_id'] ?? ($_GET['caseId'] ?? '')
+        );
+        if ($caseId === '') {
+            json_response([
+                'ok' => false,
+                'error' => 'case_id requerido',
+                'code' => 'case_id_required',
+            ], 400);
+        }
+
+        $service = new ClinicalHistorySessionService();
+        $result = self::readStore(static function (array $store) use ($service, $caseId): array {
+            return $service->getPatientGallery($store, $caseId);
+        });
+
+        if (($result['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo cargar la galeria clinica'),
+                'code' => (string) ($result['errorCode'] ?? 'clinical_history_gallery_error'),
+            ], (int) ($result['statusCode'] ?? 500));
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => $result['data'] ?? [],
+        ], (int) ($result['statusCode'] ?? 200));
+    }
+
     public static function recordGet(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {

@@ -16,7 +16,12 @@ AURORA_DB_PATH=/var/www/aurora-derm/data/clinical_store.json
 # APIs
 WHATSAPP_API_TOKEN=your_meta_whatsapp_token
 WHATSAPP_PHONE_ID=your_meta_phone_id
+
+# Analytics
+CLARITY_ID=mx123
 ```
+
+`CLARITY_ID` must be configured before launch if Microsoft Clarity should load after cookie consent. Legacy aliases `PIELARMONIA_CLARITY_PROJECT_ID` and `MICROSOFT_CLARITY_PROJECT_ID` are still supported, but `CLARITY_ID` is the deploy-time value this repo now documents and expects.
 
 ## 2. Directory Permissions & Security
 Certain directories require tight permissions to prevent unauthorized execution or read access to PHI (Protected Health Information).

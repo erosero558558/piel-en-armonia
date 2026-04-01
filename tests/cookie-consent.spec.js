@@ -3,6 +3,11 @@ const { test, expect } = require('@playwright/test');
 
 const GA4_MEASUREMENT_ID = 'G-2DWZ5PJ4MC';
 const CLARITY_PROJECT_ID = 'aurora-test-clarity';
+const CLARITY_RUNTIME_PROJECT_ID =
+    process.env.CLARITY_ID ||
+    process.env.PIELARMONIA_CLARITY_PROJECT_ID ||
+    process.env.MICROSOFT_CLARITY_PROJECT_ID ||
+    '';
 
 async function getConsentModeCalls(page) {
     return page.evaluate(() => {
@@ -95,7 +100,7 @@ async function augmentRuntimeConfigWithClarity(page) {
     );
 }
 
-async function getClarityState(page) {
+async function getClarityState(page, projectId = CLARITY_PROJECT_ID) {
     return page.evaluate((projectId) => {
         const hasScript = Array.from(document.scripts).some((script) =>
             String(script.src || '').includes(
@@ -107,7 +112,7 @@ async function getClarityState(page) {
             hasScript,
             clarityLoaded: window.__clarityLoaded === true,
         };
-    }, CLARITY_PROJECT_ID);
+    }, projectId);
 }
 
 test.describe('Consentimiento de cookies', () => {
@@ -263,6 +268,38 @@ test.describe('Consentimiento de cookies', () => {
 
         await expect
             .poll(async () => getClarityState(page))
+            .toMatchObject({
+                hasScript: true,
+                clarityLoaded: true,
+            });
+    });
+
+    test('Clarity se carga con CLARITY_ID del servidor tras aceptar cookies', async ({
+        page,
+    }) => {
+        test.skip(
+            !CLARITY_RUNTIME_PROJECT_ID,
+            'Requires CLARITY_ID (or legacy clarity env alias) in the test server env'
+        );
+
+        const banner = page.locator('#cookieBanner');
+        await expect(banner).toBeVisible({ timeout: 10000 });
+
+        await expect
+            .poll(async () =>
+                getClarityState(page, CLARITY_RUNTIME_PROJECT_ID)
+            )
+            .toMatchObject({
+                hasScript: false,
+                clarityLoaded: false,
+            });
+
+        await page.locator('#cookieAcceptBtn').click();
+
+        await expect
+            .poll(async () =>
+                getClarityState(page, CLARITY_RUNTIME_PROJECT_ID)
+            )
             .toMatchObject({
                 hasScript: true,
                 clarityLoaded: true,

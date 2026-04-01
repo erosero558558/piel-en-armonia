@@ -61,7 +61,7 @@ class PatientCaseController
         ]);
     }
 
-    public static function __search(array $context): void
+    public static function search(array $context): void
     {
         $q = trim((string) ($_GET['q'] ?? ''));
         if ($q === '') {

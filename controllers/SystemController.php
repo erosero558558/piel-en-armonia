@@ -74,13 +74,7 @@ class SystemController
         $deployVersion = function_exists('app_runtime_version')
             ? app_runtime_version()
             : gmdate('YmdHis');
-        $clarityProjectIdRaw = getenv('PIELARMONIA_CLARITY_PROJECT_ID');
-        if ($clarityProjectIdRaw === false || trim((string) $clarityProjectIdRaw) === '') {
-            $clarityProjectIdRaw = getenv('MICROSOFT_CLARITY_PROJECT_ID');
-        }
-        $clarityProjectId = is_string($clarityProjectIdRaw)
-            ? trim($clarityProjectIdRaw)
-            : '';
+        $clarityProjectId = resolve_clarity_project_id();
 
         $commercialConfigPath = __DIR__ . '/../data/flow-os/commercial-config.json';
         $commercialConfig = [];
@@ -103,7 +97,7 @@ class SystemController
                     'scriptUrl' => is_string($captchaScriptUrl) ? $captchaScriptUrl : null,
                 ],
                 'analytics' => [
-                    'gaMeasurementId' => 'G-2DWZ5PJ4MC',
+                    'gaMeasurementId' => resolve_public_ga_measurement_id(),
                     'clarityProjectId' => $clarityProjectId !== '' ? $clarityProjectId : null,
                 ],
                 'features' => $features,
