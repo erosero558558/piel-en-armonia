@@ -2562,7 +2562,7 @@ export function getV6SoftwareNavOverrides(locale) {
 
 function buildSoftwareShellHeaderLinks(locale, links = []) {
     const safeLocale = normalizeLocale(locale);
-    const allowedIds = ['software', 'demo', 'status', 'dashboard', 'legal'];
+    const allowedIds = ['software', 'demo', 'status', 'dashboard', 'caseStudy', 'legal'];
     const sourceLinks = Array.isArray(links) ? links : [];
     const linkMap = new Map(
         sourceLinks

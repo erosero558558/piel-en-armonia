@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 2:05:54 p. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 2:07:15 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████████░░░` **87%** completado (605/696)
+`█████████████████░░░` **87%** completado (606/696)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -17,7 +17,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | 🎯 Sprint 3 | 66 | 1 | 99% |
 | ✅ Sprint 4 | 26 | 0 | 100% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
-| ⏸ Sprint 6 | 19 | 6 | 76% |
+| ⏸ Sprint 6 | 20 | 5 | 80% |
 | ⏸ Sprint 7 | 12 | 25 | 32% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
@@ -60,15 +60,14 @@ _Sprint completado. 26/26 tareas._
 _Sprint completado. 22/22 tareas._
 
 ## ⏸ Sprint 6 — Plataforma SaaS para Clínicas
-_Esperando que Sprint anterior esté completo. 6 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 5 tareas pendientes._
 
-### 🟢 Disponibles (4)
+### 🟢 Disponibles (3)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S6-14** | `[S6]` | L |
 | **S6-18** | `[S6]` | L |
-| **S6-23** | `[S6]` | M |
 | **S6-25** | `[S6]` | L |
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
