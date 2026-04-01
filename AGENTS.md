@@ -2326,7 +2326,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI5-04** `[M]` `[UI]` Cards de sugerencia CIE-10 glass flotantes — cuando OpenClaw sugiere diagnóstico: cards flotantes con `backdrop-filter: blur(16px)`, código en mono dorado, botón "Aplicar" que se ilumina al hover. Entran con spring `translateY(-8px) → 0`. Verificable: `grep "cie10.*card.*glass\|suggestion.*card.*spring" styles/aurora-clinical.css` → match.
 
-- [ ] **UI5-05** `[M]` `[UI]` Barra de alergias sticky — encima del campo de prescripción: barra fija amber translúcido con alergias del paciente en pills. Verde translúcido si no hay alergias. Nunca en un tab. Verificable: `grep "allergy-bar.*sticky\|allergy.*amber" styles/aurora-clinical.css` → match; `position: sticky` en DOM.
+- [x] **UI5-05** `[M]` `[UI]` Barra de alergias sticky — encima del campo de prescripción: barra fija amber translúcido con alergias del paciente en pills. Verde translúcido si no hay alergias. Nunca en un tab. Verificable: `grep "allergy-bar.*sticky\|allergy.*amber" styles/aurora-clinical.css` → match; `position: sticky` en DOM.
 
 - [ ] **UI5-06** `[L]` `[UI]` Focus Mode de consulta — clase `.focus-mode` en `admin.html` al iniciar consulta: oculta sidebar con `translateX(-100%)` animado, amplía área de trabajo, topbar mínima con nombre + timer. Al salir, sidebar regresa con spring. Verificable: `grep "focus-mode\|consultation.*timer\|sidebar.*hide" js/admin.js` → match.
 
@@ -2549,13 +2549,13 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 > **El médico no es secretaria.** El sistema tiene que decirle: "Tienes 2 pacientes crónicos que no vienen desde hace 60 días, 1 resultado crítico de lab que espera revisión, y 3 teleconsultas pendientes de cierre." No al revés.
 
-- [ ] **S33-01** `[L]` `[codex_backend]` Dashboard clínico del médico — `GET /api.php?resource=doctor-dashboard` devuelve: `{ patients_critical_vitals: [], pending_lab_results: [], overdue_chronics: [], open_teleconsults: [], today_appointments: [] }`. Toda la información prioritaria en un solo endpoint. Verificable: respuesta incluye los 5 campos con datos reales del store.
+- [x] **S33-01** `[L]` `[codex_backend]` Dashboard clínico del médico — `GET /api.php?resource=doctor-dashboard` devuelve: `{ patients_critical_vitals: [], pending_lab_results: [], overdue_chronics: [], open_teleconsults: [], today_appointments: [] }`. Toda la información prioritaria en un solo endpoint. Verificable: respuesta incluye los 5 campos con datos reales del store.
 
 - [x] **S33-02** `[M]` `[UI]` `[gemini]` Vista del dashboard médico — `src/apps/admin-v3/sections/doctor-dashboard/`: grilla Bento asimétrica con 5 cards: crisis (PA >180 detectada hoy, rojo pulsante), labs críticos (amber con número), crónicos atrasados (navy con días), teleconsultas abiertas (glass cyan), y citas del día (timeline compacto). Verificable: `grep "bento.*doctor\|crisis.*card\|vital.*alert.*pulse" src/apps/admin-v3/sections/doctor-dashboard/` → match ≥4.
 
-- [ ] **S33-03** `[M]` `[codex_backend]` Búsqueda global de pacientes — `GET /api.php?resource=patient-search?q=juan` busca en nombre, apellido, cédula, diagnóstico CIE-10 más reciente. Devuelve max 10 resultados con: foto de perfil (si existe), último diagnóstico, próxima cita, estado crónico. El médico puede ir directo al caso desde el resultado. Verificable: búsqueda con nombre parcial → `{ results: [{ case_id, name, last_diagnosis, next_appointment, chronic_status }] }`.
+- [x] **S33-03** `[M]` `[codex_backend]` Búsqueda global de pacientes — `GET /api.php?resource=patient-search?q=juan` busca en nombre, apellido, cédula, diagnóstico CIE-10 más reciente. Devuelve max 10 resultados con: foto de perfil (si existe), último diagnóstico, próxima cita, estado crónico. El médico puede ir directo al caso desde el resultado. Verificable: búsqueda con nombre parcial → `{ results: [{ case_id, name, last_diagnosis, next_appointment, chronic_status }] }`.
 
-- [ ] **S33-04** `[M]` `[codex_backend]` Estadísticas del médico — `GET /api.php?resource=doctor-stats` devuelve: pacientes atendidos este mes, consultas cerradas, prescripciones emitidas, diagnósticos más frecuentes (top 5 CIE-10), tasa de retorno de pacientes (porcentaje que volvió al menos una vez). Verificable: respuesta incluye `top_diagnoses: [{cie10Code, count}]` con datos reales.
+- [x] **S33-04** `[M]` `[codex_backend]` Estadísticas del médico — `GET /api.php?resource=doctor-stats` devuelve: pacientes atendidos este mes, consultas cerradas, prescripciones emitidas, diagnósticos más frecuentes (top 5 CIE-10), tasa de retorno de pacientes (porcentaje que volvió al menos una vez). Verificable: respuesta incluye `top_diagnoses: [{cie10Code, count}]` con datos reales.
 
 - [x] **S33-05** `[S]` `[UI]` `[gemini]` Indicador de carga de trabajo del día — en el header del admin: pill glass con "X pacientes hoy / Y completados". Cambia de color: verde si < 60% carga, amber si 60-90%, rojo si > 90% o retrasado. Verificable: `grep "workload.*pill\|patients.*today.*header" src/apps/admin-v3/` → match.
 

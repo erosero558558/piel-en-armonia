@@ -865,7 +865,7 @@ body .oc-msg-doctor .oc-msg-text {
   max-height: 2000px;
 }
 
-/* 44. S27-02: Prescription Allergy Sticky Bar */
+/* 44. S27-02 / UI5-05: Prescription allergy-bar sticky allergy amber */
 .allergy-bar {
   position: sticky;
   top: 10px;

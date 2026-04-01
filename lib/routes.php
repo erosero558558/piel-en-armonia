@@ -82,7 +82,9 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'patient-cases', [PatientCaseController::class, 'index']);
     $router->add('POST', 'patient-cases', [PatientCaseController::class, 'store']);
-    $router->add('GET', 'patient-search', [PatientCaseController::class, 'search']);
+    $router->add('GET', 'patient-search', [DoctorDashboardController::class, 'searchPatients']);
+    $router->add('GET', 'doctor-dashboard', [DoctorDashboardController::class, 'dashboard']);
+    $router->add('GET', 'doctor-stats', [DoctorDashboardController::class, 'stats']);
     $router->add('POST', 'import', [AdminDataController::class, 'import']);
     $router->add('GET', 'telemedicine-intakes', [TelemedicineAdminController::class, 'index']);
     $router->add('PATCH', 'telemedicine-intakes', [TelemedicineAdminController::class, 'patch']);
