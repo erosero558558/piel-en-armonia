@@ -16,6 +16,15 @@
         />
         <title>Consola de control del turnero - Aurora Derm</title>
         
+        <!-- S13-06: Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-2DWZ5PJ4MC');
+        </script>
+
         <!-- S13-10: DOMPurify para sanitización XSS — local copy (no CDN dependency) -->
         <script src="/js/vendor/purify.min.js"></script>
         
@@ -177,6 +186,10 @@
                     <details class="sidebar-group" open>
                         <summary>Gestión & Ecosistema</summary>
                         <div class="sidebar-group-items">
+                            <a href="#revenue" id="nav-revenue-dashboard" data-section="revenue" class="nav-item nav-pill-admin" style="display:none;">
+                                <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+                                <span class="nav-label">Revenue (SaaS)</span>
+                            </a>
                             <a href="#gift-cards" data-section="gift-cards" class="nav-item nav-pill-admin">
                                 <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
                                 <span class="nav-label">Gift Cards</span>
@@ -755,6 +768,25 @@
 
                         <!-- JS will inject the ops panels here -->
                         <div id="whatsappOpsContainer">
+                            <div class="skeleton" style="height: 120px; width: 100%; border-radius: 8px;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- S6-13: Flow OS Revenue Dashboard -->
+                <section
+                    id="revenue"
+                    class="admin-section"
+                    data-admin-raw-section="revenue"
+                >
+                    <div class="dashboard-wrapper">
+                        <header data-turnero-control-room="raw" style="margin-bottom: var(--space-4); padding-bottom: 0; border: none;">
+                            <p>Flow OS Owner</p>
+                            <h3>Revenue Dashboard</h3>
+                            <p>Métricas financieras, conversiones de tenant y MRR global de la plataforma (Solo superadmin).</p>
+                        </header>
+                        <div id="revenueDashboardUI">
+                            <!-- JS will inject the revenue panels here -->
                             <div class="skeleton" style="height: 120px; width: 100%; border-radius: 8px;"></div>
                         </div>
                     </div>

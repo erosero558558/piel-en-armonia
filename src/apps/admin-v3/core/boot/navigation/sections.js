@@ -18,6 +18,7 @@ import { renderGiftCardsSection } from '../../../sections/gift-cards.js';
 import { renderSettingsSection } from '../../../sections/settings.js';
 import { renderMultiClinicDashboard } from '../../../sections/multi-clinic.js';
 import { renderWhatsappOpsDashboard } from '../../../sections/whatsapp-ops.js';
+import { renderRevenueDashboard } from '../../../sections/revenue.js';
 import {
     persistUiPrefs,
     readInitialThemeMode,
@@ -97,6 +98,10 @@ export async function navigateToSection(section, options = {}) {
     if (normalized === 'whatsapp-ops') {
         renderWhatsappOpsDashboard();
         focusFirstElement('whatsappOpsContainer');
+        return;
+    }
+    if (normalized === 'revenue') {
+        renderRevenueDashboard(getState());
         return;
     }
     if (normalized === 'queue') {

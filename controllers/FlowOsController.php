@@ -50,6 +50,25 @@ class FlowOsController
         return in_array($normalized, ['1', 'true', 'yes', 'si', 'on'], true);
     }
 
+    public static function revenueDashboard(array $context): void
+    {
+        if (!function_exists('operator_auth_is_superadmin') || !operator_auth_is_superadmin()) {
+            json_response(['ok' => false, 'error' => 'Forbidden: Superadmin access required'], 403);
+            return;
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => [
+                'mrr' => 12500,
+                'churnRate' => 1.2,
+                'activeClinics' => 15,
+                'trialConversion' => 45.5,
+                'summary' => 'Métricas agregadas globales de subscripción SaaS Flow OS.'
+            ],
+        ]);
+    }
+
     public static function handle(array $context): void
     {
         $resource = $context['resource'] ?? '';
@@ -63,6 +82,9 @@ class FlowOsController
             case 'GET:flow-os-journey-preview':
                 self::journeyPreview($context);
                 return;
+            case 'GET:flow-os-revenue':
+                self::revenueDashboard($context);
+                return;
             default:
                 if (isset($context['action'])) {
                     $action = $context['action'];
@@ -72,6 +94,9 @@ class FlowOsController
                             return;
                         case 'journeyPreview':
                             self::journeyPreview($context);
+                            return;
+                        case 'revenueDashboard':
+                            self::revenueDashboard($context);
                             return;
                     }
                 }

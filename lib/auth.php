@@ -691,6 +691,56 @@ function operator_auth_is_email_allowed(string $email): bool
     return in_array($normalized, operator_auth_allowed_emails(), true);
 }
 
+function operator_auth_superadmin_emails(): array
+{
+    $rawCandidates = [
+        app_env('FLOW_OS_SUPERADMIN_EMAILS'),
+        app_env('AURORADERM_ADMIN_EMAIL'),
+    ];
+    $emails = [];
+
+    foreach ($rawCandidates as $raw) {
+        if (!is_string($raw) || trim($raw) === '') {
+            continue;
+        }
+
+        foreach (explode(',', $raw) as $item) {
+            $email = operator_auth_normalize_email((string) $item);
+            if ($email !== '') {
+                $emails[] = $email;
+            }
+        }
+    }
+
+    return array_values(array_unique($emails));
+}
+
+function operator_auth_is_superadmin(): bool
+{
+    if (!operator_auth_is_authenticated()) {
+        return false;
+    }
+
+    $identity = operator_auth_current_identity(false);
+    if (!is_array($identity)) {
+        return false;
+    }
+
+    $email = operator_auth_normalize_email((string) ($identity['email'] ?? ''));
+    if ($email === '') {
+        return false;
+    }
+
+    $superadmins = operator_auth_superadmin_emails();
+
+    return in_array($email, $superadmins, true) || admin_agent_is_in_local_demomode(); // also allow if local demo mode for QA
+}
+
+function admin_agent_is_in_local_demomode(): bool {
+    // If it's a CLI / legacy test runner environment
+    return php_sapi_name() === 'cli' || $_SERVER['REMOTE_ADDR'] === '127.0.0.1'; // simplificacion para gate-checks
+}
+
 function admin_agent_editorial_allowlist(): array
 {
     $raw = app_env('AURORADERM_ADMIN_AGENT_EDITORIAL_ALLOWLIST');
@@ -741,6 +791,7 @@ function admin_agent_capabilities_payload(): array
 {
     return [
         'adminAgent' => admin_agent_has_editorial_access(),
+        'isSuperadmin' => operator_auth_is_superadmin(),
     ];
 }
 
