@@ -1,16 +1,16 @@
 {
-  "generatedAt": "2026-03-31T22:15:28.340Z",
+  "generatedAt": "2026-04-01T01:01:59.450Z",
   "releaseVersion": "unknown",
   "releaseChannel": "unknown",
-  "allSurfacesReady": false,
-  "gate": "BLOCKED",
+  "allSurfacesReady": true,
+  "gate": "READY",
   "surfaces": [
     {
       "id": "admin",
       "label": "Consola Admin",
       "file": "admin.html",
       "exists": true,
-      "sizeKb": 64,
+      "sizeKb": 67,
       "hasAuth": true,
       "ready": true
     },
@@ -18,35 +18,35 @@
       "id": "operator",
       "label": "Operador",
       "file": "queue-operator.html",
-      "exists": false,
-      "sizeKb": 0,
+      "exists": true,
+      "sizeKb": 8,
       "hasAuth": false,
-      "ready": false
+      "ready": true
     },
     {
       "id": "kiosk",
       "label": "Kiosco Paciente",
       "file": "queue-kiosk.html",
-      "exists": false,
-      "sizeKb": 0,
+      "exists": true,
+      "sizeKb": 14,
       "hasAuth": false,
-      "ready": false
+      "ready": true
     },
     {
       "id": "display",
       "label": "Sala / TV",
       "file": "queue-display.html",
-      "exists": false,
-      "sizeKb": 0,
+      "exists": true,
+      "sizeKb": 8,
       "hasAuth": false,
-      "ready": false
+      "ready": true
     }
   ],
   "scripts": [
     {
       "path": "js/queue-operator.js",
       "exists": true,
-      "sizeKb": 3206
+      "sizeKb": 3211
     },
     {
       "path": "js/queue-kiosk.js",
@@ -59,19 +59,6 @@
       "sizeKb": 485
     }
   ],
-  "blockers": [
-    {
-      "surface": "operator",
-      "reason": "file_missing"
-    },
-    {
-      "surface": "kiosk",
-      "reason": "file_missing"
-    },
-    {
-      "surface": "display",
-      "reason": "file_missing"
-    }
-  ],
-  "recommendation": "3 superficie(s) no listas. Verificar build."
+  "blockers": [],
+  "recommendation": "Todas las superficies del turnero están listas. Proceder con el release."
 }

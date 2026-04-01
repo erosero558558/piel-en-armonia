@@ -169,11 +169,21 @@ Contexto del paciente se te dará como sistema de contexto.`,
   function renderInlineActions(actions, msgId) {
     return `
     <div class="oc-inline-actions">
-      ${actions.map(a => `
+      ${actions.map(a => {
+        if (a.type === 'apply_dx') {
+          return `
+          <div class="cie10-card-glass">
+            <span style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Sugerencia CIE-10: <code class="monogold">${a.value.code}</code></span>
+              <button class="btn-apply" data-action="${a.type}" data-msg-id="${msgId}" data-value='${JSON.stringify(a.value)}'>Aplicar</button>
+            </span>
+          </div>`;
+        }
+        return `
         <button class="oc-action-chip" data-action="${a.type}" data-msg-id="${msgId}" data-value='${JSON.stringify(a.value)}'>
           ${a.icon} ${a.label}
-        </button>
-      `).join('')}
+        </button>`;
+      }).join('')}
     </div>`;
   }
 

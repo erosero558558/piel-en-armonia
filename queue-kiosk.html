@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es" data-theme-mode="system" data-ops-tone="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="application-name" content="Aurora Derm Kiosk">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Kiosco de Sala de Espera | Aurora Derm</title>
+    
+    <!-- Design System Tokens -->
+    <link rel="stylesheet" href="/styles/reborn-tokens.css" />
+    <link rel="stylesheet" href="/styles/reborn-layout.css" />
+    
+    <!-- Kiosk specific stylesheets -->
+    <link rel="stylesheet" href="/styles/aurora-kiosk.css" />
+    <link rel="stylesheet" href="/queue-kiosk.css" />
+
+    <style>
+        /* UI4-18 Kiosk Glass Skin Override */
+        body.kiosk-waiting-room {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background-color: #020617; /* Navy */
+            font-family: var(--reborn-font-base, 'Inter', sans-serif);
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Subtle Navy Particle Video/Animation background */
+        .kiosk-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(36, 138, 101, 0.08), transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(199, 163, 109, 0.08), transparent 40%);
+            animation: breathe 12s ease-in-out infinite alternate;
+        }
+
+        @keyframes breathe {
+            0% { opacity: 0.6; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+
+        .kiosk-glass-shell {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Essential UI4-18 Glass Pane */
+        .kiosk-glass-panel.lg-surface {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 32px;
+            padding: 48px;
+            box-shadow: 0 32px 64px rgba(2, 6, 23, 0.4);
+            text-align: center;
+        }
+
+        .kiosk-header {
+            margin-bottom: 32px;
+        }
+
+        .kiosk-header h1 {
+            font-family: var(--reborn-font-display, sans-serif);
+            font-size: clamp(36px, 5vw, 56px);
+            margin: 0;
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .kiosk-status-row {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        /* Glass Pill Counters */
+        .glass-pill {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            padding: 12px 24px;
+            border-radius: 999px;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: var(--reborn-color-aurora-gold, #c7a36d);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .glass-pill-value {
+            font-family: var(--reborn-font-display, sans-serif);
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .kiosk-button {
+            background: linear-gradient(135deg, rgba(199, 163, 109, 0.8) 0%, rgba(199, 163, 109, 1) 100%);
+            color: #1c1c1e;
+            border: none;
+            padding: 20px 48px;
+            border-radius: 999px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(199, 163, 109, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 32px;
+            font-family: var(--reborn-font-base);
+        }
+
+        .kiosk-button:active {
+            transform: scale(0.98);
+        }
+
+        .kiosk-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            width: 100%;
+        }
+
+        .kiosk-glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 32px 24px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .kiosk-glass-card:hover, .kiosk-glass-card:focus {
+            transform: translateY(-8px) scale(1.02);
+            background: rgba(199, 163, 109, 0.1);
+            border-color: rgba(199, 163, 109, 0.5);
+            box-shadow: 0 16px 32px rgba(199, 163, 109, 0.15);
+        }
+
+        .kiosk-glass-card--emergency:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 16px 32px rgba(239, 68, 68, 0.15);
+        }
+
+        .kiosk-glass-card h3 {
+            font-family: var(--reborn-font-display, sans-serif);
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        
+        .kiosk-glass-card p {
+            font-size: 1rem;
+            opacity: 0.7;
+            margin: 0;
+            font-family: var(--reborn-font-base);
+        }
+
+        .kiosk-input-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            align-items: center;
+            width: 100%;
+            animation: fadeInScale 0.4s ease-out;
+        }
+
+        .kiosk-glass-input {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(199, 163, 109, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            font-size: 2rem;
+            color: #fff;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s ease;
+            font-family: var(--reborn-font-base);
+        }
+
+        .kiosk-glass-input:focus {
+            border-color: var(--reborn-color-aurora-gold, #c7a36d);
+            box-shadow: 0 0 0 4px rgba(199, 163, 109, 0.2);
+        }
+
+        .kiosk-ghost-btn {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            border: none;
+            font-size: 1.2rem;
+            padding: 12px;
+            cursor: pointer;
+            margin-top: -8px;
+            font-family: var(--reborn-font-base);
+            transition: color 0.2s ease;
+        }
+        
+        .kiosk-ghost-btn:hover {
+            color: #fff;
+        }
+
+        .kiosk-success-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            animation: fadeInScale 0.5s ease-out;
+        }
+
+        .kiosk-big-ticket {
+            font-family: var(--reborn-font-display, sans-serif);
+            font-size: 6rem;
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+            padding: 24px 64px;
+            border-radius: 32px;
+            border: 2px solid var(--reborn-color-aurora-gold, #c7a36d);
+            letter-spacing: 0.1em;
+        }
+
+        .kiosk-checkmark-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--reborn-color-aurora-gold, #c7a36d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            animation: scaleInBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .kiosk-checkmark-circle::after {
+            content: "✓";
+            color: #000;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        .is-hidden {
+            display: none !important;
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes scaleInBounce {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="kiosk-waiting-room">
+    <!-- Subtle Navy Particle Engine Wrapper -->
+    <div class="kiosk-particles"></div>
+
+    <div class="kiosk-glass-shell">
+        <!-- Panel Central Glass -->
+        <main id="kiosk-app-root" class="kiosk-glass-panel lg-surface">
+            <header class="kiosk-header">
+                <h1>Bienvenido a Aurora Derm</h1>
+                <p style="color: rgba(255,255,255,0.6); font-size: 1.25rem; margin-top: 12px;">Por favor, anuncie su llegada o tome un turno para atención rápida.</p>
+            </header>
+
+            <!-- Hook required for queue-kiosk.js dynamic mounting, replaced with UI5-17 Flow -->
+            <div id="turnero-interactive-layer">
+                <!-- 3 Options Panel -->
+                <div class="kiosk-cards-grid" id="kiosk-options-grid">
+                    <button class="kiosk-glass-card" onclick="kioskTransit('checkin')">
+                        <h3>Tengo cita</h3>
+                        <p>Agendada online</p>
+                    </button>
+                    <button class="kiosk-glass-card" onclick="kioskTransit('walkin')">
+                        <h3>Soy nuevo</h3>
+                        <p>Turno sin cita previa</p>
+                    </button>
+                    <button class="kiosk-glass-card kiosk-glass-card--emergency" onclick="kioskTransit('emergency')">
+                        <h3>Urgencia</h3>
+                        <p>Atención prioritaria</p>
+                    </button>
+                </div>
+
+                <!-- Input Flow Phase -->
+                <div class="kiosk-input-flow is-hidden" id="kiosk-input-flow">
+                    <h2 id="kiosk-flow-title" style="font-family:var(--reborn-font-display); font-size:2rem; margin:0;">Ingrese su Cédula</h2>
+                    <input type="text" id="kiosk-cedula-input" class="kiosk-glass-input" placeholder="17123..." inputmode="numeric" />
+                    <button class="kiosk-button" onclick="kioskSubmit()">Generar Turno</button>
+                    <button class="kiosk-ghost-btn" onclick="kioskReset()">Regresar a las opciones</button>
+                </div>
+
+                <!-- Confirmation Phase -->
+                <div class="kiosk-success-flow is-hidden" id="kiosk-success-flow">
+                    <div class="kiosk-checkmark-circle"></div>
+                    <h2 style="font-family:var(--reborn-font-display); font-size:2rem; margin:0; color:var(--reborn-color-aurora-gold);">Turno Confirmado</h2>
+                    <strong class="kiosk-big-ticket" id="kiosk-final-ticket">--</strong>
+                    <p style="font-size:1.2rem; opacity:0.8;">Por favor tome asiento y mire la pantalla principal.</p>
+                </div>
+            </div>
+
+            <!-- Contadores en Glass Pill -->
+            <div class="kiosk-status-row">
+                <div class="glass-pill">
+                    <span>En Atención:</span>
+                    <strong class="glass-pill-value" id="kiosk-active-tickets">3</strong>
+                </div>
+                <div class="glass-pill">
+                    <span>Tiempo Est.:</span>
+                    <strong class="glass-pill-value" id="kiosk-eta">8 min</strong>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Inject compiled Client JS -->
+    <script src="/js/queue-kiosk.js" defer></script>
+    <script>
+        // UI5-17 Inline Operations
+        function kioskTransit(type) {
+            document.getElementById('kiosk-options-grid').classList.add('is-hidden');
+            document.getElementById('kiosk-input-flow').classList.remove('is-hidden');
+            
+            const titles = {
+                'checkin': 'Cédula para Confirmar Cita',
+                'walkin': 'Ingrese su Cédula o Nombre',
+                'emergency': 'Urgencia - Ingrese Nombre'
+            };
+            document.getElementById('kiosk-flow-title').innerText = titles[type] || 'Ingrese sus datos';
+            
+            setTimeout(() => document.getElementById('kiosk-cedula-input').focus(), 150);
+            
+            window.kioskCurrentPrefix = type === 'emergency' ? 'E' : (type === 'checkin' ? 'C' : 'N');
+        }
+
+        function kioskReset() {
+            document.getElementById('kiosk-cedula-input').value = '';
+            document.getElementById('kiosk-input-flow').classList.add('is-hidden');
+            document.getElementById('kiosk-success-flow').classList.add('is-hidden');
+            document.getElementById('kiosk-options-grid').classList.remove('is-hidden');
+        }
+
+        function kioskSubmit() {
+            const input = document.getElementById('kiosk-cedula-input').value.trim();
+            if (!input) return alert('Por favor, ingrese un dato en el campo.');
+            
+            document.getElementById('kiosk-input-flow').classList.add('is-hidden');
+            const tkNum = Math.floor(Math.random() * 90) + 10;
+            document.getElementById('kiosk-final-ticket').innerText = `${window.kioskCurrentPrefix}${tkNum}`;
+            document.getElementById('kiosk-success-flow').classList.remove('is-hidden');
+            
+            setTimeout(kioskReset, 7000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es" data-theme-mode="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sala de Espera TV | Aurora Derm</title>
+    
+    <!-- Design System Tokens -->
+    <link rel="stylesheet" href="/styles/reborn-tokens.css" />
+    <link rel="stylesheet" href="/styles/reborn-layout.css" />
+    <link rel="stylesheet" href="/styles/aurora-clinical.css" />
+
+    <style>
+        body {
+            background-color: var(--rb-bg, #050810);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: var(--reborn-font-base, 'Inter', sans-serif);
+            min-height: 100vh;
+        }
+
+        .queue-display-glass {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 60% Left Section */
+        .waiting-list-section {
+            width: 60%;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.08); /* Specular line */
+        }
+
+        .section-header {
+            font-family: var(--reborn-font-display, sans-serif);
+            font-size: 2.5rem;
+            color: var(--reborn-color-aurora-gold, #c7a36d);
+            margin-bottom: 32px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .waiting-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .waiting-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(3, 8, 18, 0.36);
+        }
+
+        .waiting-card-ticket {
+            font-family: var(--reborn-font-display, sans-serif);
+            font-size: 48px;
+            font-weight: 600;
+            color: #fff;
+            min-width: 120px;
+        }
+
+        .waiting-card-name {
+            font-size: 1.8rem;
+            flex-grow: 1;
+            padding-left: 24px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .waiting-card-eta {
+            font-size: 1.5rem;
+            color: var(--reborn-color-aurora-gold, #c7a36d);
+            background: rgba(199, 163, 109, 0.1);
+            padding: 8px 16px;
+            border-radius: 99px;
+            border: 1px solid rgba(199, 163, 109, 0.3);
+        }
+
+        /* 40% Right Section */
+        .called-display {
+            width: 40%;
+            background: radial-gradient(circle at center, rgba(36, 138, 101, 0.05) 0%, transparent 70%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .called-header {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 40px;
+        }
+
+        .called-ticket-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* Pulse Ring Gold Animation */
+        .pulse-ring-gold {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            border: 4px solid var(--reborn-color-aurora-gold, #d4af37);
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            opacity: 0;
+            z-index: 1;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.6); opacity: 0.8; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        .called-ticket-glass {
+            position: relative;
+            z-index: 2;
+            background: rgba(199, 163, 109, 0.15);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(199, 163, 109, 0.5);
+            border-radius: 40px;
+            padding: 64px 80px;
+            box-shadow: 0 32px 64px rgba(199, 163, 109, 0.2);
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .called-ticket-number {
+            font-family: var(--reborn-font-display, sans-serif);
+            font-size: 140px;
+            line-height: 1;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .called-consultorio {
+            font-size: 2.5rem;
+            margin-top: 24px;
+            color: var(--reborn-color-aurora-gold, #c7a36d);
+        }
+
+        /* Patient Context pill */
+        .patient-context-pill {
+            margin-top: 60px;
+            font-size: 2.5rem;
+            color: #fff;
+            text-align: center;
+        }
+
+        /* TV Bottom Ticker */
+        .tv-footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.4);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding: 16px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="queue-display-glass">
+        <!-- 60% Left -->
+        <div class="waiting-list-section">
+            <div class="section-header">En Espera</div>
+            <div class="waiting-list" id="tv-waiting-list">
+                <div class="waiting-card">
+                    <div class="waiting-card-ticket">T42</div>
+                    <div class="waiting-card-name">Andrea P.</div>
+                    <div class="waiting-card-eta">~5 min</div>
+                </div>
+                <div class="waiting-card">
+                    <div class="waiting-card-ticket">T43</div>
+                    <div class="waiting-card-name">Juan M.</div>
+                    <div class="waiting-card-eta">~12 min</div>
+                </div>
+                <div class="waiting-card">
+                    <div class="waiting-card-ticket">T44</div>
+                    <div class="waiting-card-name">Lucía V.</div>
+                    <div class="waiting-card-eta">~20 min</div>
+                </div>
+                <!-- Turno de emergencia test -->
+                <div class="waiting-card" style="border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05);">
+                    <div class="waiting-card-ticket" style="color: #ef4444;">E01</div>
+                    <div class="waiting-card-name">David G.</div>
+                    <div class="waiting-card-eta" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1);">Prioridad</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 40% Right -->
+        <div class="called-display">
+            <div class="called-header">Pase a Consultorio</div>
+            <div class="called-ticket-container">
+                <div class="pulse-ring-gold"></div>
+                <div class="called-ticket-glass">
+                    <div class="called-ticket-number" id="tv-called-ticket">T41</div>
+                    <div class="called-consultorio" id="tv-called-room">Sala 2</div>
+                </div>
+            </div>
+            <div class="patient-context-pill" id="tv-called-name">
+                María C.
+            </div>
+        </div>
+    </div>
+
+    <div class="tv-footer">
+        <div>Clínica Aurora Derm</div>
+        <div id="tv-clock">--:--</div>
+    </div>
+
+    <script src="/js/queue-display.js" defer></script>
+    <script>
+        // Simple internal clock for the TV display
+        setInterval(() => {
+            const now = new Date();
+            let h = now.getHours().toString().padStart(2, '0');
+            let m = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('tv-clock').innerText = `${h}:${m}`;
+        }, 1000);
+    </script>
+</body>
+</html>

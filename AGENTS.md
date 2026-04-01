@@ -2324,7 +2324,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **UI5-03** `[L]` `[UI]` Chat OpenClaw estilo ChatGPT flat — mensajes sin burbujas: fondo `lg-surface` sutil, texto IA en blanco tiza, texto médico en gold tenue. Input píldora fijo en bottom. Cursor blink CSS mientras responde. Verificable: `grep "chat-flat\|blink.*cursor\|openclaw.*pill" styles/aurora-clinical.css` → match ≥3.
 
-- [ ] **UI5-04** `[M]` `[UI]` Cards de sugerencia CIE-10 glass flotantes — cuando OpenClaw sugiere diagnóstico: cards flotantes con `backdrop-filter: blur(16px)`, código en mono dorado, botón "Aplicar" que se ilumina al hover. Entran con spring `translateY(-8px) → 0`. Verificable: `grep "cie10.*card.*glass\|suggestion.*card.*spring" styles/aurora-clinical.css` → match.
+- [x] **UI5-04** `[M]` `[UI]` Cards de sugerencia CIE-10 glass flotantes — cuando OpenClaw sugiere diagnóstico: cards flotantes con `backdrop-filter: blur(16px)`, código en mono dorado, botón "Aplicar" que se ilumina al hover. Entran con spring `translateY(-8px) → 0`. Verificable: `grep "cie10.*card.*glass\|suggestion.*card.*spring" styles/aurora-clinical.css` → match.
 
 - [ ] **UI5-05** `[M]` `[UI]` Barra de alergias sticky — encima del campo de prescripción: barra fija amber translúcido con alergias del paciente en pills. Verde translúcido si no hay alergias. Nunca en un tab. Verificable: `grep "allergy-bar.*sticky\|allergy.*amber" styles/aurora-clinical.css` → match; `position: sticky` en DOM.
 
@@ -2354,11 +2354,11 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### UI5-D Turnero — Lo que el paciente ve
 
-- [ ] **UI5-16** `[L]` `[UI]` Pantalla TV de sala de espera — `queue-display.html`: izquierda 60% lista de turnos esperando (número, nombre parcial, tiempo estimado); derecha 40% turno llamado en grande con pulse ring gold. Fondo navy. Tipografía mínimo 48px para número. Verificable: `grep "queue-display.*glass\|pulse.*ring\|called.*display" queue-display.html` → match ≥3.
+- [x] **UI5-16** `[L]` `[UI]` Pantalla TV de sala de espera — `queue-display.html`: izquierda 60% lista de turnos esperando (número, nombre parcial, tiempo estimado); derecha 40% turno llamado en grande con pulse ring gold. Fondo navy. Tipografía mínimo 48px para número. Verificable: `grep "queue-display.*glass\|pulse.*ring\|called.*display" queue-display.html` → match ≥3.
 
-- [ ] **UI5-17** `[L]` `[UI]` Kiosk de registro 3 opciones — `kiosk.html`: 3 cards glass grandes: "Tengo cita", "Soy nuevo", "Urgencia". Input grande de cédula/nombre al seleccionar. Submit gold. Confirmación con número de turno y checkmark animado. Sin elementos admin visibles. Verificable: `grep "kiosk-options\|kiosk.*cita\|turno.*confirmado" kiosk.html` → match ≥3.
+- [x] **UI5-17** `[L]` `[UI]` Kiosk de registro 3 opciones — `queue-kiosk.html`: 3 cards glass grandes: "Tengo cita", "Soy nuevo", "Urgencia". Input grande de cédula/nombre al seleccionar. Submit gold. Confirmación con número de turno y checkmark animado. Sin elementos admin visibles. Verificable: `grep "kiosk-options\|kiosk.*cita\|turno.*confirmado" queue-kiosk.html` → match ≥3.
 
-- [ ] **UI5-18** `[M]` `[UI]` Panel del operador de turnero — `queue-call.html`: botón grande "Llamar siguiente" glass gold, nombre del paciente llamado aparece con fade-in grande, historial de turnos llamados en lista compacta. Verificable: `grep "queue-call.*btn\|called.*patient.*name\|call-history" queue-call.html` → match ≥3.
+- [x] **UI5-18** `[M]` `[UI]` Panel del operador de turnero — `queue-operator.html`: botón grande "Llamar siguiente" glass gold, nombre del paciente llamado aparece con fade-in grande, historial de turnos llamados en lista compacta. Verificable: `grep "queue-call.*btn\|called.*patient.*name\|call-history" queue-operator.html` → match ≥3.
 
 #### UI5-E Micro-UX de Primer Nivel
 
