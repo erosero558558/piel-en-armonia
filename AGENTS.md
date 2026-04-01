@@ -1260,7 +1260,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S6-14** `[L]` Landing para clínicas — `es/software/turnero-clinicas/index.html` rediseñada con: propuesta de valor clara, demo interactiva, testimonios de otras clínicas, precios, CTA "Empieza gratis". Verificable: echo "OK" -> match.
 - [x] **S6-15** `[M]` Demo interactiva — `es/software/turnero-clinicas/demo/index.html`: experiencia guiada de 3 minutos. El visitante crea una cita ficticia, la atiende como operador, ve el dashboard. Sin datos reales. Verificable: echo "OK" -> match.
-- [ ] **S6-16** `[M]` Programa de referidos para clínicas — una clínica refiere a otra: 1 mes gratis para ambas. Link único rastreable. Verificable: echo "OK" -> match.
+- [x] **S6-16** `[M]` Programa de referidos para clínicas — una clínica refiere a otra: 1 mes gratis para ambas. Link único rastreable. Verificable: echo "OK" -> match.
 - [ ] **S6-17** `[M]` Case study Aurora Derm — `es/software/turnero-clinicas/caso-aurora-derm/index.html`: historia de cómo Aurora Derm usó Flow OS. Métricas reales: tiempos de espera, NPS, citas/día. El mejor argumento de venta. Verificable: echo "OK" -> match.
 
 #### 6.5 API y ecosistema
@@ -1470,6 +1470,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **RB-06** `[XL]` `[UI]` Layout Bento Grid — grid CSS `grid-template-columns: repeat(3, 1fr)` con celdas de distintos tamaños (`grid-row: span 2`), `border-radius: 24px`, `background: rgba(28,28,30,0.65)`, `border: 1px solid rgba(255,255,255,0.06)`. Verificable: `grep "border-radius.*24px\|grid-row.*span\|bento" styles/reborn-layout.css` → match ≥3.
 
 #### 4.4 Liquid Reborn Operativo (Kiosko, TV, Operador, Admin)
+
 - [x] **RB-12** `[M]` `[UI]` TV / Sala de Espera OLED — Refactorizar `sala-turnos.html` y `styles/aurora-tv.css` al fondo \#050810, migrando la lista a celdas Bento `.lg-surface` transúcidas con animaciones spring. Tipografía monumental para turnos.
 - [x] **RB-13** `[M]` `[UI]` Kiosco Liquid Reborn — Actualizar `kiosco-turnos.html` y `styles/aurora-kiosk.css` para migrar tarjetas obsoletas al vidrio `.lg-surface`, agregando animaciones de interacción táctil.
 - [x] **RB-14** `[L]` `[UI]` Panel Operador Unificado — En `operador-turnos.html` y `styles/aurora-operator.css`, reemplazar fondos sólidos grises por la profundidad oscura OLED (`#050810`) y modales glass (`blur(20px)`).
@@ -1485,7 +1486,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **RB-09** `[L]` `[UI]` App-like Booking Flow — pantallas como `<section data-step>` con `transform: translateX(100%→0)` spring `cubic-bezier(0.34,1.56,0.64,1)`, un input visible a la vez por paso. Verificable: `grep "data-step\|translateX\|RB-09" es/servicios/diagnostico-integral/index.html` → match ≥2.
 - [x] **RB-10** `[XL]` `[UI]` Patient Dashboard Minimalista — `<h1>Hola, [Paciente]</h1>` con `font-size: clamp(2rem,5vw,4rem)`, cards sin bordes visibles, fotos clínicas con `aspect-ratio: 4/3`. Verificable: `grep "Hola.*Paciente\|clamp.*4rem\|RB-10" es/portal/index.html` → match ≥2.
 - [x] **RB-11** `[L]` `[UI]` Slider OLED Antes/Después — línea de corte `<input type="range">` con CSS custom `clip-path`, `transition: none` en drag (60fps), `scroll-snap-align` para touch. Verificable: `grep "clip-path\|input.*range.*slider\|RB-11" es/servicios/*/index.html` → match ≥1.
-
 
 #### RB-4 Consolidación y Limpieza Post-Reborn
 
@@ -1698,6 +1698,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S13-00** `[S]` REVERSIÓN: S4-08 marcada done pero no existe — `verify.js` detectó que `es/software/turnero-clinicas/precios/index.html` **no existe** a pesar de estar marcada `[x]`. Crear la página referenciada en la tarea original. Sin el archivo, la tarea no está done. Verificable: `ls es/software/turnero-clinicas/precios/index.html` → existe.
 
 #### 13.1 Fundamentos de producción — nadie los auditó
+
 - [x] **S13-01** `[M]` robots.txt hardening — el archivo actual expone `/lib/` y `/templates/` al crawling. Añadir: `Disallow: /lib/`, `Disallow: /templates/`, `Disallow: /backup/`, `Disallow: /bin/`, `Disallow: /store/` (si existe directorio). `/data/` ya está bloqueada (✅). El riesgo: Google puede indexar código PHP o templates HTML internos. Verificable: `curl https://aurora-derm.com/robots.txt | grep "/lib/"` → Disallow.
 - [x] **S13-02** `[M]` sitemap.xml — actualización y cobertura completa — sitemap tiene 73 URLs pero falta: `/es/paquetes/` (recién creada S4-13), todas las URLs nuevas de Sprint 2/3/UI. `lastmod` desactualizado en muchas. Añadir generación automática al `sync-backlog.js` o crear `bin/gen-sitemap.js`. Verificable: `grep "paquetes" sitemap.xml` → existe.
 - [x] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
@@ -2007,7 +2008,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S22-09** `[M]` `codex_transversal` QA pack comercial y de referidos — agregar integración y Playwright para `referral-link`, `referral-stats`, `membership-status`, `active-promotions`, `gift-card-validate/issue/redeem`, `/es/referidos/`, `/es/gift-cards/`, `/es/promociones/`, `/es/membresia/`, `/es/paquetes/` y `/es/portal/referidos/`. Las pruebas de analytics ya no cuentan como cobertura suficiente. Verificable: existen tests directos de endpoints y surfaces, no solo de funnel/events.
 
-
 ### 🧭 Sprint 23 — Credibilidad de Compra, Cohesión Comercial y Truth-in-Sales
 
 > **Criterio de inclusión:** cerrar las dudas de compra que hoy genera Flow OS desde fuera: pricing incoherente, CTAs a superficies internas, proof sin procedencia, readiness comercial exagerado y mezcla de marca entre producto y clínica de referencia.
@@ -2034,7 +2034,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S23-08** `[M]` `codex_transversal` Buyer pack B2B de seguridad y operación — crear un paquete comercial técnico corto con auth, backups, audit trail, IA con aprobación humana, soporte, límites del producto y prerequisitos de implementación. Esto es B2B, no página legal de paciente. Verificable: existe una surface o pack enlazable desde Flow OS que responde a objeciones de comprador serio.
 - [x] **S23-09** `[M]` `codex_backend_ops` Scope y migración de implementación — definir una hoja de implantación del piloto: qué datos se migran, qué no, duración real, qué debe entregar la clínica, fallback de día 1 y qué queda fuera del alcance. Verificable: existe un checklist de implementación y un buyer no tiene que inferir el esfuerzo por su cuenta.
-
 
 ---
 
@@ -2309,7 +2308,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ---
 
-
 ## 🎨 Sprint UI — Fase 5: Interfaces Clínicas (GEMINI EXCLUSIVO)
 
 > **Responsable:** Gemini bajo supervisión de Antigravity.
@@ -2330,7 +2328,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI5-06** `[L]` `[UI]` Focus Mode de consulta — clase `.focus-mode` en `admin.html` al iniciar consulta: oculta sidebar con `translateX(-100%)` animado, amplía área de trabajo, topbar mínima con nombre + timer. Al salir, sidebar regresa con spring. Verificable: `grep "focus-mode\|consultation.*timer\|sidebar.*hide" js/admin.js` → match.
 
-- [x] **UI5-07** `[L]` `[UI]` Timeline de visitas HCE glass — historial del paciente como stepper vertical glass: nodo 40px con fecha, color por tipo (gold=consulta, blue=procedimiento, red=urgencia). Click expande con `max-height spring. Verificable: `grep "hce.*timeline\|visit.*stepper\|episode.*expand" styles/aurora-admin.css` → match.
+- [x] **UI5-07** `[L]` `[UI]` Timeline de visitas HCE glass — historial del paciente como stepper vertical glass: nodo 40px con fecha, color por tipo (gold=consulta, blue=procedimiento, red=urgencia). Click expande con `max-height spring. Verificable: `grep "hce.*timeline\|visit.*stepper\|episode.\*expand" styles/aurora-admin.css` → match.
 
 #### UI5-B Booking — Agendar como una app premium
 
@@ -2491,10 +2489,10 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ---
 
-
 ---
 
 ## Sprint 31 — Calidad Asistencial y Decisiones Clínicas Inteligentes
+
 **Owner:** `codex_backend` | **Objetivo:** Que el sistema tome decisiones clínicas activas, no solo registre datos.
 
 > **Por qué importa:** Aurora Derm hoy es un good registrador. El siguiente nivel es que el sistema piense. Cuando el médico está atendiendo 20 pacientes, no puede recordar por sí solo que el paciente de las 11 tiene hemoglobina baja y está tomando warfarina. El sistema debe alertarlo.
@@ -2528,6 +2526,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ---
 
 ## Sprint 32 — Telemedicina Clínica de Verdad
+
 **Owner:** `codex_backend` | **Objetivo:** La teleconsulta no es solo videollamada — es la misma calidad clínica que la presencial, pero remota.
 
 > **Contexto:** Actualmente la telemedicina de Aurora Derm puede crear sesiones y evaluar suitability. Pero si el médico hace una teleconsulta, no puede prescribir, no puede registrar vitales (el paciente los toma en casa), y no puede cerrar la HCE. Es una teleconsulta coja.
@@ -2545,6 +2544,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ---
 
 ## Sprint 33 — Panel del Médico: Visión Clínica Total
+
 **Owner:** `codex_backend` + `[UI]` | **Objetivo:** El médico abre el sistema y en 3 segundos sabe qué pacientes requieren atención urgente.
 
 > **El médico no es secretaria.** El sistema tiene que decirle: "Tienes 2 pacientes crónicos que no vienen desde hace 60 días, 1 resultado crítico de lab que espera revisión, y 3 teleconsultas pendientes de cierre." No al revés.
@@ -2562,6 +2562,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ---
 
 ## Sprint 34 — Portal del Paciente: Empoderamiento y Acceso Real
+
 **Owner:** `[UI]` `[gemini]` + `codex_backend` | **Objetivo:** El paciente tiene acceso real a su historia clínica, no solo a un recibo.
 
 > **Una historia clínica es un derecho.** En Ecuador, la LPDP garantiza al paciente acceder a sus datos de salud. Hoy el portal muestra 3 cards y un PDF de receta. El paciente que tiene dermatitis atópica crónica merece ver su historial, sus fotos clínicas de progresión, sus análisis, y entender su tratamiento.
@@ -2576,10 +2577,10 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S34-05** `[M]` `[codex_backend]` Notificación push de resultado de lab listo — cuando `receive-lab-result` registra un resultado, enviar push notification al paciente (via web push) con: "Sus resultados de [nombre lab] ya están disponibles en su portal." El paciente entra al portal y los ve. Sin esta notificación, el portal del paciente es pasivo. Verificable: `POST receive-lab-result` → `{ push_sent: true, patient_notified_at: "..." }`.
 
-
 ---
 
 ## Sprint 35 — Hardening de Deuda Técnica (Auditoría 2026-03-31)
+
 **Owner:** `codex_backend` + `[ops]` | **Objetivo:** Cerrar deuda real antes de añadir más funcionalidades.
 
 > **Contexto:** Auditoría detectó bugs críticos que causaban pérdida de datos en producción. Este sprint cierra la deuda acumulada por velocidad de desarrollo.
@@ -2623,6 +2624,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ---
 
 ## Sprint 36 — Gobernanza 2.0
+
 **Owner:** `[ops]` | **Objetivo:** El sistema de gobernanza debe escalar con la velocidad de desarrollo.
 
 > **Problema identificado:** Estamos marcando tareas como `[x]` sin verificar que funcionen en producción. 484 tareas marcadas como done, al menos 15 con evidencia inconsistente. La gobernanza necesita dientes.
@@ -2640,7 +2642,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **GOV-06** `[M]` `[ops]` CI gate: route integrity check — verificar que cada controller referenciado en `routes.php` tiene su `require_once` en `api.php`. Script: `node bin/check-route-integrity.js`. Verificable: añadir ruta de controller inexistente → CI falla indicando el controller faltante.
 
 - [ ] **GOV-07** `[S]` `[ops]` Añadir `check-route-integrity.js` al test suite — `package.json` añadir `"test:routes": "node bin/check-route-integrity.js"` y llamarlo desde `npm test`. Verificable: `npm run test:routes` → pasa sin errores en el estado actual del repo.
-
 
 ---
 
@@ -2679,7 +2680,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S35-10** `[S]` `[codex_transversal]` Worktree hygiene: limpiar dirty + blocked (AUD-004) — `npm run workspace:hygiene:doctor --silent` reporta `20 dirty` y `12 blocked`. Ejecutar el paso de limpieza recomendado por el doctor. Si hay worktrees de sprints completados: eliminarlos. Verificable: `npm run workspace:hygiene:doctor --silent | grep dirty` → número < 10.
 
 - [x] **S35-11** `[S]` `[codex_transversal]` Sincronizar qa-summary.json (AUD-006) — `governance/qa-summary.json` dice `gate: GREEN` pero el audit vivo tiene checks fallidos. El script que genera el summary debe actualizarse automáticamente al final de `npm run audit`. Verificable: después de correr `npm run audit --silent`, `cat governance/qa-summary.json | jq '.gate'` → valor coherente con el resultado del audit.
-
 
 ---
 
@@ -2733,13 +2733,14 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ### 36.4 DEUDA TÉCNICA IDENTIFICADA EN ANÁLISIS
 
-- [ ] **S36-12** `[L]` `[codex_transversal]` Extender `bin/verify.js` con 50 reglas nuevas — 393 tareas `done` sin regla verificable. Sprint 36 debe cubrir: Sprints 24–35 completos. Prioridad en orden: S24-*, S25-*, S26-*, S27-*, luego S28+. Cada regla debe ser un check real de archivo/grep/endpoint. Verificable: `npm run verify --silent | grep "done-without-rule"` → número < 343.
+- [ ] **S36-12** `[L]` `[codex_transversal]` Extender `bin/verify.js` con 50 reglas nuevas — 393 tareas `done` sin regla verificable. Sprint 36 debe cubrir: Sprints 24–35 completos. Prioridad en orden: S24-_, S25-_, S26-_, S27-_, luego S28+. Cada regla debe ser un check real de archivo/grep/endpoint. Verificable: `npm run verify --silent | grep "done-without-rule"` → número < 343.
 
 - [x] **S36-13** `[S]` `[codex_backend]` `DEPLOYMENT.md` — Checklist de producción — (OPS-03) Crear con: (1) variables de entorno requeridas con ejemplos; (2) crons a instalar (`ops/crontab.txt`); (3) permisos de carpetas (`data/uploads 0750`); (4) primera ejecución del backup; (5) configuración de Caddy/nginx; (6) verificación de `npm run audit` en verde antes de abrir al público. Sin esto, el próximo deploy a un servidor limpio falla. Verificable: `ls DEPLOYMENT.md` → existe; contiene `CLARITY_ID`, `crontab`, `data/uploads`.
 
 ---
 
 ## Sprint 37 — Infraestructura Clínica Profunda (Consulta Real)
+
 **Owner:** `codex_backend` | **Prioridad:** LANZAMIENTO — sin esto el médico no puede trabajar con rigor legal.
 
 > **Diagnóstico del capataz (2026-04-01):** El SOAP guarda `findings, procedures, plan` pero NO tiene
@@ -2781,6 +2782,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ---
 
 ## Sprint 38 — UI Clínica Rigurosa (Panel del Médico)
+
 **Owner:** `[UI]` `codex_frontend` | **Prioridad:** ALTA — el médico usa esto 8 horas diarias.
 
 > **Diagnóstico del capataz (2026-04-01):** El admin tiene componentes Liquid Glass premium. Pero el flujo de trabajo
@@ -2792,19 +2794,19 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ### 38.1 Formulario SOAP Estructurado (4 Paneles)
 
 - [x] **S38-01** `[XL]` `[UI]` `[codex_frontend]` SOAP form 4 paneles en HCE — en `src/apps/admin-v3/sections/clinical-history/`, **reemplazar el textarea único** de "nota de evolución" por 4 paneles colapsables glass con indicador de completitud (🔴 vacío → 🟢 completo):
-  **Panel S — Subjetivo:** textarea grande, placeholder "Motivo de consulta y relato en palabras del paciente". Counter de palabras recomendado: mínimo 30.
-  **Panel O — Objetivo:** grid 2col: campos numéricos para TA sistólica/diastólica (mmHg), FC (bpm), FR (rpm), Temp (°C), SpO2 (%), Peso (kg), IMC (calculado auto). Más textarea "Examen físico por sistemas".
-  **Panel A — Assessment:** campo CIE-10 con el `CIE10Search` (ya existe `js/cie10-search.js`) + diagnóstico diferencial como lista dinámica (añadir/quitar items).
-  **Panel P — Plan:** textarea con categorías togglables: "Medicamentos", "Indicaciones de reposo", "Próximo control en X días", "Derivación a especialista".
-  Al guardar → llama `POST clinical-evolution` con `type:"soap"` y el SOAP estructurado. Verificable: `grep "soap-panel\|soap-subjective\|soap-objective\|soap-assessment\|soap-plan" src/apps/admin-v3/sections/clinical-history/render/index.js` → ≥4 matches; abrir un caso en admin → 4 paneles visibles con indicadores de completitud.
+      **Panel S — Subjetivo:** textarea grande, placeholder "Motivo de consulta y relato en palabras del paciente". Counter de palabras recomendado: mínimo 30.
+      **Panel O — Objetivo:** grid 2col: campos numéricos para TA sistólica/diastólica (mmHg), FC (bpm), FR (rpm), Temp (°C), SpO2 (%), Peso (kg), IMC (calculado auto). Más textarea "Examen físico por sistemas".
+      **Panel A — Assessment:** campo CIE-10 con el `CIE10Search` (ya existe `js/cie10-search.js`) + diagnóstico diferencial como lista dinámica (añadir/quitar items).
+      **Panel P — Plan:** textarea con categorías togglables: "Medicamentos", "Indicaciones de reposo", "Próximo control en X días", "Derivación a especialista".
+      Al guardar → llama `POST clinical-evolution` con `type:"soap"` y el SOAP estructurado. Verificable: `grep "soap-panel\|soap-subjective\|soap-objective\|soap-assessment\|soap-plan" src/apps/admin-v3/sections/clinical-history/render/index.js` → ≥4 matches; abrir un caso en admin → 4 paneles visibles con indicadores de completitud.
 
 - [x] **S38-02** `[L]` `[UI]` `[codex_frontend]` Formulario de anamnesis estructurado — pestaña "Anamnesis" en la HCE con 5 secciones glass. Verificable: `grep "anamnesis-form\|antecedentes-section\|alergias-table" src/apps/admin-v3/sections/clinical-history/` → ≥4 matches.
-  **(1) Antecedentes personales:** lista expandible con tipos predefinidos (DM, HTA, IAM, asma, depresión, cáncer de piel, etc.) + descripción libre texto.
-  **(2) Antecedentes familiares:** mismo patrón con relación de parentesco.
-  **(3) Alergias:** tabla editable — columnas: Alérgeno | Reacción | Severidad (leve🟡/moderada🟠/severa🔴). Botón "+" para agregar. Badge count en la pestaña.
-  **(4) Medicamentos actuales:** tabla — Nombre | Dosis | Frecuencia | Duración. Misma estructura que S38-03.
-  **(5) Hábitos:** toggles + cuantitativos — cigarrillos/día, unidades alcohol/semana, min ejercicio/semana, exposición solar (estima).
-  Guardar → `POST clinical-anamnesis`. Verificable: `grep "anamnesis-form\|antecedentes-section\|alergias-table\|medicamentos-table" src/apps/admin-v3/sections/clinical-history/` → ≥4 matches; guardar anamnesis → `POST clinical-anamnesis` recibe `structured_anamnesis` con el JSON completo.
+      **(1) Antecedentes personales:** lista expandible con tipos predefinidos (DM, HTA, IAM, asma, depresión, cáncer de piel, etc.) + descripción libre texto.
+      **(2) Antecedentes familiares:** mismo patrón con relación de parentesco.
+      **(3) Alergias:** tabla editable — columnas: Alérgeno | Reacción | Severidad (leve🟡/moderada🟠/severa🔴). Botón "+" para agregar. Badge count en la pestaña.
+      **(4) Medicamentos actuales:** tabla — Nombre | Dosis | Frecuencia | Duración. Misma estructura que S38-03.
+      **(5) Hábitos:** toggles + cuantitativos — cigarrillos/día, unidades alcohol/semana, min ejercicio/semana, exposición solar (estima).
+      Guardar → `POST clinical-anamnesis`. Verificable: `grep "anamnesis-form\|antecedentes-section\|alergias-table\|medicamentos-table" src/apps/admin-v3/sections/clinical-history/` → ≥4 matches; guardar anamnesis → `POST clinical-anamnesis` recibe `structured_anamnesis` con el JSON completo.
 
 - [x] **S38-03** `[L]` `[UI]` `[codex_frontend]` Prescripción con dosificador estructurado — reemplazar el textarea libre de receta por items estructurados. Por cada medicamento: `[Campo nombre con autocompletado]` + `[Dosis: número]` + `[Unidad: mg/ml/UI/g/%]` + `[Vía: select]` + `[Frecuencia: cada N horas]` + `[Duración: N días]` + `[Instrucciones especiales: textarea pequeño]`. Botón "Agregar medicamento" añade un item nuevo. Preview de la receta a la derecha en tiempo real (formato documento con membrete). Envío llama `POST openclaw-prescription` con items estructurados del S37-04. Verificable: `grep "prescription-item\|dose-input\|frequency-select\|duration-days\|route-select" src/apps/admin-v3/sections/clinical-history/render/render-documents.js` → ≥4 matches.
 
@@ -2817,8 +2819,8 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ### 38.3 Timeline Clínica por Tipo de Evento
 
 - [x] **S38-06** `[XL]` `[UI]` `[codex_frontend]` Timeline cronológica de alta densidad — reemplazar la vista plana de eventos del paciente por un timeline vertical ordenado por fecha con íconos por tipo. Verificable: `grep "timeline-event-type\|timeline-expand\|soap-in-timeline" src/apps/admin-v3/sections/clinical-history/render/render-timeline.js` → ≥3 matches.
-  🩺 Consulta presencial | 💊 Receta emitida | 📋 Certificado | 🧪 Laboratorio | 📷 Foto clínica | 📞 Teleconsulta | ⚠️ Resultado crítico.
-  Al hacer click en cualquier evento → el item se expande con el detalle completo: para una consulta, muestra los 4 paneles SOAP colapsables con los datos guardados. Para una receta, muestra los ítems estructurados. Indicador visual de "tiempo entre visitas" como espaciado proporcional entre nodos o pill "32 días". Verificable: `grep "timeline-event-type\|timeline-expand\|soap-in-timeline\|time-between-visits" src/apps/admin-v3/sections/clinical-history/render/render-timeline.js` → ≥3 matches.
+      🩺 Consulta presencial | 💊 Receta emitida | 📋 Certificado | 🧪 Laboratorio | 📷 Foto clínica | 📞 Teleconsulta | ⚠️ Resultado crítico.
+      Al hacer click en cualquier evento → el item se expande con el detalle completo: para una consulta, muestra los 4 paneles SOAP colapsables con los datos guardados. Para una receta, muestra los ítems estructurados. Indicador visual de "tiempo entre visitas" como espaciado proporcional entre nodos o pill "32 días". Verificable: `grep "timeline-event-type\|timeline-expand\|soap-in-timeline\|time-between-visits" src/apps/admin-v3/sections/clinical-history/render/render-timeline.js` → ≥3 matches.
 
 ### 38.4 Checklist de Consulta (Guía al Médico)
 
@@ -2829,6 +2831,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 ### 38.5 Teleconsulta Funcional en la UI
 
 - [x] **S38-09** `[L]` `[UI]` `[codex_frontend]` Vista de teleconsulta integrada — `es/telemedicina/consulta/index.html` existe pero sin funcionalidad real. Verificable: `grep "jitsi-frame\|tele-hce-panel\|foto-upload-teleconsulta\|close-tele-soap" es/telemedicina/consulta/index.html` → ≥4 matches.
-  **(1) Sala de espera del médico:** nombre del paciente, foto si existe, diagnóstico previo, tiempo en espera.
-  **(2) Sala de consulta:** iframe de Jitsi Meet con `room = roomId del appointment` desde `api.php?resource=telemedicine-room`. Panel lateral derecho con: anamnesis previa, vitales auto-reportados del paciente, botón "Subir foto diagnóstica" que llama `POST patient-portal-photo-upload`.
-  **(3) Cierre de teleconsulta:** botón "Finalizar consulta" → abre el formulario SOAP de S38-01 inline. Al guardar → llama `POST openclaw-close-telemedicine`. Verificable: `grep "jitsi-frame\|tele-hce-panel\|foto-upload-teleconsulta\|close-tele-soap" es/telemedicina/consulta/index.html` → ≥4 matches.
+      **(1) Sala de espera del médico:** nombre del paciente, foto si existe, diagnóstico previo, tiempo en espera.
+      **(2) Sala de consulta:** iframe de Jitsi Meet con `room = roomId del appointment` desde `api.php?resource=telemedicine-room`. Panel lateral derecho con: anamnesis previa, vitales auto-reportados del paciente, botón "Subir foto diagnóstica" que llama `POST patient-portal-photo-upload`.
+      **(3) Cierre de teleconsulta:** botón "Finalizar consulta" → abre el formulario SOAP de S38-01 inline. Al guardar → llama `POST openclaw-close-telemedicine`. Verificable: `grep "jitsi-frame\|tele-hce-panel\|foto-upload-teleconsulta\|close-tele-soap" es/telemedicina/consulta/index.html` → ≥4 matches.
