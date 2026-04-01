@@ -11240,6 +11240,7 @@ export function renderClinicalHistorySection() {
     syncFollowUpInput();
     syncDraftStatusMeta();
     syncWorkspaceVisibility(activeWorkspace);
+    setHtml('#consultation-progress-container', buildConsultationProgress(draft, currentReviewSource(getState())?.session?.status));
     bindClinicalHistoryEvents();
     renderClinicalMediaFlow();
     renderClinicalCompareFlow();
@@ -11324,4 +11325,37 @@ export function buildLaboratorioList(review) {
     `;
 }
 
+export function buildConsultationProgress(draft, sessionStatus) {
+    const isAnamnesis = Boolean(draft?.intake?.structured_anamnesis);
+    const isVital = Number(draft?.intake?.vitalSigns?.heartRate) > 0;
+    
+    const soap = draft?.hcu005?.soap || {};
+    const isSoap = Boolean(soap.subjective && soap.objective && soap.assessment && soap.plan);
+    
+    // As per requirement, prescriptions inside hcu005 or equivalent array
+    const isPrescription = Array.isArray(draft?.hcu005?.prescriptions) && draft.hcu005.prescriptions.length > 0;
+    
+    const isCierre = (sessionStatus === 'completed' || sessionStatus === 'closed') || (isAnamnesis && isVital && isSoap && isPrescription);
 
+    const steps = [
+        { id: 'step-anamnesis', label: 'Anamnesis', done: isAnamnesis, target: 'anamnesis-form' },
+        { id: 'step-vitales', label: 'Signos vitales', done: isVital, target: 'soapModeContainer' },
+        { id: 'step-soap', label: 'SOAP', done: isSoap, target: 'soapModeContainer' },
+        { id: 'step-prescripcion', label: 'Prescripción', done: isPrescription, target: 'clinicalHistoryDraftForm' },
+        { id: 'step-cierre', label: 'Cierre', done: isCierre, target: 'clinicalHistoryApprovalConstancy' }
+    ];
+
+    const renderedSteps = steps.map(step => {
+        const icon = step.done ? '✓' : '○';
+        const colorClass = step.done ? 'color: var(--color-emerald-500); border-color: var(--color-emerald-500); background-color: rgba(16, 185, 129, 0.05);' : 'color: var(--admin-text-muted); border-color: var(--admin-border);';
+        
+        return `
+            <div class="progress-step" data-progress-step="${step.target}" onclick="(document.getElementById('${step.target}') || document.body).scrollIntoView({behavior: 'smooth', block: 'center'})" style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; border: 1px solid; border-radius: 16px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; ${colorClass}">
+                <span>${icon}</span>
+                <span>${escapeHtml(step.label)}</span>
+            </div>
+        `;
+    }).join('');
+
+    return `<div class="consultation-progress" style="display: flex; flex-wrap: wrap; gap: 8px;">${renderedSteps}</div>`;
+}

@@ -265,7 +265,7 @@
             >
                 
                 <!-- UI5-02: Active Case Header (Hidden by default, shown via JS) -->
-                <header id="activeCaseHeader" class="case-header-sticky" style="display: none;">
+                <header id="activeCaseHeader" class="case-header-sticky" style="display: none; flex-wrap: wrap;">
                     <img src="https://i.pravatar.cc/150?img=47" class="patient-avatar" alt="Foto Paciente">
                     <div class="case-header-info">
                         <h2 class="patient-name-large">Mariana Gómez Rojas</h2>
@@ -278,6 +278,8 @@
                     <button type="button" class="btn btn-ghost hide-case-btn" onclick="document.getElementById('activeCaseHeader').style.display='none'">
                         Cerrar Caso
                     </button>
+                    <!-- S38-07: Barra de progreso de la consulta -->
+                    <div id="consultation-progress-container" class="consultation-progress" style="width: 100%; margin-top: 12px; display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--admin-border); padding-top: 12px;"></div>
                 </header>
                 <section id="adminRawControlRoom" data-admin-raw-hero="queue">
                     <p>Consola de control del turnero</p>
