@@ -989,5 +989,30 @@
                 }
             })();
         </script>
+
+        <!-- S28-07 Concurrent Sessions Watchdog -->
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(async () => {
+                    try {
+                        const res = await fetch('/api.php?resource=active-sessions');
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.ok && data.sessions && data.sessions.length > 1) {
+                                const count = data.sessions.length - 1;
+                                const msg = `Tu cuenta tiene ${count} sesion(es) activa(s) en otros dispositivos. ¿Eres tú?`;
+                                if (window.toast && window.toast.show) {
+                                    window.toast.show(msg, 'error', 20000);
+                                } else {
+                                    console.warn('Concurrent Session Alert:', msg);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Session watcher failed', e);
+                    }
+                }, 3000); // Check 3 seconds after boot
+            });
+        </script>
     </body>
 </html>

@@ -1026,8 +1026,13 @@ final class ClinicalHistoryController
                     $argTest = escapeshellarg(trim($parts[0]));
                     $argValue = escapeshellarg(trim($parts[1] ?? ''));
                     if ($argTest !== '' && $argTest !== "''") {
-                        $cmd = 'php ' . realpath(__DIR__ . '/../bin/notify-lab-critical.php') . ' --case_id=' . escapeshellarg($localCaseId) . ' --test=' . $argTest . ' --value=' . $argValue . ' > /dev/null 2>&1 &';
-                        @exec($cmd);
+                        $scriptPath = realpath(__DIR__ . '/../bin/notify-lab-critical.php');
+                        if ($scriptPath !== false && file_exists($scriptPath)) {
+                            $cmd = 'php ' . escapeshellarg($scriptPath) . ' --case_id=' . escapeshellarg($localCaseId) . ' --test=' . $argTest . ' --value=' . $argValue . ' > /dev/null 2>&1 &';
+                            @exec($cmd);
+                        } else {
+                            error_log('[S30-07] notify-lab-critical.php not found — skipping exec, audit_log only');
+                        }
                     }
                 }
             }
@@ -1355,14 +1360,19 @@ final class ClinicalHistoryController
         file_put_contents($ramsFile, $reportData . "\n", FILE_APPEND);
 
         if ($severity === 'severe' || $severity === 'critical') {
-            $cmd = sprintf(
-                'php %s/../bin/notify-lab-critical.php --case_id=%s --test=%s --value=%s > /dev/null 2>&1 &',
-                escapeshellarg(__DIR__),
-                escapeshellarg($caseId),
-                escapeshellarg('Reacción: ' . $medication),
-                escapeshellarg($reaction . ' (' . $severity . ')')
-            );
-            @exec($cmd);
+            $scriptPath = realpath(__DIR__ . '/../bin/notify-lab-critical.php');
+            if ($scriptPath !== false && file_exists($scriptPath)) {
+                $cmd = sprintf(
+                    'php %s --case_id=%s --test=%s --value=%s > /dev/null 2>&1 &',
+                    escapeshellarg($scriptPath),
+                    escapeshellarg($caseId),
+                    escapeshellarg('RAM: ' . $medication),
+                    escapeshellarg($reaction . ' (' . $severity . ')')
+                );
+                @exec($cmd);
+            } else {
+                error_log('[S30-18] notify-lab-critical.php not found — RAM severa sin notificación push');
+            }
         }
 
         json_response([

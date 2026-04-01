@@ -197,6 +197,15 @@ class ApiKernel
             }
         }
 
+        if ($isAdmin) {
+            require_once __DIR__ . '/SessionTracker.php';
+            require_once __DIR__ . '/DataAccessAudit.php';
+            $sessionEmail = DataAccessAudit::detectAccessor();
+            if ($sessionEmail !== 'sistema_backend' && $sessionEmail !== '') {
+                SessionTracker::recordSessionPing($sessionEmail, rate_limit_client_ip(), session_id());
+            }
+        }
+
         $shouldAuditAccess = true;
         if (
             !$isAdmin &&

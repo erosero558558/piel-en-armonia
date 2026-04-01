@@ -1,4 +1,5 @@
 let csrfToken = '';
+const tabSessionId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 function normalizeJson(payload) {
     if (payload && typeof payload === 'object') return payload;
@@ -9,6 +10,7 @@ async function requestJsonRaw(url, options = {}) {
     const method = String(options.method || 'GET').toUpperCase();
     const headers = {
         Accept: 'application/json',
+        'X-Tab-Session-Id': tabSessionId,
         ...(options.headers || {}),
     };
 
@@ -43,11 +45,24 @@ async function requestJsonRaw(url, options = {}) {
     };
 }
 
+let concurrenceTriggered = false;
+
 function toRequestError(result) {
     const payload =
         result && result.payload && typeof result.payload === 'object'
             ? result.payload
             : {};
+    
+    if (result.status === 409 && payload.code === 'session_transferred' && !concurrenceTriggered) {
+        concurrenceTriggered = true;
+        document.body.dispatchEvent(new CustomEvent('admin-toast', {
+            detail: { message: payload.message || 'Sesión transferida a otra ventana.', tone: 'warning' }
+        }));
+        setTimeout(() => {
+            window.location.href = '/admin.html?reason=transferred';
+        }, 2000);
+    }
+
     const error = new Error(
         payload.error ||
             payload.message ||

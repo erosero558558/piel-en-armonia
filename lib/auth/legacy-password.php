@@ -144,6 +144,32 @@ function legacy_admin_is_authenticated(): bool
 function require_admin_auth(): void
 {
     if (legacy_admin_is_authenticated() || operator_auth_is_authenticated()) {
+        $strict = false;
+        $profilePath = dirname(__DIR__) . '/data/config/clinic-profile.json';
+        if (is_file($profilePath)) {
+            $raw = @file_get_contents($profilePath);
+            if (is_string($raw)) {
+                $data = json_decode($raw, true);
+                $strict = !empty($data['operatorConcurrencyStrict']);
+            }
+        }
+
+        if ($strict) {
+            $tabId = $_SERVER['HTTP_X_TAB_SESSION_ID'] ?? '';
+            if ($tabId !== '') {
+                if (!isset($_SESSION['active_tab_session_id'])) {
+                    $_SESSION['active_tab_session_id'] = $tabId;
+                } elseif ($_SESSION['active_tab_session_id'] !== $tabId) {
+                    json_response([
+                        'ok'    => false,
+                        'error' => 'session_transferred',
+                        'code'  => 'session_transferred',
+                        'message' => 'Sesión transferida a otra ventana o dispositivo.'
+                    ], 409);
+                }
+            }
+        }
+
         return;
     }
 
