@@ -1057,6 +1057,147 @@ final class OpenclawController
         ]);
     }
 
+    public static function closeTelemedicine(array $context): void
+    {
+        self::requireAuth();
+        $payload     = require_json_body();
+        $chatSummary = trim((string) ($payload['chat_summary'] ?? ''));
+        $caseId      = trim((string) ($payload['case_id'] ?? ''));
+
+        if ($chatSummary === '' || $caseId === '') {
+            json_response(['ok' => false, 'error' => 'chat_summary y case_id requeridos'], 400);
+        }
+
+        $router  = new OpenclawAIRouter();
+        $aiResult = $router->route([
+            'messages' => [
+                [
+                    'role'    => 'system',
+                    'content' => 'Eres un asistente médico inteligente. Genera el resumen estructurado de la teleconsulta. Responde SOLO con JSON válido con estas claves: evolution_text (nota clínica profesional), patient_summary_wa (resumen simplificado y amigable para WhatsApp de MÁXIMO 300 palabras: incluye diagnóstico simple, plan, fecha proxy o sugerida de control, señal de alarma), suggested_followup_days (int, días sugeridos para control si es necesario, 0 si no) y pending_actions (array de tareas internas).',
+                ],
+                [
+                    'role'    => 'user',
+                    'content' => "Resumen de la consulta:\n{$chatSummary}\n\nGenera el JSON de cierre.",
+                ],
+            ],
+            'max_tokens'  => 900,
+            'temperature' => 0.2,
+        ]);
+
+        $evolutionText = '';
+        $patientSummary = '';
+        $pendingActions = [];
+        $followupDays = 0;
+
+        if ($aiResult['ok'] && isset($aiResult['choices'][0]['message']['content'])) {
+            $raw = trim((string) $aiResult['choices'][0]['message']['content']);
+            if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $raw, $m)) {
+                $raw = $m[1];
+            }
+            $parsed = @json_decode($raw, true);
+            if (is_array($parsed)) {
+                $evolutionText  = (string) ($parsed['evolution_text'] ?? '');
+                $patientSummary = (string) ($parsed['patient_summary_wa'] ?? $parsed['patient_summary'] ?? '');
+                $pendingActions = (array) ($parsed['pending_actions'] ?? []);
+                $followupDays   = (int) ($parsed['suggested_followup_days'] ?? 0);
+            }
+        }
+
+        if ($evolutionText === '') {
+            $evolutionText = "Atención de Telemedicina completada. {$chatSummary}";
+        }
+
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
+        $service = new ClinicalHistoryService();
+        $doctorProfile = doctor_profile_document_fields([
+            'name' => trim((string) ($_SESSION['admin_email'] ?? '')),
+        ]);
+
+        $result = self::mutateStore(static function (array $store) use ($service, $caseId, $evolutionText, $doctorProfile, $followupDays): array {
+            $evolutionResult = $service->saveEvolutionNote($store, [
+                'caseId'          => $caseId,
+                'text'            => $evolutionText,
+                'cie10Code'       => '',
+                'doctorId'        => $doctorProfile['name'] ?? '',
+                'doctorName'      => $doctorProfile['name'] ?? '',
+                'doctorSpecialty' => $doctorProfile['specialty'] ?? '',
+                'doctorMsp'       => $doctorProfile['msp'] ?? '',
+                'source'          => 'openclaw-close-telemedicine',
+            ]);
+
+            $store = $evolutionResult['store'] ?? $store;
+
+            $session = ClinicalHistorySessionRepository::findSessionByCaseId($store, $caseId);
+            if ($session !== null) {
+                $session['status'] = 'closed';
+                $saveSession = ClinicalHistorySessionRepository::upsertSession($store, $session);
+                $store = $saveSession['store'];
+                
+                $draft = ClinicalHistorySessionRepository::findDraftBySessionId($store, (string) $session['sessionId']);
+                if ($draft !== null) {
+                    $draft['status'] = 'closed';
+                    $saveDraft = ClinicalHistorySessionRepository::upsertDraft($store, $draft);
+                    $store = $saveDraft['store'];
+                }
+            }
+
+            $patientId = '';
+            if (isset($store['cases'][$caseId])) {
+                $store['cases'][$caseId]['stage'] = 'completed';
+                $store['cases'][$caseId]['closed_at'] = local_date('c');
+                $patientId = $store['cases'][$caseId]['patientId'] ?? '';
+            } elseif (isset($store['patient_cases'][$caseId])) {
+                $store['patient_cases'][$caseId]['status'] = 'completed';
+                $patientId = $store['patient_cases'][$caseId]['patientId'] ?? '';
+            }
+
+            if ($patientId !== '') {
+                foreach (($store['appointments'] ?? []) as $i => $apt) {
+                    if (($apt['patientId'] ?? '') === $patientId && ($apt['status'] ?? '') === 'active') {
+                        $store['appointments'][$i]['status'] = 'completed';
+                    }
+                }
+            }
+
+            if ($followupDays > 0) {
+                $store['pending_followups'] = is_array($store['pending_followups'] ?? null) ? $store['pending_followups'] : [];
+                $store['pending_followups'][] = [
+                    'id'             => 'fu_' . uniqid(),
+                    'caseId'         => $caseId,
+                    'patientId'      => $patientId,
+                    'reason'         => 'Control clínico diferido por teleconsulta',
+                    'due_date'       => local_date('Y-m-d', time() + ($followupDays * 86400)),
+                    'contact_method' => 'whatsapp',
+                    'status'         => 'pending',
+                    'createdAt'      => local_date('c'),
+                ];
+            }
+
+            return $store;
+        });
+
+        $waUrl = '';
+        if ($caseId !== '' && $patientSummary !== '') {
+            $patientCtx = self::readStore()['patients'][$caseId] ?? [];
+            $phone      = trim((string) ($patientCtx['phone'] ?? ''));
+            if ($phone !== '') {
+                $waUrl = 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) . '?text=' . urlencode($patientSummary);
+            }
+        }
+
+        json_response([
+            'ok'                 => true,
+            'hce_updated'        => true,
+            'appointment_closed' => true,
+            'wa_summary_sent'    => $waUrl !== '', 
+            'evolution_text'     => $evolutionText,
+            'patient_summary_wa' => $patientSummary,
+            'pending_actions'    => $pendingActions,
+            'followup_days'      => $followupDays,
+            'whatsapp_url'       => $waUrl,
+        ]);
+    }
+
     // ── routerStatus ─────────────────────────────────────────────────────────
 
     public static function routerStatus(array $context): void

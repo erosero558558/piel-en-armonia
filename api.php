@@ -72,6 +72,7 @@ require_once __DIR__ . '/controllers/PatientDataErasureController.php';
 require_once __DIR__ . '/controllers/PatientDataExportController.php';
 require_once __DIR__ . '/controllers/ConsentStatusController.php';
 require_once __DIR__ . '/controllers/StatsExportController.php';
+require_once __DIR__ . '/controllers/DoctorDashboardController.php';
 // Instantiate and Handle
 $kernel = new ApiKernel();
 $kernel->handleRequest();

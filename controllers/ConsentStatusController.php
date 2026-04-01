@@ -2,41 +2,89 @@
 
 declare(strict_types=1);
 
-/**
- * Endpoint para validar el status LOPD de un paciente (S28 Epic)
- */
-class ConsentStatusController
+require_once __DIR__ . '/../lib/api_helpers.php';
+require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/consent/ConsentVersioning.php';
+require_once __DIR__ . '/../lib/stores/PatientConsentStore.php';
+
+final class ConsentStatusController
 {
-    public static function process(array $context): void
+    public static function handle(array $context): void
     {
-        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $method = $context['method'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $request = $_REQUEST;
+        $patientId = trim($_GET['patient_id'] ?? $request['patient_id'] ?? '');
+        $consentType = trim($_GET['consent_type'] ?? $request['consent_type'] ?? 'privacy_policy');
 
-        // Check authentication if needed? The task specifies GET /api.php?resource=consent-status?patient_id=X
-        // Since this might be accessed via ClinicalDashboard or internally, we shouldn't expose PII,
-        // but it's just a boolean check. We can enforce auth using PortalAuth or just verify patient ID.
-
-        $patientId = trim(strval($_GET['patient_id'] ?? ''));
         if ($patientId === '') {
-            json_response(['ok' => false, 'error' => 'patient_id es requerido'], 400);
+            json_response(['ok' => false, 'error' => 'El patient_id es requerido.', 'code' => 'consent_patient_required'], 400);
+            return;
         }
 
-        $patient = $store['patients'][$patientId] ?? null;
-        if (!is_array($patient)) {
-            json_response(['ok' => false, 'error' => 'Paciente no encontrado'], 404);
+        if ($method === 'GET') {
+            self::readStatus($patientId, $consentType);
+        } elseif ($method === 'POST') {
+            self::signConsent($patientId, $consentType, $request);
+        } else {
+            json_response(['ok' => false, 'error' => 'Método no soportado.'], 405);
+        }
+    }
+
+    private static function readStatus(string $patientId, string $consentType): void
+    {
+        try {
+            $activeVersionData = ConsentVersioning::getActiveVersion($consentType);
+            $currentVersion = $activeVersionData['version'];
+        } catch (InvalidArgumentException $e) {
+            json_response(['ok' => false, 'error' => "El tipo de consentimiento '{$consentType}' no es válido.", 'code' => 'consent_invalid_type'], 400);
+            return;
         }
 
-        $currentVersion = defined('LOPD_CONSENT_VERSION') ? LOPD_CONSENT_VERSION : 'v1.0.0';
-        $signedVersion = (string) ($patient['consent_version'] ?? 'v1.0.0'); // Base legacy assume 1.0.0 for those who signed before the flag
+        $signedVersion = PatientConsentStore::readStatus($patientId, $consentType);
 
-        // Si el paciente nunca ha firmado o tiene un portalDocument distinto, el patient_portal maneja su logic
-        // Pero a nivel string exacto:
-        $needsRenewal = !hash_equals($currentVersion, $signedVersion);
+        $needsRenewal = ($signedVersion !== $currentVersion);
 
         json_response([
             'ok' => true,
-            'signed_version' => $signedVersion,
-            'current_version' => $currentVersion,
-            'needs_renewal' => $needsRenewal
+            'data' => [
+                'patient_id' => $patientId,
+                'consent_type' => $consentType,
+                'current_version' => $currentVersion,
+                'signed_version' => $signedVersion,
+                'needs_renewal' => $needsRenewal,
+            ]
+        ]);
+    }
+
+    private static function signConsent(string $patientId, string $consentType, array $request): void
+    {
+        $targetVersion = trim($request['version'] ?? '');
+        if ($targetVersion === '') {
+            json_response(['ok' => false, 'error' => 'La versión a firmar es requerida.', 'code' => 'consent_version_required'], 400);
+            return;
+        }
+
+        try {
+            $versions = ConsentVersioning::getAllVersions($consentType);
+            if (!isset($versions[$targetVersion])) {
+                json_response(['ok' => false, 'error' => 'La versión proporcionada no existe.', 'code' => 'consent_version_not_found'], 400);
+                return;
+            }
+        } catch (InvalidArgumentException $e) {
+            json_response(['ok' => false, 'error' => "El tipo de consentimiento '{$consentType}' no es válido.", 'code' => 'consent_invalid_type'], 400);
+            return;
+        }
+
+        PatientConsentStore::markAsSigned($patientId, $consentType, $targetVersion);
+
+        json_response([
+            'ok' => true,
+            'data' => [
+                'message' => 'Consentimiento firmado exitosamente.',
+                'patient_id' => $patientId,
+                'consent_type' => $consentType,
+                'signed_version' => $targetVersion,
+            ]
         ]);
     }
 }
