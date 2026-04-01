@@ -65,6 +65,11 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'patient-portal-document', [PatientPortalController::class, 'document']);
     $router->add('GET', 'document-verify', [PatientPortalController::class, 'documentVerify']);
     
+    // Security & Hardening S28
+    $router->add('GET', 'data-access-audit', [DataAccessAuditController::class, 'process']);
+    $router->add('GET', 'active-sessions', [ActiveSessionsController::class, 'process']);
+    $router->add('DELETE', 'active-sessions', [ActiveSessionsController::class, 'process']);
+
     // Push Preferences
     $router->add('GET', 'push-preferences', [PatientPortalController::class, 'getPushPreferences']);
     $router->add('POST', 'push-preferences', [PatientPortalController::class, 'setPushPreferences']);
@@ -185,13 +190,6 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'referral-link', [ReferralController::class, 'getLink']);
     $router->add('GET', 'referral-stats', [ReferralController::class, 'getStats']);
     $router->add('POST', 'referral-click', [ReferralController::class, 'trackClick']);
-
-    // Membresías — S17-06, S17-07, S17-08
-    $router->add('GET', 'membership-status', [MembershipController::class, 'status']);
-    $router->add('POST', 'membership-issue', [MembershipController::class, 'issue']);
-    $router->add('GET', 'package-balance', [MembershipController::class, 'packageBalance']);
-    $router->add('POST', 'package-activate', [MembershipController::class, 'activatePackage']);
-    $router->add('POST', 'package-consume', [MembershipController::class, 'consumeSession']);
 
     // Onboarding + Walkthrough — S18-02, S18-03, S17-16
     $router->add('GET', 'onboarding-progress', [OnboardingController::class, 'progress']);

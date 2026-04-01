@@ -47,6 +47,11 @@ class PatientCaseController
             json_response($payload, 409);
         }
 
+        if ($caseId !== '') {
+            require_once __DIR__ . '/../lib/DataAccessAudit.php';
+            DataAccessAudit::logAccess('patient_case', $caseId);
+        }
+
         json_response([
             'ok' => true,
             'data' => $service->buildReadModel(

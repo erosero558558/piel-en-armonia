@@ -11,16 +11,25 @@ class DataAccessAuditController
     public static function process(array $request): array
     {
         if ($request['method'] !== 'GET') {
-            return api_error('Metodo no soportado', 405);
+            return [
+                'statusCode' => 405,
+                'json' => ['ok' => false, 'error' => 'Metodo no soportado']
+            ];
         }
 
         if (!legacy_admin_is_authenticated() && !operator_auth_is_authenticated()) {
-            return api_error('No autorizado', 401);
+            return [
+                'statusCode' => 401,
+                'json' => ['ok' => false, 'error' => 'No autorizado']
+            ];
         }
 
         $patientId = trim((string)($request['query']['patient_id'] ?? ''));
         if ($patientId === '') {
-            return api_error('El parametro patient_id es obligatorio', 400);
+            return [
+                'statusCode' => 400,
+                'json' => ['ok' => false, 'error' => 'El parametro patient_id es obligatorio']
+            ];
         }
 
         $logFile = data_dir_path() . DIRECTORY_SEPARATOR . 'access-log.jsonl';

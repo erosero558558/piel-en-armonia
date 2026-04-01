@@ -35,6 +35,12 @@ final class ClinicalHistoryController
             ], (int) ($result['statusCode'] ?? 500));
         }
 
+        $caseId = $result['data']['caseId'] ?? ($_GET['case_id'] ?? ($_GET['caseId'] ?? ''));
+        if ($caseId !== '') {
+            require_once __DIR__ . '/../lib/DataAccessAudit.php';
+            DataAccessAudit::logAccess('clinical_session', (string)$caseId);
+        }
+
         json_response([
             'ok' => true,
             'data' => $result['data'] ?? [],
@@ -112,6 +118,12 @@ final class ClinicalHistoryController
             ], (int) ($result['statusCode'] ?? 500));
         }
 
+        $caseId = $result['data']['caseId'] ?? ($_GET['case_id'] ?? ($_GET['caseId'] ?? ''));
+        if ($caseId !== '') {
+            require_once __DIR__ . '/../lib/DataAccessAudit.php';
+            DataAccessAudit::logAccess('clinical_review', (string)$caseId);
+        }
+
         json_response([
             'ok' => true,
             'data' => $result['data'] ?? [],
@@ -172,6 +184,12 @@ final class ClinicalHistoryController
                 'error' => (string) ($result['error'] ?? 'No se pudo cargar el registro clinico'),
                 'code' => (string) ($result['errorCode'] ?? 'clinical_record_error'),
             ], (int) ($result['statusCode'] ?? 500));
+        }
+
+        $caseId = $result['data']['caseId'] ?? ($_GET['case_id'] ?? ($_GET['caseId'] ?? ''));
+        if ($caseId !== '') {
+            require_once __DIR__ . '/../lib/DataAccessAudit.php';
+            DataAccessAudit::logAccess('clinical_record', (string)$caseId);
         }
 
         json_response([

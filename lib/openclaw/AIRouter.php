@@ -384,7 +384,7 @@ final class OpenclawAIRouter
     /**
      * Backward compatibility: usar el figo_queue gateway existente
      */
-    private function callFifoGateway(array $payload): array
+    private function callFigoGateway(array $payload): array
     {
         $result = figo_queue_bridge_result($payload);
         $response = $result['payload'] ?? [];

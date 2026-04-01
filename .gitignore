@@ -80,3 +80,15 @@ php_server.log
 # Logs del servidor local (generados por START-SERVER-SILENT.ps1)
 logs/
 !logs/.gitkeep
+
+# Runtime data — NUNCA subir a git
+error.log
+error_log
+*.error.log
+data/adverse-reactions.jsonl
+data/pending-lab-alerts.jsonl
+data/pending-interconsult-alerts.jsonl
+data/interconsult-alerts.json
+data/follow-up-alerts.json
+data/ai-router-state.json
+

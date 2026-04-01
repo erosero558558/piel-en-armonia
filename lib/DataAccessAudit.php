@@ -6,11 +6,26 @@ require_once __DIR__ . '/storage.php';
 
 class DataAccessAudit
 {
+    public static function detectAccessor(): string
+    {
+        if (function_exists('operator_auth_current_identity')) {
+            $identity = operator_auth_current_identity(false);
+            if (is_array($identity) && isset($identity['email']) && (string)$identity['email'] !== '') {
+                return (string)$identity['email'];
+            }
+        }
+        if (isset($_SESSION['admin_email']) && (string)$_SESSION['admin_email'] !== '') {
+            return (string)$_SESSION['admin_email'];
+        }
+        return 'sistema_backend';
+    }
+
     /**
      * Escribe un registro de acceso inmutable en un log append-only (JSONL).
      */
-    public static function logAccess(string $accessorEmail, string $resourceName, string $patientId): void
+    public static function logAccess(string $resourceName, string $patientId, ?string $accessorEmail = null): void
     {
+        $accessorEmail = $accessorEmail ?? self::detectAccessor();
         if ($accessorEmail === '' || $patientId === '') {
             return;
         }
