@@ -68,7 +68,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    private static function saveEvolution(array $context): void
+    public static function saveEvolution(array $context): void
     {
         require_doctor_auth();
         $payload = require_json_body();
@@ -160,11 +160,60 @@ final class ClinicalHistoryController
             json_response(['ok' => false, 'error' => 'No se pudo almacenar la evolucion clinica en el registro inmutable'], 500);
         }
 
-        // Emit an event to timeline
+        // Emit an event to timeline and potentially create a pending_followup (S37-08)
         $now = local_date('c');
-        $lockResult = with_store_lock(static function () use ($caseId, $tenantId, $now, $evolutionRecord): array {
+        $autoFollowupDays = 0;
+        if (preg_match('/control en (\d+) d[ií]as/i', $soapPlan, $matches)) {
+            $autoFollowupDays = (int) $matches[1];
+        }
+
+        $lockResult = with_store_lock(static function () use ($caseId, $tenantId, $now, $evolutionRecord, $autoFollowupDays): array {
             $store = read_store();
-            
+            $skippedFollowup = null;
+            $newFollowupScheduled = false;
+
+            if ($autoFollowupDays > 0) {
+                if (!isset($store['pending_followups']) || !is_array($store['pending_followups'])) {
+                    $store['pending_followups'] = [];
+                }
+                $thirtyDaysFromNow = strtotime('+30 days');
+                $nowTs = time();
+                $alreadyExists = false;
+
+                foreach ($store['pending_followups'] as $pf) {
+                    if (($pf['caseId'] ?? '') === $caseId && ($pf['status'] ?? 'pending') !== 'completed') {
+                        $targetDate = $pf['targetDate'] ?? $pf['createdAt'] ?? 'now';
+                        $pfTs = strtotime($targetDate);
+                        if ($pfTs >= $nowTs && $pfTs <= $thirtyDaysFromNow) {
+                            $alreadyExists = true;
+                            $skippedFollowup = [
+                                'id' => $pf['id'] ?? '',
+                                'date' => $targetDate
+                            ];
+                            break;
+                        }
+                    }
+                }
+
+                if (!$alreadyExists) {
+                    $pfId = 'pf_' . substr(hash('sha256', random_bytes(16)), 0, 16);
+                    $targetDateVal = gmdate('Y-m-d', strtotime('+' . $autoFollowupDays . ' days'));
+                    $store['pending_followups'][] = [
+                        'id' => $pfId,
+                        'caseId' => $caseId,
+                        'evolutionId' => $evolutionRecord['id'],
+                        'days_from_now' => $autoFollowupDays,
+                        'targetDate' => $targetDateVal,
+                        'reason' => 'Control automático (' . $autoFollowupDays . ' días)',
+                        'appointment_type' => 'control',
+                        'source' => 'soap_plan',
+                        'status' => 'pending',
+                        'createdAt' => $now
+                    ];
+                    $newFollowupScheduled = true;
+                }
+            }
+
             $eventId = 'pte_' . substr(hash('sha1', 'pte|' . microtime(true) . '|' . bin2hex(random_bytes(8))), 0, 16);
             $store['patient_case_timeline_events'] = isset($store['patient_case_timeline_events']) && is_array($store['patient_case_timeline_events'])
                 ? array_values($store['patient_case_timeline_events'])
@@ -192,15 +241,29 @@ final class ClinicalHistoryController
             if (!write_store($store, false)) {
                 return ['ok' => false];
             }
-            return ['ok' => true];
+            return [
+                'ok' => true,
+                'skippedFollowup' => $skippedFollowup,
+                'newFollowupScheduled' => $newFollowupScheduled
+            ];
         });
 
-        json_response([
+        $resp = [
             'ok' => true,
             'savedAt' => $evolutionRecord['createdAt'],
             'evolution' => $evolutionRecord,
             'timeline_updated' => ($lockResult['ok'] ?? false) === true || (($lockResult['result']['ok'] ?? false) === true)
-        ], 201);
+        ];
+
+        $resPayload = $lockResult['result'] ?? [];
+        if (!empty($resPayload['skippedFollowup'])) {
+            $resp['existing_followup'] = $resPayload['skippedFollowup'];
+            $resp['new_followup_skipped'] = true;
+        } elseif (!empty($resPayload['newFollowupScheduled'])) {
+            $resp['new_followup_scheduled'] = true;
+        }
+
+        json_response($resp, 201);
     }
 
     /**
@@ -208,7 +271,7 @@ final class ClinicalHistoryController
      * Reads evolutions.jsonl for the given case, paginated, newest first.
      * Verifies integrity hash per record and marks tampered entries.
      */
-    private static function listEvolutions(array $context): void
+    public static function listEvolutions(array $context): void
     {
         require_doctor_auth();
 
@@ -291,7 +354,7 @@ final class ClinicalHistoryController
      * Saves structured anamnesis (antecedentes, alergias, medicamentos, habitos)
      * into draft.intake.structured_anamnesis for use by OpenClaw context.
      */
-    private static function saveAnamnesis(array $context): void
+    public static function saveAnamnesis(array $context): void
     {
         require_doctor_auth();
         $payload = require_json_body();
@@ -1242,6 +1305,22 @@ final class ClinicalHistoryController
             json_response(['ok' => false, 'error' => 'session_id y lab_order_id requeridos'], 400);
         }
 
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
+        $session = \ClinicalHistorySessionRepository::findSessionBySessionId(read_store(), $sessionId);
+        if ($session === null) {
+            json_response(['ok' => false, 'error' => 'Sesion clinica no encontrada o inactiva'], 404);
+        }
+
+        $logLine = json_encode([
+            'timestamp' => gmdate('c'),
+            'action' => 'lab_result_received',
+            'session_id' => $sessionId,
+            'lab_order_id' => $labOrderId,
+            'user' => $_SESSION['admin_email'] ?? 'system'
+        ]) . "\n";
+        @file_put_contents(__DIR__ . '/../data/hce-access-log.jsonl', $logLine, FILE_APPEND | LOCK_EX);
+
+
         $criticalValues = [];
         $normalizedValues = [];
         foreach ($values as $v) {
@@ -1335,6 +1414,24 @@ final class ClinicalHistoryController
                     }
                 }
             }
+
+            self::mutateStore(static function (array $store) use ($sessionId): array {
+                $drafts = $store['clinical_history_drafts'] ?? [];
+                $dirty = false;
+                foreach ($drafts as &$draft) {
+                    if (trim((string) ($draft['sessionId'] ?? '')) === $sessionId) {
+                        $draft['has_critical_lab_pending'] = true;
+                        $draft['updatedAt'] = gmdate('c');
+                        $dirty = true;
+                        break;
+                    }
+                }
+                unset($draft);
+                if ($dirty) {
+                    $store['clinical_history_drafts'] = array_values($drafts);
+                }
+                return ['ok' => true, 'store' => $store, 'data' => []];
+            });
         }
 
         // S34-05: Push Notification Patient
@@ -1361,7 +1458,7 @@ final class ClinicalHistoryController
             'ok'             => true,
             'result_saved'   => true,
             'critical_values'=> $criticalValues,
-            'alert_sent'     => !empty($criticalValues),
+            'alert_triggered'=> !empty($criticalValues),
             'push_sent'      => $pushSent,
             'patient_notified_at' => gmdate('c'),
         ]);
@@ -1380,19 +1477,39 @@ final class ClinicalHistoryController
 
         $payload        = require_json_body();
         $sessionId      = trim((string) ($payload['session_id'] ?? ''));
-        $imagingOrderId = trim((string) ($payload['imaging_order_id'] ?? ''));
-        $resultDate     = trim((string) ($payload['result_date'] ?? gmdate('c')));
+        $imagingOrderId = trim((string) ($payload['imaging_order_id'] ?? $payload['order_id'] ?? ''));
+        $resultDate     = trim((string) ($payload['result_date'] ?? $payload['study_date'] ?? gmdate('c')));
         $radiologist    = trim((string) ($payload['radiologist_name'] ?? ''));
-        $modality       = trim((string) ($payload['modality'] ?? ''));
-        $reportText     = trim((string) ($payload['report_text'] ?? ''));
+        $modality       = trim((string) ($payload['modality'] ?? $payload['type'] ?? ''));
+        $reportText     = trim((string) ($payload['report_text'] ?? $payload['findings'] ?? ''));
         $impression     = trim((string) ($payload['impression'] ?? ''));
+        $fileBase64     = trim((string) ($payload['file_base64'] ?? ''));
 
         if ($sessionId === '' || $imagingOrderId === '') {
-            json_response(['ok' => false, 'error' => 'session_id e imaging_order_id requeridos'], 400);
+            json_response(['ok' => false, 'error' => 'session_id e imaging_order_id (u order_id) requeridos'], 400);
+        }
+
+        $pdfUrl = '';
+        if ($fileBase64 !== '') {
+            $decoded = base64_decode($fileBase64, true);
+            if ($decoded !== false && substr($decoded, 0, 4) === '%PDF') {
+                $imagingDir = __DIR__ . '/../data/imaging';
+                if (!is_dir($imagingDir)) {
+                    @mkdir($imagingDir, 0750, true);
+                }
+                $safeOrderId = preg_replace('/[^a-zA-Z0-9_-]/', '', $imagingOrderId);
+                if ($safeOrderId !== '') {
+                    $pdfPath = $imagingDir . '/' . $safeOrderId . '.pdf';
+                    if (@file_put_contents($pdfPath, $decoded)) {
+                        @chmod($pdfPath, 0640);
+                        $pdfUrl = '/api.php?resource=media-flow-private-asset&type=imaging&path=' . urlencode('imaging/' . $safeOrderId . '.pdf');
+                    }
+                }
+            }
         }
 
         $result = self::mutateStore(static function (array $store) use (
-            $sessionId, $imagingOrderId, $resultDate, $radiologist, $modality, $reportText, $impression
+            $sessionId, $imagingOrderId, $resultDate, $radiologist, $modality, $reportText, $impression, $pdfUrl
         ): array {
             $service = new ClinicalHistoryService();
             return $service->episodeAction($store, [
@@ -1404,6 +1521,7 @@ final class ClinicalHistoryController
                 'modality'     => $modality,
                 'reportText'   => $reportText,
                 'impression'   => $impression,
+                'pdfUrl'       => $pdfUrl,
                 'resultStatus' => 'received',
             ]);
         });
@@ -1411,7 +1529,7 @@ final class ClinicalHistoryController
         if (!($result['ok'] ?? false)) {
             // Fallback: persistir directamente en el draft
             $result = self::mutateStore(static function (array $store) use (
-                $sessionId, $imagingOrderId, $resultDate, $radiologist, $modality, $reportText, $impression
+                $sessionId, $imagingOrderId, $resultDate, $radiologist, $modality, $reportText, $impression, $pdfUrl
             ): array {
                 $drafts = $store['clinical_history_drafts'] ?? [];
                 foreach ($drafts as &$draft) {
@@ -1426,6 +1544,7 @@ final class ClinicalHistoryController
                             'modality'       => $modality,
                             'reportText'     => $reportText,
                             'impression'     => $impression,
+                            'pdfUrl'         => $pdfUrl,
                         ];
                         break;
                     }

@@ -15,121 +15,151 @@
   </url>
   <url>
     <loc>https://pielarmonia.com/en/legal/cookies/</loc>
-    <lastmod>2026-03-12</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/legal/medical-disclaimer/</loc>
-    <lastmod>2026-03-12</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/legal/privacy/</loc>
-    <lastmod>2026-03-12</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/legal/terms/</loc>
-    <lastmod>2026-03-12</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/acne-rosacea/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/bioestimuladores-colageno/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/botox/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/cancer-piel/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/cicatrices/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/depilacion-laser/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/dermatologia-pediatrica/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/diagnostico-integral/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/granitos-brazos-piernas/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/laser-dermatologico/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/en/services/manchas/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/mesoterapia/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/en/services/microdermoabrasion/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/peeling-quimico/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/piel-cabello-unas/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/en/services/rellenos-hialuronico/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/en/services/tamizaje-oncologico/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/en/services/teledermatologia/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/services/verrugas/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/software/clinic-flow-suite/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -147,37 +177,43 @@
   </url>
   <url>
     <loc>https://pielarmonia.com/en/software/clinic-flow-suite/dashboard/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/software/clinic-flow-suite/demo/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/software/clinic-flow-suite/queue-status/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/en/telemedicine/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/agendar/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/bienvenida-medico/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -231,25 +267,25 @@
   </url>
   <url>
     <loc>https://pielarmonia.com/es/legal/aviso-medico/</loc>
-    <lastmod>2026-03-27</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/legal/cookies/</loc>
-    <lastmod>2026-03-27</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/legal/privacidad/</loc>
-    <lastmod>2026-03-27</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/legal/terminos/</loc>
-    <lastmod>2026-03-27</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -261,7 +297,7 @@
   </url>
   <url>
     <loc>https://pielarmonia.com/es/pago/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -273,6 +309,18 @@
   </url>
   <url>
     <loc>https://pielarmonia.com/es/portal/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/portal/consentimiento/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/portal/fotos/</loc>
     <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -290,14 +338,38 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://pielarmonia.com/es/portal/pagos/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/portal/plan/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/portal/receta/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/portal/referidos/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://pielarmonia.com/es/pre-consulta/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/primera-consulta/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -315,97 +387,127 @@
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/acne-rosacea/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/bioestimuladores-colageno/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/botox/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/cancer-piel/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/cicatrices/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/depilacion-laser/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/dermatologia-pediatrica/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/diagnostico-integral/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/granitos-brazos-piernas/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/laser-dermatologico/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/servicios/manchas/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/mesoterapia/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/servicios/microdermoabrasion/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/peeling-quimico/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/piel-cabello-unas/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/servicios/rellenos-hialuronico/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/servicios/tamizaje-oncologico/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/servicios/teledermatologia/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/servicios/verrugas/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/software/turnero-clinicas/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -423,13 +525,19 @@
   </url>
   <url>
     <loc>https://pielarmonia.com/es/software/turnero-clinicas/dashboard/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/software/turnero-clinicas/demo/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/software/turnero-clinicas/empezar/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -447,13 +555,13 @@
   </url>
   <url>
     <loc>https://pielarmonia.com/es/telemedicina/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pielarmonia.com/es/telemedicina/consulta/</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -466,6 +574,18 @@
   <url>
     <loc>https://pielarmonia.com/es/telemedicina/sala/</loc>
     <lastmod>2026-03-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/v8/</loc>
+    <lastmod>2026-03-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pielarmonia.com/es/verificar-documento/</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

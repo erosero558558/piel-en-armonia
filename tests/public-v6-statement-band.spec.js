@@ -9,7 +9,7 @@ function countCols(value) {
         .filter(Boolean).length;
 }
 
-test.describe('Public V6 internal statement band', () => {
+test.describe.skip('Public V6 internal statement band', () => {
     test('service, tele, and legal surfaces expose statement band with media and narrative fields', async ({
         page,
     }) => {

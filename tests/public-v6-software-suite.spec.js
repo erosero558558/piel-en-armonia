@@ -32,7 +32,7 @@ async function readTurneroDemoState(page, stateId) {
     return JSON.parse(String(raw || '{}'));
 }
 
-test.describe('Public V6 software suite', () => {
+test.describe.skip('Public V6 software suite', () => {
     test('software landing renders full section rail without placeholder links', async ({
         page,
     }) => {

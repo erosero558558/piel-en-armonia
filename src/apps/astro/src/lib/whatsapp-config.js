@@ -8,7 +8,9 @@ export function getWhatsappNumber() {
         const clinicConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         return clinicConfig.whatsapp.replace('+', '');
     } catch (err) {
-        console.error('Failed to load clinic config for WhatsApp fallback:', err);
+        if (err.code !== 'ENOENT') {
+            console.error('Failed to load clinic config for WhatsApp fallback:', err);
+        }
         return '593982453672'; // fallback
     }
 }

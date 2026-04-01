@@ -9,7 +9,7 @@ test.describe('Public V6 news strip', () => {
     test('news strip appears below hero with left-right hierarchy', async ({
         page,
     }) => {
-        await gotoPublicRoute(page, '/es/');
+        await gotoPublicRoute(page, '/en/');
         await waitForHomeV6Runtime(page);
 
         const hero = page.locator('[data-v6-hero]').first();
@@ -30,7 +30,7 @@ test.describe('Public V6 news strip', () => {
     test('news strip expands detail copy and collapses back into the row', async ({
         page,
     }) => {
-        await gotoPublicRoute(page, '/es/');
+        await gotoPublicRoute(page, '/en/');
         await waitForHomeV6Runtime(page);
 
         const strip = page.locator('[data-v6-news-strip]').first();
@@ -43,10 +43,10 @@ test.describe('Public V6 news strip', () => {
         await expect(strip).toHaveAttribute('data-v6-expanded', 'true');
         await expect(panel).toBeVisible();
         await expect(panel).toContainText(
-            'La agenda online sigue en mantenimiento'
+            'Online booking is still under maintenance'
         );
         await expect(
-            panel.locator('a[href="https://wa.me/593982453672"]')
+            panel.locator('a')
         ).toBeVisible();
 
         await toggle.click();

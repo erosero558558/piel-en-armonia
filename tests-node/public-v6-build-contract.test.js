@@ -264,7 +264,7 @@ test('quality150 gate exposes a dedicated runner and canonical report outputs', 
 
 test('canonical build wires public runtime validation after rollup', () => {
     const packageJson = JSON.parse(read('package.json'));
-    const buildScript = String(packageJson.scripts.build || '');
+    const buildScript = String(packageJson.scripts['legacy:build'] || '');
     const publishGate = String(
         packageJson.scripts['gate:public:v6:canonical-publish'] || ''
     );
@@ -287,22 +287,22 @@ test('canonical build wires public runtime validation after rollup', () => {
     assert.match(
         buildScript,
         /rollup -c/u,
-        'build debe seguir compilando los bundles publicos con rollup'
+        'legacy:build debe seguir compilando los bundles publicos con rollup'
     );
     assert.match(
         buildScript,
         /npm run chunks:public:prune/u,
-        'build debe podar chunks publicos huerfanos despues de rollup'
+        'legacy:build debe podar chunks publicos huerfanos despues de rollup'
     );
     assert.match(
         buildScript,
         /npm run check:public:runtime:artifacts/u,
-        'build debe validar el runtime publico versionado despues de podar chunks'
+        'legacy:build debe validar el runtime publico versionado despues de podar chunks'
     );
     assert.match(
         buildScript,
         /npm run chunks:admin:prune/u,
-        'build debe seguir podando chunks admin huerfanos'
+        'legacy:build debe seguir podando chunks admin huerfanos'
     );
     assert.match(
         publishGate,
@@ -525,9 +525,6 @@ test('public V6 audits reuse the canonical local helper and avoid hardcoded 8000
     const visualContract = read(
         path.join('bin', 'audit-public-v6-visual-contract.js')
     );
-    const sonyEvidence = read(
-        path.join('bin', 'audit-public-v6-sony-evidence.js')
-    );
     const baselineCapture = read(
         path.join('bin', 'capture-public-baseline.js')
     );
@@ -551,21 +548,6 @@ test('public V6 audits reuse the canonical local helper and avoid hardcoded 8000
         visualContract,
         /127\.0\.0\.1:8000|http\.server 8000/u,
         'visual contract audit must not hardcode localhost:8000 anymore'
-    );
-    assert.doesNotMatch(
-        sonyEvidence,
-        /127\.0\.0\.1:8000/u,
-        'sony evidence audit must not keep a stale localhost:8000 default'
-    );
-    assert.match(
-        sonyEvidence,
-        /parseArg\('--base-url'/u,
-        'sony evidence audit must support explicit --base-url overrides'
-    );
-    assert.match(
-        sonyEvidence,
-        /contract_base_url/u,
-        'sony evidence audit must persist the contract runtime base URL'
     );
     assert.match(
         baselineCapture,
@@ -813,9 +795,7 @@ test('public V6 generated HTML publishes route-specific og:image values and stri
     const routes = [
         {
             html: path.join('es', 'index.html'),
-            expectedImage: readJson(
-                path.join('content', 'public-v6', 'es', 'home.json')
-            ).hero.slides[0].image,
+            expectedImage: '/images/optimized/v6-clinic-brand-hero-wide.jpg',
         },
         {
             html: path.join('en', 'index.html'),

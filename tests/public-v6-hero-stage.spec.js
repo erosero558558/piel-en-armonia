@@ -40,7 +40,7 @@ test.describe('Public V6 hero stage', () => {
     test('renders three-panel stage with controls and indicators', async ({
         page,
     }) => {
-        await gotoPublicRoute(page, '/es/');
+        await gotoPublicRoute(page, '/en/');
 
         const hero = page.locator('[data-v6-hero]').first();
         await expect(hero).toBeVisible();
@@ -51,9 +51,9 @@ test.describe('Public V6 hero stage', () => {
         await expect(hero.locator('[data-v6-toggle]')).toBeVisible();
         await expect(hero.locator('[data-v6-hero-badge]')).toHaveCount(3);
         await expect(hero.locator('[data-v6-hero-badge]')).toHaveText([
-            'MSP Certificado',
-            '10+ años',
-            '2000+ pacientes',
+            'MSP certified',
+            '10+ years',
+            '2000+ patients',
         ]);
         await expect(hero.locator('[data-v6-hero-badges]')).toHaveAttribute(
             'data-v6-reveal-state',
@@ -90,7 +90,7 @@ test.describe('Public V6 hero stage', () => {
     test('active indicator uses timed progress and reacts to pause/resume', async ({
         page,
     }) => {
-        await gotoPublicRoute(page, '/es/');
+        await gotoPublicRoute(page, '/en/');
 
         const hero = page.locator('[data-v6-hero]').first();
         const toggle = hero.locator('[data-v6-toggle]');

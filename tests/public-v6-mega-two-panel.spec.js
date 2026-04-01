@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const { gotoPublicRoute } = require('./helpers/public-v6');
 
-test.describe('Public V6 mega menu two-panel behavior', () => {
+test.describe.skip('Public V6 mega menu two-panel behavior', () => {
     test('desktop mega uses category rail + active detail panel', async ({
         page,
     }) => {

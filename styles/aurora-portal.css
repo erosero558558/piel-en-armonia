@@ -1712,3 +1712,239 @@ body.portal-body {
 .lg-delay-3 { animation-delay: 240ms; }
 .lg-delay-4 { animation-delay: 320ms; }
 .lg-delay-5 { animation-delay: 400ms; }
+
+/* ==========================================================================
+   S37-02 — Payment Cards (rb-payment-card)
+   Glassmorphism cards para historial de pagos del portal del paciente.
+   ========================================================================== */
+
+/* Payment feed container */
+#v6-payments-feed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3, 12px);
+    padding: var(--space-4, 16px) var(--space-4, 16px) calc(var(--space-4, 16px) + env(safe-area-inset-bottom));
+}
+
+/* Payment card base */
+.rb-payment-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2, 8px);
+    padding: var(--space-4, 16px) var(--space-5, 20px);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    animation: auroraFadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    overflow: hidden;
+}
+
+.rb-payment-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    border-radius: 16px 16px 0 0;
+}
+
+.rb-payment-card:active {
+    transform: scale(0.985);
+}
+
+/* Pending state — amber accent */
+.rb-payment-card.is-pending {
+    background: rgba(255, 180, 0, 0.07);
+    border-color: rgba(255, 180, 0, 0.22);
+    box-shadow: 0 0 0 1px rgba(255, 180, 0, 0.08) inset;
+}
+
+.rb-payment-card.is-pending::before {
+    background: linear-gradient(90deg, transparent, rgba(255, 180, 0, 0.2), transparent);
+}
+
+/* Header row */
+.rb-payment-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2, 8px);
+}
+
+.rb-payment-card__date {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+}
+
+.rb-payment-card__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: rgba(50, 205, 130, 0.15);
+    color: #32cd82;
+    border: 1px solid rgba(50, 205, 130, 0.25);
+}
+
+.rb-payment-card.is-pending .rb-payment-card__status {
+    background: rgba(255, 180, 0, 0.15);
+    color: #ffb400;
+    border-color: rgba(255, 180, 0, 0.28);
+}
+
+/* Service title */
+.rb-payment-card__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+}
+
+/* Amount group */
+.rb-payment-card__amount-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: var(--space-1, 4px) 0;
+}
+
+.rb-payment-card__amount {
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
+    line-height: 1;
+}
+
+.rb-payment-card.is-pending .rb-payment-card__amount {
+    color: #ffb400;
+}
+
+/* Footer */
+.rb-payment-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3, 12px);
+    margin-top: var(--space-1, 4px);
+    padding-top: var(--space-3, 12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.rb-payment-card__method {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+}
+
+.rb-payment-card__method svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* CTA buttons — shared with rb-btn-action */
+.rb-btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.rb-btn-action:active {
+    transform: scale(0.95);
+    opacity: 0.85;
+}
+
+.rb-btn-action--primary {
+    background: linear-gradient(135deg, #25d366 0%, #1da851 100%);
+    color: #fff;
+    box-shadow: 0 3px 12px rgba(37, 211, 102, 0.35);
+}
+
+.rb-btn-action--primary:hover {
+    box-shadow: 0 5px 18px rgba(37, 211, 102, 0.45);
+    transform: translateY(-1px);
+}
+
+.rb-btn-action--secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.rb-btn-action--secondary:hover {
+    background: rgba(255, 255, 255, 0.13);
+    color: #fff;
+}
+
+/* Staggered card entrance animation */
+.rb-payment-card:nth-child(1) { animation-delay: 0ms; }
+.rb-payment-card:nth-child(2) { animation-delay: 60ms; }
+.rb-payment-card:nth-child(3) { animation-delay: 120ms; }
+.rb-payment-card:nth-child(4) { animation-delay: 180ms; }
+.rb-payment-card:nth-child(5) { animation-delay: 240ms; }
+.rb-payment-card:nth-child(n+6) { animation-delay: 300ms; }
+
+/* === Portal payments page header === */
+.v6-payments-page__header {
+    padding: var(--space-6, 24px) var(--space-5, 20px) var(--space-3, 12px);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3, 12px);
+}
+
+.v6-payments-page__back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+}
+
+.v6-payments-page__back:hover,
+.v6-payments-page__back:active {
+    background: rgba(255,255,255,0.14);
+}
+
+.v6-payments-page__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.01em;
+}

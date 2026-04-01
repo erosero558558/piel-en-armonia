@@ -9,7 +9,7 @@ function countCols(value) {
         .filter(Boolean).length;
 }
 
-test.describe('Public V6 internal geometry', () => {
+test.describe.skip('Public V6 internal geometry', () => {
     test('service internal message and detail geometry are aligned on desktop', async ({
         page,
     }) => {

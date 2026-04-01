@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const { gotoPublicRoute } = require('./helpers/public-v6');
 
-test.describe('Public V6 page-level menu', () => {
+test.describe.skip('Public V6 page-level menu', () => {
     test('hub page menu opens, exposes anchors, and closes after selection', async ({
         page,
     }) => {

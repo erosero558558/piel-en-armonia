@@ -16,12 +16,14 @@ export function renderPrescriptionDirectionsMirror(items) {
     return normalizePrescriptionItems(items)
         .filter(prescriptionItemStarted)
         .map((item) => {
+            const doseString = item.dose ? `${item.dose} ${item.unit || 'mg'}` : '';
+            const durationString = item.duration ? `por ${item.duration} días` : '';
             const segments = [
-                item.dose,
+                doseString,
                 item.route,
                 item.frequency,
-                item.duration,
-                item.quantity ? `Cantidad ${item.quantity}` : '',
+                durationString,
+                item.quantity ? `Cant: ${item.quantity}` : '',
             ].filter(Boolean);
             const base = item.medication
                 ? `${item.medication}: ${segments.join(' • ')}`
@@ -37,7 +39,7 @@ export function renderPrescriptionDirectionsMirror(items) {
 export function buildPrescriptionItemEditor(item, index, disabled) {
     const safeItem = normalizePrescriptionItem(item);
     return `
-        <article class="clinical-history-event-card" data-hcu005-prescription-item="${escapeHtml(
+        <article class="clinical-history-event-card prescription-item" data-hcu005-prescription-item="${escapeHtml(
             String(index)
         )}">
             <div class="clinical-history-event-head">
@@ -59,80 +61,108 @@ export function buildPrescriptionItemEditor(item, index, disabled) {
                     `hcu005_prescription_${index}_medication`,
                     'Medicamento',
                     safeItem.medication,
-                    {
-                        placeholder: 'Nombre del medicamento',
-                        disabled,
-                    }
+                    { placeholder: 'Nombre del medicamento', disabled }
                 ),
-                helpers.inputField(
-                    `hcu005_prescription_${index}_presentation`,
-                    'Presentación',
-                    safeItem.presentation,
-                    {
-                        placeholder: 'Tableta, crema, solución',
-                        disabled,
-                    }
-                ),
+                helpers.buildClinicalHistoryFieldShell(
+                    `hcu005_prescription_${index}_dose`,
+                    'Dosis y Unidad',
+                    `
+                        <div style="display: flex; gap: 0.5rem; width: 100%;">
+                            <input 
+                                type="number" 
+                                id="hcu005_prescription_${index}_dose" 
+                                name="hcu005_prescription_${index}_dose" 
+                                class="dose-input" 
+                                value="${escapeHtml(safeItem.dose || '')}"
+                                placeholder="Ej: 500" 
+                                ${disabled ? 'disabled' : ''} 
+                                style="flex: 1;"
+                            />
+                            <select id="hcu005_prescription_${index}_unit" name="hcu005_prescription_${index}_unit" class="unit-select" style="width: 80px;" ${disabled ? 'disabled' : ''}>
+                                ${helpers.buildClinicalHistoryChoiceOptions([
+                                    { value: 'mg', label: 'mg' },
+                                    { value: 'ml', label: 'ml' },
+                                    { value: 'UI', label: 'UI' },
+                                    { value: 'g', label: 'g' },
+                                    { value: '%', label: '%' },
+                                    { value: 'gotas', label: 'gotas' },
+                                    { value: 'puff', label: 'puff' }
+                                ], safeItem.unit || 'mg')}
+                            </select>
+                        </div>
+                    `,
+                    'Cantidad numérica y medida'
+                )
             ])}
             ${helpers.buildClinicalHistoryInlineGrid([
-                helpers.inputField(
-                    `hcu005_prescription_${index}_dose`,
-                    'Dosis',
-                    safeItem.dose,
-                    {
-                        placeholder: '500 mg',
-                        disabled,
-                    }
-                ),
-                helpers.inputField(
+                helpers.buildClinicalHistoryFieldShell(
                     `hcu005_prescription_${index}_route`,
-                    'Vía',
-                    safeItem.route,
-                    {
-                        placeholder: 'VO, tópica, IM',
-                        disabled,
-                    }
+                    'Vía de administración',
+                    `
+                        <select id="hcu005_prescription_${index}_route" name="hcu005_prescription_${index}_route" class="route-select" ${disabled ? 'disabled' : ''}>
+                            ${helpers.buildClinicalHistoryChoiceOptions([
+                                { value: '', label: 'Seleccionar...' },
+                                { value: 'VO', label: 'Vía Oral (VO)' },
+                                { value: 'Topica', label: 'Tópica' },
+                                { value: 'IM', label: 'Intramuscular (IM)' },
+                                { value: 'IV', label: 'Intravenosa (IV)' },
+                                { value: 'SC', label: 'Subcutánea (SC)' },
+                                { value: 'Oftalmica', label: 'Oftálmica' },
+                                { value: 'Otica', label: 'Ótica' }
+                            ], safeItem.route || '')}
+                        </select>
+                    `
                 ),
-                helpers.inputField(
+                helpers.buildClinicalHistoryFieldShell(
                     `hcu005_prescription_${index}_frequency`,
                     'Frecuencia',
-                    safeItem.frequency,
-                    {
-                        placeholder: 'Cada 12 horas',
-                        disabled,
-                    }
-                ),
+                    `
+                        <select id="hcu005_prescription_${index}_frequency" name="hcu005_prescription_${index}_frequency" class="frequency-select" ${disabled ? 'disabled' : ''}>
+                            ${helpers.buildClinicalHistoryChoiceOptions([
+                                { value: '', label: 'Seleccionar...' },
+                                { value: 'Cada 4 horas', label: 'Cada 4 horas' },
+                                { value: 'Cada 6 horas', label: 'Cada 6 horas' },
+                                { value: 'Cada 8 horas', label: 'Cada 8 horas' },
+                                { value: 'Cada 12 horas', label: 'Cada 12 horas' },
+                                { value: 'Cada 24 horas', label: 'Cada 24 horas' },
+                                { value: 'Dosis unica', label: 'Dosis única' },
+                                { value: 'Prn', label: 'PRN (Por razón necesaria)' },
+                                { value: 'Libre', label: 'Libre demanda' }
+                            ], safeItem.frequency || '')}
+                        </select>
+                    `
+                )
             ])}
             ${helpers.buildClinicalHistoryInlineGrid([
-                helpers.inputField(
+                helpers.buildClinicalHistoryFieldShell(
                     `hcu005_prescription_${index}_duration`,
-                    'Duración',
-                    safeItem.duration,
-                    {
-                        placeholder: '7 días',
-                        disabled,
-                    }
+                    'Duración (días)',
+                    `
+                        <input 
+                            type="number" 
+                            id="hcu005_prescription_${index}_duration" 
+                            name="hcu005_prescription_${index}_duration" 
+                            class="duration-days" 
+                            value="${escapeHtml(safeItem.duration || '')}"
+                            placeholder="Ej: 7" 
+                            min="1"
+                            ${disabled ? 'disabled' : ''} 
+                        />
+                    `,
+                    'Número de días'
                 ),
                 helpers.inputField(
                     `hcu005_prescription_${index}_quantity`,
-                    'Cantidad',
+                    'Cantidad a dispensar',
                     safeItem.quantity,
-                    {
-                        placeholder: '14 tabletas',
-                        disabled,
-                    }
-                ),
+                    { placeholder: '14 tabletas / 1 tubo', disabled }
+                )
             ])}
             ${helpers.textareaField(
                 `hcu005_prescription_${index}_instructions`,
-                'Indicaciones',
+                'Instrucciones especiales',
                 safeItem.instructions,
-                {
-                    rows: 3,
-                    placeholder:
-                        'Instrucciones detalladas para uso y seguimiento.',
-                    disabled,
-                }
+                { rows: 2, placeholder: 'Instrucciones detalladas de uso...', disabled }
             )}
         </article>
     `;
@@ -143,6 +173,7 @@ export function emptyPrescriptionItem() {
         medication: '',
         presentation: '',
         dose: '',
+        unit: 'mg',
         route: '',
         frequency: '',
         duration: '',
@@ -181,6 +212,7 @@ export function normalizePrescriptionItem(item) {
         medication: helpers.normalizeString(source.medication),
         presentation: helpers.normalizeString(source.presentation),
         dose: helpers.normalizeString(source.dose),
+        unit: helpers.normalizeString(source.unit) || 'mg',
         route: helpers.normalizeString(source.route),
         frequency: helpers.normalizeString(source.frequency),
         duration: helpers.normalizeString(source.duration),

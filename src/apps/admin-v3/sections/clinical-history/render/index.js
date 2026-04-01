@@ -59,6 +59,11 @@ const CLINICAL_HISTORY_WORKSPACE_OPTIONS = Object.freeze([
         label: '📋 H002 — MSP',
         metaLabel: () => 'Obligatorio (Ecuador)',
     },
+    {
+        workspace: 'laboratorio',
+        label: '🔬 Laboratorio',
+        metaLabel: () => 'Resultados',
+    },
 ]);
 const CLINICAL_HISTORY_SEX_CHOICES = Object.freeze([
     { value: '', label: 'Sin dato' },
@@ -7155,6 +7160,7 @@ export function inputField(id, label, value, options = {}) {
         step = '',
         min = '',
         disabled = false,
+        className = '',
     } = options;
 
     return buildClinicalHistoryFieldShell(
@@ -7165,10 +7171,11 @@ export function inputField(id, label, value, options = {}) {
                 id="${escapeHtml(id)}"
                 name="${escapeHtml(id)}"
                 type="${escapeHtml(type)}"
-                value="${escapeHtml(value)}"
+                value="${escapeHtml(String(value ?? ''))}"
                 placeholder="${escapeHtml(placeholder)}"
-                ${step !== '' ? `step="${escapeHtml(step)}"` : ''}
-                ${min !== '' ? `min="${escapeHtml(min)}"` : ''}
+                ${className ? `class="${escapeHtml(className)}"` : ''}
+                ${step ? `step="${escapeHtml(step)}"` : ''}
+                ${min ? `min="${escapeHtml(min)}"` : ''}
                 ${disabled ? 'disabled' : ''}
             />
         `,
@@ -7176,14 +7183,14 @@ export function inputField(id, label, value, options = {}) {
     );
 }
 
-export function checkboxField(id, label, checked, options = {}) {
+export function buildClinicalHistoryCheckbox(id, label, checked, options = {}) {
     const { hint = '', disabled = false } = options;
     return `
-        <label class="clinical-history-toggle" for="${escapeHtml(id)}">
+        <label class="clinical-history-checkbox-row">
             <input
+                type="checkbox"
                 id="${escapeHtml(id)}"
                 name="${escapeHtml(id)}"
-                type="checkbox"
                 ${checked ? 'checked' : ''}
                 ${disabled ? 'disabled' : ''}
             />
@@ -7196,7 +7203,7 @@ export function checkboxField(id, label, checked, options = {}) {
 }
 
 export function selectField(id, label, value, choices, options = {}) {
-    const { hint = '', disabled = false } = options;
+    const { hint = '', disabled = false, className = '' } = options;
     return buildClinicalHistoryFieldShell(
         id,
         label,
@@ -7204,6 +7211,7 @@ export function selectField(id, label, value, choices, options = {}) {
             <select
                 id="${escapeHtml(id)}"
                 name="${escapeHtml(id)}"
+                ${className ? `class="${escapeHtml(className)}"` : ''}
                 ${disabled ? 'disabled' : ''}
             >
                 ${buildClinicalHistoryChoiceOptions(choices, value)}
@@ -7574,185 +7582,161 @@ export function buildClinicalHistoryAdmissionSection(review, draft, disabled) {
 }
 
 export function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
-    return buildClinicalHistorySection(
-        'Intake estructurado',
-        'Motivo de consulta, evolucion y datos del paciente.',
-        `
-                ${buildClinicalRedFlagNotice(draft.redFlags)}
-                ${inputField(
-                    'intake_motivo_consulta',
-                    'Motivo de consulta',
-                    draft.intake.motivoConsulta,
-                    {
-                        placeholder: 'Ej. prurito, acne inflamatorio, rash',
-                        disabled,
-                    }
+    return `
+        <div id="anamnesis-form" class="anamnesis-form-container">
+            ${buildClinicalHistorySection(
+                'Biométrico y Perfil',
+                'Datos demográficos y estado actual.',
+                `
+                    ${buildClinicalHistoryInlineGrid([
+                        inputField(
+                            'patient_edad_anios',
+                            'Edad (años)',
+                            draft.intake.datosPaciente.edadAnios ?? '',
+                            { type: 'number', min: '0', step: '1', disabled }
+                        ),
+                        inputField(
+                            'patient_peso_kg',
+                            'Peso (kg)',
+                            draft.intake.datosPaciente.pesoKg ?? '',
+                            { type: 'number', min: '0', step: '0.1', disabled }
+                        ),
+                        selectField(
+                            'patient_sexo_biologico',
+                            'Sexo biológico',
+                            draft.intake.datosPaciente.sexoBiologico,
+                            CLINICAL_HISTORY_SEX_CHOICES,
+                            { disabled }
+                        ),
+                        selectField(
+                            'patient_embarazo',
+                            'Embarazo',
+                            pregnancyValue,
+                            CLINICAL_HISTORY_PREGNANCY_CHOICES,
+                            { disabled }
+                        ),
+                    ])}
+                `
+            )}
+            
+            ${buildClinicalHistorySection(
+                'Motivo y Enfermedad Actual',
+                'Problema principal reportado por el paciente.',
+                `
+                    ${buildClinicalRedFlagNotice(draft.redFlags)}
+                    ${inputField(
+                        'intake_motivo_consulta',
+                        'Motivo de consulta',
+                        draft.intake.motivoConsulta,
+                        { placeholder: 'Ej. prurito, acne inflamatorio, rash', disabled }
+                    )}
+                    ${textareaField(
+                        'intake_enfermedad_actual',
+                        'Enfermedad actual',
+                        draft.intake.enfermedadActual,
+                        { rows: 4, placeholder: 'Evolucion temporal, distribucion...', disabled }
+                    )}
+                    ${buildClinicalHistoryInlineGrid([
+                        textareaField(
+                            'intake_resumen_clinico',
+                            'Resumen clínico',
+                            draft.intake.resumenClinico,
+                            { rows: 3, placeholder: 'Resumen limpio para pasar a la consulta.', disabled }
+                        ),
+                        textareaField(
+                            'intake_preguntas_faltantes',
+                            'Preguntas faltantes',
+                            listToTextarea(draft.intake.preguntasFaltantes),
+                            { rows: 3, placeholder: 'Una pregunta por linea.', disabled }
+                        ),
+                    ])}
+                `
+            )}
+
+            <section class="antecedentes-section">
+                ${buildClinicalHistorySection(
+                    'Antecedentes Médicos',
+                    'Crónicos, dermatológicos y familiares relevantes.',
+                    `
+                        ${buildClinicalHistoryInlineGrid([
+                            textareaField(
+                                'intake_antecedentes_personales',
+                                'Antecedentes personales',
+                                draft.intake.antecedentesPersonales,
+                                { rows: 3, placeholder: 'Dermatologicos, cronicos...', disabled }
+                            ),
+                            textareaField(
+                                'intake_antecedentes_familiares',
+                                'Antecedentes familiares',
+                                draft.intake.antecedentesFamiliares,
+                                { rows: 3, placeholder: 'Familiares relevantes...', disabled }
+                            ),
+                        ])}
+                    `
                 )}
-                ${textareaField(
-                    'intake_enfermedad_actual',
-                    'Enfermedad actual',
-                    draft.intake.enfermedadActual,
-                    {
-                        rows: 5,
-                        placeholder:
-                            'Evolucion temporal, distribucion, desencadenantes.',
-                        disabled,
-                    }
-                )}
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'intake_antecedentes_personales',
-                        'Antecedentes personales',
-                        draft.intake.antecedentesPersonales,
-                        {
-                            rows: 4,
-                            placeholder:
-                                'Dermatologicos, cronicos y personales relevantes.',
-                            disabled,
-                        }
-                    ),
-                    textareaField(
-                        'intake_antecedentes_familiares',
-                        'Antecedentes familiares',
-                        draft.intake.antecedentesFamiliares,
-                        {
-                            rows: 4,
-                            placeholder:
-                                'Familiares relevantes para el motivo de consulta.',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'intake_alergias',
-                        'Alergias',
-                        draft.intake.alergias,
-                        {
-                            rows: 4,
-                            placeholder: 'Medicamentos, alimentos, contacto.',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'intake_medicacion_actual',
-                        'Medicacion actual',
-                        draft.intake.medicacionActual,
-                        {
-                            rows: 4,
-                            placeholder: 'Nombre, dosis, frecuencia.',
-                            disabled,
-                        }
-                    ),
-                    selectField(
-                        'intake_fototipo_fitzpatrick',
-                        'Fototipo Fitzpatrick',
-                        draft.intake.fototipoFitzpatrick,
-                        CLINICAL_HISTORY_FITZPATRICK_CHOICES,
-                        {
-                            hint: 'Escala I a VI.',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'intake_habitos_sol',
-                        'Habitos de sol',
-                        draft.intake.habitosSol,
-                        {
-                            rows: 3,
-                            placeholder:
-                                'Exposicion solar, fotoproteccion y trabajo exterior.',
-                            disabled,
-                        }
-                    ),
-                    textareaField(
-                        'intake_habitos_tabaco',
-                        'Habitos de tabaco',
-                        draft.intake.habitosTabaco,
-                        {
-                            rows: 3,
-                            placeholder:
-                                'Consumo actual, previo o exposicion relevante.',
-                            disabled,
-                        }
-                    ),
-                    textareaField(
+            </section>
+            <!-- /antecedentes-section -->
+
+            ${buildClinicalHistorySection(
+                'Alergias y Medicación',
+                'Fármacos en uso y reacciones adversas.',
+                `
+                    <div class="alergias-table">
+                        ${buildClinicalHistoryInlineGrid([
+                            textareaField(
+                                'intake_alergias',
+                                'Alergias Conocidas',
+                                draft.intake.alergias,
+                                { rows: 3, placeholder: 'Medicamentos, alimentos, contacto.', disabled }
+                            ),
+                            textareaField(
+                                'intake_medicacion_actual',
+                                'Medicación actual',
+                                draft.intake.medicacionActual,
+                                { rows: 3, placeholder: 'Nombre, dosis, frecuencia.', disabled }
+                            ),
+                        ])}
+                    </div>
+                    <!-- /alergias-table -->
+                `
+            )}
+
+            ${buildClinicalHistorySection(
+                'Hábitos y Riesgos',
+                'Estilo de vida, fototipo y exposición sistémica.',
+                `
+                    ${buildClinicalHistoryInlineGrid([
+                        selectField(
+                            'intake_fototipo_fitzpatrick',
+                            'Fototipo Fitzpatrick',
+                            draft.intake.fototipoFitzpatrick,
+                            CLINICAL_HISTORY_FITZPATRICK_CHOICES,
+                            { hint: 'Escala I a VI.', disabled }
+                        ),
+                        textareaField(
+                            'intake_habitos_sol',
+                            'Hábitos de sol',
+                            draft.intake.habitosSol,
+                            { rows: 2, placeholder: 'Exposicion solar...', disabled }
+                        ),
+                        textareaField(
+                            'intake_habitos_tabaco',
+                            'Hábitos de tabaco',
+                            draft.intake.habitosTabaco,
+                            { rows: 2, placeholder: 'Consumo actual...', disabled }
+                        ),
+                    ])}
+                    ${textareaField(
                         'intake_ros_red_flags',
-                        'ROS / red flags',
+                        'ROS / Red Flags',
                         listToTextarea(draft.intake.rosRedFlags),
-                        {
-                            rows: 4,
-                            placeholder:
-                                'Una linea por dato clinico o red flag.',
-                            hint: 'Cada linea se guarda como item separado.',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${textareaField(
-                    'intake_resumen_clinico',
-                    'Resumen clinico',
-                    draft.intake.resumenClinico,
-                    {
-                        rows: 4,
-                        placeholder: 'Resumen limpio para pasar a la consulta.',
-                        disabled,
-                    }
-                )}
-                ${textareaField(
-                    'intake_preguntas_faltantes',
-                    'Preguntas faltantes del intake',
-                    listToTextarea(draft.intake.preguntasFaltantes),
-                    {
-                        rows: 3,
-                        placeholder: 'Una pregunta por linea.',
-                        disabled,
-                    }
-                )}
-                ${buildClinicalHistoryInlineGrid([
-                    inputField(
-                        'patient_edad_anios',
-                        'Edad (anos)',
-                        draft.intake.datosPaciente.edadAnios ?? '',
-                        {
-                            type: 'number',
-                            min: '0',
-                            step: '1',
-                            disabled,
-                        }
-                    ),
-                    inputField(
-                        'patient_peso_kg',
-                        'Peso (kg)',
-                        draft.intake.datosPaciente.pesoKg ?? '',
-                        {
-                            type: 'number',
-                            min: '0',
-                            step: '0.1',
-                            disabled,
-                        }
-                    ),
-                    selectField(
-                        'patient_sexo_biologico',
-                        'Sexo biologico',
-                        draft.intake.datosPaciente.sexoBiologico,
-                        CLINICAL_HISTORY_SEX_CHOICES,
-                        { disabled }
-                    ),
-                    selectField(
-                        'patient_embarazo',
-                        'Embarazo',
-                        pregnancyValue,
-                        CLINICAL_HISTORY_PREGNANCY_CHOICES,
-                        { disabled }
-                    ),
-                ])}
-            `
-    );
+                        { rows: 3, placeholder: 'Una linea por dato clinico.', hint: 'Cada linea se guarda como item separado.', disabled }
+                    )}
+                `
+            )}
+        </div>
+        <!-- /anamnesis-form -->
+    `;
 }
 
 
@@ -10558,11 +10542,13 @@ export function syncWorkspaceVisibility(activeWorkspace) {
     );
 
     const h002Workbench = document.getElementById('clinicalH002Workbench');
+    const laboratorioWorkbench = document.getElementById('clinicalLaboratorioWorkbench');
 
     const isMediaFlow = activeWorkspace === 'media-flow';
     const isCompare = activeWorkspace === 'compare';
     const isH002 = activeWorkspace === 'h002';
-    const isReview = !isMediaFlow && !isCompare && !isH002;
+    const isLaboratorio = activeWorkspace === 'laboratorio';
+    const isReview = !isMediaFlow && !isCompare && !isH002 && !isLaboratorio;
 
     if (reviewWorkbench instanceof HTMLElement) {
         reviewWorkbench.hidden = !isReview;
@@ -10578,6 +10564,9 @@ export function syncWorkspaceVisibility(activeWorkspace) {
     }
     if (h002Workbench instanceof HTMLElement) {
         h002Workbench.hidden = !isH002;
+    }
+    if (laboratorioWorkbench instanceof HTMLElement) {
+        laboratorioWorkbench.hidden = !isLaboratorio;
     }
 }
 
@@ -10703,6 +10692,22 @@ export function bindClinicalHistoryEvents() {
         );
         if (action === 'refresh-current') {
             await refreshClinicalHistoryCurrentSession();
+            return;
+        }
+
+        if (action === 'open-manual-lab-drawer') {
+            const review = currentReviewSource();
+            const caseId = currentReviewCaseId(review);
+            const patientRecordId = currentReviewPatientRecordId(review);
+            if (!caseId || !patientRecordId) {
+                createToast('Selecciona un caso clínico válido para ingresar resultados', 'warning');
+                return;
+            }
+            if (window.AuroraDerm && window.AuroraDerm.openLabManualDrawer) {
+                window.AuroraDerm.openLabManualDrawer(caseId, patientRecordId, normalizeList(review.patientRecord?.labOrders));
+            } else {
+                createToast('El módulo de laboratorio no está disponible', 'error');
+            }
             return;
         }
 
@@ -11014,6 +11019,38 @@ export function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (target.id === 'lab-filter') {
+            setHtml('#clinicalLaboratorioList', buildLaboratorioList(currentReviewSource(getState())));
+            return;
+        }
+        
+        if (target.classList && target.classList.contains('share-lab-toggle')) {
+            const isShared = target.checked;
+            const labId = target.dataset.labId;
+            const review = currentReviewSource();
+            const patientId = currentReviewPatientRecordId(review);
+            
+            try {
+                if (!patientId) throw new Error('Paciente no identificado.');
+                
+                // Stub para el POST que notifica (POST admin-lab-result-share)
+                await apiRequest('admin-lab-result-share', {
+                    method: 'POST',
+                    body: {
+                        patientId,
+                        labResultId: labId,
+                        sharedWithPatient: isShared
+                    }
+                });
+                
+                createToast(isShared ? 'Resultado compartido con el paciente.' : 'Resultado ocultado al paciente.', 'success');
+            } catch (err) {
+                target.checked = !isShared; // revert
+                createToast('Error al actualizar preferencias de resultado: ' + (err.message || 'Error de red'), 'error');
+            }
+            return;
+        }
+
         if (
             target instanceof HTMLInputElement ||
             target instanceof HTMLTextAreaElement ||
@@ -11116,6 +11153,27 @@ export function renderClinicalHistorySection() {
         '#clinicalHistoryWorkspaceTabs',
         buildWorkspaceTabs(activeWorkspace, meta)
     );
+    
+    // Inject lab-critical-banner next to header meta if a critical lab result exists and is active
+    const hasCritical = normalizeList(review?.patientRecord?.labOrders).some(order => 
+        normalizeList(order.results).some(res => normalizeString(res.status) === 'critical' && !res.reviewedAt)
+    ) || normalizeList(review?.patientRecord?.labResults).some(res => normalizeString(res.status) === 'critical' && !res.reviewedAt);
+    
+    if (hasCritical) {
+        const headerDiv = document.getElementById('clinicalHistoryHeaderMeta')?.parentElement;
+        if (headerDiv && !document.getElementById('header-critical-lab-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'header-critical-lab-banner';
+            banner.className = 'lab-critical-banner';
+            banner.style = 'background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid #f59e0b; padding: 8px 12px; border-radius: 8px; margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; animation: pulse 2s infinite;';
+            banner.innerHTML = '⚠️ Hay resultados de laboratorio CRÍTICOS pendientes de revisión.';
+            headerDiv.appendChild(banner);
+        }
+    } else {
+        const banner = document.getElementById('header-critical-lab-banner');
+        if (banner) banner.remove();
+    }
+
     setHtml(
         '#clinicalHistoryQueueFilters',
         buildQueueFilterChips(meta, queueFilter)
@@ -11174,6 +11232,11 @@ export function renderClinicalHistorySection() {
         buildClinicalH002FormFields(draft, slice.saving)
     );
 
+    setHtml(
+        '#clinicalLaboratorioList',
+        buildLaboratorioList(review)
+    );
+
     syncFollowUpInput();
     syncDraftStatusMeta();
     syncWorkspaceVisibility(activeWorkspace);
@@ -11183,10 +11246,82 @@ export function renderClinicalHistorySection() {
     ensureSessionSelection();
 }
 
+export function buildLaboratorioList(review) {
+    const defaultData = [];
+    const results = normalizeList(review?.patientRecord?.labResults || review?.patientRecord?.labOrders || defaultData);
+    
+    if (results.length === 0) {
+        return buildEmptyClinicalCard('Sin resultados', 'No se han ingresado laboratorios para este episodio.');
+    }
 
+    // Attempting to match filter from the dom if it exists, otherwise "all"
+    const filterSelect = document.getElementById('lab-filter');
+    const currentFilter = filterSelect ? filterSelect.value : 'all';
 
+    const filtered = results.filter(item => {
+        const s = normalizeString(item.status);
+        if (currentFilter === 'critical') return s === 'critical';
+        if (currentFilter === 'pending') return s === 'pending';
+        if (currentFilter === 'resulted') return s !== 'pending';
+        return true;
+    });
 
+    if (filtered.length === 0) {
+        return buildEmptyClinicalCard('Sin coincidencias', 'No hay resultados que coincidan con el filtro actual.');
+    }
 
+    const rows = filtered.map(item => {
+        const isCritical = normalizeString(item.status) === 'critical';
+        const isElevated = normalizeString(item.status) === 'elevated';
+        const isNormal = normalizeString(item.status) === 'normal';
+        const isPending = normalizeString(item.status) === 'pending';
 
+        const rowStyle = isCritical ? 'border-left-color: var(--color-red-500); background: rgba(239, 68, 68, 0.05);' :
+                         isElevated ? 'border-left-color: var(--color-gold-500);' :
+                         isNormal ? 'border-left-color: var(--color-emerald-500);' : '';
+        
+        const badgeStyle = isCritical ? 'background: var(--color-red-500);' :
+                           isElevated ? 'background: var(--color-gold-500); color: #222;' :
+                           isNormal ? 'background: var(--color-emerald-500);' :
+                           isPending ? 'background: var(--admin-border); color: #fff;' : 'background: #555;';
+
+        const statusLabel = isCritical ? 'Crítico 🔴' : 
+                            isElevated ? 'Elevado 🟡' : 
+                            isNormal ? 'Normal 🟢' : 
+                            isPending ? 'Pendiente ⚪' : item.status || 'Desconocido';
+
+        return `
+            <div class="lab-result-row" style="padding: 16px; border: 1px solid var(--admin-border); border-left-width: 4px; border-radius: 8px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; ${rowStyle}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h4 style="margin: 0; font-size: 1rem;">${escapeHtml(item.testName || item.orderId || 'Prueba Desconocida')}</h4>
+                        <div style="font-size: 0.85rem; color: var(--admin-text-muted); display: grid; grid-template-columns: 100px 100px 150px; gap: 16px; margin-top: 8px;">
+                            <div><strong>Resultado:</strong> <span style="color:var(--admin-text-primary);">${escapeHtml(item.value || '-')}</span></div>
+                            <div><strong>Unidad:</strong> ${escapeHtml(item.unit || '-')}</div>
+                            <div><strong>Referencia:</strong> ${escapeHtml(item.reference || '-')}</div>
+                        </div>
+                        ${item.notes ? `<div style="font-size:0.85rem; margin-top: 8px; font-style: italic; color: var(--admin-text-muted);">"${escapeHtml(item.notes)}"</div>` : ''}
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge" style="padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color:#fff; ${badgeStyle}">${escapeHtml(statusLabel)}</span>
+                        
+                        <div style="margin-top: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; cursor: pointer;">
+                                <input type="checkbox" class="share-lab-toggle" data-lab-id="${escapeHtml(item.id || item.orderId || '')}" ${item.sharedWithPatient ? 'checked' : ''}>
+                                Compartir con paciente
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div style="display: grid; gap: 8px;">
+            ${rows}
+        </div>
+    `;
+}
 
 

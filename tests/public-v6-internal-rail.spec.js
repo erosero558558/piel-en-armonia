@@ -6,7 +6,7 @@ test.describe('Public V6 internal thesis and rail', () => {
     test('service and tele pages expose sticky internal rails with full anchor maps', async ({
         page,
     }) => {
-        await gotoPublicRoute(page, '/es/servicios/diagnostico-integral/');
+        await gotoPublicRoute(page, '/en/services/diagnostico-integral/');
 
         const serviceRail = page.locator('[data-v6-internal-rail]').first();
         await expect(serviceRail).toBeVisible();
@@ -23,7 +23,7 @@ test.describe('Public V6 internal thesis and rail', () => {
         expect(serviceRailSticky.top).toBeGreaterThanOrEqual(140);
         expect(serviceRailSticky.top).toBeLessThanOrEqual(180);
 
-        await gotoPublicRoute(page, '/es/telemedicina/');
+        await gotoPublicRoute(page, '/en/telemedicine/');
         const teleRail = page.locator('[data-v6-internal-rail]').first();
         await expect(teleRail).toBeVisible();
         await expect(teleRail.locator('a')).toHaveCount(6);
@@ -33,9 +33,9 @@ test.describe('Public V6 internal thesis and rail', () => {
         page,
     }) => {
         for (const route of [
-            '/es/servicios/diagnostico-integral/',
-            '/es/telemedicina/',
-            '/es/legal/terminos/',
+            '/en/services/diagnostico-integral/',
+            '/en/telemedicine/',
+            '/en/legal/terms/',
         ]) {
             await gotoPublicRoute(page, route);
             const thesis = page.locator('[data-v6-internal-thesis]').first();
@@ -47,7 +47,7 @@ test.describe('Public V6 internal thesis and rail', () => {
 
     test('internal rail becomes non-sticky on mobile', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
-        await gotoPublicRoute(page, '/es/servicios/diagnostico-integral/');
+        await gotoPublicRoute(page, '/en/services/diagnostico-integral/');
 
         const position = await page
             .locator('[data-v6-internal-rail]')
@@ -61,7 +61,7 @@ test.describe('Public V6 internal thesis and rail', () => {
     test('internal rail tracks the active anchor after navigation', async ({
         page,
     }) => {
-        await gotoPublicRoute(page, '/es/telemedicina/');
+        await gotoPublicRoute(page, '/en/telemedicine/');
 
         const rail = page.locator('[data-v6-internal-rail]').first();
         const firstLink = rail.locator('a').first();

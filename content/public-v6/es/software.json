@@ -86,12 +86,6 @@
           "href": "/es/software/turnero-clinicas/dashboard/",
           "eyebrow": "Direccion",
           "deck": "Lectura gerencial de espera, no-show, carga y cierre del recorrido sobre la misma base operativa."
-        },
-        {
-          "label": "API docs",
-          "href": "/es/software/turnero-clinicas/api-docs/",
-          "eyebrow": "Developers",
-          "deck": "Contrato OpenAPI para integraciones externas con agenda, callbacks, pagos, health y telemedicina."
         }
       ]
     },

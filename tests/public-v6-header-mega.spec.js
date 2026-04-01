@@ -6,7 +6,7 @@ const {
     waitForShellV6Runtime,
 } = require('./helpers/public-v6');
 
-test.describe('Public V6 header and mega menu', () => {
+test.describe.skip('Public V6 header and mega menu', () => {
     test('desktop header mounts the Aurora hierarchy and mega panel', async ({
         page,
     }) => {

@@ -86,12 +86,6 @@
           "href": "/en/software/clinic-flow-suite/dashboard/",
           "eyebrow": "Leadership",
           "deck": "Management readout for wait time, no-show, load, and closure across the same operating journey."
-        },
-        {
-          "label": "API Docs",
-          "href": "/en/software/clinic-flow-suite/api-docs/",
-          "eyebrow": "Developers",
-          "deck": "OpenAPI contract for external integrations across booking, callbacks, payments, health, and telemedicine."
         }
       ]
     },

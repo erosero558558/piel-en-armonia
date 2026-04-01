@@ -20,60 +20,22 @@ require_once __DIR__ . '/lib/FlowOsJourney.php';
 // Router
 require_once __DIR__ . '/lib/Router.php';
 
-// Controllers
-require_once __DIR__ . '/controllers/HealthController.php';
-require_once __DIR__ . '/controllers/PaymentController.php';
-require_once __DIR__ . '/controllers/AdminDataController.php';
-require_once __DIR__ . '/controllers/DoctorProfileController.php';
-require_once __DIR__ . '/controllers/ClinicProfileController.php';
-require_once __DIR__ . '/controllers/PatientCaseController.php';
-require_once __DIR__ . '/controllers/TelemedicineAdminController.php';
-require_once __DIR__ . '/controllers/TelemedicinePolicyController.php';
-require_once __DIR__ . '/controllers/TelemedicinePublicController.php';
-require_once __DIR__ . '/controllers/TelemedicineRoomController.php';
-require_once __DIR__ . '/controllers/AppointmentController.php';
-require_once __DIR__ . '/controllers/CallbackController.php';
-require_once __DIR__ . '/controllers/ReviewController.php';
-require_once __DIR__ . '/controllers/AvailabilityController.php';
-require_once __DIR__ . '/controllers/ContentController.php';
-require_once __DIR__ . '/controllers/ServiceCatalogController.php';
-require_once __DIR__ . '/controllers/ServicePriorityController.php';
-require_once __DIR__ . '/controllers/SystemController.php';
-require_once __DIR__ . '/controllers/ConfigController.php';
-require_once __DIR__ . '/controllers/OperatorAuthController.php';
-require_once __DIR__ . '/controllers/OperatorPinController.php';
-require_once __DIR__ . '/controllers/PushController.php';
-require_once __DIR__ . '/controllers/AnalyticsController.php';
-require_once __DIR__ . '/controllers/QueueController.php';
-require_once __DIR__ . '/controllers/ClinicalHistoryController.php';
-require_once __DIR__ . '/controllers/CaseMediaFlowController.php';
-require_once __DIR__ . '/controllers/LeadAiController.php';
-require_once __DIR__ . '/controllers/WhatsappOpenclawController.php';
-require_once __DIR__ . '/controllers/AdminAgentController.php';
-require_once __DIR__ . '/controllers/FlowOsController.php';
-require_once __DIR__ . '/controllers/IntakeController.php';
-require_once __DIR__ . '/controllers/OpenclawController.php';
-require_once __DIR__ . '/controllers/CertificateController.php';
-require_once __DIR__ . '/controllers/PatientPortalController.php';
-require_once __DIR__ . '/controllers/NotificationController.php';
-require_once __DIR__ . '/controllers/MonitoringConfigController.php';
-require_once __DIR__ . '/controllers/GiftCardController.php';
-require_once __DIR__ . '/controllers/ReferralController.php';
-require_once __DIR__ . '/controllers/MembershipController.php';
-require_once __DIR__ . '/controllers/BrandingController.php';
-require_once __DIR__ . '/controllers/OnboardingController.php';
-require_once __DIR__ . '/controllers/PromotionController.php';
-require_once __DIR__ . '/controllers/TvController.php';
-require_once __DIR__ . '/controllers/ClinicalPhotosController.php';
-require_once __DIR__ . '/controllers/SecurityReportController.php';
-require_once __DIR__ . '/controllers/ConfigAuditLogController.php';
-require_once __DIR__ . '/controllers/DataAccessAuditController.php';
-require_once __DIR__ . '/controllers/ActiveSessionsController.php';
-require_once __DIR__ . '/controllers/PatientDataErasureController.php';
-require_once __DIR__ . '/controllers/PatientDataExportController.php';
-require_once __DIR__ . '/controllers/ConsentStatusController.php';
-require_once __DIR__ . '/controllers/StatsExportController.php';
-require_once __DIR__ . '/controllers/DoctorDashboardController.php';
+// S37-09: Controller autoloader — eliminates manual require_once per controller.
+// Convention: ClassName → /controllers/ClassName.php
+// Any new controller added to routes.php is automatically loadable without touching api.php.
+spl_autoload_register(function (string $className) {
+    $controllerFile = __DIR__ . '/controllers/' . $className . '.php';
+    if (file_exists($controllerFile)) {
+        require_once $controllerFile;
+        return;
+    }
+    // Fallback: some controllers may live in a subdirectory (e.g. queue sub-controllers)
+    $subdirFile = __DIR__ . '/controllers/' . $className . '/' . $className . '.php';
+    if (file_exists($subdirFile)) {
+        require_once $subdirFile;
+    }
+}, /* throw */ false, /* prepend */ false);
+
 // Instantiate and Handle
 $kernel = new ApiKernel();
 $kernel->handleRequest();

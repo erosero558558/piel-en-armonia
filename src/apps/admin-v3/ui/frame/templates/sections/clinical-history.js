@@ -201,6 +201,47 @@ export function renderClinicalHistorySection() {
             </div>
 
             <div
+                id="clinicalLaboratorioWorkbench"
+                class="clinical-laboratorio-workbench"
+                hidden
+            >
+                <article class="sony-panel clinical-laboratorio-panel">
+                    <header class="section-header">
+                        <div>
+                            <h3>Gestión de Resultados</h3>
+                            <p>Supervisa, documenta y notifica al paciente las métricas críticas del panel de laboratorio.</p>
+                        </div>
+                        <div class="toolbar-row clinical-laboratorio-toolbar">
+                            <button
+                                type="button"
+                                id="clinicalLaboratorioIngresarBtn"
+                                class="btn-primary"
+                                data-clinical-review-action="open-manual-lab-drawer"
+                            >
+                                Ingresar resultado
+                            </button>
+                        </div>
+                    </header>
+                    <div
+                        id="clinicalLaboratorioFilters"
+                        class="clinical-laboratorio-filter-row"
+                        style="padding: 16px; border-bottom: 1px solid var(--admin-border); display: flex; gap: 8px;"
+                    >
+                        <select id="lab-filter" class="input" style="width: 200px;">
+                            <option value="all">Ver todos</option>
+                            <option value="critical">Solo críticos</option>
+                            <option value="pending">Pendientes resultado</option>
+                            <option value="resulted">Con resultado</option>
+                        </select>
+                    </div>
+                    <div
+                        id="clinicalLaboratorioList"
+                        class="clinical-laboratorio-list"
+                    ></div>
+                </article>
+            </div>
+
+            <div
                 id="clinicalHistoryWorkbench"
                 class="clinical-history-workbench"
             >
