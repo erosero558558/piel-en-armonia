@@ -845,6 +845,70 @@ export function setOverviewMetrics(state) {
         )
     );
     setHtml('#dashboardMultiClinicList', buildMultiClinicRowsMarkup(multiClinic));
+    setTelemedicineMetrics(telemedicineMeta);
+}
+
+function resolveTelemedicineChipTone(snapshot) {
+    const status = String(snapshot?.diagnostics?.status || '').trim();
+    if (status === 'critical') return 'danger';
+    if (status === 'degraded') return 'warning';
+    if (status === 'healthy') return 'success';
+    return 'neutral';
+}
+
+function resolveTelemedicineChipLabel(snapshot) {
+    const status = String(snapshot?.diagnostics?.status || '').trim();
+    switch (status) {
+        case 'critical':
+            return 'Critico';
+        case 'degraded':
+            return 'Degradado';
+        case 'healthy':
+            return 'Estable';
+        default:
+            return 'Pendiente';
+    }
+}
+
+function setTelemedicineMetrics(telemedicineMeta) {
+    const defaultMeta = typeof telemedicineMeta === 'object' && telemedicineMeta !== null 
+        ? telemedicineMeta 
+        : {};
+    
+    const summary = defaultMeta.summary || {};
+    const integrity = summary.integrity || {};
+    const intakes = summary.intakes || {};
+    
+    const stagingCount = Number(integrity.stagedLegacyUploadsCount || 0);
+    const pendingAiCount = Number(intakes.photoAiPendingValidationCount || 0);
+    const urgencyAiCount = Number(intakes.photoAiHighUrgencyCount || 0);
+    const pendingEvalsCount = Number(summary.reviewQueueCount || 0);
+    
+    const bySuitability = intakes.bySuitability || {};
+    const suitableCount = Number(bySuitability.fit || 0) + Number(bySuitability.review_required || 0);
+    const unsuitableCount = Number(bySuitability.unsuitable || 0);
+    const totalSuitated = suitableCount + unsuitableCount;
+    const suitabilityScore = totalSuitated > 0 
+        ? Math.round((suitableCount / totalSuitated) * 100) + '%' 
+        : 'Sin datos';
+
+    setText('#dashboardTelemedicineStatusChip', resolveTelemedicineChipLabel(defaultMeta));
+    document
+        .getElementById('dashboardTelemedicineStatusChip')
+        ?.setAttribute('data-state', resolveTelemedicineChipTone(defaultMeta));
+
+    setText('#telemedicineStagingCount', stagingCount);
+    setText('#telemedicinePhotoAiPendingCount', pendingAiCount);
+    setText('#telemedicinePhotoAiUrgencyCount', urgencyAiCount);
+    setText('#telemedicinePendingEvalsCount', pendingEvalsCount);
+
+    setText('#telemedicineSuitabilityScoreHeadline', suitabilityScore);
+
+    const issuesCount = Number(defaultMeta.diagnostics?.summary?.totalIssues || 0);
+    setText(
+        '#telemedicineIntegrityHeadline',
+        issuesCount > 0 ? `${issuesCount} anomalia(s) en funnel` : 'Ops sin obstrucciones'
+    );
 }
 
 export async function loadBusinessMetrics() {

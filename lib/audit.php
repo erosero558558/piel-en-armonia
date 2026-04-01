@@ -51,3 +51,50 @@ function audit_log_event(string $event, array $details = []): void
         get_logger()->info($event, $line);
     }
 }
+
+/**
+ * Audit changes between two configuration payloads.
+ * Writes each differing field to data/config-audit.jsonl.
+ *
+ * @param array<string,mixed> $old Baseline array
+ * @param array<string,mixed> $new Next array
+ * @param string $changedBy Actor who made the change
+ */
+function audit_log_config_changes(array $old, array $new, string $changedBy = 'admin'): void
+{
+    $changes = [];
+    $ts = local_date('c');
+
+    $allKeys = array_unique(array_merge(array_keys($old), array_keys($new)));
+    foreach ($allKeys as $key) {
+        $oldVal = array_key_exists($key, $old) ? $old[$key] : null;
+        $newVal = array_key_exists($key, $new) ? $new[$key] : null;
+
+        if ($oldVal !== $newVal) {
+            $changes[] = [
+                'field'      => $key,
+                'old_value'  => $oldVal,
+                'new_value'  => $newVal,
+                'changed_by' => $changedBy,
+                'ts'         => $ts,
+            ];
+        }
+    }
+
+    if ($changes === []) {
+        return;
+    }
+
+    $auditFile = data_dir_path() . '/config-audit.jsonl';
+    $payload = '';
+    foreach ($changes as $c) {
+        $encoded = json_encode($c, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (is_string($encoded) && $encoded !== '') {
+            $payload .= $encoded . PHP_EOL;
+        }
+    }
+
+    if ($payload !== '') {
+        @file_put_contents($auditFile, $payload, FILE_APPEND | LOCK_EX);
+    }
+}

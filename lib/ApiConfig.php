@@ -28,6 +28,7 @@ class ApiConfig
             'metrics:GET' => [60, 60],
             'health-diagnostics:GET' => [30, 60],
             'security-report:GET' => [30, 60],
+            'config-audit-log:GET' => [30, 60],
             'funnel-metrics:GET' => [60, 60],
             'retention-report:GET' => [30, 60],
             'lead-ai-queue:GET' => [60, 60],
@@ -248,6 +249,7 @@ class ApiConfig
             ['method' => 'GET', 'resource' => 'metrics'],
             ['method' => 'GET', 'resource' => 'health-diagnostics'],
             ['method' => 'GET', 'resource' => 'security-report'],
+            ['method' => 'GET', 'resource' => 'config-audit-log'],
         ];
     }
 }

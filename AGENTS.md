@@ -2338,7 +2338,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI5-09** `[L]` `[UI]` Cards de selección de servicio visual — grid de servicios: imagen, nombre grande, duración en pill gold, precio. Hover: `scale(1.02)` + borde gold. Seleccionado: checkmark gold animado. Verificable: `grep "service-card.*glass\|service.*check" es/agendar/index.html` → match ≥3.
 
-- [ ] **UI5-10** `[L]` `[UI]` Calendario de disponibilidad glass — grid de días como pills: disponibles=glass, sin disponibilidad=opacidad 0.3, seleccionado=glass gold sólido. Pills de horas abajo, scroll horizontal en móvil. Verificable: `grep "calendar.*glass\|slot.*pill\|day.*available" es/agendar/index.html` → match ≥4.
+- [x] **UI5-10** `[L]` `[UI]` Calendario de disponibilidad glass — grid de días como pills: disponibles=glass, sin disponibilidad=opacidad 0.3, seleccionado=glass gold sólido. Pills de horas abajo, scroll horizontal en móvil. Verificable: `grep "calendar.*glass\|slot.*pill\|day.*available" es/agendar/index.html` → match ≥4.
 
 - [ ] **UI5-11** `[M]` `[UI]` Confirmation screen booking — card glass con: servicio, fecha, médico, precio + IVA desglosado. CTA "Confirmar y pagar" gold sólido. Iconos de seguridad debajo. Verificable: `grep "booking-confirm.*glass\|iva.*desglose\|security.*badge" es/agendar/index.html` → match ≥3.
 

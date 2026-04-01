@@ -70,3 +70,4 @@ require_once __DIR__ . '/controllers/SecurityReportController.php';
 // Instantiate and Handle
 $kernel = new ApiKernel();
 $kernel->handleRequest();
+require_once __DIR__ . '/controllers/ConfigAuditLogController.php';

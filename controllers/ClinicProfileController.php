@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/ClinicProfileStore.php';
+require_once __DIR__ . '/../lib/audit.php';
 
 final class ClinicProfileController
 {
@@ -54,6 +55,24 @@ final class ClinicProfileController
             'subscriptionStatus' => (string) ($next['software_subscription']['status'] ?? ''),
             'path' => basename(clinic_profile_config_path()),
         ]);
+
+        $actorEmail = 'admin';
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['admin_logged_in'])) {
+            $actorEmail = (string) ($_SESSION['admin_auth_user'] ?? 'admin');
+        } elseif (function_exists('operator_auth_is_authenticated') && operator_auth_is_authenticated()) {
+            if (function_exists('operator_auth_session')) {
+                $sess = operator_auth_session();
+                $actorEmail = (string) ($sess['email'] ?? 'operator');
+            } else {
+                $actorEmail = 'operator';
+            }
+        }
+        
+        $oldForAudit = $current;
+        $newForAudit = $next;
+        unset($oldForAudit['updatedAt']);
+        unset($newForAudit['updatedAt']);
+        audit_log_config_changes($oldForAudit, $newForAudit, $actorEmail);
 
         json_response([
             'ok' => true,

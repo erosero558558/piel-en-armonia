@@ -127,7 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dateInput.max = max.toISOString().split('T')[0];
 
     const inlineCalendar = document.getElementById('inline-calendar');
-    if (!inlineCalendar) return;
+    const templateDay = document.getElementById('template-calendar-day');
+    if (!inlineCalendar || !templateDay) return;
 
     inlineCalendar.innerHTML = '';
     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -138,19 +139,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const dayOfWeek = currentDate.getDay();
         const dateNum = currentDate.getDate();
 
-        const pill = document.createElement('div');
-        pill.className = 'calendar-day-pill';
-        pill.dataset.date = iso;
+        let html = templateDay.innerHTML;
+        html = html.replace('{date}', iso)
+                   .replace('{dayName}', dayNames[dayOfWeek])
+                   .replace('{dayNum}', dateNum);
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html.trim();
+        const pill = tempDiv.firstElementChild;
 
         // Visual distinction for sundays, disable them as the clinic is closed
         if (dayOfWeek === 0) {
             pill.classList.add('is-disabled');
+            pill.classList.remove('day-available');
         }
-
-        pill.innerHTML = `
-            <span class="calendar-day-name">${dayNames[dayOfWeek]}</span>
-            <span class="calendar-day-number">${dateNum}</span>
-        `;
 
         if (dayOfWeek !== 0) {
             pill.addEventListener('click', () => {
@@ -455,11 +457,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     timeSlotsContainer.innerHTML = '';
+    const templateSlot = document.getElementById('template-slot-pill');
+    
     slots.forEach(slot => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'slot-btn';
-      btn.textContent = slot;
+      let html = templateSlot.innerHTML.replace('{time}', slot);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html.trim();
+      const btn = tempDiv.firstElementChild;
+      
       btn.addEventListener('click', () => {
         // Deselect others
         timeSlotsContainer.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('is-selected'));
