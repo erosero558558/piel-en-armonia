@@ -94,9 +94,14 @@ hosting:
 
 - `admin.html`: shell admin canónico.
 - `index.html`: shell principal del portal público.
-- `operador-turnos.html`: shell web del operador de turnero.
 - `kiosco-turnos.html`: shell web del kiosco de turnero.
-- `sala-turnos.html`: shell web de la pantalla de sala.
+- `kiosk-cie10-sandbox.html`: sandbox de búsqueda CIE-10 (nuevo sprint 29).
+- `kiosk.html`: shell web genérico para el kiosco.
+- `operador-turnos.html`: shell web del operador de turnero.
+- `queue-display.html`: pantalla display de sala de espera.
+- `queue-kiosk.html`: kiosco interactivo para tickets.
+- `queue-operator.html`: panel del operador para llamar turnos.
+- `sala-turnos.html`: shell web genérico pantalla de sala.
 - `404.html`: página de error 404 servida por hosting.
 - `500.html`: página de error 500 servida por hosting.
 - `admin-openclaw-setup.html`: configurador de OpenClaw para el admin.
@@ -113,15 +118,9 @@ Lista aprobada actual:
 
 - `styles.css`
 - `styles-deferred.css`
-- `styles-critical.css`
-- `styles-astro.css`
-- `styles-telemedicina.css`
 - `admin-v3.css`
 - `queue-ops.css`
 - `queue-kiosk.css`
-- `queue-display.css`
-- `ops-design-system.css`
-- `legal.css`
 
 `styles.css` y `styles-deferred.css` permanecen en raiz como runtime
 versionado. Su validacion va por checks de artifacts, no por inferencia

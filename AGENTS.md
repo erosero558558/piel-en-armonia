@@ -2576,3 +2576,68 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S34-05** `[M]` `[codex_backend]` Notificación push de resultado de lab listo — cuando `receive-lab-result` registra un resultado, enviar push notification al paciente (via web push) con: "Sus resultados de [nombre lab] ya están disponibles en su portal." El paciente entra al portal y los ve. Sin esta notificación, el portal del paciente es pasivo. Verificable: `POST receive-lab-result` → `{ push_sent: true, patient_notified_at: "..." }`.
 
+
+---
+
+## Sprint 35 — Hardening de Deuda Técnica (Auditoría 2026-03-31)
+**Owner:** `codex_backend` + `[ops]` | **Objetivo:** Cerrar deuda real antes de añadir más funcionalidades.
+
+> **Contexto:** Auditoría detectó bugs críticos que causaban pérdida de datos en producción. Este sprint cierra la deuda acumulada por velocidad de desarrollo.
+
+### 35.1 Seguridad
+
+- [ ] **SEC-01** `[M]` `[codex_backend]` Whitelist MIME en uploadPhoto de portal — el endpoint `POST patient-portal-photo-upload` extrae el tipo de imagen del header base64 sin whitelist. Si un atacante envía `data:image/php;base64,...`, el archivo se guarda como `.php`. Añadir: `$allowedTypes = ['jpeg','jpg','png','webp','gif']` — rechazar con 400 si el tipo no está en la lista. Además añadir `.htaccess` en `data/uploads/` con `php_flag engine off`. Verificable: upload de `data:image/php;base64,...` → `{ ok: false, error: 'Tipo de imagen no permitido' }`.
+
+- [ ] **SEC-02** `[S]` `[codex_backend]` Permisos de directorio uploads: `0750` no `0777` — `mkdir(__DIR__ . '/../data/uploads', 0777, true)` en `uploadPhoto`. Cambiar a `0750`. Verificable: `stat data/uploads | grep Octal` → `0750`.
+
+### 35.2 Corrección de Routes y Controladores
+
+- [ ] **DEBT-01** `[S]` `[codex_backend]` Fix `ConsentStatusController::process()` — `routes.php` apunta a `process()` pero el controlador solo tiene `handle()`. Cualquier call a `GET/POST consent-status` tira fatal error. Renombrar `handle()` a `process()` en el controlador. Verificable: `POST consent-status` → no 500.
+
+- [ ] **DEBT-02** `[S]` `[codex_backend]` Fix `BrandingController` faltante en `api.php` — `BrandingController` está en `routes.php` pero no en el require list de `api.php`. Añadir `require_once __DIR__ . '/controllers/BrandingController.php'`. Verificable: `GET branding` → no `Class not found`.
+
+- [ ] **DEBT-03** `[L]` `[codex_backend]` Migrar 10 `write_store()` directos a `with_store_lock()` — hay 45 llamadas directas a `write_store()` sin lock. Priorizar: `PatientPortalController::selfVitals()`, `uploadPhoto()`, `signConsent()`, `TelemedicineRoomController::update()`, `ReviewController`. Race condition real con 3 médicos simultáneos. Verificable: `grep -rn "write_store(" controllers/ | grep -v "with_store_lock\|mutate_store" | wc -l` → < 35.
+
+### 35.3 Protección de Datos
+
+- [ ] **DEBT-04** `[S]` `[ops]` Actualizar `.gitignore` con rutas sensibles — añadir: `data/uploads/`, `data/hce-access-log.jsonl`, `data/adverse-reactions.jsonl`, `data/pending-lab-alerts.jsonl`. Fotos clínicas y logs de acceso NO deben subirse a GitHub. Verificable: `git check-ignore data/uploads/test.jpg` → path ignorado.
+
+### 35.4 Operaciones
+
+- [ ] **OPS-01** `[M]` `[ops]` Crear `ops/crontab.txt` y script de instalación — 5 crons implementados pero NINGUNO configurado en servidor. Crear `ops/crontab.txt` con entradas exactas de: `check-pending-labs.php` (diario 8h), `check-chronic-followup.php` (semanal lunes 9h), `check-pending-interconsults.php` (semanal martes 9h). Añadir `npm run ops:install-crons` que hace `crontab -l | cat - ops/crontab.txt | crontab`. Verificable: `crontab -l | grep aurora-derm` → match ≥3.
+
+- [ ] **OPS-02** `[S]` `[ops]` Rotación de `hce-access-log.jsonl` en cron — el log de acceso a HCE crece ~200 líneas/día sin límite. Añadir al cron diario: `tail -n 10000 data/hce-access-log.jsonl > /tmp/hce_rot.jsonl && mv /tmp/hce_rot.jsonl data/hce-access-log.jsonl`. Verificable: `wc -l data/hce-access-log.jsonl` → < 10001 después del cron.
+
+- [ ] **OPS-03** `[M]` `[ops]` Crear `DEPLOYMENT.md` con checklist completo de producción — documentar: variables de entorno requeridas, crons a instalar, `.htaccess` especial para `data/uploads/`, permisos de carpetas, primera ejecución del backup. Sin esto, el próximo deploy a un servidor limpio falla. Verificable: cualquier desarrollador nuevo puede hacer deploy leyendo solo `DEPLOYMENT.md`.
+
+### 35.5 Calidad de Código
+
+- [ ] **DEBT-05** `[S]` `[ops]` Limpiar worktrees Codex stale — hay 54 worktrees activos, 5 en detached HEAD que Codex dejó sin limpiar. Añadir `"postinstall": "git worktree prune"` en `package.json`. Verificable: `git worktree list | wc -l` → < 20 después de prune.
+
+- [ ] **DEBT-06** `[S]` `[ops]` JSON lint de `package.json` en CI — el usuario añadió una entrada con trailing comma que puede romper parsers. Añadir `node -e "require('./package.json')"` como primer check en el CI. Verificable: CI falla si `package.json` tiene JSON inválido.
+
+- [ ] **DEBT-07** `[L]` `[codex_backend]` Arqueología: verificar 15 tareas reportadas como fake-done — `verify-task-contract.js` reporta 15+ tareas marcadas `[x]` sin evidencia verificable (S9-22, S9-24, S10-08, S10-14, S10-19, S10-23, S10-27, S10-29, S12-03, S12-07, S12-09, S12-14, S12-18, S12-25). Revisar cada una: si el código no existe → reabrir a `[ ]`, si el criterio verificable se cumple parcialmente → añadir nota de deuda. Verificable: `node bin/verify-task-contract.js` → 0 warnings.
+
+- [ ] **DEBT-08** `[M]` `[codex_backend]` Estandarizar entry points de controladores — la convención es inconsistente: algunos usan `process()`, otros `handle()`, otros `index()`, otros `check()`. Esto causa el bug de DEBT-01. Pull request: renombrar todos los entry points públicos a `handle(array $context): void`. Verificable: `grep "public static function " controllers/*.php | grep -v "handle\|__" | wc -l` → 0 (excepto helpers).
+
+---
+
+## Sprint 36 — Gobernanza 2.0
+**Owner:** `[ops]` | **Objetivo:** El sistema de gobernanza debe escalar con la velocidad de desarrollo.
+
+> **Problema identificado:** Estamos marcando tareas como `[x]` sin verificar que funcionen en producción. 484 tareas marcadas como done, al menos 15 con evidencia inconsistente. La gobernanza necesita dientes.
+
+- [ ] **GOV-01** `[L]` `[ops]` Particionar `AGENTS.md` en activo/archivo — el archivo tiene +2,500 líneas. Los agentes consumen todo el contexto en cada iteración. Crear: `AGENTS.md` (solo sprints activos: S35, S36, UI5-restantes), `docs/BACKLOG_ARCHIVE.md` (S1-S30 completados). El `BACKLOG.md` ya generado puede servir de índice. Verificable: `wc -l AGENTS.md` → < 800 líneas.
+
+- [ ] **GOV-02** `[M]` `[ops]` Añadir estado `[~]` al sistema de gobernanza — hoy `[x]` significa "código escrito". No hay diferencia entre "escrito", "en main", "en staging", "en producción". Propuesta: `[ ]` = pendiente, `[/]` = en progreso, `[~]` = en main pero no en producción, `[x]` = verificado en staging/producción. Actualizar `sync-backlog.js` para reconocer el nuevo estado. Verificable: `grep "\[~\]" AGENTS.md` → entradas que tienen código pero no están deployadas.
+
+- [ ] **GOV-03** `[M]` `[ops]` `verify-task-contract` en pre-push hook — hoy el verificador solo corre manualmente. Añadirlo al `.git/hooks/pre-push` (o en Husky `pre-push`): `node bin/verify-task-contract.js --fail-on-warning`. Si hay tareas con criterio verificable inconsistente, el push falla. Verificable: push con tarea fake-done → pre-push rechaza.
+
+- [ ] **GOV-04** `[S]` `[ops]` `git worktree prune` automático en postinstall — añadir a `package.json scripts`: `"postinstall": "git worktree prune"`. Verificable: `npm install && git worktree list | wc -l` → no aumenta con el tiempo.
+
+- [ ] **GOV-05** `[M]` `[ops]` CI gate: PHP lint de todos los controllers en cada PR — crear `.github/workflows/php-lint.yml`: `find controllers/ lib/ -name "*.php" | xargs -I{} php -l {}`. Si algún archivo tiene error de sintaxis, el PR no puede mergear. Verificable: PR con error de sintaxis → CI falla con el nombre del archivo.
+
+- [ ] **GOV-06** `[M]` `[ops]` CI gate: route integrity check — verificar que cada controller referenciado en `routes.php` tiene su `require_once` en `api.php`. Script: `node bin/check-route-integrity.js`. Verificable: añadir ruta de controller inexistente → CI falla indicando el controller faltante.
+
+- [ ] **GOV-07** `[S]` `[ops]` Añadir `check-route-integrity.js` al test suite — `package.json` añadir `"test:routes": "node bin/check-route-integrity.js"` y llamarlo desde `npm test`. Verificable: `npm run test:routes` → pasa sin errores en el estado actual del repo.
+

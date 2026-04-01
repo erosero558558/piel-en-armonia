@@ -554,20 +554,19 @@ test('frontera de html css php y ps1 en raiz queda explicita y limitada', () => 
         'admin.html',
         'index.html',
         'kiosco-turnos.html',
+        'kiosk-cie10-sandbox.html',
+        'kiosk.html',
         'operador-turnos.html',
+        'queue-display.html',
+        'queue-kiosk.html',
+        'queue-operator.html',
         'sala-turnos.html',
     ].sort();
     const expectedRootCss = [
         'admin-v3.css',
-        'legal.css',
-        'ops-design-system.css',
-        'queue-display.css',
         'queue-kiosk.css',
         'queue-ops.css',
-        'styles-astro.css',
-        'styles-critical.css',
         'styles-deferred.css',
-        'styles-telemedicina.css',
         'styles.css',
     ].sort();
     const expectedRootPhp = [
