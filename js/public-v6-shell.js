@@ -1621,7 +1621,7 @@
             focusables[0].focus();
         }
 
-        function openDrawer() {
+        function openDrawer() { console.log("DEBUG: openDrawer called");
             if (!drawer.hidden) return;
             lastFocused = document.activeElement;
             drawer.hidden = false;
@@ -1630,7 +1630,7 @@
             window.requestAnimationFrame(focusFirstNode);
         }
 
-        function closeDrawer(returnFocus) {
+        function closeDrawer(returnFocus) { console.log("DEBUG: closeDrawer called. Focus=", returnFocus);
             if (drawer.hidden) {
                 setOpenState(false);
                 return;
