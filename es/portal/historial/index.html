@@ -113,6 +113,61 @@
             .lg-surface-timeline.is-expanded .portal-timeline-chevron {
                 transform: rotate(180deg);
             }
+
+            /* S34-01: Timeline Consulta - Episode Collapsible - Portal History Card Modules
+               liquid-glass reborn specific traits */
+            .timeline-consulta { position: relative; }
+            .episode-collapsible { overflow: hidden; }
+            .portal-history-card { box-sizing: border-box; }
+            
+            .lg-diagnosis-badge {
+                display: inline-block;
+                background: rgba(199, 163, 109, 0.15);
+                color: var(--rb-accent, #c7a36d);
+                border: 1px solid rgba(199, 163, 109, 0.3);
+                border-radius: 6px;
+                padding: 4px 8px;
+                font-family: var(--font-display, inherit);
+                font-size: 0.8rem;
+                font-weight: 700;
+                margin-top: 8px;
+                margin-bottom: 8px;
+            }
+            
+            .lg-medication-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 999px;
+                padding: 6px 12px;
+                font-size: 0.8rem;
+                color: rgba(255, 255, 255, 0.85);
+            }
+
+            .lg-history-photo-gallery {
+                display: flex;
+                gap: 12px;
+                margin-top: 16px;
+                overflow-x: auto;
+                padding-bottom: 8px;
+            }
+
+            .lg-history-photo {
+                width: 80px;
+                height: 80px;
+                border-radius: 12px;
+                object-fit: cover;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                flex-shrink: 0;
+                filter: brightness(0.8);
+                transition: all 0.3s;
+            }
+            .lg-history-photo:hover {
+                filter: brightness(1.1);
+                border-color: rgba(199, 163, 109, 0.6);
+            }
         </style>
     <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>

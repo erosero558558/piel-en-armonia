@@ -110,6 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
         resetTimeSelection();
       });
     });
+
+    const privacyConsent = document.getElementById('booking-privacy-consent');
+    const btnNextDetails = document.getElementById('btn-next-details');
+    if (privacyConsent && btnNextDetails) {
+      privacyConsent.addEventListener('change', (e) => {
+        btnNextDetails.disabled = !e.target.checked;
+      });
+    }
   }
 
   function setMinDate(daysToGenerate = 14) {

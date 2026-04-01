@@ -11,6 +11,9 @@ const APP_TIMEZONE = 'America/Guayaquil';
 
 date_default_timezone_set(APP_TIMEZONE);
 
+// S28: Governance & Privacy Version Tracker
+define('LOPD_CONSENT_VERSION', 'v1.2.0');
+
 if (!function_exists('mb_strlen')) {
     function mb_strlen(string $value, ?string $encoding = null): int
     {

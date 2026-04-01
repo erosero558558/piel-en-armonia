@@ -731,6 +731,12 @@ final class PatientPortalController
         $draftSave = ClinicalHistorySessionRepository::upsertDraft($nextStore, $nextDraft);
         $nextStore = is_array($draftSave['store'] ?? null) ? $draftSave['store'] : $nextStore;
 
+        $pId = trim((string) ($portalPatient['id'] ?? ''));
+        if ($pId !== '' && isset($nextStore['patients'][$pId])) {
+            $nextStore['patients'][$pId]['consent_version'] = defined('LOPD_CONSENT_VERSION') ? LOPD_CONSENT_VERSION : 'v1.0.0';
+            $nextStore['patients'][$pId]['consent_signed_at'] = local_date('c');
+        }
+
         if (!write_store($nextStore, false)) {
             self::emit([
                 'ok' => false,

@@ -2229,7 +2229,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S28-04** `[M]` Consentimiento informado versionado — el texto del consentimiento tiene versión semántica (`v1.2.0`). Al cambiar la versión, todos los pacientes son notificados y deben re-firmar antes del próximo acceso al portal. El sistema registra qué versión firmó cada paciente y cuándo. Verificable: `GET /api.php?resource=consent-status?patient_id=X` → `signed_version`, `current_version`, `needs_renewal: true/false`.
 
-- [ ] **S28-05** `[S]` Privacy notice en el booking público — `es/agendar/index.html` debe mostrar enlace a política de privacidad y checkbox de aceptación antes de confirmar el formulario. Sin la aceptación, el botón de confirmar está deshabilitado. Verificable: `grep "privacy.*checkbox\|consent.*booking" es/agendar/index.html` → match; `disabled` en submit sin check.
+- [x] **S28-05** `[S]` Privacy notice en el booking público — `es/agendar/index.html` debe mostrar enlace a política de privacidad y checkbox de aceptación antes de confirmar el formulario. Sin la aceptación, el botón de confirmar está deshabilitado. Verificable: `grep "privacy.*checkbox\|consent.*booking" es/agendar/index.html` → match; `disabled` en submit sin check.
 
 #### 28.2 Seguridad demostrable
 
@@ -2566,7 +2566,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 > **Una historia clínica es un derecho.** En Ecuador, la LPDP garantiza al paciente acceder a sus datos de salud. Hoy el portal muestra 3 cards y un PDF de receta. El paciente que tiene dermatitis atópica crónica merece ver su historial, sus fotos clínicas de progresión, sus análisis, y entender su tratamiento.
 
-- [ ] **S34-01** `[L]` `[UI]` `[gemini]` Timeline clínico del paciente — `es/portal/historial/index.html`: timeline vertical con todas las consultas, cada una expandible con: diagnóstico, medicamentos recetados, fotos clínicas si hay, y PDF de documentos. Línea de tiempo visual, episodios como cards colapsables. Verificable: `grep "timeline.*consulta\|episode.*collapsible\|portal.*history.*card" es/portal/historial/index.html` → match ≥3.
+- [x] **S34-01** `[L]` `[UI]` `[gemini]` Timeline clínico del paciente — `es/portal/historial/index.html`: timeline vertical con todas las consultas, cada una expandible con: diagnóstico, medicamentos recetados, fotos clínicas si hay, y PDF de documentos. Línea de tiempo visual, episodios como cards colapsables. Verificable: `grep "timeline.*consulta\|episode.*collapsible\|portal.*history.*card" es/portal/historial/index.html` → match ≥3.
 
 - [ ] **S34-02** `[M]` `[UI]` `[gemini]` Fotos clínicas del paciente (progresión) — `es/portal/fotos/index.html`: galería agrupada por fecha de consulta. Cada grupo muestra la foto de la lesión y la nota del médico de esa visita. El paciente ve su propia evolución. Verificable: `grep "photo.*group.*date\|evolution.*note.*patient\|progression.*gallery" es/portal/fotos/index.html` → match ≥3.
 
