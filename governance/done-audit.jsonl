@@ -16,3 +16,5 @@
 {"taskId":"S3-30","who":"antigravity","markedAt":"2026-04-01T16:11:31.254Z","skipGate":false,"force":false,"hasVerifyRule":true,"gitCommit":"766ffad9","gitBranch":"main"}
 {"taskId":"S7-21","who":"antigravity","markedAt":"2026-04-01T16:19:40.039Z","skipGate":false,"force":false,"hasVerifyRule":true,"gitCommit":"6f04c87e","gitBranch":"main"}
 {"taskId":"S6-22","who":"antigravity","markedAt":"2026-04-01T16:19:43.334Z","skipGate":false,"force":false,"hasVerifyRule":true,"gitCommit":"6f04c87e","gitBranch":"main"}
+{"taskId":"S6-13","who":"unknown","markedAt":"2026-04-01T16:35:45.018Z","skipGate":false,"force":false,"hasVerifyRule":true,"gitCommit":"d5a7c470","gitBranch":"main"}
+{"taskId":"S6-16","who":"unknown","markedAt":"2026-04-01T18:40:19.370Z","skipGate":false,"force":false,"hasVerifyRule":true,"gitCommit":"1055f059","gitBranch":"main"}

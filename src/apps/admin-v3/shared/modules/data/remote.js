@@ -10,6 +10,13 @@ async function fetchFunnelMetrics(data) {
     return funnelPayload?.data || null;
 }
 
+async function fetchCallbacks(data) {
+    if (data.callbacks) return data.callbacks;
+    const callbacksPayload = await apiRequest('callbacks').catch(() => null);
+    return callbacksPayload?.data || [];
+}
+
+
 async function fetchBookingFunnelReport(data) {
     const embeddedReport =
         data?.bookingFunnelReport ||
@@ -147,11 +154,12 @@ export async function refreshAdminData() {
         ]);
 
         const data = dataPayload.data || {};
-        const [funnelMetrics, bookingFunnelReport, reviews] =
+        const [funnelMetrics, bookingFunnelReport, reviews, callbacks] =
             await Promise.all([
                 fetchFunnelMetrics(data),
                 fetchBookingFunnelReport(data),
                 fetchReviews(data),
+                fetchCallbacks(data),
             ]);
         const fallbackState = loadLocalAdminFallback();
         const normalized = normalizeAdminDataPayload(
@@ -162,6 +170,7 @@ export async function refreshAdminData() {
                     bookingFunnelReport
                 ),
                 reviews,
+                callbacks,
             },
             healthPayload,
             fallbackState

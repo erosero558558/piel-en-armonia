@@ -38,22 +38,25 @@ const SOFTWARE_ROUTE_MAP = {
         demo: '/es/software/turnero-clinicas/demo/',
         status: '/es/software/turnero-clinicas/estado-turno/',
         dashboard: '/es/software/turnero-clinicas/dashboard/',
+        caseStudy: '/es/software/turnero-clinicas/caso-aurora-derm/',
     },
     en: {
         landing: '/en/software/clinic-flow-suite/',
         demo: '/en/software/clinic-flow-suite/demo/',
         status: '/en/software/clinic-flow-suite/queue-status/',
         dashboard: '/en/software/clinic-flow-suite/dashboard/',
+        caseStudy: '/en/software/clinic-flow-suite/aurora-derm-case-study/',
     },
 };
 
-const SOFTWARE_PAGE_KEYS = ['landing', 'demo', 'status', 'dashboard'];
+const SOFTWARE_PAGE_KEYS = ['landing', 'demo', 'status', 'dashboard', 'caseStudy'];
 
 const SOFTWARE_NAV_ID_BY_PAGE_KEY = {
     landing: 'software',
     demo: 'demo',
     status: 'status',
     dashboard: 'dashboard',
+    caseStudy: 'caseStudy',
 };
 
 const SOFTWARE_PAGE_KEY_BY_NAV_ID = {
@@ -61,6 +64,7 @@ const SOFTWARE_PAGE_KEY_BY_NAV_ID = {
     demo: 'demo',
     status: 'status',
     dashboard: 'dashboard',
+    caseStudy: 'caseStudy',
 };
 
 const SOFTWARE_OG_IMAGE_BY_PAGE_KEY = {
@@ -68,6 +72,7 @@ const SOFTWARE_OG_IMAGE_BY_PAGE_KEY = {
     demo: '/images/optimized/v6-software-og-demo.jpg',
     status: '/images/optimized/v6-software-og-status.jpg',
     dashboard: '/images/optimized/v6-software-og-dashboard.jpg',
+    caseStudy: '/images/optimized/v6-software-og-suite.jpg',
 };
 
 const SOFTWARE_STORY_LABELS = {

@@ -7184,7 +7184,7 @@ export function inputField(id, label, value, options = {}) {
     );
 }
 
-export function buildClinicalHistoryCheckbox(id, label, checked, options = {}) {
+export function checkboxField(id, label, checked, options = {}) {
     const { hint = '', disabled = false } = options;
     return `
         <label class="clinical-history-checkbox-row">

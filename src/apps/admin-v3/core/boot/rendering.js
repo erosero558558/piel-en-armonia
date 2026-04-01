@@ -27,6 +27,7 @@ import { renderSettingsSection } from '../../sections/settings.js';
 import { renderMultiClinicDashboard } from '../../sections/multi-clinic.js';
 import { renderWhatsappOpsDashboard } from '../../sections/whatsapp-ops.js';
 import { renderRevenueDashboard } from '../../sections/revenue.js';
+import { renderB2bReferrals } from '../../sections/b2b-referrals.js';
 import { renderAdminChrome } from '../../ui/frame.js';
 
 export function refreshHeaderStatus() {
@@ -54,6 +55,7 @@ export function renderAllSections() {
     renderMultiClinicDashboard(getState());
     renderWhatsappOpsDashboard();
     renderRevenueDashboard(getState());
+    renderB2bReferrals(getState());
     refreshHeaderStatus();
     renderAgentPanel();
 }

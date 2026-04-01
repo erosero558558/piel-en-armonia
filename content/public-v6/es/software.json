@@ -114,6 +114,10 @@
               "href": "/es/software/turnero-clinicas/buyer-pack/"
             },
             {
+              "label": "Caso Aurora Derm",
+              "href": "/es/software/turnero-clinicas/caso-aurora-derm/"
+            },
+            {
               "label": "Solicitar propuesta",
               "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede"
             }
@@ -1142,6 +1146,89 @@
             "label": "Solicitar propuesta",
             "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede",
             "variant": "secondary"
+          }
+        ]
+      }
+    },
+    "caseStudy": {
+      "title": "Caso de Éxito Aurora Derm | Flow OS",
+      "description": "Descubra cómo Aurora Derm coordinó el recorrido del paciente con Flow OS, logrando tiempos de espera menores a 12 minutos y NPS superior al 90%.",
+      "breadcrumb": [
+        {
+          "label": "Inicio",
+          "href": "/es/"
+        },
+        {
+          "label": "Flow OS",
+          "href": "/es/software/turnero-clinicas/"
+        },
+        {
+          "label": "Caso Aurora Derm",
+          "href": "/es/software/turnero-clinicas/caso-aurora-derm/"
+        }
+      ],
+      "hero": {
+        "eyebrow": "Historia de éxito",
+        "title": "Cómo Aurora Derm unificó el recorrido del paciente con Flow OS",
+        "deck": "La clínica de referencia consolidó captura, agenda, check-in, consulta y cierre en un solo patient case, eliminando bases paralelas y aumentando la satisfacción del paciente al 91%.",
+        "actions": [
+          {
+            "label": "Solicitar propuesta",
+            "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede",
+            "variant": "primary",
+            "commercialCta": "software"
+          },
+          {
+            "label": "Ver Ops Console",
+            "href": "/es/software/turnero-clinicas/demo/",
+            "variant": "secondary"
+          }
+        ],
+        "metrics": [
+          {
+            "value": "< 12 min",
+            "label": "tiempo de espera",
+            "detail": "Menos congestión en sala con el Wait Room Display"
+          },
+          {
+            "value": "91% NPS",
+            "label": "satisfacción",
+            "detail": "El paciente siempre conoce su siguiente paso"
+          },
+          {
+            "value": "+200",
+            "label": "citas/día",
+            "detail": "Automatizadas sobre un solo tenant operativo"
+          }
+        ]
+      },
+      "blocks": {
+        "eyebrow": "El impacto operativo",
+        "title": "De múltiples sistemas a una sola fuente de verdad",
+        "cards": [
+          {
+            "title": "Reducción de carga en recepción",
+            "copy": "Al unificar agenda y llegada en Ops Console, el equipo dejó de preguntar lo mismo dos veces."
+          },
+          {
+            "title": "Transparencia para el paciente",
+            "copy": "Con Patient Flow Link, el paciente confirma su llegada y ya entiende la secuencia de la visita."
+          },
+          {
+            "title": "Lectura gerencial clara",
+            "copy": "El Clinic Dashboard entregó a la dirección métricas reales de atención sin consolidar reportes mensuales manuales."
+          }
+        ]
+      },
+      "finalCta": {
+        "title": "Comience a operar como Aurora Derm con Flow OS",
+        "deck": "Agende una sesión exploratoria para ver el producto completo actuando sobre una clínica dermatológica de una sola sede.",
+        "actions": [
+          {
+            "label": "Solicitar propuesta",
+            "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede",
+            "variant": "primary",
+            "commercialCta": "software"
           }
         ]
       }

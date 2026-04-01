@@ -7,6 +7,11 @@ import {buildQueueFocusMode as buildQueueFocusModeModule, renderQueueFocusMode a
 import {renderQueueHubDomainView as renderQueueHubDomainViewModule} from './install-hub/domain-view.js';
 import {buildQueueOpsAlerts as buildQueueOpsAlertsModule, renderQueueOpsAlerts as renderQueueOpsAlertsModule} from './install-hub/alerts.js';
 import {ensureInstallHubRegistryLoaded, getInstallHubDefaultAppDownloads, getInstallHubSurfaceCardCopy, getInstallHubSurfaceDefinition, getInstallHubSurfaceOrder, getInstallHubSurfaceTelemetryCopy, syncInstallHubRuntimePayload} from './install-hub/registry.js';
+import {
+    getQueueAppsHubRoot, queueOpsInteractionController,
+    absoluteUrl, appendOpsLogEntry, applyFlowOsRecoveryFreezeToQueueHub, applyQueueAdminViewModeToHub, buildGuideUrl, buildOperatorProfileLabel, buildOperatorRolloutEntries, buildOperatorShellLifecycleMetaLabel, buildOperatorShellLifecycleSummaryLabel, buildOperatorShellStartupLabels, buildOperatorShellStatusMetaLabel, buildOperatorShellStatusSummaryLabel, buildOperatorShellSupportEntries, buildQrUrl, buildSignalAgeLabel, clearQueueExpertPanels, ensureQueueAdminViewMode, formatHeartbeatAge, formatIntervalAge, getActiveQueueOpsClinicId, getDesktopTarget, getTurneroClinicProfile, getTurneroClinicProfileMeta, getTurneroReleaseCommandDeckParts, isOperatorNumpadReady, mergeManifest, primeQueueAdminViewModeToHub, renderAndroidCard, renderDesktopCard, renderQueueAdminViewMode, renderQueueHubCorePanels, renderQueueHubExpertPanels, rerenderQueueOpsHub, shouldRenderQueueHubExpandedPanels, syncQueueClinicScopedLocalState
+} from './install-hub-queue.js';
+import {detectPlatform} from './install-hub/platform.js';
 import {renderQueueMainlineAuditBridge as renderQueueMainlineAuditBridgeModule} from './install-hub/mainline-audit-bridge.js';
 import {renderQueueFinalDiagnosisAdjudicationBinder as renderQueueFinalDiagnosisAdjudicationBinderModule} from './install-hub/final-diagnosis-adjudication-binder.js';
 import {renderQueueHonestRepoDiagnosisWorkspace as renderQueueHonestRepoDiagnosisWorkspaceModule} from './install-hub/honest-repo-diagnosis-workspace.js';

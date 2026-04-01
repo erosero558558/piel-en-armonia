@@ -15,7 +15,7 @@ require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
 
 class HealthController
 {
-    private static function check(array $context): void
+    public static function check(array $context): void
     {
         $requestStartedAt = $context['requestStartedAt'] ?? microtime(true);
         $method = $context['method'] ?? 'GET';
@@ -357,7 +357,7 @@ class HealthController
         json_response(self::publicPayload($detailedPayload));
     }
 
-    private static function diagnostics(array $context): void
+    public static function diagnostics(array $context): void
     {
         if (!diagnostics_request_authorized($context)) {
             audit_log_event('api.health_diagnostics_blocked', [
@@ -374,7 +374,7 @@ class HealthController
         self::check($context);
     }
 
-    private static function systemStatus(array $context): void
+    public static function systemStatus(array $context): void
     {
         $uptimeMinutes = 0;
         if (is_file('/proc/uptime')) {

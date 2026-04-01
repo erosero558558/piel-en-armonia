@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 11:02:00 a. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 2:02:02 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,18 +7,18 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████████░░░` **86%** completado (596/696)
+`█████████████████░░░` **87%** completado (603/696)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 65 | 2 | 97% |
+| 🎯 Sprint 3 | 66 | 1 | 99% |
 | ✅ Sprint 4 | 26 | 0 | 100% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
-| ⏸ Sprint 6 | 12 | 13 | 48% |
-| ⏸ Sprint 7 | 11 | 26 | 30% |
+| ⏸ Sprint 6 | 17 | 8 | 68% |
+| ⏸ Sprint 7 | 12 | 25 | 32% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
@@ -49,12 +49,6 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (1)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S3-30** | `[S3]` | L |
-
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
 
 - **S3-35** `[S3]` L...
@@ -66,33 +60,28 @@ _Sprint completado. 26/26 tareas._
 _Sprint completado. 22/22 tareas._
 
 ## ⏸ Sprint 6 — Plataforma SaaS para Clínicas
-_Esperando que Sprint anterior esté completo. 13 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 8 tareas pendientes._
 
-### 🟢 Disponibles (6)
+### 🟢 Disponibles (5)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S6-14** | `[S6]` | L |
 | **S6-18** | `[S6]` | L |
 | **S6-21** | `[S6]` | M |
-| **S6-22** | `[S6]` | S |
 | **S6-23** | `[S6]` | M |
-| ... | | _+1 más_ |
+| **S6-25** | `[S6]` | L |
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
-- **S6-13** `[S6]` — necesita: S6-11 primero
-- **S6-15** `[S6]` — necesita: S6-14 primero
-- **S6-16** `[S6]` — necesita: S6-14 primero
-- **S6-17** `[S6]` — necesita: S6-14 primero
 - **S6-19** `[S6]` — necesita: S6-18 primero
 - **S6-20** `[S6]` — necesita: S6-18 primero
 - **S6-24** `[S6]` — necesita: S6-23 primero
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
-### 🟢 Disponibles (26)
+### 🟢 Disponibles (25)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -101,7 +90,7 @@ _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 | **S7-07** | `[S7]` | M |
 | **S7-08** | `[S7]` | S |
 | **S7-09** | `[S7]` | S |
-| ... | | _+21 más_ |
+| ... | | _+20 más_ |
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._

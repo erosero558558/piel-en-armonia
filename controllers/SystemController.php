@@ -14,13 +14,13 @@ if (is_file($whatsappOpenclawBootstrap)) {
 
 class SystemController
 {
-    public static function __monitoringConfig(array $context): void
+    public static function monitoringConfig(array $context): void
     {
         $config = get_monitoring_config();
         json_response($config);
     }
 
-    private static function features(array $context): void
+    public static function features(array $context): void
     {
         $flags = FeatureFlags::getAll();
 
@@ -51,7 +51,7 @@ class SystemController
         ]);
     }
 
-    private static function publicRuntimeConfig(array $context): void
+    public static function publicRuntimeConfig(array $context): void
     {
         $captchaProvider = function_exists('captcha_get_provider')
             ? captcha_get_provider()
@@ -113,7 +113,7 @@ class SystemController
         ]);
     }
 
-    private static function metrics(array $context): void
+    public static function metrics(array $context): void
     {
         if (!diagnostics_request_authorized($context)) {
             audit_log_event('api.metrics_blocked', [
@@ -297,7 +297,7 @@ class SystemController
         exit;
     }
 
-    private static function clinicOnboarding(array $context): void
+    public static function clinicOnboarding(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -350,7 +350,7 @@ class SystemController
         ]);
     }
 
-    private static function predictions(array $context): void
+    public static function predictions(array $context): void
     {
         $store = $context['store'];
         $action = isset($_GET['action']) ? (string) $_GET['action'] : '';

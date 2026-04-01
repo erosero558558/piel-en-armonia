@@ -19,6 +19,7 @@ import { renderSettingsSection } from '../../../sections/settings.js';
 import { renderMultiClinicDashboard } from '../../../sections/multi-clinic.js';
 import { renderWhatsappOpsDashboard } from '../../../sections/whatsapp-ops.js';
 import { renderRevenueDashboard } from '../../../sections/revenue.js';
+import { renderB2bReferrals } from '../../../sections/b2b-referrals.js';
 import {
     persistUiPrefs,
     readInitialThemeMode,
@@ -102,6 +103,10 @@ export async function navigateToSection(section, options = {}) {
     }
     if (normalized === 'revenue') {
         renderRevenueDashboard(getState());
+        return;
+    }
+    if (normalized === 'b2b-referrals') {
+        renderB2bReferrals(getState());
         return;
     }
     if (normalized === 'queue') {

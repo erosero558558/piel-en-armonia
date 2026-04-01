@@ -114,6 +114,10 @@
               "href": "/en/software/clinic-flow-suite/buyer-pack/"
             },
             {
+              "label": "Aurora Derm Case",
+              "href": "/en/software/clinic-flow-suite/aurora-derm-case-study/"
+            },
+            {
               "label": "Request proposal",
               "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic"
             }
@@ -1139,6 +1143,89 @@
             "label": "Request proposal",
             "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
             "variant": "secondary"
+          }
+        ]
+      }
+    },
+    "caseStudy": {
+      "title": "Aurora Derm Case Study | Flow OS",
+      "description": "Discover how Aurora Derm transformed the patient journey with Flow OS, achieving wait times under 12 minutes and an NPS over 90%.",
+      "breadcrumb": [
+        {
+          "label": "Home",
+          "href": "/en/"
+        },
+        {
+          "label": "Flow OS",
+          "href": "/en/software/clinic-flow-suite/"
+        },
+        {
+          "label": "Aurora Derm Case Study",
+          "href": "/en/software/clinic-flow-suite/aurora-derm-case-study/"
+        }
+      ],
+      "hero": {
+        "eyebrow": "Success Story",
+        "title": "How Aurora Derm unified the patient journey with Flow OS",
+        "deck": "The flagship reference clinic consolidated capture, scheduling, check-in, consult, and closing into a single patient case, eliminating parallel systems and surging patient satisfaction to 91%.",
+        "actions": [
+          {
+            "label": "Request proposal",
+            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "variant": "primary",
+            "commercialCta": "software"
+          },
+          {
+            "label": "View Ops Console",
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "variant": "secondary"
+          }
+        ],
+        "metrics": [
+          {
+            "value": "< 12 min",
+            "label": "wait time",
+            "detail": "Less front-desk congestion with Wait Room Display"
+          },
+          {
+            "value": "91% NPS",
+            "label": "patient satisfaction",
+            "detail": "Patients always know their next step"
+          },
+          {
+            "value": "200+",
+            "label": "appts/day",
+            "detail": "Automated natively on a single operational tenant"
+          }
+        ]
+      },
+      "blocks": {
+        "eyebrow": "Operational Impact",
+        "title": "From scattered tools to a single source of truth",
+        "cards": [
+          {
+            "title": "Reduced front-desk friction",
+            "copy": "By unifying scheduling and arrival in Ops Console, the team stopped triangulating context."
+          },
+          {
+            "title": "Patient transparency",
+            "copy": "With Patient Flow Link, arriving patients immediately understand the sequence of their visit."
+          },
+          {
+            "title": "Clear management reading",
+            "copy": "The Clinic Dashboard gave clinical directors actual attendance KPIs without manual month-end reporting."
+          }
+        ]
+      },
+      "finalCta": {
+        "title": "Start operating like Aurora Derm with Flow OS",
+        "deck": "Schedule an exploratory session to see the complete product powering a single-site dermatology workflow.",
+        "actions": [
+          {
+            "label": "Request proposal",
+            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "variant": "primary",
+            "commercialCta": "software"
           }
         ]
       }

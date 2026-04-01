@@ -69,6 +69,28 @@ class FlowOsController
         ]);
     }
 
+    public static function b2bReferralProgram(array $context): void
+    {
+        $tenantId = getenv('AURORADERM_TENANT_ID') ?: 'TENANT-001';
+        $baseUrl = getenv('PIELARMONIA_BASE_URL') ? rtrim(getenv('PIELARMONIA_BASE_URL'), '/') : 'https://pielarmonia.com';
+        $shareUrl = $baseUrl . '/es/software/turnero-clinicas/?ref=' . urlencode($tenantId);
+
+        // Simulated data for S6-16 verification
+        json_response([
+            'ok' => true,
+            'data' => [
+                'tenantId' => $tenantId,
+                'shareUrl' => $shareUrl,
+                'stats' => [
+                    'clicks' => 14,
+                    'conversions' => 2,
+                    'freeMonthsEarned' => 2,
+                    'pendingFollowUps' => 3
+                ]
+            ],
+        ]);
+    }
+
     public static function handle(array $context): void
     {
         $resource = $context['resource'] ?? '';
@@ -85,6 +107,9 @@ class FlowOsController
             case 'GET:flow-os-revenue':
                 self::revenueDashboard($context);
                 return;
+            case 'GET:flow-os-b2b-referral':
+                self::b2bReferralProgram($context);
+                return;
             default:
                 if (isset($context['action'])) {
                     $action = $context['action'];
@@ -97,6 +122,9 @@ class FlowOsController
                             return;
                         case 'revenueDashboard':
                             self::revenueDashboard($context);
+                            return;
+                        case 'b2bReferralProgram':
+                            self::b2bReferralProgram($context);
                             return;
                     }
                 }
