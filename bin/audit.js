@@ -77,6 +77,13 @@ const AUDIT_STEPS = [
         args: ['bin/check-evidence-health.js', '--json'],
     },
     {
+        id: 'sprint29_smoke',
+        label: 'Sprint 29 Smoke Test',
+        command: 'node',
+        args: ['--test', 'tests-node/sprint29-smoke.test.js'],
+        optional: false,
+    },
+    {
         id: 'sprint30_smoke',
         label: 'Sprint 30 Smoke Test',
         command: 'node',

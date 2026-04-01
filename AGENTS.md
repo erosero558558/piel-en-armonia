@@ -2143,7 +2143,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S25-02** `[M]` `[UI]` Descarga de recetas y certificados — `es/portal/historial/`: listar todas las recetas y certificados del paciente por fecha, con botón de descarga PDF directo. El token de descarga debe ser firmado y de un solo uso (TTL 1h). Actualmente `patient-portal-prescription` existe pero no está expuesto en la UI. Verificable: visita `es/portal/historial/` → lista de documentos con botón que descarga PDF auténtico.
 
-- [ ] **S25-03** `[L]` `[UI]` Plan de tratamiento activo — mostrar el plan de tratamiento clínico activo en una card: diagnóstico principal, medicamentos activos con instrucciones de toma, próximo control y qué hacer si empeora. Esta información existe en la HCE pero el paciente no la ve. Es la pregunta más frecuente post-consulta. Verificable: `GET /api.php?resource=patient-portal-plan` → `active_diagnosis`, `medications` con instrucciones, `next_visit`.
+- [x] **S25-03** `[L]` `[UI]` Plan de tratamiento activo — mostrar el plan de tratamiento clínico activo en una card: diagnóstico principal, medicamentos activos con instrucciones de toma, próximo control y qué hacer si empeora. Esta información existe en la HCE pero el paciente no la ve. Es la pregunta más frecuente post-consulta. Verificable: `GET /api.php?resource=patient-portal-plan` → `active_diagnosis`, `medications` con instrucciones, `next_visit`.
 
 - [x] **S25-04** `[M]` `[UI]` Historial de pagos en el portal — mostrar cada cita pagada con: fecha, servicio, monto, método de pago, y link de recibo PDF. Si hay saldo pendiente, mostrarlo en rojo con CTA "Pagar ahora". Sin esto el paciente llama a la clínica para pedir facturas. Verificable: `GET /api.php?resource=patient-portal-payments` → array de `payments` con `amount`, `method`, `receipt_url`.
 
@@ -2640,4 +2640,43 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **GOV-06** `[M]` `[ops]` CI gate: route integrity check — verificar que cada controller referenciado en `routes.php` tiene su `require_once` en `api.php`. Script: `node bin/check-route-integrity.js`. Verificable: añadir ruta de controller inexistente → CI falla indicando el controller faltante.
 
 - [ ] **GOV-07** `[S]` `[ops]` Añadir `check-route-integrity.js` al test suite — `package.json` añadir `"test:routes": "node bin/check-route-integrity.js"` y llamarlo desde `npm test`. Verificable: `npm run test:routes` → pasa sin errores en el estado actual del repo.
+
+
+---
+
+## 35. Sprint 35 — Hardening Post-Auditoría Total (2026-03-31)
+
+> **Origen:** Auditoría total del repositorio realizada el 2026-03-31. Defectos AUD-001 a AUD-015.
+> Los P0 (AUD-008, AUD-009) fueron resueltos directamente en la sesión. Los pendientes van aquí.
+> **RESUELTOS EN SESIÓN:** AUD-008 (routes.php `ConsentStatusController::handle`), AUD-009 (CSP admin), AUD-010 (tokens.css + base.css), AUD-003 (claims GC), AUD-007 (OpenAPI drift), AUD-015 (sprint30 smoke).
+
+### 35.1 CRÍTICOS — Gobernanza
+
+- [ ] **S35-01** `[M]` `[codex_transversal]` 🚨 Restaurar fuente de verdad del orquestador (AUD-001) — `node agent-orchestrator.js status --json` devuelve `redirect-stub-v3-canonical` en lugar de diagnóstico real. El orquestador debe leer el estado real de AGENTS.md y devolver: activeClaims, pendingByLane, doneCount, lastAudit. Verificable: `node agent-orchestrator.js status --json | jq '.source'` → `"live"` (no `"AGENTS.md"` estático).
+
+- [ ] **S35-02** `[M]` `[codex_transversal]` Evidence debt — 4 tareas `done` sin evidencia (AUD-005) — las tareas `S2-07`, `S3-17`, `S4-19`, `S13-05` están marcadas `[x]` pero `verify.js` no puede confirmarlas. Para cada una: verificar si el artefacto existe con el path correcto o actualizar la regla de verify.js para apuntar al path real. NO crear archivos vacíos — solo actualizar si el artefacto genuinamente existe. Verificable: `npm run verify --silent | grep "done-without-evidence" | grep -v "S4-21\|S13-06"` → vacío.
+
+- [ ] **S35-03** `[L]` `[codex_transversal]` Deuda de reglas de verificación (AUD-005) — 369 tareas `done` sin regla verificable. Añadir al menos 50 reglas nuevas en `bin/verify.js` cubriendo los sprints 12–29. Prioridad: tareas que bloquean el lanzamiento (turnero, openclaw, booking, portal). Verificable: `npm run verify --silent | grep "done-without-rule" | awk -F: '{print $2}'` → número < 320.
+
+### 35.2 CRÍTICOS — Admin Runtime
+
+- [ ] **S35-04** `[M]` `[codex_frontend]` 🚨 Admin boot contract roto (AUD-011) — `html[data-admin-ready]` queda `false`, `[data-admin-workbench]` queda `hidden`, callbacks no cargan. El JS de boot en `admin.html` no completa la secuencia de hidratación. Diagnóstico: ejecutar `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/admin.spec.js -g "settings"` y leer el error exacto. Causa probable: dependencia de credenciales o de endpoint que falla (ver AUD-008 que ya fue resuelto — re-ejecutar el test y verificar si ya pasa). Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/admin-v3-canary-runtime.spec.js --workers=1 2>&1 | grep -E "passed|failed"` → `1 passed`.
+
+- [ ] **S35-05** `[S]` `[codex_frontend]` Admin callbacks grid vacío (AUD-011) — `#callbacksGrid .callback-card` esperado 4, recibido 0. El endpoint `GET /api.php?resource=callbacks` devuelve datos pero el admin no los renderiza. Verificable: cargar `/admin.html#callbacks` → grid muestra al menos 1 card con `class="callback-card"`.
+
+### 35.3 ALTOS — Web pública
+
+- [ ] **S35-06** `[M]` `[codex_frontend]` Contrato home_v6 vs shell reborn (AUD-012) — `/es/` sirve `data-public-template-id="home_v6"` pero usa `reborn-navbar-pill`/`reborn-hero` sin los marcadores `[data-v6-header]`, `[data-v6-hero]`. Los tests de `tests/helpers/public-v6.js` fallan porque buscan esos atributos. Opciones: (1) añadir `data-v6-header` al `<header class="reborn-navbar-pill">` ya existente, (2) añadir `data-v6-hero` al hero. No cambiar la implementación — solo añadir los data-attributes que los tests esperan. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npm run test:frontend:qa:public --silent 2>&1 | grep "home" | grep "passed"`.
+
+- [ ] **S35-07** `[S]` `[codex_frontend]` Overflow horizontal `/es/telemedicina/` (AUD-013) — `clientWidth=360` vs `scrollWidth=792` en móvil. Hay un elemento que desborda. Diagnóstico: abrir `/es/telemedicina/index.html` en viewport 360px e identificar el elemento más ancho. Probable: imagen o grid sin `max-width: 100%`. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/mobile-overflow-regression.spec.js --workers=1 2>&1 | grep -E "passed|failed"` → `passed`.
+
+- [ ] **S35-08** `[S]` `[codex_frontend]` Clarity analytics no carga tras consentimiento (AUD-014) — después de aceptar cookies, `{ hasScript: true, clarityLoaded: true }` debe ser verdadero pero ambos son `false`. El script de Clarity se inyecta condicionalmente en `js/cookie-consent.js`. Verificar que: (1) `monitoring-config` endpoint devuelve `clarity_id` no vacío cuando está configurado, (2) el inject se ejecuta tras `accept`. Si `clarity_id` está vacío en config, documentar como bloqueado por falta de variable de entorno. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/cookie-consent.spec.js --workers=1 2>&1 | grep -E "passed|failed"`.
+
+- [ ] **S35-09** `[M]` `[codex_frontend]` Drawer móvil sin contrato `data-v6-drawer-open` (AUD-013) — el drawer del navbar en mobile no expone `[data-v6-drawer-open]` que esperan los tests. Añadir el atributo al elemento toggle del drawer. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/mobile-overflow-regression.spec.js --workers=1 2>&1 | grep "drawer" | grep "passed"`.
+
+### 35.4 HYGIENE
+
+- [ ] **S35-10** `[S]` `[codex_transversal]` Worktree hygiene: limpiar dirty + blocked (AUD-004) — `npm run workspace:hygiene:doctor --silent` reporta `20 dirty` y `12 blocked`. Ejecutar el paso de limpieza recomendado por el doctor. Si hay worktrees de sprints completados: eliminarlos. Verificable: `npm run workspace:hygiene:doctor --silent | grep dirty` → número < 10.
+
+- [ ] **S35-11** `[S]` `[codex_transversal]` Sincronizar qa-summary.json (AUD-006) — `governance/qa-summary.json` dice `gate: GREEN` pero el audit vivo tiene checks fallidos. El script que genera el summary debe actualizarse automáticamente al final de `npm run audit`. Verificable: después de correr `npm run audit --silent`, `cat governance/qa-summary.json | jq '.gate'` → valor coherente con el resultado del audit.
 

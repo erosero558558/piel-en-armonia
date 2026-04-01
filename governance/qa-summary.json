@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-04-01T02:07:47.532Z",
-  "gate": "GREEN",
+  "gate": "YELLOW",
   "criticalsFailed": 0,
   "allPassed": false,
   "checks": [
@@ -47,5 +47,22 @@
       "critical": false,
       "detail": "0 reconstruidas (umbral: ≤10)"
     }
-  ]
+  ],
+  "lastRun": "2026-04-01T02:24:30.052994+00:00",
+  "auditResult": {
+    "passed": 11,
+    "failed": 1,
+    "total": 12
+  },
+  "failedChecks": [
+    "verify"
+  ],
+  "verifyStats": {
+    "verified": 90,
+    "total": 101,
+    "pending": 7,
+    "doneWithoutEvidence": 4,
+    "doneWithoutRule": 369
+  },
+  "notes": "AUD-008 (routes), AUD-009 (CSP), AUD-010 (CSS), AUD-015 (smoke) resolved 2026-03-31"
 }

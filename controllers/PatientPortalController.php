@@ -1428,6 +1428,8 @@ final class PatientPortalController
             'tasks' => $tasks,
             'treatmentsText' => trim((string) ($carePlan['treatments'] ?? '')),
             'goalsText' => trim((string) ($carePlan['goals'] ?? '')),
+            'worseningInstructions' => trim((string) ($carePlan['worseningInstructions'] ?? 'Acude a revisión anticipada o comunícate vía WhatsApp si notas un empeoramiento clínico inesperado.')),
+            'medications' => self::normalizePortalPrescriptionItems($prescription ?? []),
             'timeline' => $timeline,
             'timelineCount' => count($timeline),
             'timelineLabel' => count($timeline) === 1 ? '1 hito del plan' : count($timeline) . ' hitos del plan',

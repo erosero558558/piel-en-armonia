@@ -304,6 +304,26 @@
             .join('');
     }
 
+    function renderMedicationsList(medications) {
+        const safeMeds = Array.isArray(medications) ? medications : [];
+        if (safeMeds.length === 0) return '';
+        
+        return safeMeds.map(med => {
+            const name = escapeHtml(med.medicationName || 'Medicamento recetado');
+            const qty = med.quantity ? `<span style="opacity:0.7"> · ${escapeHtml(med.quantity)} unidad(es)</span>` : '';
+            const desc = escapeHtml(med.dosageInstructions || 'Sigue las indicaciones médicas publicadas.');
+            return `
+                <article class="portal-plan-next-item" style="align-items:flex-start;">
+                    <span class="portal-plan-next-item__dot" aria-hidden="true" style="margin-top:5px; background:var(--color-gold-500);"></span>
+                    <div>
+                        <strong style="color:var(--text-color);">${name}${qty}</strong>
+                        <p style="margin:4px 0 0 0; font-size:0.85em; color:var(--text-muted); line-height:1.4;">${desc}</p>
+                    </div>
+                </article>
+            `;
+        }).join('');
+    }
+
     function renderNext(plan) {
         const safePlan = plan && typeof plan === 'object' ? plan : {};
         if (!safePlan || Object.keys(safePlan).length === 0) {
@@ -315,6 +335,8 @@
                 ? safePlan.nextSession
                 : null;
         const tasksHtml = renderTaskList(safePlan.tasks);
+        const medsHtml = renderMedicationsList(safePlan.medications);
+        const worsening = safePlan.worseningInstructions ? escapeHtml(safePlan.worseningInstructions) : '';
 
         return `
             <div class="portal-plan-hero-grid">
@@ -349,6 +371,14 @@
                             : ''
                     }
                 </article>
+                ${
+                    medsHtml
+                        ? `<article class="portal-plan-next-card portal-plan-next-card--wide" style="border: 1px solid rgba(217, 119, 6, 0.2);">
+                            <span class="portal-inline-label" style="color:var(--color-gold-500);">Medicamentos Activos</span>
+                            <div class="portal-plan-next-list" style="margin-top:12px; gap:16px;">${medsHtml}</div>
+                        </article>`
+                        : ''
+                }
                 <article class="portal-plan-next-card">
                     <span class="portal-inline-label portal-inline-label--muted">Tratamiento</span>
                     <strong data-portal-plan-treatments>${escapeHtml(
@@ -366,6 +396,14 @@
                         ? `<article class="portal-plan-next-card portal-plan-next-card--wide">
                             <span class="portal-inline-label">Próximos pasos</span>
                             <div class="portal-plan-next-list">${tasksHtml}</div>
+                        </article>`
+                        : ''
+                }
+                ${
+                    worsening
+                        ? `<article class="portal-plan-next-card portal-plan-next-card--wide" style="background: rgba(239,68,68,0.05); border: 1px dashed rgba(239,68,68,0.3);">
+                            <span class="portal-inline-label" style="color:#ef4444; background:rgba(239,68,68,0.1);">Pautas de Emergencia</span>
+                            <strong style="font-size: 0.95em; line-height:1.5;">${worsening}</strong>
                         </article>`
                         : ''
                 }

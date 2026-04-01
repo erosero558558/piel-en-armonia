@@ -411,6 +411,7 @@ test('frontera de markdowns en raiz queda explicita y limitada', () => {
         'CHECKLIST-PRUEBAS-PRODUCCION.md',
         'CLAUDE.md',
         'CONTRIBUTING.md',
+        'CRONS.md',
         'DESIGN_SYSTEM.md',
         'DESPLIEGUE-PIELARMONIA.md',
         'ESTADO_PRODUCTO_OPERATIVO.md',
@@ -422,6 +423,7 @@ test('frontera de markdowns en raiz queda explicita y limitada', () => {
         'PLAN_MAESTRO_CODEX_2026.md',
         'PRODUCT.md',
         'README.md',
+        'SECURITY.md',
         'SECURITY_AUDIT.md',
         'SERVIDOR-LOCAL.md',
     ].sort();
