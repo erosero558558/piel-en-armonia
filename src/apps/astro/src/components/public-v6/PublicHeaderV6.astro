@@ -9,7 +9,7 @@ const brandLogo = hasText(brand.logo) ? brand.logo.trim() : 'Aurora Derm';
 const homeHref = locale === 'en' ? '/en/' : '/es/';
 ---
 
-<header class="reborn-navbar-pill">
+<header class="reborn-navbar-pill" data-v6-header>
     <a class="reborn-navbar-pill__logo" href={homeHref}>
         <span aria-label={brandLogo}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,7 +20,7 @@ const homeHref = locale === 'en' ? '/en/' : '/es/';
 
     <div class="reborn-navbar-pill__actions">
         <a class="reborn-navbar-pill__cta" href="/portal/agendar">Agendar</a>
-        <button class="reborn-navbar-pill__burger" type="button" aria-label="Menu">
+        <button class="reborn-navbar-pill__burger" type="button" aria-label="Menu" data-v6-drawer-open="true">
             <svg viewBox="0 0 24 24">
                 <path d="M4 8H20M4 16H20" />
             </svg>

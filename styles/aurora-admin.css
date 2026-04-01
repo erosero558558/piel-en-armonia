@@ -957,3 +957,102 @@ body.focus-mode .admin-content-canvas {
 .visit-stepper.is-expanded .episode-expand {
   max-height: 2000px;
 }
+
+/* ==========================================================================
+   UI5-02: Cabecera de Caso Activo
+   Glass pill fixed header when opening a patient case
+   ========================================================================== */
+.case-header-sticky {
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  border-radius: 0 0 16px 16px;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+body.dark-theme .case-header-sticky {
+  background: rgba(30, 30, 30, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.patient-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.case-header-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 6px;
+}
+
+.patient-name-large {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--admin-text-primary);
+  line-height: 1;
+}
+
+.patient-context-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.patient-context-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--admin-text-muted);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.patient-context-pill.gold {
+  background: rgba(199, 163, 109, 0.15);
+  color: #a38250;
+  border-color: rgba(199, 163, 109, 0.3);
+}
+
+.patient-context-pill.amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.patient-context-pill.green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.patient-context-pill.blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.hide-case-btn {
+  margin-left: auto;
+  align-self: flex-start;
+}

@@ -71,6 +71,29 @@ document.addEventListener('DOMContentLoaded', () => {
             // Emulate state for visual UI review
             const isFocus = document.body.classList.contains('focus-mode');
             window.toggleConsultationFocus(isFocus ? { status: 'pending' } : { status: 'in_consultation', patientData: { name: 'Mariana Gómez', meta: 'Dermatitis Atópica Grave' } });
+            
+            // Also demo the case header logic whenever focus mode is toggled on
+            if (!isFocus) {
+                window.openActiveCase();
+            } else {
+                document.getElementById('activeCaseHeader').style.display = 'none';
+            }
         });
     }
 });
+
+/**
+ * UI5-02 Active Case Logic
+ * verify triggers: case-header-sticky and patient-context-pill
+ */
+window.openActiveCase = function(patientData) {
+    const header = document.getElementById('activeCaseHeader');
+    if (header) {
+        header.style.display = 'flex';
+        // Add active classes for animations
+        header.classList.add('case-header-sticky'); 
+        
+        // In real life, we would hydrate patient-context-pill elements here.
+        // For example, finding all '.patient-context-pill' inside header and injecting data.
+    }
+};

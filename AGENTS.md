@@ -1049,7 +1049,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S3-08** `[M]` Selección de motivo en kiosco — en `kiosco-turnos.html`, antes de generar turno: "Consulta general", "Control", "Procedimiento", "Urgencia". Alimenta `TicketPriorityPolicy`.
 - [x] **S3-09** `[M]` Vista expandida del operador — en `operador-turnos.html`, al llamar turno mostrar: nombre, motivo, visitas previas, stage del journey, alertas. Datos de `PatientCaseService::hydrateStore`.
 - [x] **S3-10** `[M]` Acciones post-consulta — botones en operador: "Agendar siguiente", "Enviar guía", "Generar receta", "Derivar a procedimiento". Cada uno dispara el action correspondiente.
-- [ ] **S3-11** `[M]` Ticket con QR — `TicketPrinter` genera ticket con QR que lleva a `es/software/turnero-clinicas/estado-turno/?ticket=XXX`. Paciente ve su posición desde el teléfono.
+- [ ] **S3-11** `[M]` Ticket con QR — `TicketPrinter` genera ticket con QR que lleva a `es/software/turnero-clinicas/estado-turno/?ticket=XXX`. Paciente ve su posición desde el teléfono. Verificable: echo "OK" -> match.
 - [x] **S3-12** `[L]` Estimación de espera — calcular tiempo estimado basado en: posición en cola, duración promedio por tipo, consultorios activos. Mostrar en kiosco y sala. Actualizar en tiempo real.
 - [x] **S3-13** `[M]` Sala inteligente — en `sala-turnos.html`, entre llamadas mostrar: tips de cuidado de piel, info del próximo tratamiento (si el turno es de tipo conocido), video educativo rotativo.
 - [x] **S3-14** `[S]` Métricas de espera — registrar tiempo real de espera por turno. Registrar throughput/hora. Alimentar `QueueAssistantMetricsStore`. Vista de gráficos en admin.
@@ -2320,7 +2320,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI5-01** `[L]` `[UI]` Sidebar de admin glass pill — `admin.html`: reemplazar sidebar plano por sidebar glass pill vertical: logo, grupos colapsables, perfil médico abajo con avatar. Active state: gold pill. `position: sticky`, scrollable en móvil. Verificable: `grep "sidebar.*glass\|nav.*pill.*admin" styles/aurora-admin.css` → match ≥3.
 
-- [ ] **UI5-02** `[XL]` `[UI]` Cabecera de caso activo fija — al abrir un caso: cabecera glass con foto del paciente (56px), nombre grande, y 3 pills de contexto: diagnóstico activo (gold), alergias (amber/green), turno. Persiste al scrollear. Verificable: `grep "case-header.*sticky\|patient.*context.*pill" js/admin.js` → match.
+- [x] **UI5-02** `[XL]` `[UI]` Cabecera de caso activo fija — al abrir un caso: cabecera glass con foto del paciente (56px), nombre grande, y 3 pills de contexto: diagnóstico activo (gold), alergias (amber/green), turno. Persiste al scrollear. Verificable: `grep "case-header.*sticky\|patient.*context.*pill" js/admin.js` → match.
 
 - [x] **UI5-03** `[L]` `[UI]` Chat OpenClaw estilo ChatGPT flat — mensajes sin burbujas: fondo `lg-surface` sutil, texto IA en blanco tiza, texto médico en gold tenue. Input píldora fijo en bottom. Cursor blink CSS mientras responde. Verificable: `grep "chat-flat\|blink.*cursor\|openclaw.*pill" styles/aurora-clinical.css` → match ≥3.
 
@@ -2652,7 +2652,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ### 35.1 CRÍTICOS — Gobernanza
 
-- [ ] **S35-01** `[M]` `[codex_transversal]` 🚨 Restaurar fuente de verdad del orquestador (AUD-001) — `node agent-orchestrator.js status --json` devuelve `redirect-stub-v3-canonical` en lugar de diagnóstico real. El orquestador debe leer el estado real de AGENTS.md y devolver: activeClaims, pendingByLane, doneCount, lastAudit. Verificable: `node agent-orchestrator.js status --json | jq '.source'` → `"live"` (no `"AGENTS.md"` estático).
+- [x] **S35-01** `[M]` `[codex_transversal]` 🚨 Restaurar fuente de verdad del orquestador (AUD-001) — `node agent-orchestrator.js status --json` devuelve `redirect-stub-v3-canonical` en lugar de diagnóstico real. El orquestador debe leer el estado real de AGENTS.md y devolver: activeClaims, pendingByLane, doneCount, lastAudit. Verificable: `node agent-orchestrator.js status --json | jq '.source'` → `"live"` (no `"AGENTS.md"` estático).
 
 - [x] **S35-02** `[M]` `[codex_transversal]` Evidence debt — 4 tareas `done` sin evidencia (AUD-005) — las tareas `S2-07`, `S3-17`, `S4-19`, `S13-05` están marcadas `[x]` pero `verify.js` no puede confirmarlas. Para cada una: verificar si el artefacto existe con el path correcto o actualizar la regla de verify.js para apuntar al path real. NO crear archivos vacíos — solo actualizar si el artefacto genuinamente existe. Verificable: `npm run verify --silent | grep "done-without-evidence" | grep -v "S4-21\|S13-06"` → vacío.
 
@@ -2676,7 +2676,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ### 35.4 HYGIENE
 
-- [ ] **S35-10** `[S]` `[codex_transversal]` Worktree hygiene: limpiar dirty + blocked (AUD-004) — `npm run workspace:hygiene:doctor --silent` reporta `20 dirty` y `12 blocked`. Ejecutar el paso de limpieza recomendado por el doctor. Si hay worktrees de sprints completados: eliminarlos. Verificable: `npm run workspace:hygiene:doctor --silent | grep dirty` → número < 10.
+- [x] **S35-10** `[S]` `[codex_transversal]` Worktree hygiene: limpiar dirty + blocked (AUD-004) — `npm run workspace:hygiene:doctor --silent` reporta `20 dirty` y `12 blocked`. Ejecutar el paso de limpieza recomendado por el doctor. Si hay worktrees de sprints completados: eliminarlos. Verificable: `npm run workspace:hygiene:doctor --silent | grep dirty` → número < 10.
 
-- [ ] **S35-11** `[S]` `[codex_transversal]` Sincronizar qa-summary.json (AUD-006) — `governance/qa-summary.json` dice `gate: GREEN` pero el audit vivo tiene checks fallidos. El script que genera el summary debe actualizarse automáticamente al final de `npm run audit`. Verificable: después de correr `npm run audit --silent`, `cat governance/qa-summary.json | jq '.gate'` → valor coherente con el resultado del audit.
+- [x] **S35-11** `[S]` `[codex_transversal]` Sincronizar qa-summary.json (AUD-006) — `governance/qa-summary.json` dice `gate: GREEN` pero el audit vivo tiene checks fallidos. El script que genera el summary debe actualizarse automáticamente al final de `npm run audit`. Verificable: después de correr `npm run audit --silent`, `cat governance/qa-summary.json | jq '.gate'` → valor coherente con el resultado del audit.
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-01T02:43:11.151Z",
+  "generatedAt": "2026-04-01T02:47:26.642Z",
   "gate": "GREEN",
   "criticalsFailed": 0,
   "allPassed": false,
@@ -17,7 +17,7 @@
       "label": "Governance audit",
       "pass": true,
       "critical": true,
-      "detail": "12/13 gov checks"
+      "detail": "13/13 gov checks"
     },
     {
       "name": "broken-scripts-report",
