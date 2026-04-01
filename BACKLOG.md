@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 9:09:06 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 9:13:44 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -253,7 +253,7 @@ _Sprint completado. 10/10 tareas._
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
 _Esperando que Sprint anterior esté completo. 58 tareas pendientes._
 
-### 🟢 Disponibles (52)
+### 🟢 Disponibles (58)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -262,16 +262,7 @@ _Esperando que Sprint anterior esté completo. 58 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-04** | `[S24]` | L |
 | **S24-05** | `[S24]` | S |
-| ... | | _+47 más_ |
-
-### 🔒 En progreso — NO tomar
-
-- **S29-08** `[S29]` → _Antigravity_ (expira en 44min)
-- **S29-11** `[S29]` → _Antigravity_ (expira en 289min)
-- **S29-12** `[S29]` → _Antigravity_ (expira en 49min)
-- **S29-13** `[S29]` → _Antigravity_ (expira en 91min)
-- **S29-15** `[S29]` → _Antigravity_ (expira en 91min)
-- **S29-16** `[S29]` → _Antigravity_ (expira en 91min)
+| ... | | _+53 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

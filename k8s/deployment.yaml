@@ -19,6 +19,20 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: /api.php?resource=health
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /api.php?resource=health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
         envFrom:
         - configMapRef:
             name: pielarmonia-config

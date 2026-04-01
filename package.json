@@ -276,7 +276,8 @@
     "gov:worktree:prune": "git worktree prune && git worktree list",
     "gov:contract:check": "node bin/verify-task-contract.js",
     "gov:contract:sprint": "node bin/verify-task-contract.js --sprint",
-    "dispatch:ui:gemini": "node bin/dispatch.js --role ui"
+    "dispatch:ui:gemini": "node bin/dispatch.js --role ui",
+    "backup": "bash ops/backup.sh"
 
   },
   "lint-staged": {

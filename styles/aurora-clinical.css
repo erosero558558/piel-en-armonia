@@ -907,3 +907,56 @@ body .oc-msg-doctor .oc-msg-text {
   width: 18px;
   height: 18px;
 }
+
+/* 45. S24-04: Degradación Offline */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: var(--color-gold-500);
+  background: linear-gradient(135deg, var(--color-gold-500), var(--color-aurora-solid), var(--color-warning));
+  color: #000;
+  z-index: 9999;
+  padding: var(--space-3) var(--space-4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  transition: transform var(--transition-normal);
+}
+
+.offline-banner[hidden] {
+  display: none !important;
+}
+
+.offline-banner-content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.offline-banner-content .offline-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.offline-banner-content strong {
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+
+.offline-banner-content span {
+  font-size: var(--text-xs);
+  opacity: 0.85;
+}
+
+/* Transición Restrictiva */
+.offline-restricted {
+  opacity: 0.6;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  filter: grayscale(1);
+}
+
