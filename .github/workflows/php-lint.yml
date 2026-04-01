@@ -1,0 +1,83 @@
+name: PHP Lint & Route Integrity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  php-lint:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Lint all PHP controllers
+        run: |
+          echo "🔍 Scanning controllers/..."
+          ERRORS=0
+          for f in controllers/*.php; do
+            result=$(php -l "$f" 2>&1)
+            if echo "$result" | grep -q "error"; then
+              echo "❌ $f: $result"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          echo "🔍 Scanning lib/..."
+          for f in lib/*.php lib/**/*.php; do
+            [ -f "$f" ] || continue
+            result=$(php -l "$f" 2>&1)
+            if echo "$result" | grep -q "error"; then
+              echo "❌ $f: $result"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "❌ $ERRORS archivo(s) con errores de sintaxis PHP"
+            exit 1
+          fi
+          echo "✅ Todos los archivos PHP sin errores de sintaxis"
+
+  route-integrity:
+    name: Route Integrity Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate package.json
+        run: node -e "require('./package.json'); console.log('✅ package.json válido')"
+
+      - name: Check route integrity (controllers referenced == loaded)
+        run: |
+          if [ -f "bin/check-route-integrity.js" ]; then
+            node bin/check-route-integrity.js
+          else
+            echo "⚠️  bin/check-route-integrity.js no existe aún — skip"
+          fi
+
+  test-backlog-sync:
+    name: Backlog Sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sync and validate backlog
+        run: |
+          node bin/sync-backlog.js
+          echo "Board regenerado OK"

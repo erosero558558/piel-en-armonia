@@ -1861,6 +1861,7 @@
     min-height: 356px;
     display: grid;
     grid-template-rows: auto 1fr;
+    min-width: 0;
 }
 
 .v6-tele-initiatives a:hover,

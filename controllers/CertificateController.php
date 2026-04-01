@@ -128,18 +128,33 @@ final class CertificateController
             'issuedDateLocal'  => (new DateTime('now', new DateTimeZone('America/Guayaquil')))->format('d/m/Y'),
         ];
 
-        // Guardar
-        $store['certificates'] = isset($store['certificates']) && is_array($store['certificates'])
-            ? $store['certificates']
-            : [];
-        $store['certificates'][$certId] = $certData;
-        $store['_last_cert_folio'] = (int) ($store['_last_cert_folio'] ?? 0) + 1;
-        if (!write_store($store, false)) {
+        // Guardar bajo lock — folio secuencial y escritura deben ser atómicos
+        $savedResult = with_store_lock(static function () use ($certId, $certData) {
+            $store = read_store();
+            $store['certificates'] = isset($store['certificates']) && is_array($store['certificates'])
+                ? $store['certificates']
+                : [];
+            // Recalcular folio dentro del lock para evitar duplicados
+            $n = (int) ($store['_last_cert_folio'] ?? 0) + 1;
+            $folio = 'AD-' . date('Y') . '-' . str_pad((string) $n, 4, '0', STR_PAD_LEFT);
+            $certData['folio'] = $folio;
+            $store['certificates'][$certId] = $certData;
+            $store['_last_cert_folio'] = $n;
+            if (!write_store($store, false)) {
+                return ['ok' => false, 'error' => 'No se pudo guardar el certificado emitido.'];
+            }
+            return ['ok' => true, 'folio' => $folio, 'certData' => $certData];
+        });
+
+        if (($savedResult['ok'] ?? false) !== true) {
             json_response([
-                'ok' => false,
-                'error' => 'No se pudo guardar el certificado emitido.',
+                'ok'    => false,
+                'error' => $savedResult['error'] ?? 'No se pudo guardar el certificado.',
             ], 500);
         }
+        // Use the folio assigned inside the lock
+        $folio    = $savedResult['folio'];
+        $certData = $savedResult['certData'];
 
         // Generar PDF inline
         $pdfBase64 = self::generatePdfBase64($certData);
