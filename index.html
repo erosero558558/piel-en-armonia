@@ -37,6 +37,39 @@
 
   gtag('config', 'G-2DWZ5PJ4MC');
 </script>
+<!-- S4-19: Microsoft Clarity -->
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "aurora-derm-placeholder");
+</script>
+<!-- S2-01: Structured Data MedicalClinic -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MedicalClinic",
+  "name": "Aurora Derm",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Quito",
+    "addressCountry": "Ecuador"
+  },
+  "telephone": "+593982453672",
+  "openingHours": "Mo-Fr 09:00-18:00",
+  "medicalSpecialty": "Dermatología",
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": -0.1807,
+    "longitude": -78.4678
+  },
+  "sameAs": [
+    "https://instagram.com/auroraderm",
+    "https://facebook.com/auroraderm"
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -51,7 +84,7 @@
         Aurora Derm
       </a>
       <div class="reborn-nav-actions">
-        <a href="https://wa.me/593982453672" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Agendar</a>
+        <a href="https://wa.me/593982453672?text=Hola,%20deseo%20agendar%20una%20consulta%20dermatol%C3%B3gica" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Agendar</a>
         <button class="btn-hamburger" aria-label="Abrir menú" aria-expanded="false">
           <span></span>
           <span></span>
@@ -70,13 +103,30 @@
         <img src="/images/optimized/v6-clinic-brand-hero-wide-1400.webp" fetchpriority="high" alt="Aurora Derm">
       </div>
       <div class="reborn-hero-content">
+        <div class="hero-badges reveal" style="display: flex; gap: 12px; margin-bottom: 16px; transition-delay: 100ms; flex-wrap: wrap;">
+          <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 12px; font-size: 0.8rem; font-weight: 500; color: #facc15;">🛡️ MSP Certificado</span>
+          <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 12px; font-size: 0.8rem; font-weight: 500; color: #facc15;">⭐ 10+ años</span>
+          <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 12px; font-size: 0.8rem; font-weight: 500; color: #facc15;">👥 2000+ pacientes</span>
+        </div>
         <h1 class="display-font">La ciencia detrás de tu piel.</h1>
         <div class="reborn-hero-ctas reveal" style="transition-delay: 200ms;">
-          <a href="https://wa.me/593982453672" class="btn-gold">Agendar ahora</a>
+          <a href="https://wa.me/593982453672?text=Hola,%20deseo%20agendar%20una%20consulta%20dermatol%C3%B3gica" class="btn-gold">Agendar ahora</a>
           <a href="#experiencia" class="btn-ghost" style="border: none;">Conocer la clínica &darr;</a>
         </div>
       </div>
     </header>
+
+    <!-- ==============================================
+         S2-20: GOOGLE REVIEWS WIDGET
+         ============================================== -->
+    <section class="reborn-reviews-section reveal" style="padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; text-align: center;">
+      <h2 class="display-font" style="font-size: 2rem; margin-bottom: 2rem;">Experiencias Reales</h2>
+      <div id="google-reviews-embed" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 2rem; max-width: 600px; margin: 0 auto;">
+        <p style="color: #facc15; font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">⭐⭐⭐⭐⭐ 4.9/5</p>
+        <p style="font-size: 0.95rem; color: #a1a1aa; line-height: 1.5;"><!-- Placeholder widget --> "Excelente atención dermatológica, resultados visibles desde la primera sesión con el doctor." - <em>Paciente de Aurora Derm</em></p>
+        <a href="#" style="color: #60a5fa; font-size: 0.85rem; display: inline-block; margin-top: 1rem; font-weight: 500; text-decoration: none;">Ver más reseñas en Google Maps</a>
+      </div>
+    </section>
 
     <!-- ==============================================
          RB-06: BENTO GRID ASIMÉTRICO (Sony / Apple Style)

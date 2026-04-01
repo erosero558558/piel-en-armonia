@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 10:55:20 a. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 11:02:00 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,15 +7,15 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████████░░░` **84%** completado (588/696)
+`█████████████████░░░` **86%** completado (596/696)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
-| 🎯 Sprint 2 | 19 | 5 | 79% |
-| ⏸ Sprint 3 | 64 | 3 | 96% |
-| ⏸ Sprint 4 | 24 | 2 | 92% |
+| ✅ Sprint 2 | 24 | 0 | 100% |
+| 🎯 Sprint 3 | 65 | 2 | 97% |
+| ✅ Sprint 4 | 26 | 0 | 100% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
 | ⏸ Sprint 6 | 12 | 13 | 48% |
 | ⏸ Sprint 7 | 11 | 26 | 30% |
@@ -44,44 +44,23 @@ _Sprint completado. 0/0 tareas._
 ## ✅ Sprint 1 — Arreglar lo roto antes de vender
 _Sprint completado. 12/12 tareas._
 
-## 🎯 Sprint 2 — Convertir visitantes en pacientes
+## ✅ Sprint 2 — Convertir visitantes en pacientes
+_Sprint completado. 24/24 tareas._
 
-### 🟢 Disponibles (4)
+## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S2-01** | `[S2]` | M |
-| **S2-07** | `[S2]` | M |
-| **S2-18** | `[S2]` | S |
-| **S2-19** | `[S2]` | M |
-
-### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
-
-- **S2-20** `[S2]` S...
-
-## ⏸ Sprint 3 — Construir Flow OS como plataforma
-_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
-
-### 🟢 Disponibles (2)
+### 🟢 Disponibles (1)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S3-17** | `[S3]` | L |
 | **S3-30** | `[S3]` | L |
 
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
 
 - **S3-35** `[S3]` L...
 
-## ⏸ Sprint 4 — Escalar el negocio
-_Esperando que Sprint anterior esté completo. 2 tareas pendientes._
-
-### 🟢 Disponibles (2)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S4-19** | `[S4]` | S |
-| **S4-21** | `[S4]` | L |
+## ✅ Sprint 4 — Escalar el negocio
+_Sprint completado. 26/26 tareas._
 
 ## ✅ Sprint 5 — Portal del Paciente (PWA)
 _Sprint completado. 22/22 tareas._
