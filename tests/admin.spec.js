@@ -335,7 +335,7 @@ test.describe('Panel de administracion', () => {
 
         await expect(page.locator('#settings')).toHaveClass(/active/);
         await expect(page.locator('#pageTitle')).toHaveText('Perfil medico');
-        await expect(page.locator('#doctorProfileFullName')).toHaveValue(
+        const storeData = await page.evaluate(() => window.__adminStore.getState().data); console.log("STORE DATA: " + JSON.stringify(storeData)); await expect(page.locator('#doctorProfileFullName')).toHaveValue(
             'Dra. Aurora Demo'
         );
         await expect(

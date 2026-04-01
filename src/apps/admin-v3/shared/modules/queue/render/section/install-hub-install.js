@@ -12,6 +12,7 @@ import {
     absoluteUrl, appendOpsLogEntry, applyFlowOsRecoveryFreezeToQueueHub, applyQueueAdminViewModeToHub, buildGuideUrl, buildOperatorProfileLabel, buildOperatorRolloutEntries, buildOperatorShellLifecycleMetaLabel, buildOperatorShellLifecycleSummaryLabel, buildOperatorShellStartupLabels, buildOperatorShellStatusMetaLabel, buildOperatorShellStatusSummaryLabel, buildOperatorShellSupportEntries, buildQrUrl, buildSignalAgeLabel, clearQueueExpertPanels, ensureQueueAdminViewMode, formatHeartbeatAge, formatIntervalAge, getActiveQueueOpsClinicId, getDesktopTarget, getTurneroClinicProfile, getTurneroClinicProfileMeta, getTurneroReleaseCommandDeckParts, isOperatorNumpadReady, mergeManifest, primeQueueAdminViewModeToHub, renderAndroidCard, renderDesktopCard, renderQueueAdminViewMode, renderQueueHubCorePanels, renderQueueHubExpertPanels, rerenderQueueOpsHub, shouldRenderQueueHubExpandedPanels, syncQueueClinicScopedLocalState
 } from './install-hub-queue.js';
 import {detectPlatform} from './install-hub/platform.js';
+import {getLatestSurfaceDetails} from './install-hub-display.js';
 import {renderQueueMainlineAuditBridge as renderQueueMainlineAuditBridgeModule} from './install-hub/mainline-audit-bridge.js';
 import {renderQueueFinalDiagnosisAdjudicationBinder as renderQueueFinalDiagnosisAdjudicationBinderModule} from './install-hub/final-diagnosis-adjudication-binder.js';
 import {renderQueueHonestRepoDiagnosisWorkspace as renderQueueHonestRepoDiagnosisWorkspaceModule} from './install-hub/honest-repo-diagnosis-workspace.js';

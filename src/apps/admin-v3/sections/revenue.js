@@ -1,5 +1,5 @@
 import { setText, setHtml } from '../shared/ui/render.js';
-import { requestApi } from '../shared/core/api.js';
+import { apiRequest } from '../shared/core/api-client.js';
 
 let isRevenueFetched = false;
 
@@ -26,14 +26,14 @@ async function fetchAndRenderRevenue() {
     if (!container) return;
 
     try {
-        const response = await requestApi('GET', 'flow-os-revenue');
+        const response = await apiRequest('flow-os-revenue');
         
         if (!response.ok) {
             setHtml('revenueDashboardUI', `<div class="bento-card"><p style="color:var(--color-red-500)">Error cargando dashboard: ${response.error || 'Acceso denegado'}</p></div>`);
             return;
         }
 
-        const data = response.data;
+        const data = response || {};
         isRevenueFetched = true;
 
         const html = `

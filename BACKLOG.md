@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 2:07:15 p. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 2:41:44 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████████░░░` **87%** completado (606/696)
+`██████████████████░░` **88%** completado (612/696)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -17,8 +17,8 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | 🎯 Sprint 3 | 66 | 1 | 99% |
 | ✅ Sprint 4 | 26 | 0 | 100% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
-| ⏸ Sprint 6 | 20 | 5 | 80% |
-| ⏸ Sprint 7 | 12 | 25 | 32% |
+| ✅ Sprint 6 | 25 | 0 | 100% |
+| ⏸ Sprint 7 | 13 | 24 | 35% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
@@ -59,35 +59,22 @@ _Sprint completado. 26/26 tareas._
 ## ✅ Sprint 5 — Portal del Paciente (PWA)
 _Sprint completado. 22/22 tareas._
 
-## ⏸ Sprint 6 — Plataforma SaaS para Clínicas
-_Esperando que Sprint anterior esté completo. 5 tareas pendientes._
-
-### 🟢 Disponibles (3)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S6-14** | `[S6]` | L |
-| **S6-18** | `[S6]` | L |
-| **S6-25** | `[S6]` | L |
-
-### 🔗 Bloqueadas (necesitan prerequisito)
-
-- **S6-19** `[S6]` — necesita: S6-18 primero
-- **S6-24** `[S6]` — necesita: S6-23 primero
+## ✅ Sprint 6 — Plataforma SaaS para Clínicas
+_Sprint completado. 25/25 tareas._
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 25 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 
-### 🟢 Disponibles (25)
+### 🟢 Disponibles (24)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S7-02** | `[S7]` | S |
 | **S7-05** | `[S7]` | S |
 | **S7-07** | `[S7]` | M |
 | **S7-08** | `[S7]` | S |
 | **S7-09** | `[S7]` | S |
-| ... | | _+20 más_ |
+| **S7-11** | `[S7]` | L |
+| ... | | _+19 más_ |
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._
