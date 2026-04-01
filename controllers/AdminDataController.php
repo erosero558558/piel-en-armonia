@@ -243,24 +243,26 @@ class AdminDataController
             json_response($response, 409);
         }
 
-        $store['appointments'] = isset($payload['appointments']) && is_array($payload['appointments']) ? $payload['appointments'] : [];
-        $store['callbacks'] = isset($payload['callbacks']) && is_array($payload['callbacks']) ? $payload['callbacks'] : [];
-        $store['reviews'] = isset($payload['reviews']) && is_array($payload['reviews']) ? $payload['reviews'] : [];
-        $store['queue_tickets'] = isset($payload['queue_tickets']) && is_array($payload['queue_tickets']) ? $payload['queue_tickets'] : [];
-        $store['queue_help_requests'] = isset($payload['queue_help_requests']) && is_array($payload['queue_help_requests'])
-            ? $payload['queue_help_requests']
-            : [];
-        if (isset($payload['patient_case_approvals']) && is_array($payload['patient_case_approvals'])) {
-            $store['patient_case_approvals'] = $payload['patient_case_approvals'];
-        }
-        if (isset($payload['telemedicine_intakes']) && is_array($payload['telemedicine_intakes'])) {
-            $store['telemedicine_intakes'] = $payload['telemedicine_intakes'];
-        }
-        if (isset($payload['clinical_uploads']) && is_array($payload['clinical_uploads'])) {
-            $store['clinical_uploads'] = $payload['clinical_uploads'];
-        }
-        $store['availability'] = isset($payload['availability']) && is_array($payload['availability']) ? $payload['availability'] : [];
-        write_store($store);
+        mutate_store(static function(array $store) use ($payload) {
+            $store['appointments'] = isset($payload['appointments']) && is_array($payload['appointments']) ? $payload['appointments'] : [];
+            $store['callbacks'] = isset($payload['callbacks']) && is_array($payload['callbacks']) ? $payload['callbacks'] : [];
+            $store['reviews'] = isset($payload['reviews']) && is_array($payload['reviews']) ? $payload['reviews'] : [];
+            $store['queue_tickets'] = isset($payload['queue_tickets']) && is_array($payload['queue_tickets']) ? $payload['queue_tickets'] : [];
+            $store['queue_help_requests'] = isset($payload['queue_help_requests']) && is_array($payload['queue_help_requests'])
+                ? $payload['queue_help_requests']
+                : [];
+            if (isset($payload['patient_case_approvals']) && is_array($payload['patient_case_approvals'])) {
+                $store['patient_case_approvals'] = $payload['patient_case_approvals'];
+            }
+            if (isset($payload['telemedicine_intakes']) && is_array($payload['telemedicine_intakes'])) {
+                $store['telemedicine_intakes'] = $payload['telemedicine_intakes'];
+            }
+            if (isset($payload['clinical_uploads']) && is_array($payload['clinical_uploads'])) {
+                $store['clinical_uploads'] = $payload['clinical_uploads'];
+            }
+            $store['availability'] = isset($payload['availability']) && is_array($payload['availability']) ? $payload['availability'] : [];
+            return ['store' => $store, 'storeDirty' => true];
+        });
         json_response([
             'ok' => true
         ]);

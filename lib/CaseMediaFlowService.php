@@ -471,14 +471,28 @@ final class CaseMediaFlowService
             throw new RuntimeException('name requerido', 400);
         }
 
-        $path = self::publicMediaDir() . DIRECTORY_SEPARATOR . $name;
-        if (!is_file($path)) {
+        // S7-17: Extension whitelist — solo imágenes y video públicamente aceptables
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'mov'];
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowedExtensions, true)) {
+            throw new RuntimeException('Tipo de archivo no permitido', 403);
+        }
+
+        $baseDir  = realpath(self::publicMediaDir());
+        $fullPath = realpath(self::publicMediaDir() . DIRECTORY_SEPARATOR . $name);
+
+        // S7-17: Path traversal guard — el archivo debe vivir dentro del directorio público
+        if ($baseDir === false || $fullPath === false || strpos($fullPath, $baseDir . DIRECTORY_SEPARATOR) !== 0) {
+            throw new RuntimeException('Media publica no encontrada', 404);
+        }
+
+        if (!is_file($fullPath)) {
             throw new RuntimeException('Media publica no encontrada', 404);
         }
 
         return [
-            'path' => $path,
-            'mime' => self::safeMime('', $path),
+            'path'     => $fullPath,
+            'mime'     => self::safeMime('', $fullPath),
             'filename' => $name,
         ];
     }

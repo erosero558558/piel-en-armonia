@@ -15,6 +15,9 @@ concurrency:
 jobs:
     lint:
         runs-on: ubuntu-latest
+        env:
+            SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+            SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
         steps:
             - uses: actions/checkout@v4
             - name: Detect lint relevant changes

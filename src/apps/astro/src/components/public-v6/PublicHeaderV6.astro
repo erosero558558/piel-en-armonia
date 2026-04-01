@@ -26,4 +26,15 @@ const homeHref = locale === 'en' ? '/en/' : '/es/';
             </svg>
         </button>
     </div>
+
+    <div class="v6-drawer" data-v6-drawer hidden>
+        <div class="v6-drawer__scrim" data-v6-drawer-close></div>
+        <aside class="v6-drawer__panel" data-v6-drawer-panel>
+            <nav class="v6-drawer__nav">
+                <a href={homeHref} data-v6-drawer-focusable>Inicio</a>
+                <a href="/portal/agendar" data-v6-drawer-focusable>Agendar</a>
+            </nav>
+            <button type="button" data-v6-drawer-close data-v6-drawer-focusable aria-label="Close menu">Cerrar</button>
+        </aside>
+    </div>
 </header>

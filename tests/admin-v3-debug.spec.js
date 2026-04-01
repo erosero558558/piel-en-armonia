@@ -2,8 +2,8 @@ const { test, expect } = require('@playwright/test');
 const { installBasicAdminApiMocks } = require('./helpers/admin-api-mocks.js');
 
 test('debug settings boot', async ({ page }) => {
-    page.on('console', msg => console.log('PAGE LOG:', msg.type(), msg.text()));
-    page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
+    page.on('console', msg => console.log('PAGE LOG:', msg.type(), msg.text(), msg.location()?.url));
+    page.on('pageerror', err => console.log('PAGE ERROR STR:', err.stack || err.message));
     
     await installBasicAdminApiMocks(page, {
         dataOverrides: {

@@ -112,6 +112,7 @@ async function getClarityState(page) {
 
 test.describe('Consentimiento de cookies', () => {
     test.beforeEach(async ({ page }) => {
+        page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
         // Limpiar localStorage para que aparezca el banner
         await page.goto('/');
         await page.evaluate(() => localStorage.clear());
@@ -141,7 +142,7 @@ test.describe('Consentimiento de cookies', () => {
         await expect(banner).toBeVisible({ timeout: 10000 });
 
         const acceptBtn = page.locator('#cookieAcceptBtn');
-        await acceptBtn.click({ force: true });
+        await acceptBtn.click();
 
         await expect(banner).toBeHidden();
 
@@ -159,7 +160,7 @@ test.describe('Consentimiento de cookies', () => {
         await expect(banner).toBeVisible({ timeout: 10000 });
 
         const rejectBtn = page.locator('#cookieRejectBtn');
-        await rejectBtn.click({ force: true });
+        await rejectBtn.click();
 
         await expect(banner).toBeHidden();
 
@@ -194,7 +195,7 @@ test.describe('Consentimiento de cookies', () => {
         const banner = page.locator('#cookieBanner');
         await expect(banner).toBeVisible({ timeout: 10000 });
         const rejectBtn = page.locator('#cookieRejectBtn');
-        await rejectBtn.click({ force: true });
+        await rejectBtn.click();
 
         // Verify consent mode via dataLayer (set by our cookie-consent code, not GTM).
         // Does not require the external GTM container to load.
@@ -224,7 +225,7 @@ test.describe('Consentimiento de cookies', () => {
         const banner = page.locator('#cookieBanner');
         await expect(banner).toBeVisible({ timeout: 10000 });
         const acceptBtn = page.locator('#cookieAcceptBtn');
-        await acceptBtn.click({ force: true });
+        await acceptBtn.click();
 
         await expect
             .poll(() => page.evaluate(() => !!window._ga4Loaded))

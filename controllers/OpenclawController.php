@@ -366,7 +366,7 @@ final class OpenclawController
 
     public static function saveDiagnosis(array $context): void
     {
-        self::requireAuth();
+        self::requireDoctorAuth();
         $payload = require_json_body();
 
         $caseId      = trim((string) ($payload['case_id'] ?? ''));
@@ -426,7 +426,7 @@ final class OpenclawController
 
     public static function saveChronicCondition(array $context): void
     {
-        self::requireAuth();
+        self::requireDoctorAuth();
         $payload = require_json_body();
 
         $caseId = trim((string) ($payload['case_id'] ?? ''));
@@ -485,7 +485,7 @@ final class OpenclawController
 
     public static function saveEvolution(array $context): void
     {
-        self::requireAuth();
+        self::requireDoctorAuth();
         $payload = require_json_body();
 
         $caseId = trim((string) ($payload['case_id'] ?? ''));
@@ -521,7 +521,7 @@ final class OpenclawController
 
     public static function savePrescription(array $context): void
     {
-        self::requireAuth();
+        self::requireDoctorAuth();
         $payload = require_json_body();
 
         $caseId      = trim((string) ($payload['case_id'] ?? ''));
@@ -712,7 +712,7 @@ final class OpenclawController
 
     public static function generateCertificate(array $context): void
     {
-        self::requireAuth();
+        self::requireDoctorAuth();
         $payload = require_json_body();
 
         $caseId = trim((string) ($payload['case_id'] ?? ''));
@@ -1071,7 +1071,7 @@ final class OpenclawController
 
     public static function closeTelemedicine(array $context): void
     {
-        self::requireAuth();
+        self::requireDoctorAuth();
         $payload     = require_json_body();
         $chatSummary = trim((string) ($payload['chat_summary'] ?? ''));
         $caseId      = trim((string) ($payload['case_id'] ?? ''));
@@ -1224,6 +1224,11 @@ final class OpenclawController
     private static function requireAuth(): void
     {
         require_admin_auth();
+    }
+
+    private static function requireDoctorAuth(): void
+    {
+        require_doctor_auth();
     }
 
     private static function buildCertificatePdfHtml(array $certificate, array $patient): string

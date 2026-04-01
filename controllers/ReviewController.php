@@ -12,8 +12,11 @@ class ReviewController
         if (count($reviews) === 0 && function_exists('default_public_reviews_enabled') && default_public_reviews_enabled()) {
             $reviews = get_default_public_reviews();
             if (count($reviews) > 0) {
+                mutate_store(static function(array $lockedStore) use ($reviews) {
+                    $lockedStore['reviews'] = $reviews;
+                    return ['ok' => true, 'store' => $lockedStore, 'storeDirty' => true];
+                });
                 $store['reviews'] = $reviews;
-                write_store($store, false);
             }
         }
 
@@ -75,13 +78,9 @@ class ReviewController
             ], 400);
         }
         
-        $lock = with_store_lock(static function () use ($review) {
-            $store = read_store();
+        $lock = mutate_store(static function (array $store) use ($review) {
             $store['reviews'][] = $review;
-            if (write_store($store, false)) {
-                return ['ok' => true];
-            }
-            return ['ok' => false];
+            return ['ok' => true, 'store' => $store, 'storeDirty' => true];
         });
 
         if (($lock['ok'] ?? false) !== true) {

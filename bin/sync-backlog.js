@@ -116,11 +116,11 @@ lines.forEach(line => {
 
 
   // Parse task lines — regex extendido: S3-09, S3-OC1, S4-21, etc.
-  const taskMatch = line.match(/^- \[([ x])\] \*\*((S\d+|UI\d*)-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
+  const taskMatch = line.match(/^- \[([ x~\/])\] \*\*((S\d+|UI\d*)-[A-Z0-9]+)\*\*\s+`\[([SMLX]+)\]`(.*)/);
   if (!taskMatch) return;
 
   const [, status, id, size, rest] = taskMatch;
-  const done = status === 'x';
+  const done = status === 'x' || status === '~';
   const human = line.includes('[HUMAN]');
   const blocked = !done && DEPENDS_ON[id] ? DEPENDS_ON[id] : [];
   const claim = claims[id];

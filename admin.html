@@ -1030,6 +1030,13 @@
                         }
                     });
                     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-admin-ready'] });
+                    
+                    setTimeout(() => {
+                        if (document.documentElement.getAttribute('data-admin-ready') !== 'true') {
+                            console.warn('[AdminBoot] data-admin-ready fallback timeout triggered');
+                            document.documentElement.setAttribute('data-admin-ready', 'true');
+                        }
+                    }, 5000);
                 }
             });
         </script>

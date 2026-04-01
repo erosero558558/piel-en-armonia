@@ -141,27 +141,30 @@ final class PatientPortalController
             return;
         }
 
-        $surveys = is_array($store['nps_surveys'] ?? null) ? $store['nps_surveys'] : [];
-        foreach ($surveys as $survey) {
-            if (isset($survey['appointmentId']) && (int) $survey['appointmentId'] === $appointmentId) {
-                self::emit(['ok' => false, 'error' => 'Esta cita ya fue evaluada']);
-                return;
+        $mutation = mutate_store(static function (array $store) use ($appointmentId, $patientId, $validAppointment, $rating, $text, $patient) {
+            $surveys = is_array($store['nps_surveys'] ?? null) ? $store['nps_surveys'] : [];
+            foreach ($surveys as $survey) {
+                if (isset($survey['appointmentId']) && (int) $survey['appointmentId'] === $appointmentId) {
+                    return ['ok' => false, 'error' => 'Esta cita ya fue evaluada'];
+                }
             }
-        }
 
-        $store['nps_surveys'][] = normalize_nps_survey([
-            'appointmentId' => $appointmentId,
-            'patientId' => $patientId,
-            'doctor' => $validAppointment['doctor'] ?? '',
-            'rating' => $rating,
-            'text' => $text,
-            'name' => $patient['fullName'] ?? 'Anónimo',
-        ]);
+            $store['nps_surveys'][] = normalize_nps_survey([
+                'appointmentId' => $appointmentId,
+                'patientId' => $patientId,
+                'doctor' => $validAppointment['doctor'] ?? '',
+                'rating' => $rating,
+                'text' => $text,
+                'name' => $patient['fullName'] ?? 'Anónimo',
+            ]);
 
-        if (write_store($store, false)) {
+            return ['ok' => true, 'store' => $store, 'storeDirty' => true];
+        });
+
+        if (($mutation['ok'] ?? false) === true) {
             self::emit(['ok' => true]);
         } else {
-            self::emit(['ok' => false, 'error' => 'No se pudo guardar la encuesta']);
+            self::emit(['ok' => false, 'error' => $mutation['error'] ?? 'No se pudo guardar la encuesta']);
         }
     }
 
@@ -703,76 +706,80 @@ final class PatientPortalController
             $signatureDataUrl
         );
 
-        $clinicalHistory = new ClinicalHistoryService();
-        $actionResult = $clinicalHistory->episodeAction($store, [
-            'action' => 'declare_consent',
-            'sessionId' => $sessionId,
-            'consentPackets' => [$preparedPacket],
-            'activeConsentPacketId' => $packetId,
-        ]);
-
-        if (($actionResult['ok'] ?? false) !== true) {
-            self::emit([
-                'ok' => false,
-                'statusCode' => (int) ($actionResult['statusCode'] ?? 409),
-                'error' => (string) ($actionResult['error'] ?? 'No pudimos guardar el consentimiento firmado.'),
-                'code' => (string) ($actionResult['errorCode'] ?? 'patient_portal_consent_sign_failed'),
+        $mutation = mutate_store(static function(array $store) use ($sessionId, $packetId, $preparedPacket, $signatureDataUrl, $portalPatient) {
+            $clinicalHistory = new ClinicalHistoryService();
+            $actionResult = $clinicalHistory->episodeAction($store, [
+                'action' => 'declare_consent',
+                'sessionId' => $sessionId,
+                'consentPackets' => [$preparedPacket],
+                'activeConsentPacketId' => $packetId,
             ]);
-            return;
-        }
 
-        $nextStore = is_array($actionResult['store'] ?? null) ? $actionResult['store'] : $store;
-        $nextSession = is_array($actionResult['session'] ?? null) ? $actionResult['session'] : $sessionRecord;
-        $nextDraft = is_array($actionResult['draft'] ?? null) ? $actionResult['draft'] : $draft;
-        $signedSnapshot = self::findSignedConsentSnapshotForPacket($nextDraft, $packetId);
+            if (($actionResult['ok'] ?? false) !== true) {
+                return ['ok' => false, 'errorPayload' => [
+                    'ok' => false,
+                    'statusCode' => (int) ($actionResult['statusCode'] ?? 409),
+                    'error' => (string) ($actionResult['error'] ?? 'No pudimos guardar el consentimiento firmado.'),
+                    'code' => (string) ($actionResult['errorCode'] ?? 'patient_portal_consent_sign_failed'),
+                ]];
+            }
 
-        if ($signedSnapshot === null) {
-            self::emit([
+            $nextStore = is_array($actionResult['store'] ?? null) ? $actionResult['store'] : $store;
+            $nextSession = is_array($actionResult['session'] ?? null) ? $actionResult['session'] : [];
+            $nextDraft = is_array($actionResult['draft'] ?? null) ? $actionResult['draft'] : [];
+            $signedSnapshot = self::findSignedConsentSnapshotForPacket($nextDraft, $packetId);
+
+            if ($signedSnapshot === null) {
+                return ['ok' => false, 'errorPayload' => [
+                    'ok' => false,
+                    'statusCode' => 500,
+                    'error' => 'La firma se guardó, pero no pudimos localizar el PDF del consentimiento.',
+                    'code' => 'patient_portal_consent_snapshot_missing',
+                ]];
+            }
+
+            $signedPacket = is_array($signedSnapshot['snapshot'] ?? null) ? $signedSnapshot['snapshot'] : [];
+            $snapshotId = trim((string) ($signedPacket['snapshotId'] ?? ''));
+            $caseId = trim((string) ($nextDraft['caseId'] ?? ($nextSession['caseId'] ?? '')));
+            $resolvedPatient = self::resolveCasePatient($nextStore, $caseId);
+            $pdfBytes = self::generateConsentPdfBytes($signedPacket, $resolvedPatient);
+            $pdfBase64 = base64_encode($pdfBytes);
+            $pdfFileName = self::buildConsentFileName($signedPacket, $snapshotId);
+            $pdfGeneratedAt = local_date('c');
+
+            $nextDraft = self::attachPortalConsentPdfArtifacts(
+                $nextDraft,
+                $packetId,
+                $snapshotId,
+                $signatureDataUrl,
+                $pdfBase64,
+                $pdfFileName,
+                $pdfGeneratedAt
+            );
+            $draftSave = ClinicalHistorySessionRepository::upsertDraft($nextStore, $nextDraft);
+            $nextStore = is_array($draftSave['store'] ?? null) ? $draftSave['store'] : $nextStore;
+
+            $pId = trim((string) ($portalPatient['id'] ?? ''));
+            if ($pId !== '' && isset($nextStore['patients'][$pId])) {
+                $nextStore['patients'][$pId]['consent_version'] = defined('LOPD_CONSENT_VERSION') ? LOPD_CONSENT_VERSION : 'v1.0.0';
+                $nextStore['patients'][$pId]['consent_signed_at'] = local_date('c');
+            }
+
+            return ['ok' => true, 'store' => $nextStore, 'storeDirty' => true];
+        });
+
+        if (($mutation['ok'] ?? false) !== true) {
+            $err = $mutation['errorPayload'] ?? [
                 'ok' => false,
                 'statusCode' => 500,
-                'error' => 'La firma se guardó, pero no pudimos localizar el PDF del consentimiento.',
-                'code' => 'patient_portal_consent_snapshot_missing',
-            ]);
+                'error' => 'Error de concurrencia al guardar consentimiento',
+                'code' => 'patient_portal_consent_store_mutex_failed',
+            ];
+            self::emit($err);
             return;
         }
 
-        $signedPacket = is_array($signedSnapshot['snapshot'] ?? null) ? $signedSnapshot['snapshot'] : [];
-        $snapshotId = trim((string) ($signedPacket['snapshotId'] ?? ''));
-        $caseId = trim((string) ($nextDraft['caseId'] ?? ($nextSession['caseId'] ?? '')));
-        $resolvedPatient = self::resolveCasePatient($nextStore, $caseId);
-        $pdfBytes = self::generateConsentPdfBytes($signedPacket, $resolvedPatient);
-        $pdfBase64 = base64_encode($pdfBytes);
-        $pdfFileName = self::buildConsentFileName($signedPacket, $snapshotId);
-        $pdfGeneratedAt = local_date('c');
-
-        $nextDraft = self::attachPortalConsentPdfArtifacts(
-            $nextDraft,
-            $packetId,
-            $snapshotId,
-            $signatureDataUrl,
-            $pdfBase64,
-            $pdfFileName,
-            $pdfGeneratedAt
-        );
-        $draftSave = ClinicalHistorySessionRepository::upsertDraft($nextStore, $nextDraft);
-        $nextStore = is_array($draftSave['store'] ?? null) ? $draftSave['store'] : $nextStore;
-
-        $pId = trim((string) ($portalPatient['id'] ?? ''));
-        if ($pId !== '' && isset($nextStore['patients'][$pId])) {
-            $nextStore['patients'][$pId]['consent_version'] = defined('LOPD_CONSENT_VERSION') ? LOPD_CONSENT_VERSION : 'v1.0.0';
-            $nextStore['patients'][$pId]['consent_signed_at'] = local_date('c');
-        }
-
-        if (!write_store($nextStore, false)) {
-            self::emit([
-                'ok' => false,
-                'statusCode' => 500,
-                'error' => 'No pudimos guardar el consentimiento firmado en este momento.',
-                'code' => 'patient_portal_consent_store_failed',
-            ]);
-            return;
-        }
-
+        $nextStore = $mutation['store'] ?? $store;
         $summary = self::buildPortalConsentSummary($nextStore, $snapshot);
 
         self::emit([
@@ -5001,8 +5008,7 @@ final class PatientPortalController
             return;
         }
 
-        $lock = with_store_lock(static function () use ($caseId, $payload) {
-            $store = read_store();
+        $lock = mutate_store(static function (array $store) use ($caseId, $payload) {
             $activeSession = ClinicalHistorySessionRepository::findSessionByCaseId($store, $caseId);
             if ($activeSession === null) {
                 $activeSession = ClinicalHistorySessionRepository::defaultSession(['caseId' => $caseId]);
@@ -5036,13 +5042,10 @@ final class PatientPortalController
             $saveDraft = ClinicalHistorySessionRepository::upsertDraft($store, $draft);
             $store = $saveDraft['store'];
 
-            if (write_store($store, false)) {
-                return ['ok' => true];
-            }
-            return ['ok' => false];
+            return ['ok' => true, 'store' => $store, 'storeDirty' => true];
         });
 
-        if (($lock['ok'] ?? false) !== true || ($lock['result']['ok'] ?? false) !== true) {
+        if (($lock['ok'] ?? false) !== true) {
              self::emit(['ok' => false, 'error' => 'No se pudieron guardar los vitales concurrencia']);
              return;
         }
@@ -5132,17 +5135,13 @@ final class PatientPortalController
             'createdAt' => local_date('c'),
         ];
 
-        $lock = with_store_lock(static function () use ($upload) {
-            $store = read_store();
+        $lock = mutate_store(static function (array $store) use ($upload) {
             $store['clinical_uploads'] = is_array($store['clinical_uploads'] ?? null) ? $store['clinical_uploads'] : [];
             $store['clinical_uploads'][] = $upload;
-            if (write_store($store, false)) {
-                return ['ok' => true];
-            }
-            return ['ok' => false];
+            return ['ok' => true, 'store' => $store, 'storeDirty' => true];
         });
 
-        if (($lock['ok'] ?? false) !== true || ($lock['result']['ok'] ?? false) !== true) {
+        if (($lock['ok'] ?? false) !== true) {
             self::emit(['ok' => false, 'error' => 'Error de concurrencia al guardar foto']);
             return;
         }

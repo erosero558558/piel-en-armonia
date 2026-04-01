@@ -87,6 +87,8 @@ jobs:
         runs-on: ubuntu-latest
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+            SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
         steps:
             - uses: actions/checkout@v4
 

@@ -129,8 +129,7 @@ final class CertificateController
         ];
 
         // Guardar bajo lock — folio secuencial y escritura deben ser atómicos
-        $savedResult = with_store_lock(static function () use ($certId, $certData) {
-            $store = read_store();
+        $savedResult = mutate_store(static function (array $store) use ($certId, $certData) {
             $store['certificates'] = isset($store['certificates']) && is_array($store['certificates'])
                 ? $store['certificates']
                 : [];
@@ -140,10 +139,7 @@ final class CertificateController
             $certData['folio'] = $folio;
             $store['certificates'][$certId] = $certData;
             $store['_last_cert_folio'] = $n;
-            if (!write_store($store, false)) {
-                return ['ok' => false, 'error' => 'No se pudo guardar el certificado emitido.'];
-            }
-            return ['ok' => true, 'folio' => $folio, 'certData' => $certData];
+            return ['ok' => true, 'folio' => $folio, 'certData' => $certData, 'store' => $store, 'storeDirty' => true];
         });
 
         if (($savedResult['ok'] ?? false) !== true) {

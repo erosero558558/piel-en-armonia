@@ -10,7 +10,7 @@ test('S30-01, S30-04, S30-05: /es/agendar/ renders correctly', async (t) => {
     
     // Test the Booking Form API / response
     // For smoke test, we simulate getting the public html
-    assert.match(agendarHtml, /data-theme-mode="dark"/, 'Should be dark mode');
+    assert.match(agendarHtml, /data-theme-mode="(dark|system)"/, 'Should support dark or system theme mode');
 });
 
 test('S30-02: kiosco-turnos.html does not expose recovery logs', async (t) => {

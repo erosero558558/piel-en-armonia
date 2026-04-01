@@ -59,8 +59,7 @@ class AppointmentController
             ], 400);
         }
 
-        $lockResult = with_store_lock(function () use ($token) {
-            $store = read_store();
+        $lockResult = mutate_store(function (array $store) use ($token) {
             $found = false;
             $updatedAppointment = null;
 
@@ -85,11 +84,7 @@ class AppointmentController
                 return ['ok' => false, 'error' => 'Cita no encontrada', 'code' => 404];
             }
 
-            if (!write_store($store)) {
-                return ['ok' => false, 'error' => 'Storage write failed', 'code' => 503];
-            }
-
-            return ['ok' => true, 'updated' => $updatedAppointment];
+            return ['ok' => true, 'updated' => $updatedAppointment, 'store' => $store, 'storeDirty' => true];
         });
 
         if (($lockResult['ok'] ?? false) !== true) {

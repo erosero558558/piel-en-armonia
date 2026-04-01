@@ -2403,3 +2403,15 @@ function operator_auth_require_bridge_token(): void
         ], 401);
     }
 }
+
+function require_doctor_auth(): void
+{
+    require_admin_auth();
+    
+    if (!admin_agent_has_editorial_access()) {
+        json_response([
+            'ok'    => false,
+            'error' => 'Permisos insuficientes. Se requiere rol medico para esta operacion.',
+        ], 403);
+    }
+}

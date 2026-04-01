@@ -42,8 +42,7 @@ final class TelemedicineRoomController
             json_response(['ok' => false, 'error' => 'Accion de consentimiento no valida'], 400);
         }
 
-        $lockResult = with_store_lock(function () use ($access, $action, $requestId): array {
-            $store = read_store();
+        $lockResult = mutate_store(function (array $store) use ($access, $action, $requestId): array {
             $appointment = self::findAppointmentById($store, (int) ($access['appointment']['id'] ?? 0));
             if (!is_array($appointment)) {
                 return [
@@ -78,17 +77,10 @@ final class TelemedicineRoomController
                 $store = self::appendCaseTimelineEvent($store, $appointment, $timelineEvent);
             }
 
-            if (!write_store($store, false)) {
-                return [
-                    'ok' => false,
-                    'error' => 'No se pudo guardar el consentimiento de grabacion',
-                    'code' => 503,
-                ];
-            }
-
             return [
                 'ok' => true,
                 'store' => $store,
+                'storeDirty' => true,
                 'appointment' => $appointment,
                 'consent' => $consent,
                 'message' => (string) ($mutation['message'] ?? 'Consentimiento actualizado'),
@@ -145,8 +137,7 @@ final class TelemedicineRoomController
         if (@move_uploaded_file($tmpName, $targetDiskPath) || @rename($tmpName, $targetDiskPath)) {
             @chmod($targetDiskPath, 0640);
 
-            $lockResult = with_store_lock(function () use ($access, $filename, $targetDiskPath, $mime): array {
-                $store = read_store();
+            $lockResult = mutate_store(function (array $store) use ($access, $filename, $targetDiskPath, $mime): array {
                 $appointment = self::findAppointmentById($store, (int) ($access['appointment']['id'] ?? 0));
                 if (!is_array($appointment)) {
                     return [
@@ -228,13 +219,13 @@ final class TelemedicineRoomController
                     ],
                 ]);
 
-                if (write_store($store, false)) {
-                    return [
-                        'ok' => true,
-                        'consent' => $consent,
-                        'upload' => $upload,
-                    ];
-                }
+                return [
+                    'ok' => true,
+                    'store' => $store,
+                    'storeDirty' => true,
+                    'consent' => $consent,
+                    'upload' => $upload,
+                ];
 
                 return [
                     'ok' => false,

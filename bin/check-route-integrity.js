@@ -1,47 +1,37 @@
 #!/usr/bin/env node
-/**
- * bin/check-route-integrity.js
- * GOV-06: verifica que cada Controller referenciado en routes.php
- * tenga su require_once en api.php.
- * 
- * Uso: node bin/check-route-integrity.js
- * Exit 0 = OK, Exit 1 = hay controllers faltantes
- */
 
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..');
-const routesFile = path.join(ROOT, 'lib', 'routes.php');
-const apiFile = path.join(ROOT, 'api.php');
+const ROUTES_FILE = path.join(__dirname, '..', 'lib', 'routes.php');
+const API_FILE = path.join(__dirname, '..', 'api.php');
 
-if (!fs.existsSync(routesFile) || !fs.existsSync(apiFile)) {
-  console.error('❌ No se encontró lib/routes.php o api.php');
+const routesContent = fs.readFileSync(ROUTES_FILE, 'utf8');
+const apiContent = fs.readFileSync(API_FILE, 'utf8');
+
+const controllerRegex = /\[([A-Za-z0-9_]+Controller)::class/g;
+const requiredControllers = new Set();
+
+let match;
+while ((match = controllerRegex.exec(routesContent)) !== null) {
+  requiredControllers.add(match[1]);
+}
+
+const missing = [];
+
+for (const ctrl of requiredControllers) {
+  const reqStr = `require_once __DIR__ . '/controllers/${ctrl}.php';`;
+  const reqStr2 = `require_once __DIR__ . '/../controllers/${ctrl}.php';`;
+  if (!apiContent.includes(reqStr) && !apiContent.includes(reqStr2) && !routesContent.includes(reqStr2)) {
+    missing.push(ctrl);
+  }
+}
+
+if (missing.length > 0) {
+  console.error('❌ Route Integrity Error: The following controllers are routed in lib/routes.php but not required in api.php:');
+  missing.forEach(c => console.error(`  - ${c}`));
   process.exit(1);
 }
 
-const routesContent = fs.readFileSync(routesFile, 'utf8');
-const apiContent = fs.readFileSync(apiFile, 'utf8');
-
-// Extract controller class names from routes.php: [ControllerClass::class, ...]
-const routeMatches = [...routesContent.matchAll(/\[([A-Za-z]+Controller)::class/g)];
-const referencedControllers = [...new Set(routeMatches.map(m => m[1]))];
-
-// Extract controller filenames loaded in api.php
-const apiMatches = [...apiContent.matchAll(/require_once.*controllers\/([A-Za-z]+Controller)\.php/g)];
-const loadedControllers = new Set(apiMatches.map(m => m[1]));
-
-const missing = referencedControllers.filter(c => !loadedControllers.has(c));
-
-if (missing.length === 0) {
-  console.log(`✅ Route integrity OK — ${referencedControllers.length} controllers verificados`);
-  process.exit(0);
-} else {
-  console.error(`❌ ${missing.length} controller(s) referenciados en routes.php sin require_once en api.php:`);
-  missing.forEach(c => {
-    const filePath = path.join(ROOT, 'controllers', `${c}.php`);
-    const exists = fs.existsSync(filePath);
-    console.error(`   → ${c} (archivo ${exists ? '✅ existe' : '❌ TAMBIÉN FALTA EN DISCO'})`);
-  });
-  process.exit(1);
-}
+console.log('✅ Route Integrity Check Passed: All routed controllers are properly required in api.php.');
+process.exit(0);
