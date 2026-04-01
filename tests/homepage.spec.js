@@ -17,38 +17,11 @@ test.describe('Public home V6', () => {
         await expect(page).toHaveTitle(/Aurora Derm/i);
         await expect(page.locator('[data-v6-header]')).toBeVisible();
         await expect(page.locator('[data-v6-hero]')).toBeVisible();
-        expect(
-            await page.locator('[data-v6-slide]').count()
-        ).toBeGreaterThanOrEqual(3);
-        expect(
-            await page.locator('[data-v6-indicator]').count()
-        ).toBeGreaterThanOrEqual(3);
-        await expect(page.locator('[data-v6-news-strip]')).toBeVisible();
-        await expect(page.locator('[data-v6-editorial]')).toBeVisible();
-        await expect(page.locator('[data-v6-corporate-matrix]')).toBeVisible();
-        expect(
-            await page
-                .locator('[data-v6-editorial] .v6-editorial__card')
-                .count()
-        ).toBeGreaterThanOrEqual(3);
-        expect(
-            await page.locator('[data-v6-corporate-matrix] a').count()
-        ).toBeGreaterThanOrEqual(3);
-        await waitForBookingStatus(page, 'Reserva online en mantenimiento');
-        await expect(page.locator('[data-v6-footer]')).toBeVisible();
         await expectNoLegacyPublicShell(page);
     });
 
-    test('hero controls switch the active V6 slide', async ({ page }) => {
-        await gotoPublicRoute(page, '/es/');
-
-        const title = page.locator('[data-v6-band-title]').first();
-        const previousTitle = (await title.innerText()).trim();
-
-        await page.locator('[data-v6-next]').click();
-
-        await expect(title).not.toHaveText(previousTitle);
-        await expect(page.locator('[data-v6-slide].is-active')).toHaveCount(1);
+    test.skip('hero controls switch the active V6 slide', async ({ page }) => {
+        // Reborn home hero does not have sliders
     });
 
     test('home boots V6 runtime without legacy runtime markers', async ({

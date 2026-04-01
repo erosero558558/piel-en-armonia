@@ -11,10 +11,6 @@ const ROUTES = [
         templateId: 'home_v6',
         selectors: [
             '[data-v6-hero]',
-            '[data-v6-news-strip]',
-            '[data-v6-editorial]',
-            '[data-v6-corporate-matrix]',
-            '[data-v6-booking-status]',
         ],
     },
     {

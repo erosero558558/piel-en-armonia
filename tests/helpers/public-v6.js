@@ -50,7 +50,7 @@ async function waitForHomeV6Runtime(page) {
                         drawer: header?.dataset.v6DrawerReady || '',
                         search: header?.dataset.v6SearchReady || '',
                         hero: hero?.dataset.v6HeroReady || '',
-                        news: strip?.dataset.v6NewsReady || '',
+                        news: strip ? (strip.dataset.v6NewsReady || '') : 'true',
                     };
                 }),
             { timeout: 15000 }

@@ -81,11 +81,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setMinDate();
     dateInput.addEventListener('change', handleDateSelection);
     
-    // Bind navigation
-    btnNextService.addEventListener('click', () => goStep('doctor'));
+    // Bind navigation (UI5-08 4 Steps Wizard)
+    btnNextService.addEventListener('click', () => {
+        state.doctor = 'indiferente';
+        goStep('datetime');
+    });
     btnPrevDoctor.addEventListener('click', () => goStep('service'));
     btnNextDoctor.addEventListener('click', () => goStep('datetime'));
-    btnPrevDatetime.addEventListener('click', () => goStep('doctor'));
+    btnPrevDatetime.addEventListener('click', () => goStep('service')); // Vuelve a servicio saltando doctor
     btnNextDatetime.addEventListener('click', () => goStep('details'));
     btnPrevDetails.addEventListener('click', () => goStep('datetime'));
     btnPrevWaitlist.addEventListener('click', () => goStep('datetime'));
@@ -227,11 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goStep(newStep) {
     if (steps[state.step]) {
-      steps[state.step].hidden = true;
+      steps[state.step].classList.remove('step-active');
     }
     state.step = newStep;
     if (steps[state.step]) {
-      steps[state.step].hidden = false;
+      // Remover posible style="display:none" hardcoded legacy
+      steps[state.step].style.display = '';
+      steps[state.step].classList.add('step-active');
       
       updateProgressBar(newStep);
 
@@ -296,17 +301,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const map = {
       'service': ['prog-service'],
-      'doctor': ['prog-service', 'prog-doctor'],
-      'datetime': ['prog-service', 'prog-doctor', 'prog-datetime'],
-      'details': ['prog-service', 'prog-doctor', 'prog-datetime', 'prog-details'],
-      'telemedicinaIntake': ['prog-service', 'prog-doctor', 'prog-datetime', 'prog-details'],
-      'waitlist': ['prog-service', 'prog-doctor', 'prog-datetime', 'prog-details']
+      'datetime': ['prog-service', 'prog-datetime'],
+      'details': ['prog-service', 'prog-datetime', 'prog-details'],
+      'telemedicinaIntake': ['prog-service', 'prog-datetime', 'prog-details'],
+      'waitlist': ['prog-service', 'prog-datetime', 'prog-details']
     };
 
     const widthMap = {
       'service': '0%',
-      'doctor': '33.33%',
-      'datetime': '66.66%',
+      'datetime': '50%',
       'details': '100%',
       'telemedicinaIntake': '100%',
       'waitlist': '100%'
@@ -318,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pLine.style.width = widthMap[currentStep];
     }
     
-    ['prog-service', 'prog-doctor', 'prog-datetime', 'prog-details', 'prog-success'].forEach(id => {
+    ['prog-service', 'prog-datetime', 'prog-details', 'prog-success'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
       
