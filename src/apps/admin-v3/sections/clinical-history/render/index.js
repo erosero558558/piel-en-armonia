@@ -3650,6 +3650,7 @@ export function normalizeReviewQueueItem(item) {
         summary: normalizeString(source.summary),
         createdAt: normalizeString(source.createdAt),
         updatedAt: normalizeString(source.updatedAt),
+        evolution_missing: source.evolution_missing === true,
     };
 }
 
@@ -6878,7 +6879,7 @@ export function buildQueueItemCard(item, selectedSessionId, loading) {
             ${loading ? 'disabled' : ''}
         >
             <div class="clinical-history-queue-head">
-                <strong>${escapeHtml(
+                <strong>${item.evolution_missing ? '⚠️ ' : ''}${escapeHtml(
                     item.patientName || item.caseId || 'Caso clinico'
                 )}${item.membership_status ? ' ⭐ Miembro' : ''}</strong>
                 <span class="clinical-history-mini-chip" data-tone="${escapeHtml(
@@ -10028,6 +10029,47 @@ export function renderClinicalHeader(review, meta) {
         '#clinicalHistoryStatusMeta',
         buildClinicalStatusMetaText(draft, pendingAiStatus, meta)
     );
+
+    let progressContainer = document.getElementById('consultation-progress');
+    if (!progressContainer) {
+        progressContainer = document.createElement('div');
+        progressContainer.id = 'consultation-progress';
+        progressContainer.className = 'consultation-progress';
+        progressContainer.style = 'display: flex; gap: 8px; margin-top: 12px; font-size: 0.8rem; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--admin-border);';
+        
+        const headerStatusDiv = document.querySelector('.clinical-history-header-status');
+        if (headerStatusDiv) headerStatusDiv.appendChild(progressContainer);
+    }
+    
+    if (progressContainer) {
+        const hasAnamnesis = Boolean(draft.intake?.structured_anamnesis) || Boolean(draft.intake?.main_symptom);
+        const hasVitals = Number(draft.intake?.vitalSigns?.heartRate) > 0 || Number(draft.intake?.vitalSigns?.temperature) > 0;
+        
+        const prevEvolutions = normalizeList(review.patientRecord?.evolutions);
+        const draftEvolutions = normalizeList(draft.evolutions);
+        const soapData = [...prevEvolutions, ...draftEvolutions].find(evo => normalizeString(evo.type) === 'soap' || normalizeString(evo.note_subjective));
+        const hasSoap = Boolean(soapData && (soapData.note_subjective || soapData.subjective));
+        const hasRx = normalizeList(draft.prescriptions).length > 0 || normalizeList(review.patientRecord?.prescriptions).length > 0;
+        
+        progressContainer.innerHTML = `
+            <div class="progress-step step-anamnesis" style="cursor:pointer; display:flex; align-items:center; gap:4px; color:${hasAnamnesis ? 'var(--color-emerald-500)' : 'var(--admin-text-muted)'};"><span style="font-weight:bold;">${hasAnamnesis ? '✓' : '○'}</span> Anamnesis</div>
+            <div style="color:var(--admin-border);">&rsaquo;</div>
+            <div class="progress-step step-vitals" style="cursor:pointer; display:flex; align-items:center; gap:4px; color:${hasVitals ? 'var(--color-emerald-500)' : 'var(--admin-text-muted)'};"><span style="font-weight:bold;">${hasVitals ? '✓' : '○'}</span> Signos vitales</div>
+            <div style="color:var(--admin-border);">&rsaquo;</div>
+            <div class="progress-step step-soap" style="cursor:pointer; display:flex; align-items:center; gap:4px; color:${hasSoap ? 'var(--color-emerald-500)' : 'var(--admin-text-muted)'};"><span style="font-weight:bold;">${hasSoap ? '✓' : '○'}</span> SOAP</div>
+            <div style="color:var(--admin-border);">&rsaquo;</div>
+            <div class="progress-step step-rx" style="cursor:pointer; display:flex; align-items:center; gap:4px; color:${hasRx ? 'var(--color-emerald-500)' : 'var(--admin-text-muted)'};"><span style="font-weight:bold;">${hasRx ? '✓' : '○'}</span> Prescripción</div>
+            <div style="color:var(--admin-border);">&rsaquo;</div>
+            <div class="progress-step step-close" style="cursor:pointer; display:flex; align-items:center; gap:4px; color:${hasSoap ? 'var(--color-emerald-500)' : 'var(--admin-text-muted)'};"><span style="font-weight:bold;">${hasSoap ? '✓' : '○'}</span> Cierre</div>
+        `;
+        
+        progressContainer.querySelectorAll('.progress-step').forEach(el => {
+            el.onclick = () => {
+                const draftPanel = document.getElementById('clinicalHistoryDraftForm');
+                if (draftPanel) draftPanel.scrollIntoView({ behavior: 'smooth' });
+            };
+        });
+    }
 }
 
 export function syncFollowUpInput() {
@@ -10599,6 +10641,65 @@ export function bindClinicalHistoryEvents() {
         clinicalHistoryCertificateBridgeBound = true;
     }
 
+    if (!window.auroraClinicalGlobalCloseBound) {
+        document.body.addEventListener('click', (event) => {
+            const btn = event.target.closest('[data-clinical-review-action="attempt-close-case"]');
+            if (btn) {
+                const draft = currentDraftSource();
+                const review = currentReviewSource();
+                const prevEvolutions = normalizeList(review?.patientRecord?.evolutions);
+                const draftEvolutions = normalizeList(draft?.evolutions || []);
+                const soapData = [...prevEvolutions, ...draftEvolutions].find(evo => normalizeString(evo.type) === 'soap' || normalizeString(evo.note_subjective));
+                const hasSoap = Boolean(soapData && (soapData.note_subjective || soapData.subjective));
+
+                if (!hasSoap && !draft.evolution_missing) {
+                    const modal = document.getElementById('soap-required-modal');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                    }
+                } else {
+                    const header = document.getElementById('activeCaseHeader');
+                    if (header) header.style.display = 'none';
+                }
+            }
+            
+            const closeNoSoapBtn = event.target.closest('[data-clinical-review-action="close-without-soap"]');
+            if (closeNoSoapBtn) {
+                const draft = currentDraftSource();
+                draft.evolution_missing = true;
+                const sid = currentReviewSessionId();
+                updateState(s => {
+                    if (s.clinicalHistory?.draft) {
+                        s.clinicalHistory.draft.evolution_missing = true;
+                    }
+                    if (s.clinicalHistory?.draftForm) {
+                        s.clinicalHistory.draftForm.evolution_missing = true;
+                    }
+                    if (s.reviewQueue) {
+                        const idx = s.reviewQueue.findIndex(q => normalizeString(q.sessionId) === sid);
+                        if (idx >= 0) {
+                            s.reviewQueue[idx] = { ...s.reviewQueue[idx], evolution_missing: true };
+                            s.reviewQueue = [...s.reviewQueue];
+                        }
+                    } else if (s.clinicalHistory?.reviewQueue) {
+                        const idx = s.clinicalHistory.reviewQueue.findIndex(q => normalizeString(q.sessionId) === sid);
+                        if (idx >= 0) {
+                            s.clinicalHistory.reviewQueue[idx] = { ...s.clinicalHistory.reviewQueue[idx], evolution_missing: true };
+                            s.clinicalHistory.reviewQueue = [...s.clinicalHistory.reviewQueue];
+                        }
+                    }
+                    return { ...s };
+                });
+                
+                const modal = document.getElementById('soap-required-modal');
+                if (modal) modal.style.display = 'none';
+                const header = document.getElementById('activeCaseHeader');
+                if (header) header.style.display = 'none';
+            }
+        });
+        window.auroraClinicalGlobalCloseBound = true;
+    }
+
     root.addEventListener('click', async (event) => {
         const actionTarget =
             event.target instanceof Element
@@ -10800,6 +10901,50 @@ export function bindClinicalHistoryEvents() {
         }
 
         if (action === 'approve-current') {
+            const draft = currentDraftSource();
+            const review = currentReviewSource();
+            const prevEvolutions = normalizeList(review.patientRecord?.evolutions);
+            const draftEvolutions = normalizeList(draft.evolutions);
+            const soapData = [...prevEvolutions, ...draftEvolutions].find(evo => normalizeString(evo.type) === 'soap' || normalizeString(evo.note_subjective));
+            const hasSoap = Boolean(soapData && (soapData.note_subjective || soapData.subjective));
+            
+            if (!hasSoap && !draft.evolution_missing) {
+                const modal = document.createElement('div');
+                modal.id = 'soap-required-modal';
+                modal.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);';
+                modal.innerHTML = `
+                    <div style="background:var(--rb-surface, #1e293b); padding:24px; border-radius:12px; width:450px; border:1px solid #f59e0b; color:#fff; display:flex; flex-direction:column; gap:16px;">
+                        <h3 style="margin:0; color:#f59e0b; display:flex; align-items:center; gap:8px;">⚠️ Consulta Incompleta</h3>
+                        <p style="margin:0; font-size:0.95rem; line-height:1.4; color:var(--text-muted, #94a3b8);">Esta consulta no tiene nota de evolución SOAP. ¿Deseas agregar una nota mínima antes de cerrar? (Requerido por el MSP Ecuador)</p>
+                        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+                            <button id="soap-cancel-btn" style="padding:8px 16px; border-radius:6px; border:1px solid var(--admin-border); background:transparent; color:#fff; cursor:pointer;">Cancelar</button>
+                            <button id="close-without-soap-btn" class="close-without-soap" style="padding:8px 16px; border-radius:6px; border:none; background:rgba(245,158,11,0.2); color:#f59e0b; cursor:pointer;">Cerrar como nota libre</button>
+                            <button id="soap-add-btn" style="padding:8px 16px; border-radius:6px; border:none; background:var(--color-aurora-500); color:#000; font-weight:bold; cursor:pointer;">Agregar nota SOAP</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                modal.querySelector('#soap-cancel-btn').onclick = () => modal.remove();
+                modal.querySelector('#soap-add-btn').onclick = () => {
+                    modal.remove();
+                    const draftPanel = document.getElementById('clinicalHistoryDraftForm');
+                    if (draftPanel) draftPanel.scrollIntoView({ behavior: 'smooth' });
+                };
+                modal.querySelector('#close-without-soap-btn').onclick = async () => {
+                    modal.remove();
+                    draft.evolution_missing = true;
+                    updateState(s => {
+                        if (s.clinicalHistory?.draftForm) {
+                            s.clinicalHistory.draftForm.evolution_missing = true;
+                        }
+                        return s;
+                    });
+                    await saveClinicalHistoryReview('approve', '');
+                };
+                return;
+            }
+
             await saveClinicalHistoryReview('approve', '');
             return;
         }

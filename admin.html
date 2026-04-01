@@ -275,11 +275,24 @@
                             <span class="patient-context-pill blue">Turno #A-042</span>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-ghost hide-case-btn" onclick="document.getElementById('activeCaseHeader').style.display='none'">
+                    <button type="button" class="btn btn-ghost hide-case-btn" data-clinical-review-action="attempt-close-case">
                         Cerrar Caso
                     </button>
                     <!-- S38-07: Barra de progreso de la consulta -->
                     <div id="consultation-progress-container" class="consultation-progress" style="width: 100%; margin-top: 12px; display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--admin-border); padding-top: 12px;"></div>
+                    
+                    <!-- S38-08: Modal de Cierre SOAP Required -->
+                    <div id="soap-required-modal" class="glass-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
+                        <div class="glass-card" style="max-width: 400px; padding: 24px; text-align: center; background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+                            <h3 style="margin-bottom: 12px; font-size: 1.25rem;">Evolución Faltante</h3>
+                            <p style="color: var(--admin-text-muted); font-size: 0.9rem; margin-bottom: 24px;">Esta consulta no tiene nota de evolución SOAP. ¿Deseas agregar una nota mínima antes de cerrar? (Requerido por el MSP Ecuador)</p>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('soap-required-modal').style.display='none'; document.getElementById('soapModeContainer')?.scrollIntoView({behavior: 'smooth', block: 'center'})">Agregar nota SOAP</button>
+                                <button type="button" class="btn btn-ghost" data-clinical-review-action="close-without-soap" style="color: var(--color-amber-500);">Cerrar como nota libre</button>
+                                <button type="button" class="btn btn-ghost" onclick="document.getElementById('soap-required-modal').style.display='none'">Cancelar</button>
+                            </div>
+                        </div>
+                    </div>
                 </header>
                 <section id="adminRawControlRoom" data-admin-raw-hero="queue">
                     <p>Consola de control del turnero</p>
