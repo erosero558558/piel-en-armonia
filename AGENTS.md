@@ -1058,7 +1058,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S3-15** `[L]` Formulario de anamnesis — vista en admin: motivo, antecedentes personales/familiares, alergias, medicación, fototipo Fitzpatrick, hábitos (sol, tabaco). `ClinicalHistoryService`.
 - [x] **S3-16** `[L]` Fotografía clínica — captura desde cámara, upload a `CaseMediaFlowService`. Metadata: fecha, zona corporal. Almacenar organizado por paciente/fecha.
-- [x] **S3-17** `[L]` Comparación before/after — en admin: dos fotos side-by-side de misma zona en diferentes fechas. Slider de comparación. Seleccionar fotos del historial del paciente.
+- [ ] **S3-17** `[L]` Comparación before/after — en admin: dos fotos side-by-side de misma zona en diferentes fechas. Slider de comparación. Seleccionar fotos del historial del paciente.
 - [x] **S3-18** `[M]` Plan de tratamiento — template: diagnóstico, tratamientos (con sesiones y costos estimados), frecuencia de seguimiento, metas. Exportar PDF para el paciente.
 - [x] **S3-19** `[M]` Receta digital — datos doctor (MSP), datos paciente, medicamentos (nombre, dosis, frecuencia, duración), indicaciones. PDF con membrete clínico.
 - [ ] **S3-20** `[M]` Evolución clínica — nota por visita: hallazgos, procedimientos, evolución, plan. Append-only. Integrada al timeline del journey. Verificable: echo "OK" -> match.
@@ -1077,7 +1077,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 3.5 Telemedicina
 
 - [x] **S3-29** `[XL]` Flujo completo de teleconsulta — paciente solicita → `TelemedicineIntakeService` evalúa → `TelemedicineSuitabilityEvaluator` decide si es viable → consent digital → cita virtual → seguimiento.
-- [x] **S3-30** `[L]` Vista de teleconsulta — `es/telemedicina/consulta/index.html`: sala de espera virtual, video embed (Jitsi/Daily.co), chat, compartir fotos. Diseño premium. Verificable: echo "OK" -> match.
+- [ ] **S3-30** `[L]` Vista de teleconsulta — `es/telemedicina/consulta/index.html`: sala de espera virtual, video embed (Jitsi/Daily.co), chat, compartir fotos. Diseño premium. Verificable: echo "OK" -> match.
 - [x] **S3-31** `[M]` Triaje por fotos — paciente sube 3 fotos (zona, primer plano, contexto). `TelemedicineIntakeService` las pre-clasifica y adjunta al caso.
 
 #### 3.6 Pagos
@@ -2328,7 +2328,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI5-05** `[M]` `[UI]` Barra de alergias sticky — encima del campo de prescripción: barra fija amber translúcido con alergias del paciente en pills. Verde translúcido si no hay alergias. Nunca en un tab. Verificable: `grep "allergy-bar.*sticky\|allergy.*amber" styles/aurora-clinical.css` → match; `position: sticky` en DOM.
 
-- [ ] **UI5-06** `[L]` `[UI]` Focus Mode de consulta — clase `.focus-mode` en `admin.html` al iniciar consulta: oculta sidebar con `translateX(-100%)` animado, amplía área de trabajo, topbar mínima con nombre + timer. Al salir, sidebar regresa con spring. Verificable: `grep "focus-mode\|consultation.*timer\|sidebar.*hide" js/admin.js` → match.
+- [x] **UI5-06** `[L]` `[UI]` Focus Mode de consulta — clase `.focus-mode` en `admin.html` al iniciar consulta: oculta sidebar con `translateX(-100%)` animado, amplía área de trabajo, topbar mínima con nombre + timer. Al salir, sidebar regresa con spring. Verificable: `grep "focus-mode\|consultation.*timer\|sidebar.*hide" js/admin.js` → match.
 
 - [ ] **UI5-07** `[L]` `[UI]` Timeline de visitas HCE glass — historial del paciente como stepper vertical glass: nodo 40px con fecha, color por tipo (gold=consulta, blue=procedimiento, red=urgencia). Click expande con `max-height spring. Verificable: `grep "hce.*timeline\|visit.*stepper\|episode.*expand" styles/aurora-admin.css` → match.
 

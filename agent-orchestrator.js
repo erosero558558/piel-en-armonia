@@ -16,11 +16,13 @@ const cmd = process.argv[2] || 'status';
 
 const messages = {
   status: () => {
-    const agents = readFileSync(resolve(__dirname, 'AGENTS.md'), 'utf8');
+    const root = __dirname;
+    const agents = readFileSync(resolve(root, 'AGENTS.md'), 'utf8');
     // S14-00 fix: regex unificado igual que dispatch.js — captura S3-09, UI-01, UI2-20, UI3-15, S14-00, etc.
-    const done    = (agents.match(/^- \[x\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/gm) || []).length;
-    const pending = (agents.match(/^- \[ \] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/gm) || []).length;
-    const total   = done + pending;
+    const doneCount = (agents.match(/^- \[x\] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*/gm) || []).length;
+    const pendingLines = agents.match(/^- \[ \] \*\*((?:S\d+|UI\d*)-[A-Z0-9]+)\*\*.+$/gm) || [];
+    const pending = pendingLines.length;
+    const total = doneCount + pending;
 
     // Detect current sprint dynamically — busca el primero con tareas pendientes
     let currentSprint = 'Sprint 3';
@@ -36,16 +38,50 @@ const messages = {
       }
     }
 
+    const { existsSync, readdirSync, statSync } = require('fs');
+
+    let activeClaims = 0;
+    const claimsDir = resolve(root, 'data/claims');
+    if (existsSync(claimsDir)) {
+      activeClaims = readdirSync(claimsDir).filter(f => f.endsWith('.json')).length;
+    }
+
+    let lastAudit = null;
+    const summaryPath = resolve(root, 'governance/qa-summary.json');
+    if (existsSync(summaryPath)) {
+      try {
+        const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+        lastAudit = summary.timestamp || statSync(summaryPath).mtime.toISOString();
+      } catch (e) {}
+    }
+
+    const pendingByLane = {};
+    pendingLines.forEach(line => {
+      const tags = [...line.matchAll(/`\[([a-z_]+)\]`/gi)].map(m => m[1]);
+      const laneTags = tags.filter(t => !['S', 'M', 'L', 'XL'].includes(t.toUpperCase()));
+      if (laneTags.length > 0) {
+        laneTags.forEach(lane => {
+          pendingByLane[lane] = (pendingByLane[lane] || 0) + 1;
+        });
+      } else {
+        pendingByLane['unassigned'] = (pendingByLane['unassigned'] || 0) + 1;
+      }
+    });
+
     console.log(JSON.stringify({
-      source:       'AGENTS.md',
+      source:       'live',
       parsedFrom:   'AGENTS.md',  // S14-00: canonical source, same as claim.js + dispatch.js
-      orchestrator: 'redirect-stub-v3-canonical',
+      orchestrator: 'live',
       message: 'Lee AGENTS.md + usa dispatch por rol para tomar tu tarea.',
+      activeClaims,
+      pendingByLane,
+      doneCount,
+      lastAudit,
       backlog: {
-        done,
+        done: doneCount,
         pending,
         total,
-        percentDone: Math.round((done / total) * 100),
+        percentDone: total > 0 ? Math.round((doneCount / total) * 100) : 0,
         currentSprint,
       },
       roles: {

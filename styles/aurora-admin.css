@@ -314,20 +314,30 @@ details.sidebar-group summary:hover {
   transition: margin var(--transition-normal), border-radius var(--transition-normal);
 }
 
-/* UI5-06: Focus Mode */
+/* UI5-06: Focus Mode Liquid Glass */
 body.focus-mode .admin-sidebar {
-  transform: translateX(-150%);
+  transform: translateX(-100%);
   position: absolute; /* Take out of flow to expand canvas */
   pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* spring ease */
+  opacity: 0;
+}
+
+body .admin-sidebar {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
 }
 
 body.focus-mode .admin-header {
-  height: 48px; /* Topbar mínima */
+  height: 56px; /* Topbar mínima liquid */
 }
 
 body.focus-mode .admin-header .admin-search,
 body.focus-mode .admin-header .admin-stats {
   display: none;
+}
+
+body.focus-mode .admin-header #focusPatientInfo {
+  display: flex !important;
 }
 
 body.focus-mode .admin-content-canvas {
