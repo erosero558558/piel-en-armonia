@@ -799,6 +799,117 @@
                     </div>
                 </section>
 
+                <section id="clinical-history" class="admin-section" data-admin-raw-section="clinical-history">
+                    <div class="dashboard-wrapper">
+                        <header style="margin-bottom: var(--space-4); padding-bottom: 0; border: none;">
+                            <p>Registro Médico Oficial</p>
+                            <h3>Historia Clínica (Evolución SOAP)</h3>
+                            <p>Registre aquí la evolución detallada por cada paciente. La nota es inmutable según la normativa del MSP.</p>
+                        </header>
+                        
+                        <div class="bento-grid" style="grid-template-columns: 1fr; max-width: 800px;">
+                            <article class="bento-card">
+                                <div class="bento-card-title">Nueva Evolución</div>
+                                <form id="formClinicalEvolution" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
+                                    <div style="display: flex; gap: 16px;">
+                                        <div style="flex: 1;">
+                                            <label style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 4px;">ID del Caso (Paciente)</label>
+                                            <input type="text" id="evolutionCaseId" class="input" placeholder="p. ej. pte_1234abcd" required style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 4px;">Tipo de Nota</label>
+                                            <select id="evolutionType" class="input" style="width: 100%;">
+                                                <option value="soap">Evolución SOAP (Estándar)</option>
+                                                <option value="free">Nota Libre / Seguimiento</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="soap-fields">
+                                        <div style="margin-bottom: 12px;">
+                                            <label style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 4px;">S/O: Hallazgos (Subjetivo/Objetivo)</label>
+                                            <textarea id="evolutionFindings" class="input" placeholder="Paciente refiere dolor... Se observa eritema..." rows="3" style="width: 100%; resize: vertical; margin-bottom: 8px;"></textarea>
+                                        </div>
+                                        <div style="margin-bottom: 12px;">
+                                            <label style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 4px;">A: Análisis (Procedimientos / Diagnósticos)</label>
+                                            <textarea id="evolutionProcedures" class="input" placeholder="Se realiza crioterapia..." rows="2" style="width: 100%; resize: vertical; margin-bottom: 8px;"></textarea>
+                                        </div>
+                                        <div style="margin-bottom: 12px;">
+                                            <label style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 4px;">P: Plan (Tratamiento / Indicaciones)</label>
+                                            <textarea id="evolutionPlan" class="input" placeholder="Continuar con isotretinoina..." rows="2" style="width: 100%; resize: vertical; margin-bottom: 8px;"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 4px;">Evolución Completa Consolidada (Opcional o Auto-generada)</label>
+                                        <textarea id="evolutionNote" class="input" placeholder="Escriba aquí la nota principal..." rows="5" required style="width: 100%; resize: vertical;"></textarea>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-top: 16px; border-top: 1px solid var(--admin-border); padding-top: 16px;">
+                                        <span id="evolutionStatusMsg" style="font-size: 0.9rem; color: var(--color-gold-400);"></span>
+                                        <button type="submit" class="btn" id="btnSaveEvolution" style="min-width: 160px;">Firmar Evolución</button>
+                                    </div>
+                                </form>
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', () => {
+                                        const form = document.getElementById('formClinicalEvolution');
+                                        const typeSelect = document.getElementById('evolutionType');
+                                        const soapFields = document.querySelector('.soap-fields');
+                                        const statusMsg = document.getElementById('evolutionStatusMsg');
+                                        
+                                        if(typeSelect && soapFields) {
+                                            typeSelect.addEventListener('change', () => {
+                                                soapFields.style.display = typeSelect.value === 'soap' ? 'block' : 'none';
+                                            });
+                                        }
+
+                                        if(form) {
+                                            form.addEventListener('submit', async (e) => {
+                                                e.preventDefault();
+                                                const btn = document.getElementById('btnSaveEvolution');
+                                                btn.disabled = true;
+                                                statusMsg.textContent = 'Guardando...';
+                                                
+                                                try {
+                                                    const payload = {
+                                                        caseId: document.getElementById('evolutionCaseId').value,
+                                                        type: document.getElementById('evolutionType').value,
+                                                        note: document.getElementById('evolutionNote').value,
+                                                        findings: document.getElementById('evolutionFindings').value,
+                                                        procedures: document.getElementById('evolutionProcedures').value,
+                                                        plan: document.getElementById('evolutionPlan').value
+                                                    };
+                                                    
+                                                    const res = await fetch('/api.php?resource=clinical-evolution', {
+                                                        method: 'POST',
+                                                        headers: {'Content-Type': 'application/json'},
+                                                        body: JSON.stringify(payload)
+                                                    });
+                                                    
+                                                    const data = await res.json();
+                                                    if(data.ok) {
+                                                        statusMsg.style.color = 'var(--admin-primary)';
+                                                        statusMsg.textContent = 'Guardado ' + (data.savedAt || 'con éxito');
+                                                        setTimeout(() => { statusMsg.textContent = ''; form.reset(); }, 3000);
+                                                    } else {
+                                                        statusMsg.style.color = '#ef4444';
+                                                        statusMsg.textContent = data.error || 'Error al guardar';
+                                                    }
+                                                } catch (err) {
+                                                    statusMsg.style.color = '#ef4444';
+                                                    statusMsg.textContent = 'Error de conexión';
+                                                } finally {
+                                                    btn.disabled = false;
+                                                }
+                                            });
+                                        }
+                                    });
+                                </script>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+
                 <section id="dashboard" class="admin-section" data-admin-raw-section="dashboard">
                     <div class="dashboard-wrapper">
                         

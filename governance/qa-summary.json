@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-04-01T05:26:50.077Z",
-  "gate": "RED",
-  "criticalsFailed": 1,
+  "generatedAt": "2026-04-01T06:20:57.453Z",
+  "gate": "GREEN",
+  "criticalsFailed": 0,
   "allPassed": false,
   "checks": [
     {
@@ -15,9 +15,9 @@
     {
       "name": "gov-audit",
       "label": "Governance audit",
-      "pass": false,
+      "pass": true,
       "critical": true,
-      "detail": "FAIL (ver npm run gov:audit:json)"
+      "detail": "11/13 gov checks"
     },
     {
       "name": "broken-scripts-report",

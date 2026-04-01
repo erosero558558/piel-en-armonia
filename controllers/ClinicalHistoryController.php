@@ -68,6 +68,112 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
+    public static function saveEvolution(array $context): void
+    {
+        require_doctor_auth();
+        $payload = require_json_body();
+
+        $caseId     = trim((string) ($payload['caseId'] ?? ''));
+        $note       = trim((string) ($payload['note'] ?? ''));
+        $type       = trim((string) ($payload['type'] ?? 'soap'));
+        $findings   = trim((string) ($payload['findings'] ?? ''));
+        $procedures = trim((string) ($payload['procedures'] ?? ''));
+        $plan       = trim((string) ($payload['plan'] ?? ''));
+
+        if ($caseId === '') {
+            json_response(['ok' => false, 'error' => 'caseId requerido'], 400);
+        }
+
+        if ($note === '') {
+            json_response(['ok' => false, 'error' => 'La nota de la evolucion clinica no puede estar vacia'], 400);
+        }
+
+        $doctorData = doctor_profile_document_fields([
+            'name' => trim((string) ($_SESSION['admin_email'] ?? '')),
+        ]);
+
+        $evolutionRecord = [
+            'id' => 'ev_' . substr(hash('sha256', random_bytes(16)), 0, 16),
+            'caseId' => $caseId,
+            'type' => $type,
+            'note' => $note,
+            'soap' => [
+                'findings' => $findings,
+                'procedures' => $procedures,
+                'plan' => $plan,
+            ],
+            'author' => [
+                'email' => trim((string) ($_SESSION['admin_email'] ?? '')),
+                'name' => $doctorData['name'] ?? '',
+                'specialty' => $doctorData['specialty'] ?? '',
+                'msp' => $doctorData['msp'] ?? '',
+            ],
+            'createdAt' => local_date('c'),
+        ];
+
+        $tenantId = get_current_tenant_id();
+        $casesDir = __DIR__ . '/../data/cases';
+        if (!is_dir($casesDir)) {
+            @mkdir($casesDir, 0750, true);
+        }
+
+        $patientSlug = preg_replace('/[^a-zA-Z0-9_-]/', '', $caseId);
+        $caseDir = $casesDir . DIRECTORY_SEPARATOR . $patientSlug;
+        if (!is_dir($caseDir)) {
+            @mkdir($caseDir, 0750, true);
+        }
+
+        $evolutionsPath = $caseDir . DIRECTORY_SEPARATOR . 'evolutions.jsonl';
+        $entryLine = json_encode($evolutionRecord, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
+        
+        $bytes = @file_put_contents($evolutionsPath, $entryLine, FILE_APPEND | LOCK_EX);
+        if ($bytes === false) {
+            json_response(['ok' => false, 'error' => 'No se pudo almacenar la evolucion clinica en el registro inmutable'], 500);
+        }
+
+        // Emit an event to timeline
+        $now = local_date('c');
+        $lockResult = with_store_lock(static function () use ($caseId, $tenantId, $now, $evolutionRecord): array {
+            $store = read_store();
+            
+            $eventId = 'pte_' . substr(hash('sha1', 'pte|' . microtime(true) . '|' . bin2hex(random_bytes(8))), 0, 16);
+            $store['patient_case_timeline_events'] = isset($store['patient_case_timeline_events']) && is_array($store['patient_case_timeline_events'])
+                ? array_values($store['patient_case_timeline_events'])
+                : [];
+            
+            $store['patient_case_timeline_events'][] = [
+                'id' => $eventId,
+                'tenantId' => $tenantId,
+                'patientCaseId' => $caseId,
+                'type' => 'clinical_evolution_added',
+                'title' => 'Evolución clínica anexada (' . strtoupper($evolutionRecord['type']) . ')',
+                'payload' => [
+                    'evolutionId' => $evolutionRecord['id'],
+                    'author' => $evolutionRecord['author']['name'] ?: $evolutionRecord['author']['email'],
+                ],
+                'createdAt' => $now,
+            ];
+
+            if (isset($store['cases'][$caseId])) {
+                $store['cases'][$caseId]['latestActivityAt'] = $now;
+            } elseif (isset($store['patient_cases'][$caseId])) {
+                $store['patient_cases'][$caseId]['latestActivityAt'] = $now;
+            }
+
+            if (!write_store($store, false)) {
+                return ['ok' => false];
+            }
+            return ['ok' => true];
+        });
+
+        json_response([
+            'ok' => true,
+            'savedAt' => $evolutionRecord['createdAt'],
+            'evolution' => $evolutionRecord,
+            'timeline_updated' => ($lockResult['ok'] ?? false) === true || (($lockResult['result']['ok'] ?? false) === true)
+        ], 201);
+    }
+
     public static function messagePost(array $context): void
     {
         self::requireClinicalStorageReady([
