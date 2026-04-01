@@ -387,7 +387,7 @@
         `;
     }
 
-    async function handleDocumentClick(event) {
+    function handleDocumentClick(event) {
         const trigger = event.target instanceof Element
             ? event.target.closest('[data-portal-document-link], [data-portal-history-export-link]')
             : null;
@@ -395,45 +395,26 @@
             return;
         }
 
-        event.preventDefault();
-
         const session = readSession();
         if (!isFreshSession(session)) {
+            event.preventDefault();
             clearSession();
             redirectToLogin();
             return;
         }
 
-        const token = String(session.token || '').trim();
-        const href = String(trigger.getAttribute('href') || '').trim();
-        const originalLabel = trigger.textContent || 'Descargar PDF';
-        if (!token || !href) {
-            return;
-        }
-
-        trigger.setAttribute('aria-busy', 'true');
-        trigger.textContent = 'Descargando...';
-
-        try {
-            const response = await requestDocument(href, token);
-            if (response.status === 401) {
-                clearSession();
-                redirectToLogin();
-                return;
+        // Si tenemos un token de descarga de 1 un solo uso, lo inyectamos y dejamos que el navegador descargue nativamente.
+        const otpToken = window.auroraPortalDownloadToken || '';
+        if (otpToken) {
+            let href = String(trigger.getAttribute('href') || '').trim();
+            // Evitar duplicaciones de querystring &t=
+            if (href.indexOf('&t=') > -1) {
+                href = href.split('&t=')[0];
             }
-
-            if (!response.ok || !response.blob) {
-                throw new Error('portal_document_download_failed');
+            if (href.indexOf('?resource=') > -1) {
+                trigger.setAttribute('href', href + '&t=' + encodeURIComponent(otpToken));
+                trigger.setAttribute('target', '_blank');
             }
-
-            const fallbackName = String(trigger.getAttribute('download') || 'documento-aurora-derm.pdf').trim();
-            const fileName = parseFilename(response.headers, fallbackName);
-            triggerBlobDownload(response.blob, fileName);
-        } catch (_error) {
-            window.alert('No pudimos descargar el PDF en este momento. Intenta nuevamente en unos segundos.');
-        } finally {
-            trigger.removeAttribute('aria-busy');
-            trigger.textContent = originalLabel;
         }
     }
 
@@ -474,6 +455,8 @@
             const consultations = Array.isArray(data.consultations) ? data.consultations : [];
             const exportInfo =
                 data.export && typeof data.export === 'object' ? data.export : null;
+
+            window.auroraPortalDownloadToken = data.downloadToken || '';
 
             updatePatient(patient);
             hydrateHistoryExport(exportInfo);

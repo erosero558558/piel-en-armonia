@@ -15,6 +15,7 @@ import { bootStaffSection } from '../sections/staff.js';
 import { bootServicesSection } from '../sections/services.js';
 import { bootBrandingSection } from '../sections/branding.js';
 import { bootDomainSection } from '../sections/domain.js';
+import { initSessionInactivityTimer } from '../shared/modules/inactivity.js';
 import { initPushModule } from '../shared/modules/push.js';
 import { focusAgentPrompt } from '../shared/modules/agent.js';
 import {
@@ -153,6 +154,7 @@ export async function bootAdminV3() {
 
     initPushModule();
     initQueueAutoRefresh();
+    initSessionInactivityTimer();
 
     window.setInterval(() => {
         refreshHeaderStatus();

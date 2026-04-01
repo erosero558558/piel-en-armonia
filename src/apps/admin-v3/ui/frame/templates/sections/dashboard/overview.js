@@ -229,6 +229,47 @@ export function renderDashboardOperationsGrid() {
                 <ul id="dashboardClinicalEventFeed" class="sony-list dashboard-attention-list"></ul>
             </article>
 
+            <article class="sony-panel dashboard-card-telemedicine">
+                <header>
+                    <div>
+                        <h3>Ops Telemedicina</h3>
+                        <small id="dashboardTelemedicineMeta">Diagnósticos y embudo de validaciones asincronas.</small>
+                    </div>
+                    <span
+                        class="dashboard-signal-chip"
+                        id="dashboardTelemedicineStatusChip"
+                        data-state="neutral"
+                    >
+                        Pendiente
+                    </span>
+                </header>
+                <div class="sony-panel-stats">
+                    <div><span>Staging</span><strong id="telemedicineStagingCount">0</strong></div>
+                    <div><span>Cola AI</span><strong id="telemedicinePhotoAiPendingCount">0</strong></div>
+                    <div><span>Urgencias AI</span><strong id="telemedicinePhotoAiUrgencyCount">0</strong></div>
+                    <div><span>Revisiones</span><strong id="telemedicinePendingEvalsCount">0</strong></div>
+                </div>
+                <p id="dashboardTelemedicineSummary">
+                    Los indicadores de staging, suitability y colas telemed aparecerán aquí para control del estado de la rampa operativa.
+                </p>
+                <div class="dashboard-signal-stack">
+                    <article class="dashboard-signal-card">
+                        <span>Score Suitability</span>
+                        <strong id="telemedicineSuitabilityScoreHeadline">Sin datos</strong>
+                        <small id="telemedicineSuitabilityScoreMeta">
+                            Proporción de solicitudes asíncronas calificadas como aptas o para revisión directa.
+                        </small>
+                    </article>
+                    <article class="dashboard-signal-card">
+                        <span>Salud del funnel</span>
+                        <strong id="telemedicineIntegrityHeadline">Pendiente de lectura</strong>
+                        <small id="telemedicineIntegrityMeta">
+                            Monitorea fotos pendientes de ruta privada y orfandad de intakes.
+                        </small>
+                    </article>
+                </div>
+            </article>
+
             <article class="sony-panel dashboard-card-reputation">
                 <header>
                     <div>

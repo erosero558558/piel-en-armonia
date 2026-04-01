@@ -283,7 +283,60 @@ final class PatientPortalAuth
             ],
         ];
     }
+    public static function authenticateDownloadToken(array $store, string $token): array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return self::error('Token de descarga requerido.', 401, 'patient_portal_download_token_required');
+        }
 
+        $claims = self::decodeJwt($token);
+        if ($claims === []) {
+            return self::error('Enlace de descarga caducado o inválido.', 401, 'patient_portal_download_token_invalid');
+        }
+
+        if (($claims['scope'] ?? '') !== 'document_download') {
+            return self::error('El token no permite descarga.', 403, 'patient_portal_download_token_scope');
+        }
+
+        $snapshot = self::resolvePatientSnapshot($store, (string) ($claims['phone'] ?? ''));
+        if ($snapshot === []) {
+            return self::error('Paciente no encontrado.', 404, 'patient_portal_download_patient_missing');
+        }
+
+        return [
+            'ok' => true,
+            'data' => [
+                'claims' => $claims,
+                'patient' => self::publicPatientPayload($snapshot),
+                'snapshot' => $snapshot,
+            ],
+        ];
+    }
+
+    public static function generateDownloadToken(array $sessionData): string
+    {
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        if ($snapshot === []) {
+            return '';
+        }
+
+        $issuedAt = time();
+        $expiresAtTs = $issuedAt + 3600; // 1h TTL
+        $claims = [
+            'iss' => self::issuer(),
+            'aud' => self::JWT_AUDIENCE,
+            'sub' => (string) ($snapshot['subject'] ?? ''),
+            'iat' => $issuedAt,
+            'exp' => $expiresAtTs,
+            'phone' => (string) ($snapshot['phone'] ?? ''),
+            'patient_id' => (string) ($snapshot['patientId'] ?? ''),
+            'scope' => 'document_download',
+            'jti' => bin2hex(random_bytes(16)), // One-time token identifier
+        ];
+
+        return self::encodeJwt($claims);
+    }
     public static function matchesPatientPhone(string $left, string $right): bool
     {
         return self::phonesMatch($left, $right);

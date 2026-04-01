@@ -188,6 +188,7 @@ final class PatientPortalController
             'data' => [
                 'authenticated' => true,
                 'patient' => $patient,
+                'downloadToken' => PatientPortalAuth::generateDownloadToken($sessionData),
                 'consultations' => $consultations,
                 'export' => self::buildHistoryExportSummary($snapshot, $patient, $consultations),
                 'generatedAt' => local_date('c'),
@@ -744,12 +745,22 @@ final class PatientPortalController
     public static function document(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
-        $session = PatientPortalAuth::authenticateSession(
-            $store,
-            PatientPortalAuth::bearerTokenFromRequest()
-        );
+        $bearer = PatientPortalAuth::bearerTokenFromRequest();
+        $getSession = function() use ($store, $bearer) {
+            if ($bearer === '' && isset($_GET['t']) && is_string($_GET['t'])) {
+                return PatientPortalAuth::authenticateDownloadToken($store, trim($_GET['t']));
+            }
+            return PatientPortalAuth::authenticateSession($store, $bearer);
+        };
+
+        $session = $getSession();
 
         if (($session['ok'] ?? false) !== true) {
+            if ($bearer === '' && isset($_GET['t'])) {
+                // Return a friendly HTML error since it's a direct browser redirect
+                echo "Enlace de descarga caducado o inválido.";
+                exit;
+            }
             self::emit($session);
             return;
         }
@@ -3204,7 +3215,7 @@ final class PatientPortalController
         return false;
     }
 
-    private static function buildPortalDocumentPayload(string $type, ?array $document, bool $pending): array
+    private static function buildPortalDocumentPayload(string $type, ?array $document, bool $pending, string $downloadToken = ''): array
     {
         $title = $type === 'prescription' ? 'Receta médica' : 'Certificado médico';
 
@@ -3227,7 +3238,8 @@ final class PatientPortalController
                 'downloadUrl' => '/api.php?resource=patient-portal-document&type='
                     . rawurlencode($type)
                     . '&id='
-                    . rawurlencode($documentId),
+                    . rawurlencode($documentId)
+                    . ($downloadToken !== '' ? '&t=' . rawurlencode($downloadToken) : ''),
                 'fileName' => $type === 'prescription'
                     ? self::buildPrescriptionFileName($documentId)
                     : self::buildCertificateFileName($document, $documentId),
