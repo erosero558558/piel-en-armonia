@@ -1,0 +1,127 @@
+---
+import '../../styles/public-v6/software.css';
+import PageHeadV6 from './PageHeadV6.astro';
+
+const { page = {}, locale = 'es', navModel = {} } = Astro.props;
+
+const pageHeadUi =
+    navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object'
+        ? navModel.ui.pageHead
+        : {};
+const breadcrumb = Array.isArray(page?.breadcrumb) ? page.breadcrumb : [];
+const hero = page?.hero && typeof page.hero === 'object' ? page.hero : {};
+const blocks = page?.blocks && typeof page.blocks === 'object' ? page.blocks : {};
+const finalCta = page?.finalCta && typeof page.finalCta === 'object' ? page.finalCta : {};
+const switchLabel = navModel?.header?.switchLabel || '';
+const switchHref = navModel?.header?.switchHref || '#';
+const menuLabel = navModel?.header?.menuLabel || '';
+
+const heroActions = Array.isArray(hero.actions) ? hero.actions : [];
+const heroMetrics = Array.isArray(hero.metrics) ? hero.metrics : [];
+const blockCards = Array.isArray(blocks.cards) ? blocks.cards : [];
+const finalActions = Array.isArray(finalCta.actions) ? finalCta.actions : [];
+
+const actionClass = (variant = 'secondary') => [
+    'v6-suite-action',
+    variant === 'primary' ? 'is-primary' : variant === 'ghost' ? 'is-ghost' : 'is-secondary',
+];
+---
+
+<PageHeadV6
+    breadcrumb={breadcrumb}
+    heading={page.heading || page.title}
+    locale={locale}
+    switchLabel={switchLabel}
+    switchHref={switchHref}
+    menuLabel={menuLabel}
+    copy={pageHeadUi}
+/>
+
+<section class="v6-suite-hero" data-v6-suite-case="hero">
+    <div class="v6-suite-shell v6-suite-hero__shell">
+        <div class="v6-suite-hero__copy">
+            {hero.eyebrow ? <p class="v6-suite-eyebrow">{hero.eyebrow}</p> : null}
+            {hero.title ? <h2>{hero.title}</h2> : null}
+            {hero.deck ? <p class="v6-suite-lead">{hero.deck}</p> : null}
+
+            {
+                heroActions.length ? (
+                    <div class="v6-suite-actions">
+                        {heroActions.map((action) => (
+                            <a class:list={actionClass(action.variant)} href={action.href} data-commercial-cta={action.commercialCta}>
+                                {action.label}
+                            </a>
+                        ))}
+                    </div>
+                ) : null
+            }
+        </div>
+        
+        <div class="v6-suite-hero__stage">
+            <div class="v6-suite-hero__board">
+                {
+                    heroMetrics.length ? (
+                        <div class="v6-suite-metrics">
+                            {heroMetrics.map((metric) => (
+                                <article class="v6-suite-metric">
+                                    <strong>{metric.value}</strong>
+                                    <h3>{metric.label}</h3>
+                                    {metric.detail ? <p>{metric.detail}</p> : null}
+                                </article>
+                            ))}
+                        </div>
+                    ) : null
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+{
+    blockCards.length ? (
+        <section class="v6-suite-focus-band" data-v6-suite-case="blocks">
+            <div class="v6-suite-shell">
+                <div class="v6-suite-focus">
+                    <header class="v6-suite-section__head v6-suite-focus__head">
+                        {blocks.eyebrow ? <p>{blocks.eyebrow}</p> : null}
+                        {blocks.title ? <h2>{blocks.title}</h2> : null}
+                        {blocks.deck ? <span>{blocks.deck}</span> : null}
+                    </header>
+
+                    <div class="v6-suite-focus__grid">
+                        {blockCards.map((card, index) => (
+                            <article class="v6-suite-focus-card">
+                                <h3>{card.title}</h3>
+                                {card.copy ? <span>{card.copy}</span> : null}
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </section>
+    ) : null
+}
+
+{
+    finalCta.title ? (
+        <section class="v6-suite-final is-commercial" data-v6-suite-case="final">
+            <div class="v6-suite-shell v6-suite-final__shell">
+                <div>
+                    <h2>{finalCta.title}</h2>
+                    {finalCta.deck ? <p>{finalCta.deck}</p> : null}
+                </div>
+                {
+                    finalActions.length ? (
+                        <div class="v6-suite-actions">
+                            {finalActions.map((action) => (
+                                <a class:list={actionClass(action.variant)} href={action.href} data-commercial-cta={action.commercialCta}>
+                                    {action.label}
+                                </a>
+                            ))}
+                        </div>
+                    ) : null
+                }
+            </div>
+        </section>
+    ) : null
+}
