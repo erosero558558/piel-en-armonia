@@ -1,54 +1,180 @@
 /* 
-   UI4-15: Liquid Glass Blog Overhaul
-   This defines the core components for the Blog's Liquid Glass reading experience.
-*/
+ * Aurora Derm Blog Theme (Liquid Glass V6)
+ * UI3-20 Implementation
+ */
 
-/* 1. Glass Table of Contents (TOC) */
-.lg-surface.v6-blog-toc {
-    position: sticky;
-    top: 140px;
-    border-radius: 20px;
-    padding: 24px;
-    margin-bottom: 30px;
-    /* Uses lg-surface mixins defined natively in the global token space */
+/* 1. Typography */
+.v6-blog-article-stream h1,
+.v6-corp-head h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2.5rem;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--reborn-color-chalk-white, #ffffff);
+  margin-bottom: var(--space-6, 1.5rem);
 }
 
-/* 2. Glass Callouts / Quotes */
-.v6-blog-callout.glass-callout {
-    position: relative;
-    border-radius: 16px;
-    padding: 24px 30px;
-    margin: 32px 0;
-    border-left: 4px solid var(--reborn-color-aurora-gold, #c7a36d);
-    /* Injected into the prose context to blur the background under heavy text */
+.v6-blog-article-stream p,
+.v6-blog-article-section__prose p {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--reborn-color-pale-white, #dbe3edc2);
+  margin-bottom: var(--space-6, 1.5rem);
 }
 
-.v6-blog-callout.lg-surface--dark {
-    color: rgba(255, 255, 255, 0.9);
+.v6-blog-article-stream h2 {
+  font-family: var(--reborn-font-display, 'Inter');
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--reborn-color-chalk-white, #ffffff);
+  margin: var(--space-8, 2rem) 0 var(--space-4, 1rem);
 }
 
-.v6-blog-callout.lg-surface--dark strong,
-.v6-blog-callout.lg-surface--dark h3 {
-    color: var(--reborn-color-aurora-gold, #c7a36d);
-    margin-bottom: 12px;
-    font-size: 1.1em;
-}
-
-/* 3. Reading Progress Bar */
+/* 2. Reading Progress Bar */
 .v6-blog-progress-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: transparent;
-    z-index: 1000;
-    pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  z-index: 9999;
 }
 
-.v6-blog-progress.lg-surface--gold {
-    height: 100%;
-    width: 0%;
-    border-radius: 0 4px 4px 0;
-    transition: width 0.1s ease-out;
+.v6-blog-progress {
+  height: 100%;
+  width: 0%;
+  background: var(--color-gold-500, #d4af37);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+  transition: width 0.1s ease-out;
+}
+
+/* 3. Sticky TOC (Table of Contents) */
+/* The layout uses .v6-internal-shell for the grid */
+.v6-blog-article-shell {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+@media (max-width: 1024px) {
+  .v6-blog-article-shell {
+    grid-template-columns: 1fr;
+  }
+  .v6-blog-toc {
+    display: none; /* Mobile hides TOC or renders it differently */
+  }
+}
+
+.v6-blog-toc {
+  position: sticky;
+  top: 100px; /* Offset below header */
+  height: max-content;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
+  order: 2; /* Move to right side */
+}
+
+.v6-blog-toc p {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--color-gold-400, #fbbf24);
+  margin-bottom: 16px;
+}
+
+.v6-blog-toc nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.v6-blog-toc a {
+  color: var(--reborn-color-pale-white, #dbe3edc2);
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 1.4;
+  transition: color 0.2s ease;
+}
+
+.v6-blog-toc a:hover {
+  color: var(--color-gold-400, #fbbf24);
+}
+
+/* Base Body positioning to ensure order matches layout */
+.v6-internal-shell__body {
+  order: 1;
+}
+
+/* 4. Images with Caption */
+figure.blog-image-wrapper {
+  margin: 48px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--reborn-color-oled-black, #050810);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+figure.blog-image-wrapper img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+figure.blog-image-wrapper figcaption {
+  padding: 16px 24px;
+  font-size: 14px;
+  color: var(--reborn-color-pale-white, #dbe3edc2);
+  font-style: italic;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* 5. Callouts (.callout--info, .callout--warning) */
+.callout {
+  padding: 24px;
+  border-radius: 12px;
+  margin: 32px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  border-left: 4px solid transparent;
+}
+
+.callout--info {
+  background: rgba(56, 189, 248, 0.05); /* Light blue tint */
+  border-left-color: #38bdf8;
+  color: #e0f2fe;
+}
+
+.callout--warning {
+  background: rgba(251, 191, 36, 0.05); /* Gold / Amber tint */
+  border-left-color: #fbbf24;
+  color: #fef3c7;
+}
+
+/* 6. Code block (Midnight) */
+.blog-code-container {
+  background-color: #0f172a; /* Midnight / Slate 900 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 32px 0;
+  overflow-x: auto;
+}
+
+.blog-code-container code {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  color: #e2e8f0;
+  line-height: 1.6;
 }

@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 8:10:57 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 8:14:17 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -272,13 +272,13 @@ _Esperando que Sprint anterior esté completo. 65 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S29-08** `[S29]` → _Antigravity_ (expira en 102min)
-- **S29-11** `[S29]` → _Antigravity_ (expira en 347min)
-- **S29-12** `[S29]` → _Antigravity_ (expira en 107min)
-- **S29-13** `[S29]` → _Antigravity_ (expira en 149min)
-- **S29-14** `[S29]` → _Antigravity_ (expira en 29min)
-- **S29-15** `[S29]` → _Antigravity_ (expira en 149min)
-- **S29-16** `[S29]` → _Antigravity_ (expira en 149min)
+- **S29-08** `[S29]` → _Antigravity_ (expira en 98min)
+- **S29-11** `[S29]` → _Antigravity_ (expira en 344min)
+- **S29-12** `[S29]` → _Antigravity_ (expira en 104min)
+- **S29-13** `[S29]` → _Antigravity_ (expira en 145min)
+- **S29-14** `[S29]` → _Antigravity_ (expira en 25min)
+- **S29-15** `[S29]` → _Antigravity_ (expira en 145min)
+- **S29-16** `[S29]` → _Antigravity_ (expira en 145min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

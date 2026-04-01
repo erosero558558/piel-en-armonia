@@ -195,28 +195,28 @@ const CLINICAL_HISTORY_CERTIFICATE_ISSUED_EVENT = 'aurora:certificate-issued';
 let scheduledAutoSelection = '';
 let clinicalHistoryCertificateBridgeBound = false;
 
-function normalizeString(value) {
+export function normalizeString(value) {
     return String(value || '').trim();
 }
 
-function normalizeList(value) {
+export function normalizeList(value) {
     return Array.isArray(value) ? value : [];
 }
 
-function normalizeStringList(value) {
+export function normalizeStringList(value) {
     return normalizeList(value)
         .map((item) => normalizeString(item))
         .filter(Boolean);
 }
 
-function normalizeFitzpatrickValue(value) {
+export function normalizeFitzpatrickValue(value) {
     const normalized = normalizeString(value).toUpperCase();
     return ['I', 'II', 'III', 'IV', 'V', 'VI'].includes(normalized)
         ? normalized
         : '';
 }
 
-function buildLegacyAntecedentesSummary(personales, familiares, legacy = '') {
+export function buildLegacyAntecedentesSummary(personales, familiares, legacy = '') {
     const legacyValue = normalizeString(legacy);
     const personalesValue = normalizeString(personales);
     const familiaresValue = normalizeString(familiares);
@@ -237,7 +237,7 @@ function buildLegacyAntecedentesSummary(personales, familiares, legacy = '') {
     ].join('\n');
 }
 
-function buildLegacyHabitosSummary(sol, tabaco, legacy = '') {
+export function buildLegacyHabitosSummary(sol, tabaco, legacy = '') {
     const legacyValue = normalizeString(legacy);
     const sunValue = normalizeString(sol);
     const tobaccoValue = normalizeString(tabaco);
@@ -255,7 +255,7 @@ function buildLegacyHabitosSummary(sol, tabaco, legacy = '') {
     return [`Sol: ${sunValue}`, `Tabaco: ${tobaccoValue}`].join('\n');
 }
 
-function normalizeAnamnesisFields(intakeSource) {
+export function normalizeAnamnesisFields(intakeSource) {
     const source =
         intakeSource && typeof intakeSource === 'object' ? intakeSource : {};
     const legacyAntecedentes = normalizeString(source.antecedentes);
@@ -289,7 +289,7 @@ function normalizeAnamnesisFields(intakeSource) {
     };
 }
 
-function normalizeTextareaList(value) {
+export function normalizeTextareaList(value) {
     if (Array.isArray(value)) {
         return normalizeStringList(value);
     }
@@ -300,7 +300,7 @@ function normalizeTextareaList(value) {
         .filter(Boolean);
 }
 
-function formatTextareaList(value) {
+export function formatTextareaList(value) {
     return normalizeStringList(value).join('\n');
 }
 
@@ -309,36 +309,34 @@ export function normalizeClinicalHistoryWorkspace(value) {
     return normalized === 'media-flow' ? 'media-flow' : 'review';
 }
 
-function normalizeClinicalQueueFilter(value) {
+export function normalizeClinicalQueueFilter(value) {
     const normalized = normalizeString(value).toLowerCase();
     return CLINICAL_HISTORY_QUEUE_FILTERS.includes(normalized)
         ? normalized
         : 'all';
 }
 
-function readWorkspaceQuery() {
+export function readWorkspaceQuery() {
     const raw = normalizeString(
         getQueryParam(CLINICAL_HISTORY_WORKSPACE_QUERY_PARAM)
     );
     return raw ? normalizeClinicalHistoryWorkspace(raw) : '';
 }
 
-function hasClinicalMediaFlowCases(state = getState()) {
-    return normalizeList(state?.data?.mediaFlowMeta?.queue).length > 0;
-}
 
-function availableClinicalHistoryWorkspaces(state = getState()) {
+
+export function availableClinicalHistoryWorkspaces(state = getState()) {
     return CLINICAL_HISTORY_WORKSPACE_OPTIONS.filter(({ workspace }) =>
         workspace === 'media-flow' ? hasClinicalMediaFlowCases(state) : true
     );
 }
 
-function normalizeNumber(value) {
+export function normalizeNumber(value) {
     const parsed = Number(value || 0);
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function normalizeNullableInt(value) {
+export function normalizeNullableInt(value) {
     if (value === '' || value === null || value === undefined) {
         return null;
     }
@@ -351,7 +349,7 @@ function normalizeNullableInt(value) {
     return Math.max(0, Math.round(parsed));
 }
 
-function normalizeNullableFloat(value) {
+export function normalizeNullableFloat(value) {
     if (value === '' || value === null || value === undefined) {
         return null;
     }
@@ -364,7 +362,7 @@ function normalizeNullableFloat(value) {
     return Math.max(0, Number(parsed));
 }
 
-function cloneValue(value) {
+export function cloneValue(value) {
     if (typeof structuredClone === 'function') {
         return structuredClone(value);
     }
@@ -372,31 +370,11 @@ function cloneValue(value) {
     return JSON.parse(JSON.stringify(value));
 }
 
-function emptyPosology() {
-    return {
-        texto: '',
-        baseCalculo: '',
-        pesoKg: null,
-        edadAnios: null,
-        units: '',
-        ambiguous: true,
-    };
-}
 
-function emptyPrescriptionItem() {
-    return {
-        medication: '',
-        presentation: '',
-        dose: '',
-        route: '',
-        frequency: '',
-        duration: '',
-        quantity: '',
-        instructions: '',
-    };
-}
 
-function emptyHcu005() {
+
+
+export function emptyHcu005() {
     return {
         evolutionNote: '',
         diagnosticImpression: '',
@@ -406,104 +384,11 @@ function emptyHcu005() {
     };
 }
 
-function emptyConsentPacket() {
-    return {
-        packetId: '',
-        templateKey: 'generic',
-        sourceMode: '',
-        title: 'Consentimiento informado HCU-form.024/2008',
-        procedureKey: 'generic',
-        procedureLabel: 'Consentimiento genérico',
-        status: 'draft',
-        writtenRequired: true,
-        careMode: 'ambulatorio',
-        serviceLabel: '',
-        establishmentLabel: '',
-        patientName: '',
-        patientDocumentNumber: '',
-        patientRecordId: '',
-        encounterDateTime: '',
-        diagnosisLabel: '',
-        diagnosisCie10: '',
-        procedureName: '',
-        procedureWhatIsIt: '',
-        procedureHowItIsDone: '',
-        durationEstimate: '',
-        graphicRef: '',
-        benefits: '',
-        frequentRisks: '',
-        rareSeriousRisks: '',
-        patientSpecificRisks: '',
-        alternatives: '',
-        postProcedureCare: '',
-        noProcedureConsequences: '',
-        privateCommunicationConfirmed: false,
-        companionShareAuthorized: false,
-        declaration: {
-            declaredAt: '',
-            patientCanConsent: true,
-            capacityAssessment: '',
-            notes: '',
-        },
-        denial: {
-            declinedAt: '',
-            reason: '',
-            patientRefusedSignature: false,
-            notes: '',
-        },
-        revocation: {
-            revokedAt: '',
-            receivedBy: '',
-            reason: '',
-            notes: '',
-        },
-        patientAttestation: {
-            name: '',
-            documentNumber: '',
-            signedAt: '',
-            refusedSignature: false,
-        },
-        representativeAttestation: {
-            name: '',
-            kinship: '',
-            documentNumber: '',
-            phone: '',
-            signedAt: '',
-        },
-        professionalAttestation: {
-            name: '',
-            role: 'medico_tratante',
-            documentNumber: '',
-            signedAt: '',
-        },
-        anesthesiologistAttestation: {
-            applicable: false,
-            name: '',
-            documentNumber: '',
-            signedAt: '',
-        },
-        witnessAttestation: {
-            name: '',
-            documentNumber: '',
-            phone: '',
-            signedAt: '',
-        },
-        history: [],
-        createdAt: '',
-        updatedAt: '',
-    };
-}
 
-function emptyConsentFormSnapshot() {
-    return {
-        snapshotId: '',
-        finalizedAt: '',
-        snapshotAt: '',
-        ...emptyConsentPacket(),
-    };
-}
 
-function emptyInterconsultationDiagnosis(type = 'pre') {
+
+
+export function emptyInterconsultationDiagnosis(type = 'pre') {
     return {
         type,
         label: '',
@@ -511,7 +396,7 @@ function emptyInterconsultationDiagnosis(type = 'pre') {
     };
 }
 
-function emptyInterconsultReport() {
+export function emptyInterconsultReport() {
     return {
         status: 'not_received',
         reportedAt: '',
@@ -535,45 +420,9 @@ function emptyInterconsultReport() {
     };
 }
 
-function emptyInterconsultation() {
-    return {
-        interconsultId: '',
-        status: 'draft',
-        reportStatus: 'not_received',
-        requiredForCurrentPlan: false,
-        priority: 'normal',
-        requestedAt: '',
-        requestingEstablishment: '',
-        requestingService: '',
-        destinationEstablishment: '',
-        destinationService: '',
-        consultedProfessionalName: '',
-        patientName: '',
-        patientDocumentNumber: '',
-        patientRecordId: '',
-        patientAgeYears: null,
-        patientSexAtBirth: '',
-        clinicalPicture: '',
-        requestReason: '',
-        diagnoses: [
-            emptyInterconsultationDiagnosis('pre'),
-            emptyInterconsultationDiagnosis('def'),
-        ],
-        performedDiagnosticsSummary: '',
-        therapeuticMeasuresDone: '',
-        questionForConsultant: '',
-        issuedBy: '',
-        issuedAt: '',
-        cancelledAt: '',
-        cancelReason: '',
-        report: emptyInterconsultReport(),
-        history: [],
-        createdAt: '',
-        updatedAt: '',
-    };
-}
 
-function emptyInterconsultFormSnapshot() {
+
+export function emptyInterconsultFormSnapshot() {
     return {
         snapshotId: '',
         finalizedAt: '',
@@ -582,7 +431,7 @@ function emptyInterconsultFormSnapshot() {
     };
 }
 
-function emptyInterconsultReportSnapshot() {
+export function emptyInterconsultReportSnapshot() {
     return {
         snapshotId: '',
         interconsultId: '',
@@ -597,50 +446,9 @@ function emptyInterconsultReportSnapshot() {
     };
 }
 
-function emptyLabOrder() {
-    return {
-        labOrderId: '',
-        status: 'draft',
-        requiredForCurrentPlan: false,
-        priority: 'routine',
-        requestedAt: '',
-        sampleDate: '',
-        requestingEstablishment: '',
-        requestingService: '',
-        careSite: '',
-        bedLabel: '',
-        requestedBy: '',
-        patientName: '',
-        patientDocumentNumber: '',
-        patientRecordId: '',
-        patientAgeYears: null,
-        patientSexAtBirth: '',
-        diagnoses: [
-            emptyInterconsultationDiagnosis('pre'),
-            emptyInterconsultationDiagnosis('def'),
-        ],
-        studySelections: {
-            hematology: [],
-            urinalysis: [],
-            coprological: [],
-            bloodChemistry: [],
-            serology: [],
-            bacteriology: [],
-            others: '',
-        },
-        bacteriologySampleSource: '',
-        physicianPresentAtExam: false,
-        notes: '',
-        issuedAt: '',
-        cancelledAt: '',
-        cancelReason: '',
-        history: [],
-        createdAt: '',
-        updatedAt: '',
-    };
-}
 
-function emptyLabOrderSnapshot() {
+
+export function emptyLabOrderSnapshot() {
     return {
         snapshotId: '',
         finalizedAt: '',
@@ -649,75 +457,9 @@ function emptyLabOrderSnapshot() {
     };
 }
 
-function emptyImagingOrder() {
-    return {
-        imagingOrderId: '',
-        status: 'draft',
-        resultStatus: 'not_received',
-        requiredForCurrentPlan: false,
-        priority: 'routine',
-        requestedAt: '',
-        studyDate: '',
-        requestingEstablishment: '',
-        requestingService: '',
-        careSite: '',
-        bedLabel: '',
-        requestedBy: '',
-        patientName: '',
-        patientDocumentNumber: '',
-        patientRecordId: '',
-        patientAgeYears: null,
-        patientSexAtBirth: '',
-        diagnoses: [
-            emptyInterconsultationDiagnosis('pre'),
-            emptyInterconsultationDiagnosis('def'),
-        ],
-        studySelections: {
-            conventionalRadiography: [],
-            tomography: [],
-            magneticResonance: [],
-            ultrasound: [],
-            procedures: [],
-            others: [],
-        },
-        requestReason: '',
-        clinicalSummary: '',
-        canMobilize: false,
-        canRemoveDressingsOrCasts: false,
-        physicianPresentAtExam: false,
-        bedsideRadiography: false,
-        notes: '',
-        issuedAt: '',
-        cancelledAt: '',
-        cancelReason: '',
-        result: {
-            status: 'not_received',
-            reportedAt: '',
-            reportedBy: '',
-            receivedBy: '',
-            reportingEstablishment: '',
-            reportingService: '',
-            radiologistProfessionalName: '',
-            radiologistProfessionalRole: '',
-            studyPerformedSummary: '',
-            findings: '',
-            diagnosticImpression: '',
-            recommendations: '',
-            followUpIndications: '',
-            sourceDocumentType: '',
-            sourceReference: '',
-            attachments: [],
-            history: [],
-            createdAt: '',
-            updatedAt: '',
-        },
-        history: [],
-        createdAt: '',
-        updatedAt: '',
-    };
-}
 
-function emptyImagingOrderSnapshot() {
+
+export function emptyImagingOrderSnapshot() {
     return {
         snapshotId: '',
         finalizedAt: '',
@@ -726,7 +468,7 @@ function emptyImagingOrderSnapshot() {
     };
 }
 
-function emptyImagingReport() {
+export function emptyImagingReport() {
     return {
         status: 'not_received',
         reportedAt: '',
@@ -750,7 +492,7 @@ function emptyImagingReport() {
     };
 }
 
-function emptyImagingReportSnapshot() {
+export function emptyImagingReportSnapshot() {
     return {
         snapshotId: '',
         imagingOrderId: '',
@@ -771,7 +513,7 @@ function emptyImagingReportSnapshot() {
     };
 }
 
-function emptyAdmission001() {
+export function emptyAdmission001() {
     return {
         identity: {
             documentType: 'cedula',
@@ -826,7 +568,7 @@ function emptyAdmission001() {
     };
 }
 
-function emptyDraft() {
+export function emptyDraft() {
     return {
         sessionId: '',
         caseId: '',
@@ -977,7 +719,7 @@ function emptyDraft() {
     };
 }
 
-function emptyReview() {
+export function emptyReview() {
     return {
         caseId: '',
         patientRecordId: '',
@@ -1055,7 +797,7 @@ function emptyReview() {
     };
 }
 
-function normalizePatient(patient) {
+export function normalizePatient(patient) {
     const source = patient && typeof patient === 'object' ? patient : {};
     return {
         name: normalizeString(source.name || source.fullName),
@@ -1077,7 +819,7 @@ function normalizePatient(patient) {
     };
 }
 
-function normalizeTranscriptMessage(message) {
+export function normalizeTranscriptMessage(message) {
     const source = message && typeof message === 'object' ? message : {};
     return {
         id: normalizeString(source.id),
@@ -1091,7 +833,7 @@ function normalizeTranscriptMessage(message) {
     };
 }
 
-function normalizeAttachment(attachment) {
+export function normalizeAttachment(attachment) {
     const source =
         attachment && typeof attachment === 'object' ? attachment : {};
     return {
@@ -1105,48 +847,19 @@ function normalizeAttachment(attachment) {
     };
 }
 
-function normalizeAttachmentList(items) {
+export function normalizeAttachmentList(items) {
     return normalizeList(items).map(normalizeAttachment);
 }
 
-function normalizePosology(posology) {
-    const source = posology && typeof posology === 'object' ? posology : {};
-    return {
-        texto: normalizeString(source.texto),
-        baseCalculo: normalizeString(source.baseCalculo),
-        pesoKg: normalizeNullableFloat(source.pesoKg),
-        edadAnios: normalizeNullableInt(source.edadAnios),
-        units: normalizeString(source.units),
-        ambiguous:
-            source.ambiguous === undefined ? true : source.ambiguous === true,
-    };
-}
 
-function normalizePrescriptionItem(item) {
-    const source = item && typeof item === 'object' ? item : {};
-    return {
-        medication: normalizeString(source.medication),
-        presentation: normalizeString(source.presentation),
-        dose: normalizeString(source.dose),
-        route: normalizeString(source.route),
-        frequency: normalizeString(source.frequency),
-        duration: normalizeString(source.duration),
-        quantity: normalizeString(source.quantity),
-        instructions: normalizeString(source.instructions),
-    };
-}
 
-function normalizePrescriptionItems(items) {
-    return normalizeList(items).map(normalizePrescriptionItem);
-}
 
-function prescriptionItemStarted(item) {
-    return Object.values(normalizePrescriptionItem(item)).some(
-        (value) => normalizeString(value) !== ''
-    );
-}
 
-function normalizeHcu005(source, fallback = {}) {
+
+
+
+
+export function normalizeHcu005(source, fallback = {}) {
     const defaults = emptyHcu005();
     const safeSource = source && typeof source === 'object' ? source : {};
     const safeFallback =
@@ -1174,7 +887,7 @@ function normalizeHcu005(source, fallback = {}) {
     };
 }
 
-function normalizeAdmissionHistoryItem(item) {
+export function normalizeAdmissionHistoryItem(item) {
     const source = item && typeof item === 'object' ? item : {};
     return {
         entryId: normalizeString(source.entryId || source.id),
@@ -1187,7 +900,7 @@ function normalizeAdmissionHistoryItem(item) {
     };
 }
 
-function normalizeAdmissionChangeItem(item) {
+export function normalizeAdmissionChangeItem(item) {
     const source = item && typeof item === 'object' ? item : {};
     return {
         changeId: normalizeString(source.changeId || source.id),
@@ -1199,7 +912,7 @@ function normalizeAdmissionChangeItem(item) {
     };
 }
 
-function buildAdmissionLegalName(admission, fallbackPatient = {}) {
+export function buildAdmissionLegalName(admission, fallbackPatient = {}) {
     const normalized = normalizeAdmission001(admission, fallbackPatient);
     const identity = normalized.identity;
     const legalName = [
@@ -1214,7 +927,7 @@ function buildAdmissionLegalName(admission, fallbackPatient = {}) {
     return legalName || normalizeString(fallbackPatient.name);
 }
 
-function normalizeAdmission001(
+export function normalizeAdmission001(
     source,
     fallbackPatient = {},
     fallbackIntake = {}
@@ -1351,7 +1064,7 @@ function normalizeAdmission001(
     };
 }
 
-function evaluateHcu001(admission, fallbackPatient = {}, fallbackIntake = {}) {
+export function evaluateHcu001(admission, fallbackPatient = {}, fallbackIntake = {}) {
     const normalized = normalizeAdmission001(
         admission,
         fallbackPatient,
@@ -1449,7 +1162,7 @@ function evaluateHcu001(admission, fallbackPatient = {}, fallbackIntake = {}) {
     };
 }
 
-function hcu001StatusMeta(status) {
+export function hcu001StatusMeta(status) {
     switch (normalizeString(status)) {
         case 'complete':
             return {
@@ -1482,7 +1195,7 @@ function hcu001StatusMeta(status) {
     }
 }
 
-function formatAdmissionKindLabel(kind) {
+export function formatAdmissionKindLabel(kind) {
     switch (normalizeString(kind)) {
         case 'first':
             return 'Primera admision';
@@ -1493,7 +1206,7 @@ function formatAdmissionKindLabel(kind) {
     }
 }
 
-function renderHcu005Summary(hcu005) {
+export function renderHcu005Summary(hcu005) {
     const normalized = normalizeHcu005(hcu005);
     return (
         normalized.diagnosticImpression ||
@@ -1504,7 +1217,7 @@ function renderHcu005Summary(hcu005) {
     );
 }
 
-function renderHcu005Content(hcu005) {
+export function renderHcu005Content(hcu005) {
     const normalized = normalizeHcu005(hcu005);
     return [
         normalized.evolutionNote
@@ -1524,39 +1237,11 @@ function renderHcu005Content(hcu005) {
         .join('\n');
 }
 
-function renderPrescriptionMedicationMirror(items) {
-    return normalizePrescriptionItems(items)
-        .filter(prescriptionItemStarted)
-        .map((item) =>
-            [item.medication, item.presentation].filter(Boolean).join(' ')
-        )
-        .filter(Boolean)
-        .join('\n');
-}
 
-function renderPrescriptionDirectionsMirror(items) {
-    return normalizePrescriptionItems(items)
-        .filter(prescriptionItemStarted)
-        .map((item) => {
-            const segments = [
-                item.dose,
-                item.route,
-                item.frequency,
-                item.duration,
-                item.quantity ? `Cantidad ${item.quantity}` : '',
-            ].filter(Boolean);
-            const base = item.medication
-                ? `${item.medication}: ${segments.join(' • ')}`
-                : segments.join(' • ');
-            return item.instructions
-                ? [base, item.instructions].filter(Boolean).join('. ')
-                : base;
-        })
-        .filter(Boolean)
-        .join('\n');
-}
 
-function evaluateHcu005(hcu005) {
+
+
+export function evaluateHcu005(hcu005) {
     const normalized = normalizeHcu005(hcu005);
     const startedItems = normalized.prescriptionItems.filter(
         prescriptionItemStarted
@@ -1592,7 +1277,7 @@ function evaluateHcu005(hcu005) {
     };
 }
 
-function hcu005StatusMeta(status) {
+export function hcu005StatusMeta(status) {
     switch (normalizeString(status)) {
         case 'complete':
             return {
@@ -1618,7 +1303,7 @@ function hcu005StatusMeta(status) {
     }
 }
 
-function normalizeInterconsultationDiagnosis(diagnosis, fallbackType = 'pre') {
+export function normalizeInterconsultationDiagnosis(diagnosis, fallbackType = 'pre') {
     const source = diagnosis && typeof diagnosis === 'object' ? diagnosis : {};
     const type = normalizeString(source.type || fallbackType);
     return {
@@ -1628,7 +1313,7 @@ function normalizeInterconsultationDiagnosis(diagnosis, fallbackType = 'pre') {
     };
 }
 
-function normalizeInterconsultationDiagnoses(items) {
+export function normalizeInterconsultationDiagnoses(items) {
     const normalized = normalizeList(items).map((item, index) =>
         normalizeInterconsultationDiagnosis(item, index === 1 ? 'def' : 'pre')
     );
@@ -1647,7 +1332,7 @@ function normalizeInterconsultationDiagnoses(items) {
     return normalized;
 }
 
-function normalizeInterconsultReport(report, fallback = {}) {
+export function normalizeInterconsultReport(report, fallback = {}) {
     const defaults = emptyInterconsultReport();
     const safeSource = report && typeof report === 'object' ? report : {};
     const safeFallback =
@@ -1718,7 +1403,7 @@ function normalizeInterconsultReport(report, fallback = {}) {
     };
 }
 
-function normalizeInterconsultReportSnapshot(snapshot) {
+export function normalizeInterconsultReportSnapshot(snapshot) {
     const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
     return {
         ...emptyInterconsultReportSnapshot(),
@@ -1740,11 +1425,11 @@ function normalizeInterconsultReportSnapshot(snapshot) {
     };
 }
 
-function normalizeInterconsultReportSnapshots(items) {
+export function normalizeInterconsultReportSnapshots(items) {
     return normalizeList(items).map(normalizeInterconsultReportSnapshot);
 }
 
-function normalizeLabOrderStudySelections(items) {
+export function normalizeLabOrderStudySelections(items) {
     const source = items && typeof items === 'object' ? items : {};
     return {
         hematology: normalizeStringList(source.hematology),
@@ -1757,7 +1442,7 @@ function normalizeLabOrderStudySelections(items) {
     };
 }
 
-function flattenLabOrderStudySelections(studySelections) {
+export function flattenLabOrderStudySelections(studySelections) {
     const normalized = normalizeLabOrderStudySelections(studySelections);
     return [
         ...normalized.hematology,
@@ -1770,7 +1455,7 @@ function flattenLabOrderStudySelections(studySelections) {
     ].filter((value) => normalizeString(value));
 }
 
-function normalizeImagingStudySelections(items) {
+export function normalizeImagingStudySelections(items) {
     const source = items && typeof items === 'object' ? items : {};
     return {
         conventionalRadiography: normalizeStringList(
@@ -1784,7 +1469,7 @@ function normalizeImagingStudySelections(items) {
     };
 }
 
-function flattenImagingStudySelections(studySelections) {
+export function flattenImagingStudySelections(studySelections) {
     const normalized = normalizeImagingStudySelections(studySelections);
     return [
         ...normalized.conventionalRadiography,
@@ -1796,7 +1481,7 @@ function flattenImagingStudySelections(studySelections) {
     ].filter((value) => normalizeString(value));
 }
 
-function normalizeLabOrder(labOrder, fallback = {}) {
+export function normalizeLabOrder(labOrder, fallback = {}) {
     const defaults = emptyLabOrder();
     const safeSource = labOrder && typeof labOrder === 'object' ? labOrder : {};
     const safeFallback =
@@ -1885,11 +1570,11 @@ function normalizeLabOrder(labOrder, fallback = {}) {
     };
 }
 
-function normalizeLabOrders(items) {
+export function normalizeLabOrders(items) {
     return normalizeList(items).map((item) => normalizeLabOrder(item));
 }
 
-function normalizeLabOrderSnapshot(snapshot) {
+export function normalizeLabOrderSnapshot(snapshot) {
     const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
     return {
         ...emptyLabOrderSnapshot(),
@@ -1900,11 +1585,11 @@ function normalizeLabOrderSnapshot(snapshot) {
     };
 }
 
-function normalizeLabOrderSnapshots(items) {
+export function normalizeLabOrderSnapshots(items) {
     return normalizeList(items).map(normalizeLabOrderSnapshot);
 }
 
-function normalizeImagingOrder(imagingOrder, fallback = {}) {
+export function normalizeImagingOrder(imagingOrder, fallback = {}) {
     const defaults = emptyImagingOrder();
     const safeSource =
         imagingOrder && typeof imagingOrder === 'object' ? imagingOrder : {};
@@ -2019,11 +1704,11 @@ function normalizeImagingOrder(imagingOrder, fallback = {}) {
     };
 }
 
-function normalizeImagingOrders(items) {
+export function normalizeImagingOrders(items) {
     return normalizeList(items).map((item) => normalizeImagingOrder(item));
 }
 
-function normalizeImagingOrderSnapshot(snapshot) {
+export function normalizeImagingOrderSnapshot(snapshot) {
     const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
     return {
         ...emptyImagingOrderSnapshot(),
@@ -2034,11 +1719,11 @@ function normalizeImagingOrderSnapshot(snapshot) {
     };
 }
 
-function normalizeImagingOrderSnapshots(items) {
+export function normalizeImagingOrderSnapshots(items) {
     return normalizeList(items).map(normalizeImagingOrderSnapshot);
 }
 
-function normalizeImagingReport(report, fallback = {}) {
+export function normalizeImagingReport(report, fallback = {}) {
     const defaults = emptyImagingReport();
     const safeSource = report && typeof report === 'object' ? report : {};
     const safeFallback =
@@ -2108,7 +1793,7 @@ function normalizeImagingReport(report, fallback = {}) {
     };
 }
 
-function normalizeImagingReportSnapshot(snapshot) {
+export function normalizeImagingReportSnapshot(snapshot) {
     const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
     return {
         ...emptyImagingReportSnapshot(),
@@ -2128,11 +1813,11 @@ function normalizeImagingReportSnapshot(snapshot) {
     };
 }
 
-function normalizeImagingReportSnapshots(items) {
+export function normalizeImagingReportSnapshots(items) {
     return normalizeList(items).map(normalizeImagingReportSnapshot);
 }
 
-function normalizeInterconsultation(interconsultation, fallback = {}) {
+export function normalizeInterconsultation(interconsultation, fallback = {}) {
     const defaults = emptyInterconsultation();
     const safeSource =
         interconsultation && typeof interconsultation === 'object'
@@ -2259,11 +1944,11 @@ function normalizeInterconsultation(interconsultation, fallback = {}) {
     };
 }
 
-function normalizeInterconsultations(items) {
+export function normalizeInterconsultations(items) {
     return normalizeList(items).map((item) => normalizeInterconsultation(item));
 }
 
-function normalizeInterconsultFormSnapshot(snapshot) {
+export function normalizeInterconsultFormSnapshot(snapshot) {
     const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
     return {
         ...emptyInterconsultFormSnapshot(),
@@ -2274,11 +1959,11 @@ function normalizeInterconsultFormSnapshot(snapshot) {
     };
 }
 
-function normalizeInterconsultFormSnapshots(items) {
+export function normalizeInterconsultFormSnapshots(items) {
     return normalizeList(items).map(normalizeInterconsultFormSnapshot);
 }
 
-function evaluateInterconsultReport(report) {
+export function evaluateInterconsultReport(report) {
     const normalized = normalizeInterconsultReport(report);
     const missing = [];
     if (
@@ -2338,7 +2023,7 @@ function evaluateInterconsultReport(report) {
     };
 }
 
-function evaluateInterconsultation(interconsultation) {
+export function evaluateInterconsultation(interconsultation) {
     const normalized = normalizeInterconsultation(interconsultation);
     const diagnoses = normalizeInterconsultationDiagnoses(normalized.diagnoses);
     const reportEvaluation = evaluateInterconsultReport(normalized.report);
@@ -2410,7 +2095,7 @@ function evaluateInterconsultation(interconsultation) {
     };
 }
 
-function hcu007StatusMeta(status) {
+export function hcu007StatusMeta(status) {
     switch (normalizeString(status)) {
         case 'received':
             return {
@@ -2463,7 +2148,7 @@ function hcu007StatusMeta(status) {
     }
 }
 
-function hcu007ReportStatusMeta(status) {
+export function hcu007ReportStatusMeta(status) {
     switch (normalizeString(status)) {
         case 'received':
             return {
@@ -2496,7 +2181,7 @@ function hcu007ReportStatusMeta(status) {
     }
 }
 
-function evaluateLabOrder(labOrder) {
+export function evaluateLabOrder(labOrder) {
     const normalized = normalizeLabOrder(labOrder);
     const diagnoses = normalizeInterconsultationDiagnoses(normalized.diagnoses);
     const selectedStudies = flattenLabOrderStudySelections(
@@ -2567,7 +2252,7 @@ function evaluateLabOrder(labOrder) {
     };
 }
 
-function hcu010AStatusMeta(status) {
+export function hcu010AStatusMeta(status) {
     switch (normalizeString(status)) {
         case 'issued':
             return {
@@ -2614,7 +2299,7 @@ function hcu010AStatusMeta(status) {
     }
 }
 
-function evaluateImagingOrder(imagingOrder) {
+export function evaluateImagingOrder(imagingOrder) {
     const normalized = normalizeImagingOrder(imagingOrder);
     const diagnoses = normalizeInterconsultationDiagnoses(normalized.diagnoses);
     const selectedStudies = flattenImagingStudySelections(
@@ -2691,7 +2376,7 @@ function evaluateImagingOrder(imagingOrder) {
     };
 }
 
-function evaluateImagingReport(report) {
+export function evaluateImagingReport(report) {
     const normalized = normalizeImagingReport(report);
     const missing = [];
 
@@ -2754,7 +2439,7 @@ function evaluateImagingReport(report) {
     };
 }
 
-function hcu012AStatusMeta(status) {
+export function hcu012AStatusMeta(status) {
     switch (normalizeString(status)) {
         case 'received':
             return {
@@ -2808,7 +2493,7 @@ function hcu012AStatusMeta(status) {
     }
 }
 
-function hcu012AReportStatusMeta(status) {
+export function hcu012AReportStatusMeta(status) {
     switch (normalizeString(status)) {
         case 'received':
             return {
@@ -2848,454 +2533,34 @@ function hcu012AReportStatusMeta(status) {
     }
 }
 
-function consentPacketTemplate(templateKey) {
-    const normalizedTemplate = normalizeString(templateKey) || 'generic';
-    const base = {
-        templateKey: normalizedTemplate,
-        title: 'Consentimiento informado HCU-form.024/2008',
-        writtenRequired: true,
-        careMode: 'ambulatorio',
-        serviceLabel: 'Dermatología ambulatoria',
-        establishmentLabel: 'Consultorio privado',
-        procedureKey: 'generic',
-        procedureLabel: 'Consentimiento genérico',
-        procedureName: 'Procedimiento ambulatorio',
-        procedureWhatIsIt: '',
-        procedureHowItIsDone: '',
-        durationEstimate: '',
-        benefits: '',
-        frequentRisks: '',
-        rareSeriousRisks: '',
-        patientSpecificRisks: '',
-        alternatives: '',
-        postProcedureCare: '',
-        noProcedureConsequences: '',
-        anesthesiologistAttestation: {
-            applicable: false,
-        },
-    };
 
-    if (normalizedTemplate === 'laser-dermatologico') {
-        return {
-            ...base,
-            procedureKey: 'laser-dermatologico',
-            procedureLabel: 'Láser dermatológico',
-            procedureName: 'Procedimiento con láser dermatológico',
-            procedureWhatIsIt:
-                'Aplicación dirigida de energía láser sobre la piel para manejo dermatológico ambulatorio.',
-            procedureHowItIsDone:
-                'Se delimita el área, se protege la zona y se aplica el láser por sesiones según criterio clínico.',
-            durationEstimate: '20 a 45 minutos según área tratada',
-            benefits:
-                'Mejoría del objetivo dermatológico indicado y manejo ambulatorio controlado.',
-            frequentRisks:
-                'Eritema, edema, ardor transitorio, costras leves o hiperpigmentación postinflamatoria.',
-            rareSeriousRisks:
-                'Quemadura, cicatriz, infección secundaria o alteraciones pigmentarias persistentes.',
-            postProcedureCare:
-                'Fotoprotección estricta, cuidado gentil de la zona y seguimiento clínico.',
-            noProcedureConsequences:
-                'Persistencia del problema dermatológico o necesidad de otras alternativas.',
-        };
-    }
 
-    if (normalizedTemplate === 'peeling-quimico') {
-        return {
-            ...base,
-            procedureKey: 'peeling-quimico',
-            procedureLabel: 'Peeling químico',
-            procedureName: 'Peeling químico ambulatorio',
-            procedureWhatIsIt:
-                'Aplicación controlada de agentes químicos sobre la piel para renovación superficial o media.',
-            procedureHowItIsDone:
-                'Se prepara la piel, se aplica el agente por tiempo definido y luego se neutraliza o retira según técnica.',
-            durationEstimate: '20 a 40 minutos según protocolo',
-            benefits:
-                'Mejoría de textura, tono, lesiones superficiales y apoyo al plan dermatológico.',
-            frequentRisks:
-                'Ardor, eritema, descamación, sensibilidad y cambios pigmentarios transitorios.',
-            rareSeriousRisks:
-                'Quemadura química, cicatriz, infección o discromías persistentes.',
-            postProcedureCare:
-                'Hidratación, fotoprotección y seguimiento según indicaciones postratamiento.',
-            noProcedureConsequences:
-                'Persistencia del problema cutáneo o necesidad de otras alternativas terapéuticas.',
-        };
-    }
 
-    if (normalizedTemplate === 'botox') {
-        return {
-            ...base,
-            procedureKey: 'botox',
-            procedureLabel: 'Botox',
-            procedureName: 'Aplicación de toxina botulínica',
-            procedureWhatIsIt:
-                'Aplicación intramuscular o intradérmica de toxina botulínica en puntos definidos.',
-            procedureHowItIsDone:
-                'Se realiza marcación anatómica y se aplica el medicamento en dosis distribuidas según plan clínico.',
-            durationEstimate: '15 a 30 minutos según zonas tratadas',
-            benefits:
-                'Mejoría funcional o estética según la indicación clínica establecida.',
-            frequentRisks:
-                'Dolor leve, hematoma, edema, asimetría transitoria o cefalea.',
-            rareSeriousRisks:
-                'Ptosis, debilidad muscular no deseada, reacción alérgica o difusión del efecto.',
-            postProcedureCare:
-                'Evitar masaje local, seguir indicaciones médicas y asistir a control si se programa.',
-            noProcedureConsequences:
-                'Persistencia del motivo de consulta o necesidad de otras alternativas terapéuticas.',
-        };
-    }
 
-    return base;
-}
 
-function normalizeConsentPacket(packet, fallback = {}) {
-    const defaults = emptyConsentPacket();
-    const safeSource = packet && typeof packet === 'object' ? packet : {};
-    const safeFallback =
-        fallback && typeof fallback === 'object' ? fallback : {};
-    const template = consentPacketTemplate(
-        safeSource.templateKey ||
-            safeFallback.templateKey ||
-            defaults.templateKey
-    );
-    const source = {
-        ...defaults,
-        ...template,
-        ...safeFallback,
-        ...safeSource,
-    };
-    const declaration =
-        source.declaration && typeof source.declaration === 'object'
-            ? source.declaration
-            : {};
-    const denial =
-        source.denial && typeof source.denial === 'object' ? source.denial : {};
-    const revocation =
-        source.revocation && typeof source.revocation === 'object'
-            ? source.revocation
-            : {};
-    const patientAttestation =
-        source.patientAttestation &&
-        typeof source.patientAttestation === 'object'
-            ? source.patientAttestation
-            : {};
-    const representativeAttestation =
-        source.representativeAttestation &&
-        typeof source.representativeAttestation === 'object'
-            ? source.representativeAttestation
-            : {};
-    const professionalAttestation =
-        source.professionalAttestation &&
-        typeof source.professionalAttestation === 'object'
-            ? source.professionalAttestation
-            : {};
-    const anesthesiologistAttestation =
-        source.anesthesiologistAttestation &&
-        typeof source.anesthesiologistAttestation === 'object'
-            ? source.anesthesiologistAttestation
-            : {};
-    const witnessAttestation =
-        source.witnessAttestation &&
-        typeof source.witnessAttestation === 'object'
-            ? source.witnessAttestation
-            : {};
 
-    return {
-        ...source,
-        packetId: normalizeString(source.packetId),
-        templateKey: normalizeString(
-            source.templateKey || template.templateKey
-        ),
-        sourceMode: normalizeString(source.sourceMode),
-        title: normalizeString(source.title),
-        procedureKey: normalizeString(source.procedureKey),
-        procedureLabel: normalizeString(source.procedureLabel),
-        status: normalizeString(source.status || 'draft'),
-        writtenRequired: source.writtenRequired !== false,
-        careMode: normalizeString(source.careMode || 'ambulatorio'),
-        serviceLabel: normalizeString(source.serviceLabel),
-        establishmentLabel: normalizeString(source.establishmentLabel),
-        patientName: normalizeString(source.patientName),
-        patientDocumentNumber: normalizeString(source.patientDocumentNumber),
-        patientRecordId: normalizeString(source.patientRecordId),
-        encounterDateTime: normalizeString(source.encounterDateTime),
-        diagnosisLabel: normalizeString(source.diagnosisLabel),
-        diagnosisCie10: normalizeString(source.diagnosisCie10),
-        procedureName: normalizeString(source.procedureName),
-        procedureWhatIsIt: normalizeString(source.procedureWhatIsIt),
-        procedureHowItIsDone: normalizeString(source.procedureHowItIsDone),
-        durationEstimate: normalizeString(source.durationEstimate),
-        graphicRef: normalizeString(source.graphicRef),
-        benefits: normalizeString(source.benefits),
-        frequentRisks: normalizeString(source.frequentRisks),
-        rareSeriousRisks: normalizeString(source.rareSeriousRisks),
-        patientSpecificRisks: normalizeString(source.patientSpecificRisks),
-        alternatives: normalizeString(source.alternatives),
-        postProcedureCare: normalizeString(source.postProcedureCare),
-        noProcedureConsequences: normalizeString(
-            source.noProcedureConsequences
-        ),
-        privateCommunicationConfirmed:
-            source.privateCommunicationConfirmed === true,
-        companionShareAuthorized: source.companionShareAuthorized === true,
-        declaration: {
-            declaredAt: normalizeString(declaration.declaredAt),
-            patientCanConsent:
-                declaration.patientCanConsent === undefined
-                    ? true
-                    : declaration.patientCanConsent === true,
-            capacityAssessment: normalizeString(declaration.capacityAssessment),
-            notes: normalizeString(declaration.notes),
-        },
-        denial: {
-            declinedAt: normalizeString(denial.declinedAt),
-            reason: normalizeString(denial.reason),
-            patientRefusedSignature: denial.patientRefusedSignature === true,
-            notes: normalizeString(denial.notes),
-        },
-        revocation: {
-            revokedAt: normalizeString(revocation.revokedAt),
-            receivedBy: normalizeString(revocation.receivedBy),
-            reason: normalizeString(revocation.reason),
-            notes: normalizeString(revocation.notes),
-        },
-        patientAttestation: {
-            name: normalizeString(patientAttestation.name),
-            documentNumber: normalizeString(patientAttestation.documentNumber),
-            signedAt: normalizeString(patientAttestation.signedAt),
-            refusedSignature: patientAttestation.refusedSignature === true,
-        },
-        representativeAttestation: {
-            name: normalizeString(representativeAttestation.name),
-            kinship: normalizeString(representativeAttestation.kinship),
-            documentNumber: normalizeString(
-                representativeAttestation.documentNumber
-            ),
-            phone: normalizeString(representativeAttestation.phone),
-            signedAt: normalizeString(representativeAttestation.signedAt),
-        },
-        professionalAttestation: {
-            name: normalizeString(professionalAttestation.name),
-            role:
-                normalizeString(professionalAttestation.role) ||
-                'medico_tratante',
-            documentNumber: normalizeString(
-                professionalAttestation.documentNumber
-            ),
-            signedAt: normalizeString(professionalAttestation.signedAt),
-        },
-        anesthesiologistAttestation: {
-            applicable: anesthesiologistAttestation.applicable === true,
-            name: normalizeString(anesthesiologistAttestation.name),
-            documentNumber: normalizeString(
-                anesthesiologistAttestation.documentNumber
-            ),
-            signedAt: normalizeString(anesthesiologistAttestation.signedAt),
-        },
-        witnessAttestation: {
-            name: normalizeString(witnessAttestation.name),
-            documentNumber: normalizeString(witnessAttestation.documentNumber),
-            phone: normalizeString(witnessAttestation.phone),
-            signedAt: normalizeString(witnessAttestation.signedAt),
-        },
-        history: normalizeList(source.history),
-        createdAt: normalizeString(source.createdAt),
-        updatedAt: normalizeString(source.updatedAt),
-    };
-}
 
-function normalizeConsentPackets(items) {
-    return normalizeList(items).map((item) => normalizeConsentPacket(item));
-}
 
-function normalizeConsentFormSnapshot(snapshot) {
-    const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
-    return {
-        ...emptyConsentFormSnapshot(),
-        ...normalizeConsentPacket(source),
-        snapshotId: normalizeString(source.snapshotId),
-        finalizedAt: normalizeString(source.finalizedAt),
-        snapshotAt: normalizeString(source.snapshotAt),
-    };
-}
 
-function normalizeConsentFormSnapshots(items) {
-    return normalizeList(items).map(normalizeConsentFormSnapshot);
-}
 
-function buildLegacyConsentFromPacket(packet, fallback = {}) {
-    const normalized = normalizeConsentPacket(packet);
-    const acceptedAt =
-        normalizeString(normalized.patientAttestation.signedAt) ||
-        normalizeString(normalized.representativeAttestation.signedAt);
-    return normalizeConsent({
-        ...fallback,
-        required: normalized.writtenRequired === true,
-        status:
-            normalizeString(normalized.status) ||
-            (normalized.writtenRequired === true ? 'draft' : 'not_required'),
-        informedBy: normalized.professionalAttestation.name,
-        informedAt: normalized.declaration.declaredAt,
-        explainedWhat: normalized.procedureWhatIsIt,
-        risksExplained: normalized.frequentRisks,
-        alternativesExplained: normalized.alternatives,
-        capacityAssessment: normalized.declaration.capacityAssessment,
-        privateCommunicationConfirmed:
-            normalized.privateCommunicationConfirmed === true,
-        companionShareAuthorized: normalized.companionShareAuthorized === true,
-        acceptedAt,
-        declinedAt: normalized.denial.declinedAt,
-        revokedAt: normalized.revocation.revokedAt,
-        notes:
-            normalized.declaration.notes ||
-            normalized.denial.notes ||
-            normalized.revocation.notes,
-    });
-}
 
-function consentPacketHasSubstantiveContent(packet) {
-    const normalized = normalizeConsentPacket(packet);
-    return [
-        normalized.procedureName,
-        normalized.diagnosisLabel,
-        normalized.procedureWhatIsIt,
-        normalized.benefits,
-        normalized.frequentRisks,
-        normalized.alternatives,
-        normalized.status,
-    ].some(
-        (value) =>
-            normalizeString(value) !== '' && normalizeString(value) !== 'draft'
-    );
-}
 
-function evaluateConsentPacket(packet) {
-    const normalized = normalizeConsentPacket(packet);
-    const legacyBridge =
-        normalizeString(normalized.sourceMode) === 'legacy_bridge' ||
-        normalizeString(normalized.templateKey) === 'legacy-bridge';
-    const missing = [];
-    [
-        ['title', normalized.title],
-        ['establishment', normalized.establishmentLabel],
-        ['service', normalized.serviceLabel],
-        ['encounter_datetime', normalized.encounterDateTime],
-        ['record_id', normalized.patientRecordId],
-        ['patient_name', normalized.patientName],
-        ['patient_document', normalized.patientDocumentNumber],
-        ['diagnosis', normalized.diagnosisLabel],
-        ['procedure_name', normalized.procedureName],
-        ['procedure_what_is_it', normalized.procedureWhatIsIt],
-        ['procedure_how', normalized.procedureHowItIsDone],
-        ['frequent_risks', normalized.frequentRisks],
-        ['alternatives', normalized.alternatives],
-        ['professional_attestation', normalized.professionalAttestation.name],
-    ].forEach(([key, value]) => {
-        if (!normalizeString(value)) {
-            missing.push(key);
-        }
-    });
-    if (!legacyBridge) {
-        [
-            ['duration', normalized.durationEstimate],
-            ['benefits', normalized.benefits],
-            ['rare_serious_risks', normalized.rareSeriousRisks],
-            ['patient_specific_risks', normalized.patientSpecificRisks],
-            ['post_procedure_care', normalized.postProcedureCare],
-            ['no_procedure_consequences', normalized.noProcedureConsequences],
-        ].forEach(([key, value]) => {
-            if (!normalizeString(value)) {
-                missing.push(key);
-            }
-        });
-    }
-    if (normalized.declaration.patientCanConsent !== true) {
-        [
-            ['representative_name', normalized.representativeAttestation.name],
-            [
-                'representative_document',
-                normalized.representativeAttestation.documentNumber,
-            ],
-            [
-                'representative_phone',
-                normalized.representativeAttestation.phone,
-            ],
-            [
-                'representative_kinship',
-                normalized.representativeAttestation.kinship,
-            ],
-        ].forEach(([key, value]) => {
-            if (!normalizeString(value)) {
-                missing.push(key);
-            }
-        });
-    }
-    if (normalized.anesthesiologistAttestation.applicable === true) {
-        if (!normalizeString(normalized.anesthesiologistAttestation.name)) {
-            missing.push('anesthesiologist_name');
-        }
-        if (
-            !normalizeString(
-                normalized.anesthesiologistAttestation.documentNumber
-            )
-        ) {
-            missing.push('anesthesiologist_document');
-        }
-    }
 
-    const readyForDeclaration = missing.length === 0;
-    const signedAt =
-        normalizeString(normalized.patientAttestation.signedAt) ||
-        normalizeString(normalized.representativeAttestation.signedAt);
-    let status = readyForDeclaration ? 'ready_for_declaration' : 'incomplete';
-    if (normalizeString(normalized.status) === 'accepted') {
-        status = readyForDeclaration && signedAt ? 'accepted' : 'incomplete';
-    } else if (normalizeString(normalized.status) === 'declined') {
-        const witnessReady =
-            normalizeString(normalized.witnessAttestation.name) &&
-            normalizeString(normalized.witnessAttestation.documentNumber);
-        if (
-            normalized.denial.patientRefusedSignature === true &&
-            !witnessReady
-        ) {
-            missing.push('witness_attestation');
-            status = 'incomplete';
-        } else {
-            status = normalizeString(normalized.denial.declinedAt)
-                ? 'declined'
-                : 'incomplete';
-        }
-    } else if (normalizeString(normalized.status) === 'revoked') {
-        status =
-            normalizeString(normalized.revocation.revokedAt) &&
-            normalizeString(normalized.revocation.receivedBy)
-                ? 'revoked'
-                : 'incomplete';
-    } else if (normalizeString(normalized.status) === 'draft') {
-        status = readyForDeclaration ? 'ready_for_declaration' : 'draft';
-    }
 
-    return {
-        status,
-        readyForDeclaration,
-        missingFields: Array.from(new Set(missing)),
-    };
-}
 
-function complianceMspStatusMeta(status) {
+
+export function complianceMspStatusMeta(status) {
     return normalizeComplianceMspStatus({
         status,
     });
 }
 
-function labelForComplianceMspField(field) {
+export function labelForComplianceMspField(field) {
     const normalized = normalizeString(field);
     return CLINICAL_MSP_FIELD_LABELS[normalized] || normalized;
 }
 
-function normalizeComplianceMspStatus(statusSource) {
+export function normalizeComplianceMspStatus(statusSource) {
     const source =
         statusSource && typeof statusSource === 'object' ? statusSource : {};
     const normalizedStatus = normalizeString(source.status);
@@ -3337,7 +2602,7 @@ function normalizeComplianceMspStatus(statusSource) {
     }
 }
 
-function hcu024StatusMeta(status) {
+export function hcu024StatusMeta(status) {
     switch (normalizeString(status)) {
         case 'accepted':
             return {
@@ -3391,7 +2656,7 @@ function hcu024StatusMeta(status) {
     }
 }
 
-function resolveClinicProfileDisplay() {
+export function resolveClinicProfileDisplay() {
     const profile =
         getState()?.data?.turneroClinicProfile &&
         typeof getState().data.turneroClinicProfile === 'object'
@@ -3413,7 +2678,7 @@ function resolveClinicProfileDisplay() {
     };
 }
 
-function deriveInterconsultationContext(
+export function deriveInterconsultationContext(
     interconsultation,
     draft,
     fallbackPatient = {}
@@ -3499,7 +2764,7 @@ function deriveInterconsultationContext(
     });
 }
 
-function deriveLabOrderContext(labOrder, draft, fallbackPatient = {}) {
+export function deriveLabOrderContext(labOrder, draft, fallbackPatient = {}) {
     const normalized = normalizeLabOrder(labOrder);
     const admission = normalizeAdmission001(
         draft?.admission001,
@@ -3562,7 +2827,7 @@ function deriveLabOrderContext(labOrder, draft, fallbackPatient = {}) {
     });
 }
 
-function deriveImagingOrderContext(imagingOrder, draft, fallbackPatient = {}) {
+export function deriveImagingOrderContext(imagingOrder, draft, fallbackPatient = {}) {
     const normalized = normalizeImagingOrder(imagingOrder);
     const admission = normalizeAdmission001(
         draft?.admission001,
@@ -3637,183 +2902,11 @@ function deriveImagingOrderContext(imagingOrder, draft, fallbackPatient = {}) {
     });
 }
 
-function deriveConsentPacketContext(packet, draft, fallbackPatient = {}) {
-    const normalized = normalizeConsentPacket(packet);
-    const admission = normalizeAdmission001(
-        draft?.admission001,
-        fallbackPatient,
-        draft?.intake
-    );
-    const patient = normalizePatient(fallbackPatient);
-    const clinic = resolveClinicProfileDisplay();
 
-    return normalizeConsentPacket(
-        {
-            ...normalized,
-            title:
-                normalized.title ||
-                'Consentimiento informado HCU-form.024/2008',
-            establishmentLabel:
-                normalized.establishmentLabel || clinic.establishmentLabel,
-            serviceLabel: normalized.serviceLabel || clinic.serviceLabel,
-            patientName:
-                normalized.patientName ||
-                buildAdmissionLegalName(admission, patient),
-            patientDocumentNumber:
-                normalized.patientDocumentNumber ||
-                normalizeString(admission.identity.documentNumber),
-            patientRecordId:
-                normalized.patientRecordId ||
-                normalizeString(draft.patientRecordId),
-            encounterDateTime:
-                normalized.encounterDateTime ||
-                normalizeString(
-                    draft.updatedAt ||
-                        draft.createdAt ||
-                        admission?.admissionMeta?.admissionDate
-                ),
-            diagnosisLabel:
-                normalized.diagnosisLabel ||
-                normalizeString(
-                    draft?.clinicianDraft?.hcu005?.diagnosticImpression
-                ),
-            diagnosisCie10:
-                normalized.diagnosisCie10 ||
-                normalizeStringList(draft?.clinicianDraft?.cie10Sugeridos).join(
-                    ', '
-                ),
-            procedureHowItIsDone:
-                normalized.procedureHowItIsDone ||
-                normalizeString(draft?.clinicianDraft?.hcu005?.careIndications),
-            benefits:
-                normalized.benefits ||
-                normalizeString(draft?.clinicianDraft?.hcu005?.therapeuticPlan),
-        },
-        consentPacketTemplate(normalized.templateKey)
-    );
-}
 
-function normalizeDocuments(documents) {
-    const defaults = emptyDraft().documents;
-    const source = documents && typeof documents === 'object' ? documents : {};
-    const hcu001Source =
-        source?.finalNote?.sections?.hcu001 &&
-        typeof source.finalNote.sections.hcu001 === 'object'
-            ? source.finalNote.sections.hcu001
-            : {};
-    const sectionSource =
-        source?.finalNote?.sections?.hcu005 &&
-        typeof source.finalNote.sections.hcu005 === 'object'
-            ? source.finalNote.sections.hcu005
-            : {};
-    const hcu001 = normalizeAdmission001(hcu001Source);
-    const fallbackHcu005 = normalizeHcu005({
-        evolutionNote: source?.finalNote?.summary,
-        diagnosticImpression: '',
-        therapeuticPlan: '',
-        careIndications: source?.prescription?.directions,
-        prescriptionItems:
-            source?.prescription?.items || source?.prescriptionItems || [],
-    });
-    const hcu005 = normalizeHcu005(sectionSource, fallbackHcu005);
-    const prescriptionItems = normalizePrescriptionItems(
-        source?.prescription?.items ||
-            source?.prescriptionItems ||
-            hcu005.prescriptionItems ||
-            []
-    );
-    const summary = renderHcu005Summary(hcu005);
-    const content = renderHcu005Content(hcu005);
-    const medication = renderPrescriptionMedicationMirror(prescriptionItems);
-    const directions = renderPrescriptionDirectionsMirror(prescriptionItems);
-    const interconsultForms = normalizeInterconsultFormSnapshots(
-        source?.interconsultForms
-    );
-    const interconsultReports = normalizeInterconsultReportSnapshots(
-        source?.interconsultReports
-    );
-    const labOrders = normalizeLabOrderSnapshots(source?.labOrders);
-    const imagingOrders = normalizeImagingOrderSnapshots(source?.imagingOrders);
-    const imagingReports = normalizeImagingReportSnapshots(
-        source?.imagingReports
-    );
-    const consentForms = normalizeConsentFormSnapshots(source?.consentForms);
 
-    return {
-        finalNote: {
-            ...defaults.finalNote,
-            ...(source.finalNote && typeof source.finalNote === 'object'
-                ? source.finalNote
-                : {}),
-            status: normalizeString(
-                source?.finalNote?.status || defaults.finalNote.status
-            ),
-            summary,
-            content,
-            version: Math.max(
-                1,
-                normalizeNumber(
-                    source?.finalNote?.version || defaults.finalNote.version
-                )
-            ),
-            generatedAt: normalizeString(source?.finalNote?.generatedAt),
-            confidential: source?.finalNote?.confidential !== false,
-            sections: {
-                hcu001,
-                hcu005,
-            },
-        },
-        prescription: {
-            ...defaults.prescription,
-            ...(source.prescription && typeof source.prescription === 'object'
-                ? source.prescription
-                : {}),
-            status: normalizeString(
-                source?.prescription?.status || defaults.prescription.status
-            ),
-            medication,
-            directions,
-            signedAt: normalizeString(source?.prescription?.signedAt),
-            confidential: source?.prescription?.confidential !== false,
-            items: prescriptionItems,
-        },
-        certificate: {
-            ...defaults.certificate,
-            ...(source.certificate && typeof source.certificate === 'object'
-                ? source.certificate
-                : {}),
-            status: normalizeString(
-                source?.certificate?.status || defaults.certificate.status
-            ),
-            summary: normalizeString(source?.certificate?.summary),
-            restDays: normalizeNullableInt(source?.certificate?.restDays),
-            signedAt: normalizeString(source?.certificate?.signedAt),
-            confidential: source?.certificate?.confidential !== false,
-        },
-        carePlan: {
-            ...defaults.carePlan,
-            ...(source.carePlan && typeof source.carePlan === 'object'
-                ? source.carePlan
-                : {}),
-            status: normalizeString(
-                source?.carePlan?.status || defaults.carePlan.status
-            ),
-            diagnosis: normalizeString(source?.carePlan?.diagnosis),
-            treatments: normalizeString(source?.carePlan?.treatments),
-            followUpFrequency: normalizeString(source?.carePlan?.followUpFrequency),
-            goals: normalizeString(source?.carePlan?.goals),
-            generatedAt: normalizeString(source?.carePlan?.generatedAt),
-        },
-        interconsultForms,
-        interconsultReports,
-        labOrders,
-        imagingOrders,
-        imagingReports,
-        consentForms,
-    };
-}
 
-function normalizeConsent(consent) {
+export function normalizeConsent(consent) {
     const defaults = emptyDraft().consent;
     const source = consent && typeof consent === 'object' ? consent : {};
     return {
@@ -3837,7 +2930,7 @@ function normalizeConsent(consent) {
     };
 }
 
-function normalizeApproval(approval) {
+export function normalizeApproval(approval) {
     const defaults = emptyDraft().approval;
     const source = approval && typeof approval === 'object' ? approval : {};
     return {
@@ -3861,7 +2954,7 @@ function normalizeApproval(approval) {
     };
 }
 
-function isPastTimestamp(value) {
+export function isPastTimestamp(value) {
     const stamp = normalizeString(value);
     if (!stamp) {
         return false;
@@ -3875,7 +2968,7 @@ function isPastTimestamp(value) {
     return parsed <= Date.now();
 }
 
-function normalizeAccessAuditEntry(entry) {
+export function normalizeAccessAuditEntry(entry) {
     const source = entry && typeof entry === 'object' ? entry : {};
     return {
         auditId: normalizeString(source.auditId || source.id),
@@ -3892,7 +2985,7 @@ function normalizeAccessAuditEntry(entry) {
     };
 }
 
-function normalizeDisclosureEntry(entry) {
+export function normalizeDisclosureEntry(entry) {
     const source = entry && typeof entry === 'object' ? entry : {};
     return {
         disclosureId: normalizeString(source.disclosureId || source.id),
@@ -3908,7 +3001,7 @@ function normalizeDisclosureEntry(entry) {
     };
 }
 
-function normalizeCopyRequest(entry) {
+export function normalizeCopyRequest(entry) {
     const source = entry && typeof entry === 'object' ? entry : {};
     const effectiveStatus =
         normalizeString(source.effectiveStatus) ||
@@ -3950,7 +3043,7 @@ function normalizeCopyRequest(entry) {
     };
 }
 
-function normalizeArchiveReadiness(readiness) {
+export function normalizeArchiveReadiness(readiness) {
     const source = readiness && typeof readiness === 'object' ? readiness : {};
     return {
         archiveState: normalizeString(source.archiveState || 'active'),
@@ -3972,7 +3065,7 @@ function normalizeArchiveReadiness(readiness) {
     };
 }
 
-function normalizeRecordsGovernance(governance) {
+export function normalizeRecordsGovernance(governance) {
     const source =
         governance && typeof governance === 'object' ? governance : {};
     return {
@@ -4035,7 +3128,7 @@ function normalizeRecordsGovernance(governance) {
     };
 }
 
-function normalizeLegalReadiness(readiness) {
+export function normalizeLegalReadiness(readiness) {
     const source = readiness && typeof readiness === 'object' ? readiness : {};
     return {
         status: normalizeString(source.status || 'blocked'),
@@ -4064,7 +3157,7 @@ function normalizeLegalReadiness(readiness) {
     };
 }
 
-function normalizeDraftSnapshot(draft) {
+export function normalizeDraftSnapshot(draft) {
     const defaults = emptyDraft();
     const source = draft && typeof draft === 'object' ? draft : {};
     const normalizedDocuments = normalizeDocuments(source.documents);
@@ -4266,7 +3359,7 @@ function normalizeDraftSnapshot(draft) {
     };
 }
 
-function synchronizeDraftClinicalState(draft) {
+export function synchronizeDraftClinicalState(draft) {
     const snapshot = draft && typeof draft === 'object' ? draft : emptyDraft();
     const admission001 = normalizeAdmission001(
         snapshot.admission001,
@@ -4424,7 +3517,7 @@ function synchronizeDraftClinicalState(draft) {
     };
 }
 
-function normalizeEvent(event) {
+export function normalizeEvent(event) {
     const source = event && typeof event === 'object' ? event : {};
     return {
         eventId: normalizeString(source.eventId),
@@ -4442,7 +3535,7 @@ function normalizeEvent(event) {
     };
 }
 
-function normalizeReviewQueueItem(item) {
+export function normalizeReviewQueueItem(item) {
     const source = item && typeof item === 'object' ? item : {};
     const severity = normalizeString(source.highestOpenSeverity).toLowerCase();
     return {
@@ -4500,7 +3593,7 @@ function normalizeReviewQueueItem(item) {
     };
 }
 
-function normalizeReviewPayload(payload) {
+export function normalizeReviewPayload(payload) {
     const review = emptyReview();
     const source = payload && typeof payload === 'object' ? payload : {};
     const sessionSource =
@@ -4677,7 +3770,7 @@ function normalizeReviewPayload(payload) {
     return review;
 }
 
-function readClinicalHistoryMeta(state = getState()) {
+export function readClinicalHistoryMeta(state = getState()) {
     const source =
         state?.data?.clinicalHistoryMeta &&
         typeof state.data.clinicalHistoryMeta === 'object'
@@ -4691,13 +3784,13 @@ function readClinicalHistoryMeta(state = getState()) {
     };
 }
 
-function getClinicalHistorySlice(state = getState()) {
+export function getClinicalHistorySlice(state = getState()) {
     return state?.clinicalHistory && typeof state.clinicalHistory === 'object'
         ? state.clinicalHistory
         : {};
 }
 
-function currentActiveWorkspace(state = getState()) {
+export function currentActiveWorkspace(state = getState()) {
     const preferred =
         readWorkspaceQuery() ||
         normalizeClinicalHistoryWorkspace(
@@ -4710,13 +3803,13 @@ function currentActiveWorkspace(state = getState()) {
         : 'review';
 }
 
-function currentQueueFilter(state = getState()) {
+export function currentQueueFilter(state = getState()) {
     return normalizeClinicalQueueFilter(
         getClinicalHistorySlice(state).queueFilter
     );
 }
 
-function setClinicalHistoryState(patch) {
+export function setClinicalHistoryState(patch) {
     updateState((state) => ({
         ...state,
         clinicalHistory: {
@@ -4726,7 +3819,7 @@ function setClinicalHistoryState(patch) {
     }));
 }
 
-function setActiveClinicalWorkspace(workspace, options = {}) {
+export function setActiveClinicalWorkspace(workspace, options = {}) {
     const preferred = normalizeClinicalHistoryWorkspace(workspace);
     const next = availableClinicalHistoryWorkspaces().some(
         ({ workspace: optionWorkspace }) => optionWorkspace === preferred
@@ -4745,7 +3838,7 @@ function setActiveClinicalWorkspace(workspace, options = {}) {
     return next;
 }
 
-function setClinicalQueueFilter(filter, options = {}) {
+export function setClinicalQueueFilter(filter, options = {}) {
     setClinicalHistoryState({
         queueFilter: normalizeClinicalQueueFilter(filter),
     });
@@ -4754,7 +3847,7 @@ function setClinicalQueueFilter(filter, options = {}) {
     }
 }
 
-function formatReviewStatus(status) {
+export function formatReviewStatus(status) {
     switch (normalizeString(status).toLowerCase()) {
         case 'approved':
             return 'Aprobada';
@@ -4769,7 +3862,7 @@ function formatReviewStatus(status) {
     }
 }
 
-function formatSeverity(severity) {
+export function formatSeverity(severity) {
     switch (normalizeString(severity).toLowerCase()) {
         case 'critical':
             return 'Critico';
@@ -4780,7 +3873,7 @@ function formatSeverity(severity) {
     }
 }
 
-function formatPendingAiStatus(status) {
+export function formatPendingAiStatus(status) {
     switch (normalizeString(status).toLowerCase()) {
         case 'queued':
             return 'IA en cola';
@@ -4795,7 +3888,7 @@ function formatPendingAiStatus(status) {
     }
 }
 
-function formatConfidence(confidence) {
+export function formatConfidence(confidence) {
     const safeConfidence = normalizeNumber(confidence);
     if (safeConfidence <= 0) {
         return 'Sin confianza';
@@ -4804,7 +3897,7 @@ function formatConfidence(confidence) {
     return `${Math.round(safeConfidence * 100)}% confianza`;
 }
 
-function humanizeClinicalCode(code) {
+export function humanizeClinicalCode(code) {
     return normalizeString(code)
         .split('_')
         .filter(Boolean)
@@ -4824,7 +3917,7 @@ function humanizeClinicalCode(code) {
         .join(' ');
 }
 
-function formatClinicalRedFlagLabel(flag) {
+export function formatClinicalRedFlagLabel(flag) {
     const normalized = normalizeString(flag).toLowerCase();
     if (!normalized) {
         return '';
@@ -4835,7 +3928,7 @@ function formatClinicalRedFlagLabel(flag) {
     );
 }
 
-function formatClinicalRedFlags(flags, limit = Number.POSITIVE_INFINITY) {
+export function formatClinicalRedFlags(flags, limit = Number.POSITIVE_INFINITY) {
     const labels = normalizeStringList(flags)
         .map((flag) => formatClinicalRedFlagLabel(flag))
         .filter(Boolean);
@@ -4843,7 +3936,7 @@ function formatClinicalRedFlags(flags, limit = Number.POSITIVE_INFINITY) {
     return Number.isFinite(limit) ? labels.slice(0, limit) : labels;
 }
 
-function buildClinicalRedFlagChipRow(flags, limit = 3) {
+export function buildClinicalRedFlagChipRow(flags, limit = 3) {
     const labels = formatClinicalRedFlags(flags, limit);
     if (labels.length === 0) {
         return '';
@@ -4864,7 +3957,7 @@ function buildClinicalRedFlagChipRow(flags, limit = 3) {
     `;
 }
 
-function buildClinicalRedFlagNotice(flags) {
+export function buildClinicalRedFlagNotice(flags) {
     const labels = formatClinicalRedFlags(flags);
     if (labels.length === 0) {
         return '';
@@ -4886,7 +3979,7 @@ function buildClinicalRedFlagNotice(flags) {
     `;
 }
 
-function formatTone(
+export function formatTone(
     status,
     requiresHumanReview,
     pendingAiStatus,
@@ -4914,7 +4007,7 @@ function formatTone(
     return 'neutral';
 }
 
-function transcriptActorLabel(message) {
+export function transcriptActorLabel(message) {
     switch (normalizeString(message.actor).toLowerCase()) {
         case 'clinical_intake':
             return 'IA';
@@ -4925,7 +4018,7 @@ function transcriptActorLabel(message) {
     }
 }
 
-function transcriptActorTone(message) {
+export function transcriptActorTone(message) {
     switch (normalizeString(message.actor).toLowerCase()) {
         case 'clinical_intake':
             return 'assistant';
@@ -4936,23 +4029,23 @@ function transcriptActorTone(message) {
     }
 }
 
-function listToTextarea(value) {
+export function listToTextarea(value) {
     return normalizeStringList(value).join('\n');
 }
 
-function serializeTextareaLines(value) {
+export function serializeTextareaLines(value) {
     return String(value || '')
         .split(/\r?\n/)
         .map((item) => normalizeString(item))
         .filter(Boolean);
 }
 
-function readableTimestamp(value) {
+export function readableTimestamp(value) {
     const text = normalizeString(value);
     return text ? formatDateTime(text) : '-';
 }
 
-function currentSelectionLabel(review) {
+export function currentSelectionLabel(review) {
     const badge = review?.session?.membership_status ? ' ⭐ Miembro' : '';
     const patientName =
         buildAdmissionLegalName(
@@ -4971,7 +4064,7 @@ function currentSelectionLabel(review) {
     return 'Sin seleccion';
 }
 
-function currentReviewSource(state = getState()) {
+export function currentReviewSource(state = getState()) {
     const slice = getClinicalHistorySlice(state);
     if (slice.current && typeof slice.current === 'object') {
         return normalizeReviewPayload(slice.current);
@@ -4980,7 +4073,7 @@ function currentReviewSource(state = getState()) {
     return emptyReview();
 }
 
-function currentDraftSource(state = getState()) {
+export function currentDraftSource(state = getState()) {
     const slice = getClinicalHistorySlice(state);
     if (slice.draftForm && typeof slice.draftForm === 'object') {
         return normalizeDraftSnapshot(slice.draftForm);
@@ -4989,55 +4082,19 @@ function currentDraftSource(state = getState()) {
     return currentReviewSource(state).draft;
 }
 
-function emptyCertificateHistoryState() {
-    return {
-        caseId: '',
-        loading: false,
-        error: '',
-        items: [],
-        lastLoadedAt: 0,
-    };
-}
 
-function normalizeCertificateHistoryItem(item) {
-    const source = item && typeof item === 'object' ? item : {};
-    return {
-        id: normalizeString(source.id),
-        folio: normalizeString(source.folio),
-        caseId: normalizeString(source.caseId),
-        type: normalizeString(source.type),
-        typeLabel: normalizeString(source.typeLabel),
-        diagnosisText: normalizeString(source.diagnosisText),
-        cie10Code: normalizeString(source.cie10Code),
-        restDays: normalizeNullableInt(source.restDays) ?? 0,
-        observations: normalizeString(source.observations),
-        issuedAt: normalizeString(source.issuedAt),
-        issuedDateLocal: normalizeString(source.issuedDateLocal),
-    };
-}
 
-function readCertificateHistorySlice(state = getState()) {
-    const source = getClinicalHistorySlice(state).certificateHistory;
-    if (!source || typeof source !== 'object') {
-        return emptyCertificateHistoryState();
-    }
 
-    return {
-        caseId: normalizeString(source.caseId),
-        loading: source.loading === true,
-        error: normalizeString(source.error),
-        items: normalizeList(source.items).map(normalizeCertificateHistoryItem),
-        lastLoadedAt: normalizeNumber(source.lastLoadedAt),
-    };
-}
 
-function currentReviewCaseId(review = currentReviewSource()) {
+
+
+export function currentReviewCaseId(review = currentReviewSource()) {
     return normalizeString(
         review?.caseId || review?.session?.caseId || review?.draft?.caseId
     );
 }
 
-function currentReviewPatientRecordId(review = currentReviewSource()) {
+export function currentReviewPatientRecordId(review = currentReviewSource()) {
     return normalizeString(
         review?.patientRecordId ||
             review?.patientRecord?.patientRecordId ||
@@ -5045,7 +4102,7 @@ function currentReviewPatientRecordId(review = currentReviewSource()) {
     );
 }
 
-function truncateText(value, limit = 120) {
+export function truncateText(value, limit = 120) {
     const text = normalizeString(value);
     if (text.length <= limit) {
         return text;
@@ -5054,7 +4111,7 @@ function truncateText(value, limit = 120) {
     return `${text.slice(0, Math.max(0, limit - 1)).trim()}...`;
 }
 
-function formatBytes(value) {
+export function formatBytes(value) {
     const size = normalizeNumber(value);
     if (size <= 0) {
         return '0 B';
@@ -5068,7 +4125,7 @@ function formatBytes(value) {
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatPregnancy(value) {
+export function formatPregnancy(value) {
     if (value === true) {
         return 'Embarazo reportado';
     }
@@ -5078,7 +4135,7 @@ function formatPregnancy(value) {
     return 'Embarazo no documentado';
 }
 
-function pregnancySelectValue(value) {
+export function pregnancySelectValue(value) {
     if (value === true) {
         return 'yes';
     }
@@ -5088,7 +4145,7 @@ function pregnancySelectValue(value) {
     return '';
 }
 
-function normalizePregnancyValue(value) {
+export function normalizePregnancyValue(value) {
     const normalized = normalizeString(value).toLowerCase();
     if (normalized === 'yes') {
         return true;
@@ -5099,7 +4156,7 @@ function normalizePregnancyValue(value) {
     return null;
 }
 
-function formatPatientFacts(patient, intake) {
+export function formatPatientFacts(patient, intake) {
     const age = normalizeNullableInt(
         intake?.datosPaciente?.edadAnios ?? patient.ageYears
     );
@@ -5129,17 +4186,17 @@ function formatPatientFacts(patient, intake) {
         .join(' • ');
 }
 
-function formatHtmlMultiline(value) {
+export function formatHtmlMultiline(value) {
     const safe = escapeHtml(normalizeString(value));
     return safe ? safe.replace(/\n/g, '<br>') : '';
 }
 
-function formatClinicalRecordExportLabel(value, fallback = 'No documentado') {
+export function formatClinicalRecordExportLabel(value, fallback = 'No documentado') {
     const text = normalizeString(value);
     return text || fallback;
 }
 
-function formatClinicalRecordExportBoolean(
+export function formatClinicalRecordExportBoolean(
     value,
     yesLabel = 'Si',
     noLabel = 'No',
@@ -5154,7 +4211,7 @@ function formatClinicalRecordExportBoolean(
     return emptyLabel;
 }
 
-function slugifyClinicalRecordExportFragment(value) {
+export function slugifyClinicalRecordExportFragment(value) {
     return normalizeString(value)
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -5163,7 +4220,7 @@ function slugifyClinicalRecordExportFragment(value) {
         .replace(/^-+|-+$/g, '');
 }
 
-function buildClinicalRecordExportFileName(review) {
+export function buildClinicalRecordExportFileName(review) {
     const normalizedReview = normalizeReviewPayload(review);
     const patient = normalizePatient(
         normalizedReview.patientRecord?.patient ||
@@ -5192,7 +4249,7 @@ function buildClinicalRecordExportFileName(review) {
     return `${base || 'historia-clinica'}-${stamp}`;
 }
 
-function buildClinicalRecordExportStatusPill(label, tone = 'neutral') {
+export function buildClinicalRecordExportStatusPill(label, tone = 'neutral') {
     return `
         <span class="clinical-history-export-pill is-${escapeHtml(tone)}">
             ${escapeHtml(formatClinicalRecordExportLabel(label, '-'))}
@@ -5200,7 +4257,7 @@ function buildClinicalRecordExportStatusPill(label, tone = 'neutral') {
     `;
 }
 
-function buildClinicalRecordExportSection(title, description, content) {
+export function buildClinicalRecordExportSection(title, description, content) {
     return `
         <section class="clinical-history-export-section">
             <div class="clinical-history-export-section-head">
@@ -5216,7 +4273,7 @@ function buildClinicalRecordExportSection(title, description, content) {
     `;
 }
 
-function buildClinicalRecordExportFieldGrid(
+export function buildClinicalRecordExportFieldGrid(
     fields,
     emptyMessage = 'Sin informacion registrada.'
 ) {
@@ -5248,7 +4305,7 @@ function buildClinicalRecordExportFieldGrid(
           )}</p>`;
 }
 
-function buildClinicalRecordExportList(items, emptyMessage = 'Sin registros.') {
+export function buildClinicalRecordExportList(items, emptyMessage = 'Sin registros.') {
     const rows = normalizeList(items)
         .map((item) => normalizeString(item))
         .filter(Boolean)
@@ -5266,7 +4323,7 @@ function buildClinicalRecordExportList(items, emptyMessage = 'Sin registros.') {
           )}</p>`;
 }
 
-function buildClinicalRecordExportCard(title, meta, body, tone = 'neutral') {
+export function buildClinicalRecordExportCard(title, meta, body, tone = 'neutral') {
     return `
         <article class="clinical-history-export-card is-${escapeHtml(tone)}">
             <header>
@@ -5278,7 +4335,7 @@ function buildClinicalRecordExportCard(title, meta, body, tone = 'neutral') {
     `;
 }
 
-function buildClinicalRecordExportCards(
+export function buildClinicalRecordExportCards(
     cards,
     emptyMessage = 'Sin registros.'
 ) {
@@ -5290,7 +4347,7 @@ function buildClinicalRecordExportCards(
           )}</p>`;
 }
 
-function buildClinicalRecordExportHtml(review) {
+export function buildClinicalRecordExportHtml(review) {
     const normalizedReview = normalizeReviewPayload(review);
     const draft = normalizedReview.draft;
     const documents = normalizedReview.documents || {};
@@ -6567,7 +5624,7 @@ function buildClinicalRecordExportHtml(review) {
 </html>`;
 }
 
-function openClinicalRecordExport(review) {
+export function openClinicalRecordExport(review) {
     const exportWindow = window.open('', '_blank');
     if (!exportWindow || !exportWindow.document) {
         return false;
@@ -6595,13 +5652,13 @@ function openClinicalRecordExport(review) {
     return true;
 }
 
-function buildClinicalHistoryFieldHint(hint) {
+export function buildClinicalHistoryFieldHint(hint) {
     return hint
         ? `<small>${escapeHtml(hint)}</small>`
         : '<small>&nbsp;</small>';
 }
 
-function buildClinicalHistoryFieldShell(id, label, content, hint = '') {
+export function buildClinicalHistoryFieldShell(id, label, content, hint = '') {
     return `
         <label class="clinical-history-field" for="${escapeHtml(id)}">
             <span>${escapeHtml(label)}</span>
@@ -6611,7 +5668,7 @@ function buildClinicalHistoryFieldShell(id, label, content, hint = '') {
     `;
 }
 
-function buildClinicalHistoryChoiceOptions(choices, value) {
+export function buildClinicalHistoryChoiceOptions(choices, value) {
     return choices
         .map(
             (choice) => `
@@ -6630,7 +5687,7 @@ function buildClinicalHistoryChoiceOptions(choices, value) {
         .join('');
 }
 
-function summaryStatCard(title, value, meta, tone = 'neutral') {
+export function summaryStatCard(title, value, meta, tone = 'neutral') {
     return `
         <article class="clinical-history-stat-card" data-tone="${escapeHtml(
             tone
@@ -6642,14 +5699,14 @@ function summaryStatCard(title, value, meta, tone = 'neutral') {
     `;
 }
 
-function setButtonDisabled(buttonId, disabled) {
+export function setButtonDisabled(buttonId, disabled) {
     const button = document.getElementById(buttonId);
     if (button instanceof HTMLButtonElement) {
         button.disabled = disabled;
     }
 }
 
-function buildSummaryCards(review) {
+export function buildSummaryCards(review) {
     const patient = review.session.patient;
     const draft = review.draft;
     const readiness = normalizeLegalReadiness(review.legalReadiness);
@@ -6871,7 +5928,7 @@ function buildSummaryCards(review) {
         .join('');
 }
 
-function buildEmptyClinicalCard(title, message, options = {}) {
+export function buildEmptyClinicalCard(title, message, options = {}) {
     const { cardClass = 'clinical-history-empty-card', tone = '' } = options;
 
     return `
@@ -6884,7 +5941,7 @@ function buildEmptyClinicalCard(title, message, options = {}) {
     `;
 }
 
-function buildClinicalHistoryCollection(items, emptyRenderer, renderItem) {
+export function buildClinicalHistoryCollection(items, emptyRenderer, renderItem) {
     const list = normalizeList(items);
     if (list.length === 0) {
         return typeof emptyRenderer === 'function' ? emptyRenderer() : '';
@@ -6893,7 +5950,7 @@ function buildClinicalHistoryCollection(items, emptyRenderer, renderItem) {
     return list.map(renderItem).join('');
 }
 
-function buildAttachmentStrip(review) {
+export function buildAttachmentStrip(review) {
     return buildClinicalHistoryCollection(
         review.draft.intake.adjuntos,
         () =>
@@ -6927,124 +5984,11 @@ function buildAttachmentStrip(review) {
     );
 }
 
-function buildCertificateHistoryMetaText(review, history) {
-    const caseId = currentReviewCaseId(review);
-    if (!caseId) {
-        return 'Selecciona un caso clinico para revisar su salida documental.';
-    }
-    if (history.loading && history.items.length === 0) {
-        return 'Consultando los certificados emitidos para este caso.';
-    }
-    if (history.error && history.items.length === 0) {
-        return history.error;
-    }
-    if (history.items.length === 0) {
-        return 'Todavia no se han emitido certificados para este caso.';
-    }
 
-    const latest = history.items[0];
-    const countLabel =
-        history.items.length === 1
-            ? '1 certificado emitido'
-            : `${history.items.length} certificados emitidos`;
-    const latestLabel = readableTimestamp(latest.issuedAt);
-    return latestLabel && latestLabel !== '-'
-        ? `${countLabel} • Ultimo ${latestLabel}`
-        : countLabel;
-}
 
-function buildCertificateHistoryList(review, history) {
-    const caseId = currentReviewCaseId(review);
-    if (!caseId) {
-        return buildEmptyClinicalCard(
-            'Sin caso activo',
-            'Selecciona un caso clinico para ver folios, fechas y descargas PDF.',
-            { cardClass: 'clinical-history-document-card is-empty' }
-        );
-    }
 
-    if (history.loading && history.items.length === 0) {
-        return buildEmptyClinicalCard(
-            'Cargando certificados',
-            'Estamos recuperando el historial documental del caso activo.',
-            { cardClass: 'clinical-history-document-card is-empty' }
-        );
-    }
 
-    if (history.error && history.items.length === 0) {
-        return buildEmptyClinicalCard(
-            'No se pudo cargar el historial',
-            history.error,
-            {
-                cardClass: 'clinical-history-document-card is-empty',
-                tone: 'warning',
-            }
-        );
-    }
-
-    return buildClinicalHistoryCollection(
-        history.items,
-        () =>
-            buildEmptyClinicalCard(
-                'Sin certificados emitidos',
-                'El primer certificado que emitas desde este caso aparecera aqui.',
-                { cardClass: 'clinical-history-document-card is-empty' }
-            ),
-        (item) => {
-            const meta = [
-                item.folio,
-                item.typeLabel || humanizeClinicalCode(item.type),
-                readableTimestamp(item.issuedAt),
-            ]
-                .filter((value) => value && value !== '-')
-                .join(' • ');
-            const summary = [
-                item.cie10Code ? `CIE-10 ${item.cie10Code}` : '',
-                item.diagnosisText,
-                item.restDays > 0 ? `${item.restDays} dia(s) de reposo` : '',
-                item.observations,
-            ]
-                .filter(Boolean)
-                .join(' • ');
-            const pdfUrl = `/api.php?resource=certificate&id=${encodeURIComponent(
-                item.id
-            )}&format=pdf`;
-
-            return `
-                <article class="clinical-history-document-card">
-                    <div class="clinical-history-event-head">
-                        <strong>${escapeHtml(
-                            item.typeLabel || 'Certificado medico'
-                        )}</strong>
-                        ${
-                            item.restDays > 0
-                                ? `<span class="clinical-history-mini-chip" data-tone="warning">${escapeHtml(
-                                      `${item.restDays} dia(s)`
-                                  )}</span>`
-                                : ''
-                        }
-                    </div>
-                    <small>${escapeHtml(meta || 'Documento emitido')}</small>
-                    <p>${escapeHtml(
-                        summary || 'Sin resumen clinico adicional.'
-                    )}</p>
-                    <div class="clinical-history-document-actions">
-                        <a
-                            class="clinical-history-document-link"
-                            href="${escapeHtml(pdfUrl)}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Descargar PDF
-                        </a>
-                    </div>
-                </article>
-            `;
-        }
-    );
-}
-
-function buildLegalReadinessPanel(review) {
+export function buildLegalReadinessPanel(review) {
     const readiness = normalizeLegalReadiness(review.legalReadiness);
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
@@ -7172,7 +6116,7 @@ function buildLegalReadinessPanel(review) {
     `;
 }
 
-function buildApprovalConstancy(review) {
+export function buildApprovalConstancy(review) {
     const approval = normalizeApproval(review.approvalState || review.approval);
     if (approval.status !== 'approved') {
         return buildEmptyClinicalCard(
@@ -7222,7 +6166,7 @@ function buildApprovalConstancy(review) {
     `;
 }
 
-function formatDisclosureTarget(targetType) {
+export function formatDisclosureTarget(targetType) {
     switch (normalizeString(targetType)) {
         case 'companion':
             return 'Acompanante';
@@ -7233,7 +6177,7 @@ function formatDisclosureTarget(targetType) {
     }
 }
 
-function buildRecordsGovernancePanel(review, saving = false) {
+export function buildRecordsGovernancePanel(review, saving = false) {
     if (!normalizeString(review.session.sessionId)) {
         return buildEmptyClinicalCard(
             'Gobernanza documental',
@@ -7658,7 +6602,7 @@ function buildRecordsGovernancePanel(review, saving = false) {
     `;
 }
 
-function queueReasons(item) {
+export function queueReasons(item) {
     return [
         ...normalizeStringList(item.missingFields),
         ...normalizeStringList(item.reviewReasons),
@@ -7666,7 +6610,7 @@ function queueReasons(item) {
     ];
 }
 
-function queueAlertMeta(item) {
+export function queueAlertMeta(item) {
     const openEventCount = Math.max(0, normalizeNumber(item.openEventCount));
     if (openEventCount <= 0) {
         return '';
@@ -7676,7 +6620,7 @@ function queueAlertMeta(item) {
     return `${openEventCount} ${label.toLowerCase()}(s) abierto(s)`;
 }
 
-function reviewQueueMatchesFilter(item, filter) {
+export function reviewQueueMatchesFilter(item, filter) {
     switch (normalizeClinicalQueueFilter(filter)) {
         case 'ready_to_approve':
             return normalizeString(item.legalReadinessStatus) === 'ready';
@@ -7719,7 +6663,7 @@ export function filterClinicalReviewQueue(reviewQueue, filter) {
         .filter((item) => reviewQueueMatchesFilter(item, normalizedFilter));
 }
 
-function queueFilterLabel(filter) {
+export function queueFilterLabel(filter) {
     switch (normalizeClinicalQueueFilter(filter)) {
         case 'ready_to_approve':
             return 'Lista para aprobar';
@@ -7734,7 +6678,7 @@ function queueFilterLabel(filter) {
     }
 }
 
-function buildQueueFilterChips(meta, activeFilter) {
+export function buildQueueFilterChips(meta, activeFilter) {
     const reviewQueue = normalizeList(meta.reviewQueue).map(
         normalizeReviewQueueItem
     );
@@ -7759,7 +6703,7 @@ function buildQueueFilterChips(meta, activeFilter) {
     }).join('');
 }
 
-function buildWorkspaceTabs(activeWorkspace, meta) {
+export function buildWorkspaceTabs(activeWorkspace, meta) {
     return availableClinicalHistoryWorkspaces().map(
         ({ workspace, label, metaLabel }) => {
             const isActive = activeWorkspace === workspace;
@@ -7784,7 +6728,7 @@ function buildWorkspaceTabs(activeWorkspace, meta) {
     ).join('');
 }
 
-function buildQueueEmptyState(filter) {
+export function buildQueueEmptyState(filter) {
     return buildEmptyClinicalCard(
         normalizeClinicalQueueFilter(filter) === 'all'
             ? 'Sin cola activa'
@@ -7795,7 +6739,7 @@ function buildQueueEmptyState(filter) {
     );
 }
 
-function buildQueueItemChips(item, status) {
+export function buildQueueItemChips(item, status) {
     return [
         status,
         item.legalReadinessStatus === 'ready' ? 'Lista para aprobar' : '',
@@ -7811,7 +6755,7 @@ function buildQueueItemChips(item, status) {
     ].filter(Boolean);
 }
 
-function buildQueueItemMeta(item) {
+export function buildQueueItemMeta(item) {
     return [
         item.latestOpenEventTitle,
         readableTimestamp(item.updatedAt || item.createdAt),
@@ -7820,7 +6764,7 @@ function buildQueueItemMeta(item) {
         .join(' • ');
 }
 
-function buildClinicalHistoryMiniChipRow(chips) {
+export function buildClinicalHistoryMiniChipRow(chips) {
     return `
         <div class="clinical-history-mini-chip-row">
             ${normalizeList(chips)
@@ -7835,7 +6779,7 @@ function buildClinicalHistoryMiniChipRow(chips) {
     `;
 }
 
-function buildQueueItemCard(item, selectedSessionId, loading) {
+export function buildQueueItemCard(item, selectedSessionId, loading) {
     const sessionId = normalizeString(item.sessionId);
     const redFlagLabels = formatClinicalRedFlags(item.redFlags);
     const summary = truncateText(
@@ -7891,7 +6835,7 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
     `;
 }
 
-function buildQueueList(meta, selectedSessionId, loading, filter) {
+export function buildQueueList(meta, selectedSessionId, loading, filter) {
     const reviewQueue = filterClinicalReviewQueue(meta.reviewQueue, filter);
     return buildClinicalHistoryCollection(
         reviewQueue,
@@ -7900,156 +6844,31 @@ function buildQueueList(meta, selectedSessionId, loading, filter) {
     );
 }
 
-function buildQueueMetaText(meta, filter) {
+export function buildQueueMetaText(meta, filter) {
     return `Mostrando ${filterClinicalReviewQueue(meta.reviewQueue, filter).length} de ${
         normalizeList(meta.reviewQueue).length
     } caso(s) en ${queueFilterLabel(filter).toLowerCase()}.`;
 }
 
-function buildTranscriptMessageCard(message) {
-    const surface = normalizeString(message.surface);
-    const fieldKey = normalizeString(message.fieldKey);
-    const meta = [surface, fieldKey].filter(Boolean).join(' • ');
 
-    return `
-        <article
-            class="clinical-history-message"
-            data-actor-tone="${escapeHtml(transcriptActorTone(message))}"
-        >
-            <header>
-                <span class="clinical-history-mini-chip">${escapeHtml(
-                    transcriptActorLabel(message)
-                )}</span>
-                <time>${escapeHtml(readableTimestamp(message.createdAt))}</time>
-            </header>
-            <p>${formatHtmlMultiline(message.content)}</p>
-            <small>${escapeHtml(meta || 'Sin metadata clinica')}</small>
-        </article>
-    `;
-}
 
-function buildTranscript(review, loading, error) {
-    if (loading && review.session.transcript.length === 0) {
-        return buildEmptyClinicalCard(
-            'Cargando conversacion',
-            'Estamos recuperando el transcript y el borrador medico.'
-        );
-    }
 
-    if (error && review.session.transcript.length === 0) {
-        return buildEmptyClinicalCard('No se pudo cargar el caso', error, {
-            tone: 'warning',
-        });
-    }
 
-    if (review.session.transcript.length === 0) {
-        return buildEmptyClinicalCard(
-            'Sin transcript',
-            'La conversacion del paciente aparecera aqui cuando exista una sesion cargada.'
-        );
-    }
 
-    return buildClinicalHistoryCollection(
-        review.session.transcript,
-        () => '',
-        buildTranscriptMessageCard
-    );
-}
 
-function buildTranscriptMetaText(review) {
-    return review.session.sessionId
-        ? `${currentSelectionLabel(review)} • ${
-              review.session.surface || 'clinical_intake'
-          }`
-        : 'El transcript del paciente aparece aqui.';
-}
 
-function buildTranscriptCountText(review) {
-    return `${normalizeList(review.session.transcript).length} mensaje(s)`;
-}
 
-function buildClinicalEventCard(event) {
-    const tone = buildEventTone(event);
-    const meta = [
-        event.status ? `Estado ${event.status}` : '',
-        readableTimestamp(
-            event.occurredAt || event.acknowledgedAt || event.resolvedAt
-        ),
-    ]
-        .filter(Boolean)
-        .join(' • ');
 
-    return `
-        <article class="clinical-history-event-card" data-tone="${escapeHtml(
-            tone
-        )}">
-            <div class="clinical-history-event-head">
-                <span class="clinical-history-mini-chip">${escapeHtml(
-                    formatSeverity(event.severity)
-                )}</span>
-                <span class="clinical-history-mini-chip">${escapeHtml(
-                    event.status || 'open'
-                )}</span>
-            </div>
-            <strong>${escapeHtml(event.title || event.type || 'Evento clinico')}</strong>
-            <p>${escapeHtml(event.message || 'Sin detalle operativo adicional.')}</p>
-            <small>${escapeHtml(meta || 'Sin timestamp')}</small>
-        </article>
-    `;
-}
 
-function buildEvents(review) {
-    return buildClinicalHistoryCollection(
-        review.events,
-        () =>
-            buildEmptyClinicalCard(
-                'Sin eventos abiertos',
-                'Cuando haya alertas, conciliaciones o acciones pendientes apareceran aqui.'
-            ),
-        buildClinicalEventCard
-    );
-}
 
-function buildEventTone(event) {
-    const severity = normalizeString(event.severity).toLowerCase();
-    if (severity === 'critical') {
-        return 'danger';
-    }
-    if (severity === 'warning' || event.requiresAction) {
-        return 'warning';
-    }
-    return 'neutral';
-}
 
-function buildEventsMetaText(review) {
-    return review.events.length > 0
-        ? `${review.events.length} evento(s) registrados para este caso.`
-        : 'Alertas, conciliacion y acciones pendientes.';
-}
 
-function highestReviewEventSeverity(review) {
-    let highest = '';
-    normalizeList(review.events).forEach((event) => {
-        const severity = normalizeString(event.severity).toLowerCase();
-        if (severity === 'critical') {
-            highest = 'critical';
-            return;
-        }
-        if (severity === 'warning' && highest !== 'critical') {
-            highest = 'warning';
-        }
-        if (
-            severity === 'info' &&
-            highest !== 'critical' &&
-            highest !== 'warning'
-        ) {
-            highest = 'info';
-        }
-    });
-    return highest;
-}
 
-function buildDraftMetaText(slice, review, draft) {
+
+
+
+
+export function buildDraftMetaText(slice, review, draft) {
     const admission = normalizeAdmission001(
         review.patientRecord?.admission001 || draft.admission001,
         review.session.patient,
@@ -8104,7 +6923,7 @@ function buildDraftMetaText(slice, review, draft) {
     return marks.join(' • ') || 'Sin cambios';
 }
 
-function buildDraftSummaryText(review, draft) {
+export function buildDraftSummaryText(review, draft) {
     const readiness = normalizeLegalReadiness(review.legalReadiness);
     const admission = normalizeAdmission001(
         review.patientRecord?.admission001 || draft.admission001,
@@ -8141,7 +6960,7 @@ function buildDraftSummaryText(review, draft) {
         : 'Selecciona un caso para regularizar admision HCU-001, nota viva y documentos.';
 }
 
-function buildFollowUpMetaText(review) {
+export function buildFollowUpMetaText(review) {
     return review.session.sessionId
         ? `La pregunta saldra por el mismo hilo de ${currentSelectionLabel(
               review
@@ -8149,7 +6968,7 @@ function buildFollowUpMetaText(review) {
         : 'Envia una pregunta puntual al paciente sin salir del review.';
 }
 
-function buildClinicalHeaderMetaText(review) {
+export function buildClinicalHeaderMetaText(review) {
     const admission = normalizeAdmission001(
         review.patientRecord?.admission001 || review.draft.admission001,
         review.session.patient,
@@ -8202,7 +7021,7 @@ function buildClinicalHeaderMetaText(review) {
     );
 }
 
-function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
+export function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
     const admission = normalizeAdmission001(
         draft.admission001,
         {},
@@ -8254,7 +7073,7 @@ function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
     );
 }
 
-function textareaField(id, label, value, options = {}) {
+export function textareaField(id, label, value, options = {}) {
     const { placeholder = '', rows = 4, hint = '', disabled = false } = options;
 
     return buildClinicalHistoryFieldShell(
@@ -8273,7 +7092,7 @@ function textareaField(id, label, value, options = {}) {
     );
 }
 
-function inputField(id, label, value, options = {}) {
+export function inputField(id, label, value, options = {}) {
     const {
         type = 'text',
         placeholder = '',
@@ -8302,7 +7121,7 @@ function inputField(id, label, value, options = {}) {
     );
 }
 
-function checkboxField(id, label, checked, options = {}) {
+export function checkboxField(id, label, checked, options = {}) {
     const { hint = '', disabled = false } = options;
     return `
         <label class="clinical-history-toggle" for="${escapeHtml(id)}">
@@ -8321,7 +7140,7 @@ function checkboxField(id, label, checked, options = {}) {
     `;
 }
 
-function selectField(id, label, value, choices, options = {}) {
+export function selectField(id, label, value, choices, options = {}) {
     const { hint = '', disabled = false } = options;
     return buildClinicalHistoryFieldShell(
         id,
@@ -8339,7 +7158,7 @@ function selectField(id, label, value, choices, options = {}) {
     );
 }
 
-function buildClinicalHistoryInlineGrid(fields) {
+export function buildClinicalHistoryInlineGrid(fields) {
     return `
         <div class="clinical-history-inline-grid">
             ${fields.join('')}
@@ -8347,7 +7166,7 @@ function buildClinicalHistoryInlineGrid(fields) {
     `;
 }
 
-function buildClinicalHistorySection(title, description, body) {
+export function buildClinicalHistorySection(title, description, body) {
     return `
             <section class="clinical-history-form-section">
                 <header>
@@ -8359,7 +7178,7 @@ function buildClinicalHistorySection(title, description, body) {
     `;
 }
 
-function buildAdmissionHistoryCards(admission) {
+export function buildAdmissionHistoryCards(admission) {
     const history = normalizeList(admission?.history?.admissionHistory);
     if (history.length === 0) {
         return buildEmptyClinicalCard(
@@ -8395,7 +7214,7 @@ function buildAdmissionHistoryCards(admission) {
         .join('');
 }
 
-function buildAdmissionChangeLogCards(admission) {
+export function buildAdmissionChangeLogCards(admission) {
     const changeLog = normalizeList(admission?.history?.changeLog);
     if (changeLog.length === 0) {
         return buildEmptyClinicalCard(
@@ -8432,7 +7251,7 @@ function buildAdmissionChangeLogCards(admission) {
         .join('');
 }
 
-function buildClinicalHistoryAdmissionSection(review, draft, disabled) {
+export function buildClinicalHistoryAdmissionSection(review, draft, disabled) {
     const admission = normalizeAdmission001(
         draft.admission001,
         review.session.patient,
@@ -8699,7 +7518,7 @@ function buildClinicalHistoryAdmissionSection(review, draft, disabled) {
     );
 }
 
-function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
+export function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
     return buildClinicalHistorySection(
         'Intake estructurado',
         'Motivo de consulta, evolucion y datos del paciente.',
@@ -8881,111 +7700,9 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
     );
 }
 
-function buildPrescriptionItemEditor(item, index, disabled) {
-    const safeItem = normalizePrescriptionItem(item);
-    return `
-        <article class="clinical-history-event-card" data-hcu005-prescription-item="${escapeHtml(
-            String(index)
-        )}">
-            <div class="clinical-history-event-head">
-                <span class="clinical-history-mini-chip">Prescripción ${escapeHtml(
-                    String(index + 1)
-                )}</span>
-                <button
-                    type="button"
-                    class="clinical-history-mini-chip"
-                    data-clinical-draft-action="remove-prescription-item"
-                    data-prescription-index="${escapeHtml(String(index))}"
-                    ${disabled ? 'disabled' : ''}
-                >
-                    Quitar
-                </button>
-            </div>
-            ${buildClinicalHistoryInlineGrid([
-                inputField(
-                    `hcu005_prescription_${index}_medication`,
-                    'Medicamento',
-                    safeItem.medication,
-                    {
-                        placeholder: 'Nombre del medicamento',
-                        disabled,
-                    }
-                ),
-                inputField(
-                    `hcu005_prescription_${index}_presentation`,
-                    'Presentación',
-                    safeItem.presentation,
-                    {
-                        placeholder: 'Tableta, crema, solución',
-                        disabled,
-                    }
-                ),
-            ])}
-            ${buildClinicalHistoryInlineGrid([
-                inputField(
-                    `hcu005_prescription_${index}_dose`,
-                    'Dosis',
-                    safeItem.dose,
-                    {
-                        placeholder: '500 mg',
-                        disabled,
-                    }
-                ),
-                inputField(
-                    `hcu005_prescription_${index}_route`,
-                    'Vía',
-                    safeItem.route,
-                    {
-                        placeholder: 'VO, tópica, IM',
-                        disabled,
-                    }
-                ),
-                inputField(
-                    `hcu005_prescription_${index}_frequency`,
-                    'Frecuencia',
-                    safeItem.frequency,
-                    {
-                        placeholder: 'Cada 12 horas',
-                        disabled,
-                    }
-                ),
-            ])}
-            ${buildClinicalHistoryInlineGrid([
-                inputField(
-                    `hcu005_prescription_${index}_duration`,
-                    'Duración',
-                    safeItem.duration,
-                    {
-                        placeholder: '7 días',
-                        disabled,
-                    }
-                ),
-                inputField(
-                    `hcu005_prescription_${index}_quantity`,
-                    'Cantidad',
-                    safeItem.quantity,
-                    {
-                        placeholder: '14 tabletas',
-                        disabled,
-                    }
-                ),
-            ])}
-            ${textareaField(
-                `hcu005_prescription_${index}_instructions`,
-                'Indicaciones',
-                safeItem.instructions,
-                {
-                    rows: 3,
-                    placeholder:
-                        'Instrucciones detalladas para uso y seguimiento.',
-                    disabled,
-                }
-            )}
-        </article>
-    `;
-}
 
-function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
+
+export function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
     const hcu005 = normalizeHcu005(draft.clinicianDraft.hcu005);
     const visibleItems =
         hcu005.prescriptionItems.length > 0
@@ -9109,2392 +7826,29 @@ function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
     );
 }
 
-function buildInterconsultationChip(
-    interconsultation,
-    activeInterconsultationId,
-    disabled
-) {
-    const normalized = normalizeInterconsultation(interconsultation);
-    const status = hcu007StatusMeta(
-        evaluateInterconsultation(normalized).status
-    );
-    const isActive =
-        normalizeString(normalized.interconsultId) ===
-        normalizeString(activeInterconsultationId);
 
-    return `
-        <button
-            type="button"
-            class="clinical-history-workspace-tab${isActive ? ' is-active' : ''}"
-            data-clinical-review-action="select-interconsultation"
-            data-interconsult-id="${escapeHtml(normalized.interconsultId)}"
-            ${disabled ? 'disabled' : ''}
-        >
-            <strong>${escapeHtml(
-                normalized.destinationService ||
-                    normalized.requestReason ||
-                    'Interconsulta'
-            )}</strong>
-            <small>${escapeHtml(status.label)}</small>
-        </button>
-    `;
-}
 
-function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
-    const interconsultations = normalizeInterconsultations(
-        draft.interconsultations
-    );
-    const activeInterconsultationId = normalizeString(
-        draft.activeInterconsultationId
-    );
-    const activeInterconsultation =
-        interconsultations.find(
-            (item) =>
-                normalizeString(item.interconsultId) ===
-                activeInterconsultationId
-        ) || null;
-    const hydratedInterconsultation = activeInterconsultation
-        ? deriveInterconsultationContext(
-              activeInterconsultation,
-              draft,
-              review.session.patient
-          )
-        : null;
-    const activeStatus = hcu007StatusMeta(
-        hydratedInterconsultation
-            ? evaluateInterconsultation(hydratedInterconsultation).status
-            : 'not_applicable'
-    );
-    const activeReport = hydratedInterconsultation
-        ? normalizeInterconsultReport(hydratedInterconsultation.report, {
-              consultantProfessionalName:
-                  hydratedInterconsultation.consultedProfessionalName,
-              respondingEstablishment:
-                  hydratedInterconsultation.destinationEstablishment,
-              respondingService: hydratedInterconsultation.destinationService,
-          })
-        : emptyInterconsultReport();
-    const activeReportStatus = hcu007ReportStatusMeta(
-        hydratedInterconsultation
-            ? evaluateInterconsultReport(activeReport).status
-            : 'not_received'
-    );
-    const interconsultForms = normalizeInterconsultFormSnapshots(
-        draft.documents.interconsultForms
-    );
-    const interconsultReports = normalizeInterconsultReportSnapshots(
-        draft.documents.interconsultReports
-    );
-    const supportAttachments = normalizeAttachmentList(draft.intake.adjuntos);
-    const selectedAttachmentIds = new Set(
-        normalizeAttachmentList(activeReport.attachments).map((attachment) =>
-            String(attachment.id || '')
-        )
-    );
-    const attachmentSelector =
-        supportAttachments.length > 0
-            ? supportAttachments
-                  .map((attachment) => {
-                      const attachmentId = String(attachment.id || '');
-                      const checked =
-                          attachmentId &&
-                          selectedAttachmentIds.has(attachmentId);
-                      const meta = [
-                          normalizeString(attachment.kind) || 'archivo',
-                          normalizeString(attachment.mime),
-                          attachment.size > 0
-                              ? formatBytes(attachment.size)
-                              : '',
-                      ]
-                          .filter(Boolean)
-                          .join(' • ');
-                      return `
-                            <label class="clinical-history-inline-checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="interconsult_report_attachment_ids"
-                                    value="${escapeHtml(attachmentId)}"
-                                    ${checked ? 'checked' : ''}
-                                    ${disabled ? 'disabled' : ''}
-                                />
-                                <span>
-                                    <strong>${escapeHtml(
-                                        attachment.originalName ||
-                                            `Adjunto ${attachmentId}`
-                                    )}</strong>
-                                    <small>${escapeHtml(meta || 'Soporte clínico')}</small>
-                                </span>
-                            </label>
-                        `;
-                  })
-                  .join('')
-            : buildEmptyClinicalCard(
-                  'Sin adjuntos clínicos disponibles',
-                  'Cuando el caso tenga adjuntos de clinical_uploads podrás seleccionarlos como respaldo del informe.'
-              );
-    const diagnoses = hydratedInterconsultation
-        ? normalizeInterconsultationDiagnoses(
-              hydratedInterconsultation.diagnoses
-          )
-        : normalizeInterconsultationDiagnoses([]);
-    const preDiagnosis =
-        diagnoses.find((item) => item.type === 'pre') ||
-        emptyInterconsultationDiagnosis('pre');
-    const defDiagnosis =
-        diagnoses.find((item) => item.type === 'def') ||
-        emptyInterconsultationDiagnosis('def');
 
-    return buildClinicalHistorySection(
-        'Interconsulta HCU-form.007/2008',
-        'Documento formal de interconsulta emitida con captura estructurada del informe del consultado y adjunto opcional.',
-        `
-                <input
-                    type="hidden"
-                    id="interconsult_active_id"
-                    name="interconsult_active_id"
-                    value="${escapeHtml(activeInterconsultationId)}"
-                />
-                <div class="clinical-history-summary-grid">
-                    ${summaryStatCard(
-                        'HCU-007',
-                        activeStatus.label,
-                        activeStatus.summary,
-                        ['issued', 'received'].includes(activeStatus.status)
-                            ? 'success'
-                            : [
-                                    'ready_to_issue',
-                                    'incomplete',
-                                    'draft',
-                                ].includes(activeStatus.status)
-                              ? 'warning'
-                              : 'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Informe del consultado',
-                        activeReportStatus.label,
-                        activeReportStatus.summary,
-                        activeReportStatus.status === 'received'
-                            ? 'success'
-                            : ['ready_to_receive', 'draft'].includes(
-                                    activeReportStatus.status
-                                )
-                              ? 'warning'
-                              : 'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Paciente / HCU',
-                        hydratedInterconsultation?.patientName ||
-                            buildAdmissionLegalName(
-                                draft.admission001,
-                                review.session.patient
-                            ) ||
-                            'Sin paciente',
-                        [
-                            hydratedInterconsultation?.patientDocumentNumber,
-                            hydratedInterconsultation?.patientRecordId,
-                        ]
-                            .filter(Boolean)
-                            .join(' • ') || 'Sin documento',
-                        'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Solicitante',
-                        hydratedInterconsultation?.requestingService ||
-                            resolveClinicProfileDisplay().serviceLabel,
-                        hydratedInterconsultation?.requestingEstablishment ||
-                            resolveClinicProfileDisplay().establishmentLabel,
-                        'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Snapshots',
-                        String(
-                            interconsultForms.length +
-                                interconsultReports.length
-                        ),
-                        interconsultReports.length > 0
-                            ? 'Hay snapshots emitidos/cancelados y al menos un informe recibido.'
-                            : interconsultForms.length > 0
-                              ? 'Snapshots documentales HCU-007 emitidos o cancelados.'
-                              : 'Todavía no hay snapshots HCU-007 emitidos.',
-                        interconsultForms.length + interconsultReports.length >
-                            0
-                            ? 'success'
-                            : 'neutral'
-                    )}
-                </div>
-                <div class="toolbar-row clinical-history-actions-row">
-                    <button
-                        type="button"
-                        data-clinical-review-action="create-interconsultation"
-                        ${disabled ? 'disabled' : ''}
-                    >
-                        Nueva interconsulta
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-review-action="issue-current-interconsultation"
-                        ${disabled || !hydratedInterconsultation ? 'disabled' : ''}
-                    >
-                        Emitir interconsulta
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-review-action="cancel-current-interconsultation"
-                        ${disabled || !hydratedInterconsultation ? 'disabled' : ''}
-                    >
-                        Cancelar interconsulta
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-review-action="receive-current-interconsult-report"
-                        ${disabled || !hydratedInterconsultation ? 'disabled' : ''}
-                    >
-                        Recibir informe
-                    </button>
-                </div>
-                <div class="toolbar-row clinical-history-actions-row">
-                    ${interconsultations
-                        .map((item) =>
-                            buildInterconsultationChip(
-                                item,
-                                activeInterconsultationId,
-                                disabled
-                            )
-                        )
-                        .join('')}
-                </div>
-                ${
-                    !hydratedInterconsultation
-                        ? buildEmptyClinicalCard(
-                              'Sin interconsulta activa',
-                              'Crea una interconsulta del episodio para empezar el HCU-007.'
-                          )
-                        : `
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'interconsult_requested_at',
-                                    'Fecha/hora',
-                                    hydratedInterconsultation.requestedAt,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'interconsult_priority',
-                                    'Prioridad',
-                                    hydratedInterconsultation.priority,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'interconsult_issued_by',
-                                    'Profesional solicitante',
-                                    hydratedInterconsultation.issuedBy,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${checkboxField(
-                                'interconsult_required_for_current_plan',
-                                'La interconsulta es parte del plan actual',
-                                hydratedInterconsultation.requiredForCurrentPlan ===
-                                    true,
-                                {
-                                    hint: 'Si está marcada, la aprobación final exige emitirla o cancelarla.',
-                                    disabled,
-                                }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'interconsult_patient_name',
-                                    'Paciente',
-                                    hydratedInterconsultation.patientName,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'interconsult_patient_record',
-                                    'Documento / HCU',
-                                    [
-                                        hydratedInterconsultation.patientDocumentNumber,
-                                        hydratedInterconsultation.patientRecordId,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' '),
-                                    { disabled: true }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'interconsult_requesting_establishment',
-                                    'Establecimiento solicitante',
-                                    hydratedInterconsultation.requestingEstablishment,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'interconsult_requesting_service',
-                                    'Servicio solicitante',
-                                    hydratedInterconsultation.requestingService,
-                                    { disabled: true }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'interconsult_destination_establishment',
-                                    'Establecimiento destino',
-                                    hydratedInterconsultation.destinationEstablishment,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'interconsult_destination_service',
-                                    'Servicio destino',
-                                    hydratedInterconsultation.destinationService,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'interconsult_consulted_professional_name',
-                                    'Profesional consultado',
-                                    hydratedInterconsultation.consultedProfessionalName,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                textareaField(
-                                    'interconsult_request_reason',
-                                    'Motivo de interconsulta',
-                                    hydratedInterconsultation.requestReason,
-                                    { rows: 4, disabled }
-                                ),
-                                textareaField(
-                                    'interconsult_question_for_consultant',
-                                    'Pregunta para el consultado',
-                                    hydratedInterconsultation.questionForConsultant,
-                                    { rows: 4, disabled }
-                                ),
-                            ])}
-                            ${textareaField(
-                                'interconsult_clinical_picture',
-                                'Cuadro clínico actual',
-                                hydratedInterconsultation.clinicalPicture,
-                                {
-                                    rows: 5,
-                                    placeholder:
-                                        'Resumen clínico actual del episodio que justifica la interconsulta.',
-                                    disabled,
-                                }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                textareaField(
-                                    'interconsult_performed_diagnostics_summary',
-                                    'Exámenes y procedimientos diagnósticos relevantes',
-                                    hydratedInterconsultation.performedDiagnosticsSummary,
-                                    { rows: 4, disabled }
-                                ),
-                                textareaField(
-                                    'interconsult_therapeutic_measures_done',
-                                    'Medidas terapéuticas y educativas realizadas',
-                                    hydratedInterconsultation.therapeuticMeasuresDone,
-                                    { rows: 4, disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'interconsult_diagnosis_pre_label',
-                                    'Diagnóstico PRE',
-                                    preDiagnosis.label,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'interconsult_diagnosis_pre_cie10',
-                                    'CIE-10 PRE',
-                                    preDiagnosis.cie10,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'interconsult_diagnosis_def_label',
-                                    'Diagnóstico DEF',
-                                    defDiagnosis.label,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'interconsult_diagnosis_def_cie10',
-                                    'CIE-10 DEF',
-                                    defDiagnosis.cie10,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'interconsult_issued_at',
-                                    'Emitida el',
-                                    hydratedInterconsultation.issuedAt,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'interconsult_cancelled_at',
-                                    'Cancelada el',
-                                    hydratedInterconsultation.cancelledAt,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'interconsult_cancel_reason',
-                                    'Razón de cancelación',
-                                    hydratedInterconsultation.cancelReason,
-                                    { disabled }
-                                ),
-                            ])}
-                            <div class="clinical-history-section-block">
-                                <div class="clinical-history-event-head">
-                                    <strong>Informe del consultado</strong>
-                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                        activeReportStatus.label
-                                    )}</span>
-                                </div>
-                                ${
-                                    activeReportStatus.status === 'received'
-                                        ? `
-                                            <div class="clinical-history-banner clinical-history-banner-success">
-                                                Informe recibido: reconciliar manualmente en HCU-005/HCU-024 si aplica.
-                                            </div>
-                                        `
-                                        : ''
-                                }
-                                ${buildClinicalHistoryInlineGrid([
-                                    inputField(
-                                        'interconsult_report_reported_at',
-                                        'Fecha/hora del informe',
-                                        activeReport.reportedAt,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'interconsult_report_reported_by',
-                                        'Reportado por',
-                                        activeReport.reportedBy,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'interconsult_report_received_by',
-                                        'Recibido por',
-                                        activeReport.receivedBy,
-                                        { disabled: true }
-                                    ),
-                                ])}
-                                ${buildClinicalHistoryInlineGrid([
-                                    inputField(
-                                        'interconsult_report_responding_establishment',
-                                        'Establecimiento respondiente',
-                                        activeReport.respondingEstablishment,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'interconsult_report_responding_service',
-                                        'Servicio respondiente',
-                                        activeReport.respondingService,
-                                        { disabled }
-                                    ),
-                                ])}
-                                ${buildClinicalHistoryInlineGrid([
-                                    inputField(
-                                        'interconsult_report_consultant_professional_name',
-                                        'Profesional consultado',
-                                        activeReport.consultantProfessionalName,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'interconsult_report_consultant_professional_role',
-                                        'Rol profesional',
-                                        activeReport.consultantProfessionalRole,
-                                        { disabled }
-                                    ),
-                                ])}
-                                ${textareaField(
-                                    'interconsult_report_summary',
-                                    'Resumen del informe',
-                                    activeReport.reportSummary,
-                                    {
-                                        rows: 3,
-                                        disabled,
-                                    }
-                                )}
-                                ${buildClinicalHistoryInlineGrid([
-                                    textareaField(
-                                        'interconsult_report_clinical_findings',
-                                        'Hallazgos clínicos',
-                                        activeReport.clinicalFindings,
-                                        {
-                                            rows: 4,
-                                            disabled,
-                                        }
-                                    ),
-                                    textareaField(
-                                        'interconsult_report_diagnostic_opinion',
-                                        'Criterio / impresión del consultado',
-                                        activeReport.diagnosticOpinion,
-                                        {
-                                            rows: 4,
-                                            disabled,
-                                        }
-                                    ),
-                                ])}
-                                ${buildClinicalHistoryInlineGrid([
-                                    textareaField(
-                                        'interconsult_report_recommendations',
-                                        'Recomendaciones',
-                                        activeReport.recommendations,
-                                        {
-                                            rows: 4,
-                                            disabled,
-                                        }
-                                    ),
-                                    textareaField(
-                                        'interconsult_report_follow_up_indications',
-                                        'Conducta sugerida / seguimiento',
-                                        activeReport.followUpIndications,
-                                        {
-                                            rows: 4,
-                                            disabled,
-                                        }
-                                    ),
-                                ])}
-                                ${buildClinicalHistoryInlineGrid([
-                                    inputField(
-                                        'interconsult_report_source_document_type',
-                                        'Tipo de documento fuente',
-                                        activeReport.sourceDocumentType,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'interconsult_report_source_reference',
-                                        'Referencia / folio',
-                                        activeReport.sourceReference,
-                                        { disabled }
-                                    ),
-                                ])}
-                                <div class="clinical-history-section-block">
-                                    <div class="clinical-history-event-head">
-                                        <strong>Adjunto opcional de respaldo</strong>
-                                        <small>Reutiliza adjuntos ya cargados por clinical_uploads.</small>
-                                    </div>
-                                    <div class="clinical-history-inline-checkbox-list">
-                                        ${attachmentSelector}
-                                    </div>
-                                </div>
-                            </div>
-                        `
-                }
-            `
-    );
-}
 
-function buildConsentPacketChip(packet, activePacketId, disabled) {
-    const normalized = normalizeConsentPacket(packet);
-    const status = hcu024StatusMeta(evaluateConsentPacket(normalized).status);
-    const isActive =
-        normalizeString(normalized.packetId) ===
-        normalizeString(activePacketId);
 
-    return `
-        <button
-            type="button"
-            class="clinical-history-workspace-tab${isActive ? ' is-active' : ''}"
-            data-clinical-draft-action="select-consent-packet-local"
-            data-packet-id="${escapeHtml(normalized.packetId)}"
-            ${disabled ? 'disabled' : ''}
-        >
-            <strong>${escapeHtml(
-                normalized.procedureLabel || 'Consentimiento'
-            )}</strong>
-            <small>${escapeHtml(status.label)}</small>
-        </button>
-    `;
-}
 
-function buildLabOrderChip(labOrder, activeLabOrderId, disabled) {
-    const normalized = normalizeLabOrder(labOrder);
-    const status = hcu010AStatusMeta(evaluateLabOrder(normalized).status);
-    const isActive =
-        normalizeString(normalized.labOrderId) ===
-        normalizeString(activeLabOrderId);
 
-    return `
-        <button
-            type="button"
-            class="clinical-history-workspace-tab${isActive ? ' is-active' : ''}"
-            data-clinical-review-action="select-lab-order"
-            data-lab-order-id="${escapeHtml(normalized.labOrderId)}"
-            ${disabled ? 'disabled' : ''}
-        >
-            <strong>${escapeHtml(
-                normalized.sampleDate ||
-                    normalized.requestedAt ||
-                    'Orden laboratorio'
-            )}</strong>
-            <small>${escapeHtml(status.label)}</small>
-        </button>
-    `;
-}
 
-function buildImagingOrderChip(imagingOrder, activeImagingOrderId, disabled) {
-    const normalized = normalizeImagingOrder(imagingOrder);
-    const status = hcu012AStatusMeta(evaluateImagingOrder(normalized).status);
-    const isActive =
-        normalizeString(normalized.imagingOrderId) ===
-        normalizeString(activeImagingOrderId);
 
-    return `
-        <button
-            type="button"
-            class="clinical-history-workspace-tab${isActive ? ' is-active' : ''}"
-            data-clinical-review-action="select-imaging-order"
-            data-imaging-order-id="${escapeHtml(normalized.imagingOrderId)}"
-            ${disabled ? 'disabled' : ''}
-        >
-            <strong>${escapeHtml(
-                normalized.studyDate ||
-                    normalized.requestedAt ||
-                    'Orden imagenologia'
-            )}</strong>
-            <small>${escapeHtml(status.label)}</small>
-        </button>
-    `;
-}
 
-function buildLabOrderStudyChecklist(
-    groupKey,
-    label,
-    selectedValues,
-    disabled
-) {
-    const options = normalizeList(CLINICAL_HISTORY_LAB_STUDY_OPTIONS[groupKey]);
-    const selected = new Set(normalizeStringList(selectedValues));
 
-    return `
-        <div class="clinical-history-section-block">
-            <div class="clinical-history-event-head">
-                <strong>${escapeHtml(label)}</strong>
-                <span class="clinical-history-mini-chip">${escapeHtml(
-                    String(selected.size)
-                )}</span>
-            </div>
-            <div class="clinical-history-events">
-                ${options
-                    .map(
-                        (option, index) => `
-                            <label class="clinical-history-inline-checkbox">
-                                <input
-                                    type="checkbox"
-                                    id="lab_order_study_${escapeHtml(
-                                        groupKey
-                                    )}_${index}"
-                                    name="lab_order_study_${escapeHtml(
-                                        groupKey
-                                    )}"
-                                    value="${escapeHtml(option)}"
-                                    ${
-                                        selected.has(normalizeString(option))
-                                            ? 'checked'
-                                            : ''
-                                    }
-                                    ${disabled ? 'disabled' : ''}
-                                />
-                                <span>${escapeHtml(option)}</span>
-                            </label>
-                        `
-                    )
-                    .join('')}
-            </div>
-        </div>
-    `;
-}
 
-function buildImagingStudyGroupField(groupKey, label, value, hint, disabled) {
-    return textareaField(
-        `imaging_order_studies_${groupKey}`,
-        label,
-        formatTextareaList(value),
-        {
-            rows: 3,
-            hint,
-            placeholder: 'Una linea por estudio',
-            disabled,
-        }
-    );
-}
 
-function buildClinicalHistoryLabOrderSection(review, draft, disabled) {
-    const labOrders = normalizeLabOrders(draft.labOrders);
-    const activeLabOrderId = normalizeString(draft.activeLabOrderId);
-    const activeLabOrder =
-        labOrders.find(
-            (item) => normalizeString(item.labOrderId) === activeLabOrderId
-        ) || null;
-    const hydratedLabOrder = activeLabOrder
-        ? deriveLabOrderContext(activeLabOrder, draft, review.session.patient)
-        : null;
-    const evaluation = hydratedLabOrder
-        ? evaluateLabOrder(hydratedLabOrder)
-        : { status: 'not_applicable', selectedStudiesCount: 0 };
-    const activeStatus = hcu010AStatusMeta(evaluation.status);
-    const labOrderSnapshots = normalizeLabOrderSnapshots(
-        draft.documents.labOrders
-    );
-    const diagnoses = hydratedLabOrder
-        ? normalizeInterconsultationDiagnoses(hydratedLabOrder.diagnoses)
-        : normalizeInterconsultationDiagnoses([]);
-    const preDiagnosis =
-        diagnoses.find((item) => item.type === 'pre') ||
-        emptyInterconsultationDiagnosis('pre');
-    const defDiagnosis =
-        diagnoses.find((item) => item.type === 'def') ||
-        emptyInterconsultationDiagnosis('def');
-    const studySelections = hydratedLabOrder
-        ? normalizeLabOrderStudySelections(hydratedLabOrder.studySelections)
-        : normalizeLabOrderStudySelections({});
-    const selectedStudies = flattenLabOrderStudySelections(studySelections);
 
-    return buildClinicalHistorySection(
-        'Laboratorio HCU-form.010A/2008',
-        'Solicitud formal de laboratorio clinico trazable al formulario MSP, con emision y cancelacion documentadas por episodio.',
-        `
-                <input
-                    type="hidden"
-                    id="lab_order_active_id"
-                    name="lab_order_active_id"
-                    value="${escapeHtml(activeLabOrderId)}"
-                />
-                <div class="clinical-history-summary-grid">
-                    ${summaryStatCard(
-                        'HCU-010A',
-                        activeStatus.label,
-                        activeStatus.summary,
-                        activeStatus.status === 'issued'
-                            ? 'success'
-                            : [
-                                    'ready_to_issue',
-                                    'incomplete',
-                                    'draft',
-                                ].includes(activeStatus.status)
-                              ? 'warning'
-                              : 'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Paciente / HCU',
-                        hydratedLabOrder?.patientName ||
-                            buildAdmissionLegalName(
-                                draft.admission001,
-                                review.session.patient
-                            ) ||
-                            'Sin paciente',
-                        [
-                            hydratedLabOrder?.patientDocumentNumber,
-                            hydratedLabOrder?.patientRecordId,
-                        ]
-                            .filter(Boolean)
-                            .join(' • ') || 'Sin documento',
-                        'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Solicitante',
-                        hydratedLabOrder?.requestingService ||
-                            resolveClinicProfileDisplay().serviceLabel,
-                        hydratedLabOrder?.requestingEstablishment ||
-                            resolveClinicProfileDisplay().establishmentLabel,
-                        'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Estudios',
-                        String(selectedStudies.length),
-                        selectedStudies.length > 0
-                            ? selectedStudies.slice(0, 3).join(' • ')
-                            : 'Sin estudios seleccionados',
-                        selectedStudies.length > 0 ? 'success' : 'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Snapshots',
-                        String(labOrderSnapshots.length),
-                        labOrderSnapshots.length > 0
-                            ? 'Snapshots emitidos o cancelados del HCU-010A.'
-                            : 'Todavia no hay snapshots HCU-010A emitidos.',
-                        labOrderSnapshots.length > 0 ? 'success' : 'neutral'
-                    )}
-                </div>
-                <div class="toolbar-row clinical-history-actions-row">
-                    <button
-                        type="button"
-                        data-clinical-review-action="create-lab-order"
-                        ${disabled ? 'disabled' : ''}
-                    >
-                        Nueva solicitud de laboratorio
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-review-action="issue-current-lab-order"
-                        ${disabled || !hydratedLabOrder ? 'disabled' : ''}
-                    >
-                        Emitir solicitud
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-review-action="cancel-current-lab-order"
-                        ${disabled || !hydratedLabOrder ? 'disabled' : ''}
-                    >
-                        Cancelar solicitud
-                    </button>
-                </div>
-                <div class="toolbar-row clinical-history-actions-row">
-                    ${labOrders
-                        .map((item) =>
-                            buildLabOrderChip(item, activeLabOrderId, disabled)
-                        )
-                        .join('')}
-                </div>
-                ${
-                    !hydratedLabOrder
-                        ? buildEmptyClinicalCard(
-                              'Sin solicitud activa',
-                              'Crea una solicitud de laboratorio del episodio para empezar el HCU-010A.'
-                          )
-                        : `
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'lab_order_requested_at',
-                                    'Fecha/hora de solicitud',
-                                    hydratedLabOrder.requestedAt,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'lab_order_sample_date',
-                                    'Fecha de toma',
-                                    hydratedLabOrder.sampleDate,
-                                    { disabled }
-                                ),
-                                selectField(
-                                    'lab_order_priority',
-                                    'Prioridad',
-                                    hydratedLabOrder.priority,
-                                    CLINICAL_HISTORY_LAB_ORDER_PRIORITY_CHOICES,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'lab_order_requested_by',
-                                    'Profesional solicitante',
-                                    hydratedLabOrder.requestedBy,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${checkboxField(
-                                'lab_order_required_for_current_plan',
-                                'La solicitud de laboratorio es parte del plan actual',
-                                hydratedLabOrder.requiredForCurrentPlan ===
-                                    true,
-                                {
-                                    hint: 'Si esta marcada, la aprobacion final exige emitirla o cancelarla.',
-                                    disabled,
-                                }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'lab_order_patient_name',
-                                    'Paciente',
-                                    hydratedLabOrder.patientName,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'lab_order_patient_record',
-                                    'Documento / HCU',
-                                    [
-                                        hydratedLabOrder.patientDocumentNumber,
-                                        hydratedLabOrder.patientRecordId,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' '),
-                                    { disabled: true }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'lab_order_requesting_establishment',
-                                    'Establecimiento solicitante',
-                                    hydratedLabOrder.requestingEstablishment,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'lab_order_requesting_service',
-                                    'Servicio solicitante',
-                                    hydratedLabOrder.requestingService,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'lab_order_care_site',
-                                    'Sala / sitio',
-                                    hydratedLabOrder.careSite,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'lab_order_bed_label',
-                                    'Cama / referencia',
-                                    hydratedLabOrder.bedLabel,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'lab_order_diagnosis_pre_label',
-                                    'Diagnostico PRE',
-                                    preDiagnosis.label,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'lab_order_diagnosis_pre_cie10',
-                                    'CIE-10 PRE',
-                                    preDiagnosis.cie10,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'lab_order_diagnosis_def_label',
-                                    'Diagnostico DEF',
-                                    defDiagnosis.label,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'lab_order_diagnosis_def_cie10',
-                                    'CIE-10 DEF',
-                                    defDiagnosis.cie10,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildLabOrderStudyChecklist(
-                                'hematology',
-                                'Hematologia',
-                                studySelections.hematology,
-                                disabled
-                            )}
-                            ${buildLabOrderStudyChecklist(
-                                'urinalysis',
-                                'Uroanalisis',
-                                studySelections.urinalysis,
-                                disabled
-                            )}
-                            ${buildLabOrderStudyChecklist(
-                                'coprological',
-                                'Coprologico',
-                                studySelections.coprological,
-                                disabled
-                            )}
-                            ${buildLabOrderStudyChecklist(
-                                'bloodChemistry',
-                                'Quimica sanguinea',
-                                studySelections.bloodChemistry,
-                                disabled
-                            )}
-                            ${buildLabOrderStudyChecklist(
-                                'serology',
-                                'Serologia',
-                                studySelections.serology,
-                                disabled
-                            )}
-                            ${buildLabOrderStudyChecklist(
-                                'bacteriology',
-                                'Bacteriologia',
-                                studySelections.bacteriology,
-                                disabled
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'lab_order_bacteriology_sample_source',
-                                    'Muestra de',
-                                    hydratedLabOrder.bacteriologySampleSource,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'lab_order_study_others',
-                                    'Otros examenes',
-                                    studySelections.others,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${checkboxField(
-                                'lab_order_physician_present',
-                                'El medico estara presente en el examen',
-                                hydratedLabOrder.physicianPresentAtExam ===
-                                    true,
-                                {
-                                    hint: 'Campo opcional del formulario cuando aplica.',
-                                    disabled,
-                                }
-                            )}
-                            ${textareaField(
-                                'lab_order_notes',
-                                'Observaciones',
-                                hydratedLabOrder.notes,
-                                {
-                                    rows: 3,
-                                    placeholder:
-                                        'Condiciones de toma, observaciones o instrucciones clinicas complementarias.',
-                                    disabled,
-                                }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'lab_order_issued_at',
-                                    'Emitida el',
-                                    hydratedLabOrder.issuedAt,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'lab_order_cancelled_at',
-                                    'Cancelada el',
-                                    hydratedLabOrder.cancelledAt,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'lab_order_cancel_reason',
-                                    'Razon de cancelacion',
-                                    hydratedLabOrder.cancelReason,
-                                    { disabled }
-                                ),
-                            ])}
-                            <div class="clinical-history-section-block">
-                                <div class="clinical-history-event-head">
-                                    <strong>Snapshots documentales HCU-010A</strong>
-                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                        String(labOrderSnapshots.length)
-                                    )}</span>
-                                </div>
-                                <div class="clinical-history-events">
-                                    ${
-                                        labOrderSnapshots.length === 0
-                                            ? buildEmptyClinicalCard(
-                                                  'Sin snapshots emitidos',
-                                                  'Las solicitudes emitidas o canceladas quedaran congeladas aqui.'
-                                              )
-                                            : labOrderSnapshots
-                                                  .map(
-                                                      (snapshot) => `
-                                                            <article class="clinical-history-event-card" data-tone="neutral">
-                                                                <div class="clinical-history-event-head">
-                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                                                        hcu010AStatusMeta(
-                                                                            snapshot.status
-                                                                        ).label
-                                                                    )}</span>
-                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                                                        readableTimestamp(
-                                                                            snapshot.finalizedAt ||
-                                                                                snapshot.snapshotAt
-                                                                        )
-                                                                    )}</span>
-                                                                </div>
-                                                                <p>${escapeHtml(
-                                                                    flattenLabOrderStudySelections(
-                                                                        snapshot.studySelections
-                                                                    ).join(
-                                                                        ' • '
-                                                                    ) ||
-                                                                        'Sin estudios visibles'
-                                                                )}</p>
-                                                            </article>
-                                                        `
-                                                  )
-                                                  .join('')
-                                    }
-                                </div>
-                            </div>
-                        `
-                }
-            `
-    );
-}
 
-function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
-    const imagingOrders = normalizeImagingOrders(draft.imagingOrders);
-    const activeImagingOrderId = normalizeString(draft.activeImagingOrderId);
-    const activeImagingOrder =
-        imagingOrders.find(
-            (item) =>
-                normalizeString(item.imagingOrderId) === activeImagingOrderId
-        ) || null;
-    const hydratedImagingOrder = activeImagingOrder
-        ? deriveImagingOrderContext(
-              activeImagingOrder,
-              draft,
-              review.session.patient
-          )
-        : null;
-    const evaluation = hydratedImagingOrder
-        ? evaluateImagingOrder(hydratedImagingOrder)
-        : { status: 'not_applicable', selectedStudiesCount: 0 };
-    const activeStatus = hcu012AStatusMeta(evaluation.status);
-    const imagingSnapshots = normalizeImagingOrderSnapshots(
-        draft.documents.imagingOrders
-    );
-    const activeReport = hydratedImagingOrder
-        ? normalizeImagingReport(hydratedImagingOrder.result)
-        : emptyImagingReport();
-    const activeReportStatus = hcu012AReportStatusMeta(
-        hydratedImagingOrder
-            ? evaluateImagingReport(activeReport).status
-            : 'not_received'
-    );
-    const imagingReportSnapshots = normalizeImagingReportSnapshots(
-        draft.documents.imagingReports
-    );
-    const diagnoses = hydratedImagingOrder
-        ? normalizeInterconsultationDiagnoses(hydratedImagingOrder.diagnoses)
-        : normalizeInterconsultationDiagnoses([]);
-    const preDiagnosis =
-        diagnoses.find((item) => item.type === 'pre') ||
-        emptyInterconsultationDiagnosis('pre');
-    const defDiagnosis =
-        diagnoses.find((item) => item.type === 'def') ||
-        emptyInterconsultationDiagnosis('def');
-    const studySelections = hydratedImagingOrder
-        ? normalizeImagingStudySelections(hydratedImagingOrder.studySelections)
-        : normalizeImagingStudySelections({});
-    const selectedStudies = flattenImagingStudySelections(studySelections);
-    const supportAttachments = normalizeAttachmentList(draft.intake.adjuntos);
-    const selectedAttachmentIds = new Set(
-        normalizeAttachmentList(activeReport.attachments).map((attachment) =>
-            String(attachment.id || '')
-        )
-    );
-    const attachmentSelector =
-        supportAttachments.length > 0
-            ? supportAttachments
-                  .map((attachment) => {
-                      const attachmentId = String(attachment.id || '');
-                      const checked =
-                          attachmentId &&
-                          selectedAttachmentIds.has(attachmentId);
-                      const meta = [
-                          normalizeString(attachment.kind) || 'archivo',
-                          normalizeString(attachment.mime),
-                          attachment.size > 0
-                              ? formatBytes(attachment.size)
-                              : '',
-                      ]
-                          .filter(Boolean)
-                          .join(' • ');
-                      return `
-                            <label class="clinical-history-inline-checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="imaging_report_attachment_ids"
-                                    value="${escapeHtml(attachmentId)}"
-                                    ${checked ? 'checked' : ''}
-                                    ${disabled ? 'disabled' : ''}
-                                />
-                                <span>
-                                    <strong>${escapeHtml(
-                                        attachment.originalName ||
-                                            `Adjunto ${attachmentId}`
-                                    )}</strong>
-                                    <small>${escapeHtml(meta || 'Soporte clínico')}</small>
-                                </span>
-                            </label>
-                        `;
-                  })
-                  .join('')
-            : buildEmptyClinicalCard(
-                  'Sin adjuntos clínicos disponibles',
-                  'Cuando el caso tenga adjuntos de clinical_uploads podrás seleccionarlos como respaldo del informe radiológico.'
-              );
 
-    return buildClinicalHistorySection(
-        'Imagenologia HCU-form.012A/2008',
-        'Solicitud formal de imagenologia trazable al formulario MSP, con emision, cancelacion y recepcion estructurada del resultado radiologico por episodio.',
-        `
-                <input
-                    type="hidden"
-                    id="imaging_order_active_id"
-                    name="imaging_order_active_id"
-                    value="${escapeHtml(activeImagingOrderId)}"
-                />
-                <div class="clinical-history-summary-grid">
-                    ${summaryStatCard(
-                        'HCU-012A',
-                        activeStatus.label,
-                        activeStatus.summary,
-                        ['issued', 'received'].includes(activeStatus.status)
-                            ? 'success'
-                            : [
-                                    'ready_to_issue',
-                                    'incomplete',
-                                    'draft',
-                                ].includes(activeStatus.status)
-                              ? 'warning'
-                              : 'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Paciente / HCU',
-                        hydratedImagingOrder?.patientName ||
-                            buildAdmissionLegalName(
-                                draft.admission001,
-                                review.session.patient
-                            ) ||
-                            'Sin paciente',
-                        [
-                            hydratedImagingOrder?.patientDocumentNumber,
-                            hydratedImagingOrder?.patientRecordId,
-                        ]
-                            .filter(Boolean)
-                            .join(' • ') || 'Sin documento',
-                        'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Solicitante',
-                        hydratedImagingOrder?.requestingService ||
-                            resolveClinicProfileDisplay().serviceLabel,
-                        hydratedImagingOrder?.requestingEstablishment ||
-                            resolveClinicProfileDisplay().establishmentLabel,
-                        'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Estudios',
-                        String(selectedStudies.length),
-                        selectedStudies.length > 0
-                            ? selectedStudies.slice(0, 3).join(' • ')
-                            : 'Sin estudios seleccionados',
-                        selectedStudies.length > 0 ? 'success' : 'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Resultado',
-                        activeReportStatus.label,
-                        activeReportStatus.summary,
-                        activeReportStatus.status === 'received'
-                            ? 'success'
-                            : ['ready_to_receive', 'draft'].includes(
-                                    activeReportStatus.status
-                                )
-                              ? 'warning'
-                              : 'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Snapshots',
-                        String(
-                            imagingSnapshots.length +
-                                imagingReportSnapshots.length
-                        ),
-                        imagingSnapshots.length +
-                            imagingReportSnapshots.length >
-                            0
-                            ? 'Incluye snapshots emitidos/cancelados y resultados radiologicos recibidos.'
-                            : 'Todavia no hay snapshots HCU-012A emitidos.',
-                        imagingSnapshots.length +
-                            imagingReportSnapshots.length >
-                            0
-                            ? 'success'
-                            : 'neutral'
-                    )}
-                </div>
-                <div class="toolbar-row clinical-history-actions-row">
-                    <button
-                        type="button"
-                        data-clinical-review-action="create-imaging-order"
-                        ${disabled ? 'disabled' : ''}
-                    >
-                        Nueva solicitud de imagenologia
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-review-action="issue-current-imaging-order"
-                        ${disabled || !hydratedImagingOrder ? 'disabled' : ''}
-                    >
-                        Emitir solicitud
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-review-action="cancel-current-imaging-order"
-                        ${disabled || !hydratedImagingOrder ? 'disabled' : ''}
-                    >
-                        Cancelar solicitud
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-review-action="receive-current-imaging-report"
-                        ${disabled || !hydratedImagingOrder ? 'disabled' : ''}
-                    >
-                        Recibir resultado
-                    </button>
-                </div>
-                <div class="toolbar-row clinical-history-actions-row">
-                    ${imagingOrders
-                        .map((item) =>
-                            buildImagingOrderChip(
-                                item,
-                                activeImagingOrderId,
-                                disabled
-                            )
-                        )
-                        .join('')}
-                </div>
-                ${
-                    !hydratedImagingOrder
-                        ? buildEmptyClinicalCard(
-                              'Sin solicitud activa',
-                              'Crea una solicitud de imagenologia del episodio para empezar el HCU-012A.'
-                          )
-                        : `
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'imaging_order_requested_at',
-                                    'Fecha/hora de solicitud',
-                                    hydratedImagingOrder.requestedAt,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'imaging_order_study_date',
-                                    'Fecha de toma',
-                                    hydratedImagingOrder.studyDate,
-                                    { disabled }
-                                ),
-                                selectField(
-                                    'imaging_order_priority',
-                                    'Prioridad',
-                                    hydratedImagingOrder.priority,
-                                    CLINICAL_HISTORY_LAB_ORDER_PRIORITY_CHOICES,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'imaging_order_requested_by',
-                                    'Profesional solicitante',
-                                    hydratedImagingOrder.requestedBy,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${checkboxField(
-                                'imaging_order_required_for_current_plan',
-                                'La solicitud de imagenologia es parte del plan actual',
-                                hydratedImagingOrder.requiredForCurrentPlan ===
-                                    true,
-                                {
-                                    hint: 'Si esta marcada, la aprobacion final exige emitirla o cancelarla.',
-                                    disabled,
-                                }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'imaging_order_patient_name',
-                                    'Paciente',
-                                    hydratedImagingOrder.patientName,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'imaging_order_patient_record',
-                                    'Documento / HCU',
-                                    [
-                                        hydratedImagingOrder.patientDocumentNumber,
-                                        hydratedImagingOrder.patientRecordId,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' '),
-                                    { disabled: true }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'imaging_order_requesting_establishment',
-                                    'Establecimiento solicitante',
-                                    hydratedImagingOrder.requestingEstablishment,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'imaging_order_requesting_service',
-                                    'Servicio solicitante',
-                                    hydratedImagingOrder.requestingService,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'imaging_order_care_site',
-                                    'Sala / sitio',
-                                    hydratedImagingOrder.careSite,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'imaging_order_bed_label',
-                                    'Cama / referencia',
-                                    hydratedImagingOrder.bedLabel,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'imaging_order_diagnosis_pre_label',
-                                    'Diagnostico PRE',
-                                    preDiagnosis.label,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'imaging_order_diagnosis_pre_cie10',
-                                    'CIE-10 PRE',
-                                    preDiagnosis.cie10,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'imaging_order_diagnosis_def_label',
-                                    'Diagnostico DEF',
-                                    defDiagnosis.label,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'imaging_order_diagnosis_def_cie10',
-                                    'CIE-10 DEF',
-                                    defDiagnosis.cie10,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${CLINICAL_HISTORY_IMAGING_STUDY_GROUPS.map(
-                                ({ key, label, hint }) =>
-                                    buildImagingStudyGroupField(
-                                        key,
-                                        label,
-                                        studySelections[key],
-                                        hint,
-                                        disabled
-                                    )
-                            ).join('')}
-                            ${textareaField(
-                                'imaging_order_request_reason',
-                                'Motivo de la solicitud',
-                                hydratedImagingOrder.requestReason,
-                                {
-                                    rows: 3,
-                                    placeholder:
-                                        'Registra las razones para solicitar aclaracion diagnostica o apoyo por imagen.',
-                                    disabled,
-                                }
-                            )}
-                            ${textareaField(
-                                'imaging_order_clinical_summary',
-                                'Resumen clinico',
-                                hydratedImagingOrder.clinicalSummary,
-                                {
-                                    rows: 4,
-                                    placeholder:
-                                        'Sintesis clinica relevante para el estudio solicitado.',
-                                    disabled,
-                                }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                checkboxField(
-                                    'imaging_order_can_mobilize',
-                                    'Puede movilizarse',
-                                    hydratedImagingOrder.canMobilize === true,
-                                    { disabled }
-                                ),
-                                checkboxField(
-                                    'imaging_order_can_remove_dressings',
-                                    'Puede retirarse vendas, apositos o yesos',
-                                    hydratedImagingOrder.canRemoveDressingsOrCasts ===
-                                        true,
-                                    { disabled }
-                                ),
-                                checkboxField(
-                                    'imaging_order_physician_present',
-                                    'El medico estara presente en el examen',
-                                    hydratedImagingOrder.physicianPresentAtExam ===
-                                        true,
-                                    { disabled }
-                                ),
-                                checkboxField(
-                                    'imaging_order_bedside_radiography',
-                                    'Toma de radiografia en la cama',
-                                    hydratedImagingOrder.bedsideRadiography ===
-                                        true,
-                                    {
-                                        hint: 'Si la marcas, debe existir al menos un estudio en R-X convencional.',
-                                        disabled,
-                                    }
-                                ),
-                            ])}
-                            ${textareaField(
-                                'imaging_order_notes',
-                                'Observaciones',
-                                hydratedImagingOrder.notes,
-                                {
-                                    rows: 3,
-                                    placeholder:
-                                        'Condiciones logisticas, observaciones o instrucciones complementarias.',
-                                    disabled,
-                                }
-                            )}
-                            <div class="clinical-history-section-block">
-                                <div class="clinical-history-event-head">
-                                    <strong>Resultado / informe radiologico</strong>
-                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                        activeReportStatus.label
-                                    )}</span>
-                                </div>
-                                ${buildClinicalHistoryInlineGrid([
-                                    inputField(
-                                        'imaging_report_reported_at',
-                                        'Fecha/hora del informe',
-                                        activeReport.reportedAt,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'imaging_report_reported_by',
-                                        'Cargado por',
-                                        activeReport.reportedBy,
-                                        {
-                                            disabled,
-                                            placeholder:
-                                                'Staff o medico que registra el resultado',
-                                        }
-                                    ),
-                                    inputField(
-                                        'imaging_report_reporting_establishment',
-                                        'Establecimiento respondiente',
-                                        activeReport.reportingEstablishment,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'imaging_report_reporting_service',
-                                        'Servicio respondiente',
-                                        activeReport.reportingService,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'imaging_report_radiologist_professional_name',
-                                        'Profesional/radiologo',
-                                        activeReport.radiologistProfessionalName,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'imaging_report_radiologist_professional_role',
-                                        'Rol del profesional',
-                                        activeReport.radiologistProfessionalRole,
-                                        { disabled }
-                                    ),
-                                ])}
-                                ${textareaField(
-                                    'imaging_report_study_performed_summary',
-                                    'Estudio realizado',
-                                    activeReport.studyPerformedSummary,
-                                    {
-                                        rows: 2,
-                                        placeholder:
-                                            'Describe el estudio efectivamente realizado o la modalidad reportada.',
-                                        disabled,
-                                    }
-                                )}
-                                ${textareaField(
-                                    'imaging_report_findings',
-                                    'Hallazgos',
-                                    activeReport.findings,
-                                    {
-                                        rows: 3,
-                                        placeholder:
-                                            'Hallazgos radiologicos relevantes del informe.',
-                                        disabled,
-                                    }
-                                )}
-                                ${textareaField(
-                                    'imaging_report_diagnostic_impression',
-                                    'Impresion diagnostica',
-                                    activeReport.diagnosticImpression,
-                                    {
-                                        rows: 3,
-                                        placeholder:
-                                            'Criterio o impresion diagnostica del estudio.',
-                                        disabled,
-                                    }
-                                )}
-                                ${textareaField(
-                                    'imaging_report_recommendations',
-                                    'Recomendaciones',
-                                    activeReport.recommendations,
-                                    {
-                                        rows: 3,
-                                        placeholder:
-                                            'Recomendaciones o conducta sugerida desde imagenologia.',
-                                        disabled,
-                                    }
-                                )}
-                                ${textareaField(
-                                    'imaging_report_follow_up_indications',
-                                    'Indicaciones de seguimiento',
-                                    activeReport.followUpIndications,
-                                    {
-                                        rows: 2,
-                                        placeholder:
-                                            'Indicaciones posteriores o hallazgos a vigilar.',
-                                        disabled,
-                                    }
-                                )}
-                                ${buildClinicalHistoryInlineGrid([
-                                    inputField(
-                                        'imaging_report_source_document_type',
-                                        'Tipo de documento fuente',
-                                        activeReport.sourceDocumentType,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'imaging_report_source_reference',
-                                        'Referencia del documento',
-                                        activeReport.sourceReference,
-                                        { disabled }
-                                    ),
-                                    inputField(
-                                        'imaging_report_received_by',
-                                        'Recibido por',
-                                        activeReport.receivedBy,
-                                        { disabled: true }
-                                    ),
-                                ])}
-                                <div class="clinical-history-section-block">
-                                    <div class="clinical-history-event-head">
-                                        <strong>Adjuntos del informe</strong>
-                                        <span class="clinical-history-mini-chip">${escapeHtml(
-                                            String(
-                                                activeReport.attachments.length
-                                            )
-                                        )}</span>
-                                    </div>
-                                    <div class="clinical-history-inline-checks">
-                                        ${attachmentSelector}
-                                    </div>
-                                    <small>Reutiliza adjuntos ya cargados por clinical_uploads.</small>
-                                </div>
-                                ${
-                                    activeReportStatus.status === 'received'
-                                        ? `
-                                            <div class="clinical-history-section-block">
-                                                <div class="clinical-history-event-head">
-                                                    <strong>Reconciliacion manual requerida</strong>
-                                                </div>
-                                                <p>Informe recibido: reconciliar manualmente en HCU-005/HCU-024 si aplica.</p>
-                                            </div>
-                                        `
-                                        : ''
-                                }
-                            </div>
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'imaging_order_issued_at',
-                                    'Emitida el',
-                                    hydratedImagingOrder.issuedAt,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'imaging_order_cancelled_at',
-                                    'Cancelada el',
-                                    hydratedImagingOrder.cancelledAt,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'imaging_order_cancel_reason',
-                                    'Razon de cancelacion',
-                                    hydratedImagingOrder.cancelReason,
-                                    { disabled }
-                                ),
-                            ])}
-                            <div class="clinical-history-section-block">
-                                <div class="clinical-history-event-head">
-                                    <strong>Snapshots documentales HCU-012A</strong>
-                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                        String(imagingSnapshots.length)
-                                    )}</span>
-                                </div>
-                                <div class="clinical-history-events">
-                                    ${
-                                        imagingSnapshots.length === 0
-                                            ? buildEmptyClinicalCard(
-                                                  'Sin snapshots emitidos',
-                                                  'Las solicitudes emitidas o canceladas quedaran congeladas aqui.'
-                                              )
-                                            : imagingSnapshots
-                                                  .map(
-                                                      (snapshot) => `
-                                                            <article class="clinical-history-event-card" data-tone="neutral">
-                                                                <div class="clinical-history-event-head">
-                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                                                        hcu012AStatusMeta(
-                                                                            snapshot.status
-                                                                        ).label
-                                                                    )}</span>
-                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                                                        readableTimestamp(
-                                                                            snapshot.finalizedAt ||
-                                                                                snapshot.snapshotAt
-                                                                        )
-                                                                    )}</span>
-                                                                </div>
-                                                                <p>${escapeHtml(
-                                                                    flattenImagingStudySelections(
-                                                                        snapshot.studySelections
-                                                                    ).join(
-                                                                        ' • '
-                                                                    ) ||
-                                                                        'Sin estudios visibles'
-                                                                )}</p>
-                                                            </article>
-                                                        `
-                                                  )
-                                                  .join('')
-                                    }
-                                </div>
-                            </div>
-                            <div class="clinical-history-section-block">
-                                <div class="clinical-history-event-head">
-                                    <strong>Snapshots de resultados radiologicos</strong>
-                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                        String(imagingReportSnapshots.length)
-                                    )}</span>
-                                </div>
-                                <div class="clinical-history-events">
-                                    ${
-                                        imagingReportSnapshots.length === 0
-                                            ? buildEmptyClinicalCard(
-                                                  'Sin resultados recibidos',
-                                                  'Los resultados radiologicos recibidos quedaran congelados aqui como respaldo documental.'
-                                              )
-                                            : imagingReportSnapshots
-                                                  .map(
-                                                      (snapshot) => `
-                                                            <article class="clinical-history-event-card" data-tone="neutral">
-                                                                <div class="clinical-history-event-head">
-                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                                                        hcu012AReportStatusMeta(
-                                                                            snapshot.reportStatus
-                                                                        ).label
-                                                                    )}</span>
-                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
-                                                                        readableTimestamp(
-                                                                            snapshot.finalizedAt ||
-                                                                                snapshot.snapshotAt
-                                                                        )
-                                                                    )}</span>
-                                                                </div>
-                                                                <p>${escapeHtml(
-                                                                    snapshot
-                                                                        .report
-                                                                        ?.studyPerformedSummary ||
-                                                                        snapshot
-                                                                            .report
-                                                                            ?.diagnosticImpression ||
-                                                                        snapshot
-                                                                            .report
-                                                                            ?.findings ||
-                                                                        'Sin resumen visible'
-                                                                )}</p>
-                                                            </article>
-                                                        `
-                                                  )
-                                                  .join('')
-                                    }
-                                </div>
-                            </div>
-                        `
-                }
-            `
-    );
-}
 
-function buildClinicalHistoryConsentSection(review, draft, disabled) {
-    const packets = normalizeConsentPackets(draft.consentPackets);
-    const activePacketId = normalizeString(draft.activeConsentPacketId);
-    const activePacket =
-        packets.find(
-            (packet) => normalizeString(packet.packetId) === activePacketId
-        ) || null;
-    const hydratedPacket = activePacket
-        ? deriveConsentPacketContext(
-              activePacket,
-              draft,
-              review.session.patient
-          )
-        : null;
-    const activeStatus = hcu024StatusMeta(
-        hydratedPacket
-            ? evaluateConsentPacket(hydratedPacket).status
-            : 'not_applicable'
-    );
-    const consentForms = normalizeConsentFormSnapshots(
-        draft.documents.consentForms
-    );
 
-    return buildClinicalHistorySection(
-        'Consentimiento HCU-form.024/2008',
-        'Consentimientos escritos por procedimiento, con bridge legacy hacia el consentimiento activo.',
-        `
-                <input
-                    type="hidden"
-                    id="consent_active_packet_id"
-                    name="consent_active_packet_id"
-                    value="${escapeHtml(activePacketId)}"
-                />
-                <div class="clinical-history-summary-grid">
-                    ${summaryStatCard(
-                        'HCU-024',
-                        activeStatus.label,
-                        activeStatus.summary,
-                        activeStatus.status === 'accepted'
-                            ? 'success'
-                            : ['declined', 'revoked', 'incomplete'].includes(
-                                    activeStatus.status
-                                )
-                              ? 'warning'
-                              : 'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Paciente',
-                        hydratedPacket?.patientName ||
-                            buildAdmissionLegalName(
-                                draft.admission001,
-                                review.session.patient
-                            ) ||
-                            'Sin paciente',
-                        hydratedPacket?.patientDocumentNumber ||
-                            normalizeString(
-                                draft.admission001.identity.documentNumber
-                            ) ||
-                            'Sin documento',
-                        'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Establecimiento',
-                        hydratedPacket?.establishmentLabel ||
-                            resolveClinicProfileDisplay().establishmentLabel,
-                        hydratedPacket?.serviceLabel ||
-                            resolveClinicProfileDisplay().serviceLabel,
-                        'neutral'
-                    )}
-                    ${summaryStatCard(
-                        'Snapshots',
-                        String(consentForms.length),
-                        consentForms.length > 0
-                            ? 'Snapshots documentales inmutables del episodio'
-                            : 'Todavía no hay snapshots HCU-024 emitidos',
-                        consentForms.length > 0 ? 'success' : 'neutral'
-                    )}
-                </div>
-                <div class="toolbar-row clinical-history-actions-row">
-                    <button
-                        type="button"
-                        data-clinical-draft-action="create-consent-packet-local"
-                        data-template-key="laser-dermatologico"
-                        ${disabled ? 'disabled' : ''}
-                    >
-                        Láser dermatológico
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-draft-action="create-consent-packet-local"
-                        data-template-key="peeling-quimico"
-                        ${disabled ? 'disabled' : ''}
-                    >
-                        Peeling químico
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-draft-action="create-consent-packet-local"
-                        data-template-key="botox"
-                        ${disabled ? 'disabled' : ''}
-                    >
-                        Botox
-                    </button>
-                    <button
-                        type="button"
-                        data-clinical-draft-action="create-consent-packet-local"
-                        data-template-key="generic"
-                        ${disabled ? 'disabled' : ''}
-                    >
-                        Consentimiento genérico
-                    </button>
-                </div>
-                <div class="toolbar-row clinical-history-actions-row">
-                    ${packets
-                        .map((packet) =>
-                            buildConsentPacketChip(
-                                packet,
-                                activePacketId,
-                                disabled
-                            )
-                        )
-                        .join('')}
-                </div>
-                ${
-                    !hydratedPacket
-                        ? buildEmptyClinicalCard(
-                              'Sin consentimiento activo',
-                              'Crea un consentimiento por procedimiento para empezar el HCU-024 del episodio.'
-                          )
-                        : `
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_title',
-                                    'Título del formulario',
-                                    hydratedPacket.title,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_care_mode',
-                                    'Tipo de atención',
-                                    hydratedPacket.careMode,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_service_label',
-                                    'Servicio',
-                                    hydratedPacket.serviceLabel,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'consent_packet_establishment_label',
-                                    'Establecimiento',
-                                    hydratedPacket.establishmentLabel,
-                                    { disabled: true }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_patient_name',
-                                    'Paciente',
-                                    hydratedPacket.patientName,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'consent_packet_patient_document',
-                                    'Documento / HCU',
-                                    `${
-                                        hydratedPacket.patientDocumentNumber ||
-                                        ''
-                                    } ${
-                                        hydratedPacket.patientRecordId || ''
-                                    }`.trim(),
-                                    { disabled: true }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_encounter_datetime',
-                                    'Fecha/hora',
-                                    hydratedPacket.encounterDateTime,
-                                    { disabled: true }
-                                ),
-                                inputField(
-                                    'consent_packet_diagnosis_cie10',
-                                    'CIE-10',
-                                    hydratedPacket.diagnosisCie10,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_diagnosis_label',
-                                    'Diagnóstico principal',
-                                    hydratedPacket.diagnosisLabel,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_procedure_name',
-                                    'Procedimiento',
-                                    hydratedPacket.procedureName,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                textareaField(
-                                    'consent_packet_procedure_what_is_it',
-                                    'En qué consiste',
-                                    hydratedPacket.procedureWhatIsIt,
-                                    { rows: 4, disabled }
-                                ),
-                                textareaField(
-                                    'consent_packet_procedure_how',
-                                    'Cómo se realiza',
-                                    hydratedPacket.procedureHowItIsDone,
-                                    { rows: 4, disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_duration_estimate',
-                                    'Duración estimada',
-                                    hydratedPacket.durationEstimate,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_graphic_ref',
-                                    'Referencia gráfica',
-                                    hydratedPacket.graphicRef,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                textareaField(
-                                    'consent_packet_benefits',
-                                    'Beneficios',
-                                    hydratedPacket.benefits,
-                                    { rows: 4, disabled }
-                                ),
-                                textareaField(
-                                    'consent_packet_frequent_risks',
-                                    'Riesgos frecuentes',
-                                    hydratedPacket.frequentRisks,
-                                    { rows: 4, disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                textareaField(
-                                    'consent_packet_rare_serious_risks',
-                                    'Riesgos poco frecuentes graves',
-                                    hydratedPacket.rareSeriousRisks,
-                                    { rows: 4, disabled }
-                                ),
-                                textareaField(
-                                    'consent_packet_patient_specific_risks',
-                                    'Riesgos específicos del paciente',
-                                    hydratedPacket.patientSpecificRisks,
-                                    { rows: 4, disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                textareaField(
-                                    'consent_packet_alternatives',
-                                    'Alternativas',
-                                    hydratedPacket.alternatives,
-                                    { rows: 4, disabled }
-                                ),
-                                textareaField(
-                                    'consent_packet_post_procedure_care',
-                                    'Manejo posterior',
-                                    hydratedPacket.postProcedureCare,
-                                    { rows: 4, disabled }
-                                ),
-                            ])}
-                            ${textareaField(
-                                'consent_packet_no_procedure_consequences',
-                                'Consecuencias de no realizarlo',
-                                hydratedPacket.noProcedureConsequences,
-                                { rows: 3, disabled }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_declared_at',
-                                    'Fecha/hora de información',
-                                    hydratedPacket.declaration.declaredAt,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_professional_name',
-                                    'Profesional tratante',
-                                    hydratedPacket.professionalAttestation.name,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_professional_document',
-                                    'Documento profesional',
-                                    hydratedPacket.professionalAttestation
-                                        .documentNumber,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_professional_signed_at',
-                                    'Firma profesional',
-                                    hydratedPacket.professionalAttestation
-                                        .signedAt,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                textareaField(
-                                    'consent_packet_capacity_assessment',
-                                    'Capacidad para decidir',
-                                    hydratedPacket.declaration
-                                        .capacityAssessment,
-                                    { rows: 3, disabled }
-                                ),
-                                textareaField(
-                                    'consent_packet_declaration_notes',
-                                    'Notas de declaración',
-                                    hydratedPacket.declaration.notes,
-                                    { rows: 3, disabled }
-                                ),
-                            ])}
-                            ${checkboxField(
-                                'consent_packet_patient_can_consent',
-                                'El paciente puede consentir por sí mismo',
-                                hydratedPacket.declaration.patientCanConsent !==
-                                    false,
-                                { disabled }
-                            )}
-                            ${checkboxField(
-                                'consent_packet_private_communication_confirmed',
-                                'La comunicación ocurrió en entorno privado',
-                                hydratedPacket.privateCommunicationConfirmed ===
-                                    true,
-                                { disabled }
-                            )}
-                            ${checkboxField(
-                                'consent_packet_companion_share_authorized',
-                                'Hay autorización para compartir con acompañante',
-                                hydratedPacket.companionShareAuthorized ===
-                                    true,
-                                { disabled }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_patient_attestation_name',
-                                    'Paciente compareciente',
-                                    hydratedPacket.patientAttestation.name,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_patient_attestation_document',
-                                    'Documento del paciente',
-                                    hydratedPacket.patientAttestation
-                                        .documentNumber,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_patient_attestation_signed_at',
-                                    'Fecha de firma del paciente',
-                                    hydratedPacket.patientAttestation.signedAt,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_representative_name',
-                                    'Representante',
-                                    hydratedPacket.representativeAttestation
-                                        .name,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_representative_kinship',
-                                    'Parentesco',
-                                    hydratedPacket.representativeAttestation
-                                        .kinship,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_representative_document',
-                                    'Documento representante',
-                                    hydratedPacket.representativeAttestation
-                                        .documentNumber,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_representative_phone',
-                                    'Teléfono representante',
-                                    hydratedPacket.representativeAttestation
-                                        .phone,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_representative_signed_at',
-                                    'Firma representante',
-                                    hydratedPacket.representativeAttestation
-                                        .signedAt,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${checkboxField(
-                                'consent_packet_patient_attestation_refused_signature',
-                                'El paciente se negó a firmar la declaración',
-                                hydratedPacket.patientAttestation
-                                    .refusedSignature === true,
-                                { disabled }
-                            )}
-                            ${checkboxField(
-                                'consent_packet_denial_refused_signature',
-                                'Si hay negativa, el paciente se niega a firmarla',
-                                hydratedPacket.denial
-                                    .patientRefusedSignature === true,
-                                { disabled }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_denial_declined_at',
-                                    'Fecha/hora de negativa',
-                                    hydratedPacket.denial.declinedAt,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_denial_reason',
-                                    'Razón de negativa',
-                                    hydratedPacket.denial.reason,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_witness_name',
-                                    'Testigo',
-                                    hydratedPacket.witnessAttestation.name,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_witness_document',
-                                    'Documento testigo',
-                                    hydratedPacket.witnessAttestation
-                                        .documentNumber,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_witness_phone',
-                                    'Teléfono testigo',
-                                    hydratedPacket.witnessAttestation.phone,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_witness_signed_at',
-                                    'Firma testigo',
-                                    hydratedPacket.witnessAttestation.signedAt,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${textareaField(
-                                'consent_packet_denial_notes',
-                                'Notas de negativa',
-                                hydratedPacket.denial.notes,
-                                { rows: 3, disabled }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_revocation_revoked_at',
-                                    'Fecha/hora de revocatoria',
-                                    hydratedPacket.revocation.revokedAt,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_revocation_received_by',
-                                    'Profesional que recibe revocatoria',
-                                    hydratedPacket.revocation.receivedBy,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_revocation_reason',
-                                    'Razón de revocatoria',
-                                    hydratedPacket.revocation.reason,
-                                    { disabled }
-                                ),
-                            ])}
-                            ${textareaField(
-                                'consent_packet_revocation_notes',
-                                'Notas de revocatoria',
-                                hydratedPacket.revocation.notes,
-                                { rows: 3, disabled }
-                            )}
-                            ${checkboxField(
-                                'consent_packet_anesthesiologist_applicable',
-                                'Requiere comparecencia de anestesiología',
-                                hydratedPacket.anesthesiologistAttestation
-                                    .applicable === true,
-                                { disabled }
-                            )}
-                            ${buildClinicalHistoryInlineGrid([
-                                inputField(
-                                    'consent_packet_anesthesiologist_name',
-                                    'Anestesiólogo',
-                                    hydratedPacket.anesthesiologistAttestation
-                                        .name,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_anesthesiologist_document',
-                                    'Documento anestesiólogo',
-                                    hydratedPacket.anesthesiologistAttestation
-                                        .documentNumber,
-                                    { disabled }
-                                ),
-                                inputField(
-                                    'consent_packet_anesthesiologist_signed_at',
-                                    'Firma anestesiología',
-                                    hydratedPacket.anesthesiologistAttestation
-                                        .signedAt,
-                                    { disabled }
-                                ),
-                            ])}
-                            <div class="toolbar-row clinical-history-actions-row">
-                                <button
-                                    type="button"
-                                    data-clinical-review-action="declare-current-consent"
-                                    ${disabled ? 'disabled' : ''}
-                                >
-                                    Declarar consentimiento
-                                </button>
-                                <button
-                                    type="button"
-                                    data-clinical-review-action="deny-current-consent"
-                                    ${disabled ? 'disabled' : ''}
-                                >
-                                    Registrar negativa
-                                </button>
-                                <button
-                                    type="button"
-                                    data-clinical-review-action="revoke-current-consent"
-                                    ${disabled ? 'disabled' : ''}
-                                >
-                                    Registrar revocatoria
-                                </button>
-                            </div>
-                        `
-                }
-            `
-    );
-}
 
-function buildClinicalHistoryDocumentsSection(draft, disabled) {
-    return buildClinicalHistorySection(
-        'Certificado y salida',
-        'La nota final y la receta se regeneran desde HCU-005; aquí solo mantienes el certificado.',
-        `
-                <article class="clinical-history-event-card">
-                    <div class="clinical-history-event-head">
-                        <span class="clinical-history-mini-chip">Mirror HCU-005</span>
-                        <span class="clinical-history-mini-chip">${escapeHtml(
-                            hcu005StatusMeta(
-                                evaluateHcu005(draft.clinicianDraft.hcu005)
-                                    .status
-                            ).label
-                        )}</span>
-                    </div>
-                    <p>${escapeHtml(
-                        draft.documents.finalNote.summary ||
-                            'La nota final se construirá desde HCU-005.'
-                    )}</p>
-                    <small>${escapeHtml(
-                        draft.documents.prescription.directions ||
-                            'La receta se reflejará aquí cuando existan prescripciones completas.'
-                    )}</small>
-                </article>
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'document_certificate_summary',
-                        'Certificado',
-                        draft.documents.certificate.summary,
-                        { rows: 3, disabled }
-                    ),
-                    inputField(
-                        'document_certificate_rest_days',
-                        'Dias de reposo',
-                        draft.documents.certificate.restDays ?? '',
-                        {
-                            type: 'number',
-                            min: '0',
-                            step: '1',
-                            disabled,
-                        }
-                    ),
-                ])}
-                <div class="toolbar-row clinical-history-actions-row">
-                    <button
-                        type="button"
-                        id="clinicalHistoryExportFullRecordBtn"
-                        data-clinical-review-action="export-full-record"
-                        ${disabled ? 'disabled' : ''}
-                    >
-                        Exportar HCE completa (PDF)
-                    </button>
-                </div>
-                <small>
-                    Genera una version imprimible con todo el historial, el
-                    estado legal y la trazabilidad documental del episodio.
-                </small>
-            `
-    );
-}
 
-function buildClinicalHistoryCarePlanSection(draft, disabled) {
+
+
+export function buildClinicalHistoryCarePlanSection(draft, disabled) {
     return buildClinicalHistorySection(
         'Plan de Tratamiento',
         'Detalle de diagnostico, tratamientos, costos y seguimiento.',
@@ -11555,53 +7909,9 @@ function buildClinicalHistoryCarePlanSection(draft, disabled) {
         `
     );
 }
-function buildClinicalHistoryPhotosSection(review, draft, disabled) {
-    const assets = Array.isArray(review.caseMediaAssets) ? review.caseMediaAssets : [];
-    
-    const photosList = assets.map(asset => {
-        const url = escapeHtml(asset.url || '');
-        return `
-            <div class="clinical-photo-card" style="border: 1px solid var(--borderBase); padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: start; gap: 15px; background: var(--bgLayer)">
-                <img class="clinical-photo" data-full-src="${url}" src="${url}" alt="Foto Clínica" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; cursor: pointer;" />
-                <div style="flex: 1;">
-                    <strong style="display:block; color: var(--textStrong);">${escapeHtml(asset.bodyZone || 'Sin zona especificada')}</strong>
-                    <span style="font-size: 13px; color: var(--textBase);">${escapeHtml(asset.createdAt || '')}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
 
-    return `
-        <section class="clinical-history-section content-card" style="grid-column: 1 / -1;">
-            <div class="clinical-history-section-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <h3>Fotografías Clínicas</h3>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <select id="clinical_photo_zone" class="clinical-history-picker" ${disabled ? 'disabled' : ''}>
-                        <option value="">Zona corporal...</option>
-                        <option value="Cara">Cara</option>
-                        <option value="Cuello">Cuello</option>
-                        <option value="Torax">Tórax</option>
-                        <option value="Espalda">Espalda</option>
-                        <option value="Brazo Izquierdo">Brazo Izq.</option>
-                        <option value="Brazo Derecho">Brazo Der.</option>
-                        <option value="Pierna Izquierda">Pierna Izq.</option>
-                        <option value="Pierna Derecha">Pierna Der.</option>
-                        <option value="Otra">Otra</option>
-                    </select>
-                    <label class="clinical-history-action-btn ${disabled ? 'disabled' : ''}" style="cursor: pointer; padding: 6px 12px; background: var(--brandBase); color: #fff; border-radius: 4px; font-weight: 600; font-size: 13px; ${disabled ? 'opacity:0.5; pointer-events:none;' : ''}">
-                        Tomar Foto
-                        <input type="file" id="clinical_photo_upload_input" accept="image/*" capture="environment" style="display:none;" />
-                    </label>
-                </div>
-            </div>
-            <div class="clinical-history-section-body">
-                ${assets.length === 0 ? '<p class="clinical-history-empty-text">No hay fotografías registradas.</p>' : `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:15px;">${photosList}</div>`}
-            </div>
-        </section>
-    `;
-}
 
-function buildDraftForm(review, draft, saving) {
+export function buildDraftForm(review, draft, saving) {
     const disabled = saving || normalizeString(draft.sessionId) === '';
     const pregnancyValue = pregnancySelectValue(
         draft.intake.datosPaciente.embarazo
@@ -11624,7 +7934,7 @@ function buildDraftForm(review, draft, saving) {
     `;
 }
 
-function buildClinicalH002FormFields(draft, disabled) {
+export function buildClinicalH002FormFields(draft, disabled) {
     const h002 = draft?.h002 || {};
     return `
         <div class="clinical-history-form-grid">
@@ -11664,7 +7974,7 @@ function buildClinicalH002FormFields(draft, disabled) {
     `;
 }
 
-function syncDraftStatusMeta() {
+export function syncDraftStatusMeta() {
     const state = getState();
     const slice = getClinicalHistorySlice(state);
     const review = currentReviewSource(state);
@@ -11706,7 +8016,7 @@ function syncDraftStatusMeta() {
     );
 }
 
-function serializeDraftForm(form, baseDraft) {
+export function serializeDraftForm(form, baseDraft) {
     const snapshot = normalizeDraftSnapshot(
         cloneValue(baseDraft || emptyDraft())
     );
@@ -12426,14 +8736,14 @@ function serializeDraftForm(form, baseDraft) {
     return synchronizeDraftClinicalState(snapshot);
 }
 
-function currentSerializedDraft() {
+export function currentSerializedDraft() {
     const rootForm = document.getElementById('clinicalHistoryDraftForm');
     return rootForm instanceof HTMLFormElement
         ? serializeDraftForm(rootForm, currentDraftSource())
         : synchronizeDraftClinicalState(cloneValue(currentDraftSource()));
 }
 
-function createLocalOpaqueId(prefix) {
+export function createLocalOpaqueId(prefix) {
     if (
         typeof window !== 'undefined' &&
         window.crypto &&
@@ -12445,7 +8755,7 @@ function createLocalOpaqueId(prefix) {
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
-function createLocalConsentPacket(templateKey) {
+export function createLocalConsentPacket(templateKey) {
     const template = consentPacketTemplate(templateKey);
     return normalizeConsentPacket({
         ...template,
@@ -12467,7 +8777,7 @@ function createLocalConsentPacket(templateKey) {
     });
 }
 
-function mutateConsentPackets(mutator, nextActiveId = '') {
+export function mutateConsentPackets(mutator, nextActiveId = '') {
     const baseDraft = currentSerializedDraft();
     const nextDraft = synchronizeDraftClinicalState(cloneValue(baseDraft));
     const packets = normalizeConsentPackets(nextDraft.consentPackets);
@@ -12504,7 +8814,7 @@ function mutateConsentPackets(mutator, nextActiveId = '') {
     renderClinicalHistorySection();
 }
 
-function buildConsentPacketActionPayload(action) {
+export function buildConsentPacketActionPayload(action) {
     const review = currentReviewSource();
     const draft = currentSerializedDraft();
     const sessionId = normalizeString(
@@ -12653,7 +8963,7 @@ async function submitConsentPacketAction(action) {
     }
 }
 
-function buildInterconsultationActionPayload(action, interconsultId = '') {
+export function buildInterconsultationActionPayload(action, interconsultId = '') {
     const review = currentReviewSource();
     const draft = currentSerializedDraft();
     const sessionId = normalizeString(
@@ -12819,7 +9129,7 @@ async function submitInterconsultationAction(action, interconsultId = '') {
     }
 }
 
-function buildLabOrderActionPayload(action, labOrderId = '') {
+export function buildLabOrderActionPayload(action, labOrderId = '') {
     const review = currentReviewSource();
     const draft = currentSerializedDraft();
     const sessionId = normalizeString(
@@ -12871,7 +9181,7 @@ function buildLabOrderActionPayload(action, labOrderId = '') {
     return payload;
 }
 
-function buildImagingOrderActionPayload(action, imagingOrderId = '') {
+export function buildImagingOrderActionPayload(action, imagingOrderId = '') {
     const review = currentReviewSource();
     const draft = currentSerializedDraft();
     const sessionId = normalizeString(
@@ -13141,7 +9451,7 @@ async function submitImagingOrderAction(action, imagingOrderId = '') {
     }
 }
 
-function readClinicalControlValue(id) {
+export function readClinicalControlValue(id) {
     const field = document.getElementById(id);
     if (
         field instanceof HTMLInputElement ||
@@ -13153,7 +9463,7 @@ function readClinicalControlValue(id) {
     return '';
 }
 
-function buildGovernanceActionPayload(action) {
+export function buildGovernanceActionPayload(action) {
     const review = currentReviewSource();
     const sessionId = normalizeString(review.session.sessionId);
     const copyNotes = normalizeString(
@@ -13405,7 +9715,7 @@ async function submitGovernanceAction(action) {
     }
 }
 
-function renderClinicalHeader(review, meta) {
+export function renderClinicalHeader(review, meta) {
     const draft = currentDraftSource();
     const pendingAiStatus =
         formatPendingAiStatus(
@@ -13432,7 +9742,7 @@ function renderClinicalHeader(review, meta) {
     );
 }
 
-function syncFollowUpInput() {
+export function syncFollowUpInput() {
     const slice = getClinicalHistorySlice();
     const input = document.getElementById('clinicalHistoryFollowUpInput');
     if (input instanceof HTMLTextAreaElement) {
@@ -13443,7 +9753,7 @@ function syncFollowUpInput() {
     }
 }
 
-function currentSessionId(state = getState()) {
+export function currentSessionId(state = getState()) {
     const slice = getClinicalHistorySlice(state);
     const selected = normalizeString(slice.selectedSessionId);
     if (selected) {
@@ -13616,7 +9926,7 @@ async function loadCertificateHistory(caseId, options = {}) {
     }
 }
 
-function buildReviewPatch(mode, question) {
+export function buildReviewPatch(mode, question) {
     const review = currentReviewSource();
     const draft = currentDraftSource();
     const sessionId = normalizeString(
@@ -13822,7 +10132,7 @@ async function saveClinicalHistoryReview(mode, question) {
     }
 }
 
-function captureDraftFromDom() {
+export function captureDraftFromDom() {
     const form = document.getElementById('clinicalHistoryDraftForm');
     if (!(form instanceof HTMLFormElement)) {
         return;
@@ -13841,37 +10151,7 @@ function captureDraftFromDom() {
     syncDraftStatusMeta();
 }
 
-function mutatePrescriptionItems(mutator) {
-    const rootForm = document.getElementById('clinicalHistoryDraftForm');
-    const baseDraft =
-        rootForm instanceof HTMLFormElement
-            ? serializeDraftForm(rootForm, currentDraftSource())
-            : currentDraftSource();
-    const nextDraft = synchronizeDraftClinicalState(cloneValue(baseDraft));
-    const items = normalizePrescriptionItems(
-        nextDraft?.clinicianDraft?.hcu005?.prescriptionItems || []
-    );
-    const mutatedItems = mutator(items) || items;
 
-    nextDraft.clinicianDraft.hcu005 = normalizeHcu005(
-        nextDraft.clinicianDraft.hcu005,
-        {
-            prescriptionItems: mutatedItems,
-        }
-    );
-
-    const review = currentReviewSource();
-    const normalizedNext = synchronizeDraftClinicalState(nextDraft);
-    const dirty =
-        JSON.stringify(normalizedNext) !==
-        JSON.stringify(normalizeDraftSnapshot(review.draft));
-
-    setClinicalHistoryState({
-        draftForm: cloneValue(normalizedNext),
-        dirty,
-    });
-    renderClinicalHistorySection();
-}
 
 async function maybeSwitchSession(sessionId) {
     const desiredSessionId = normalizeString(sessionId);
@@ -13902,7 +10182,7 @@ async function maybeSwitchSession(sessionId) {
     return loadClinicalHistorySession(desiredSessionId, { force: true });
 }
 
-function ensureSessionSelection() {
+export function ensureSessionSelection() {
     const state = getState();
     if (state?.ui?.activeSection !== 'clinical-history') {
         return;
@@ -13963,7 +10243,7 @@ function ensureSessionSelection() {
     }, 0);
 }
 
-function syncWorkspaceVisibility(activeWorkspace) {
+export function syncWorkspaceVisibility(activeWorkspace) {
     const reviewWorkbench = document.getElementById('clinicalHistoryWorkbench');
     const reviewFooter = document.getElementById('clinicalHistoryFooterGrid');
     const mediaFlowWorkbench = document.getElementById(
@@ -13997,7 +10277,7 @@ function syncWorkspaceVisibility(activeWorkspace) {
     }
 }
 
-function bindClinicalHistoryEvents() {
+export function bindClinicalHistoryEvents() {
     const root = document.getElementById('clinical-history');
     if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') {
         return;
@@ -14598,3 +10878,10 @@ export function renderClinicalHistorySection() {
     renderClinicalCompareFlow();
     ensureSessionSelection();
 }
+
+import * as photos from './render-photos.js';
+import * as timeline from './render-timeline.js';
+import * as documents from './render-documents.js';
+
+export { photos, timeline, documents };
+

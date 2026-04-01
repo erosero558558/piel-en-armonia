@@ -1,0 +1,59 @@
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../lib/ApiKernel.php';
+require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/DataAccessAudit.php';
+
+class DataAccessAuditController
+{
+    public static function process(array $request): array
+    {
+        if ($request['method'] !== 'GET') {
+            return api_error('Metodo no soportado', 405);
+        }
+
+        if (!legacy_admin_is_authenticated() && !operator_auth_is_authenticated()) {
+            return api_error('No autorizado', 401);
+        }
+
+        $patientId = trim((string)($request['query']['patient_id'] ?? ''));
+        if ($patientId === '') {
+            return api_error('El parametro patient_id es obligatorio', 400);
+        }
+
+        $logFile = data_dir_path() . DIRECTORY_SEPARATOR . 'access-log.jsonl';
+        $events = [];
+
+        if (file_exists($logFile) && is_readable($logFile)) {
+            $handle = @fopen($logFile, 'r');
+            if ($handle) {
+                while (($line = fgets($handle)) !== false) {
+                    $entry = json_decode($line, true);
+                    if (is_array($entry) && isset($entry['patient_id']) && (string)$entry['patient_id'] === $patientId) {
+                        $events[] = [
+                            'accessor' => $entry['accessor'] ?? '',
+                            'resource' => $entry['resource'] ?? '',
+                            'ts' => $entry['ts'] ?? 0,
+                            'ip' => $entry['ip'] ?? ''
+                        ];
+                    }
+                }
+                fclose($handle);
+            }
+        }
+
+        // Orden cronológico inverso (más recientes primero)
+        usort($events, function($a, $b) {
+            return $b['ts'] <=> $a['ts'];
+        });
+
+        return [
+            'statusCode' => 200,
+            'json' => [
+                'access_events' => $events
+            ]
+        ];
+    }
+}

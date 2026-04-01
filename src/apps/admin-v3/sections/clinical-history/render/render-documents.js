@@ -1,5 +1,5 @@
-import { getState, updateState } from '../../../../shared/core/store.js';
-import { setHtml, setText, escapeHtml, createToast, formatDateTime } from '../../../../shared/ui/render.js';
+import { getState, updateState } from '../../../shared/core/store.js';
+import { setHtml, setText, escapeHtml, createToast, formatDateTime } from '../../../shared/ui/render.js';
 import * as helpers from './index.js';
 
 export function renderPrescriptionMedicationMirror(items) {
