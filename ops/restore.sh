@@ -31,7 +31,10 @@ echo "1. Analizando el archivo $BACKUP_FILE..."
 if [[ "$BACKUP_FILE" == *.gpg ]]; then
     # Evaluar si se puede descifrar asimétricamente, si falla intentamos con la clave por defecto
     echo "2. Descifrando GPG..."
-    if ! gpg --quiet --batch --yes --decrypt --output "$TAR_FILE" "$BACKUP_FILE" 2>/dev/null; then
+    if ! command -v gpg &> /dev/null; then
+        echo "❌ Error crítico: GPG no está instalado pero el archivo está encriptado (.gpg)."
+        exit 1
+    elif ! gpg --quiet --batch --yes --decrypt --output "$TAR_FILE" "$BACKUP_FILE" 2>/dev/null; then
         echo "⚠️ Fallo el descifrado asimétrico. Intentando con passphrase por defecto 'aurora'..."
         gpg --quiet --batch --yes --passphrase "aurora" --decrypt --output "$TAR_FILE" "$BACKUP_FILE" || {
             echo "❌ Error crítico: no se pudo descifrar el archivo."

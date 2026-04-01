@@ -24,7 +24,9 @@ if [ -f "${ARCHIVE_PATH}" ]; then
     
     # We use symmetric encryption if no recipient key is present to avoid failing locally if no key exists, 
     # but the task specifies GPG recipient encryption.
-    if gpg --list-keys "$RECIPIENT" >/dev/null 2>&1; then
+    if ! command -v gpg &> /dev/null; then
+        echo "⚠️  GPG no esta instalado. Saltando cifrado y guardando archivo en texto plano."
+    elif gpg --list-keys "$RECIPIENT" >/dev/null 2>&1; then
         gpg --yes --encrypt --recipient "$RECIPIENT" --output "${ARCHIVE_PATH}.gpg" "${ARCHIVE_PATH}"
         rm "${ARCHIVE_PATH}"
         echo "✅ Backup encriptado con éxito en: ${ARCHIVE_PATH}.gpg"
