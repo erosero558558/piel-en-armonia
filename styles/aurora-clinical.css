@@ -615,7 +615,7 @@ body .oc-input-row {
    Phase RB-08: Micro-animaciones AI & CIE-10 Reveals
    ========================================================================== */
 
-/* AI Typing Cursor blink animation */
+/* blink cursor animation para AI Typing */
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
@@ -629,6 +629,14 @@ body .oc-cursor {
   animation: blink 1s step-end infinite !important;
   transform: translateY(3px);
   margin-left: 2px;
+}
+
+body .oc-shell.oc-chat-flat {
+  background: var(--reborn-surface-glass) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* CIE-10 Glass interactions */

@@ -52,7 +52,7 @@ Contexto del paciente se te dará como sistema de contexto.`,
 
   function renderShell() {
     return `
-    <div class="oc-shell">
+    <div class="oc-shell oc-chat-flat">
       <!-- Header -->
       <div class="oc-header">
         <div class="oc-header-left">
@@ -102,7 +102,7 @@ Contexto del paciente se te dará como sistema de contexto.`,
           <div class="oc-alert-banner" id="oc-interaction-banner" data-tone="warning" style="display:none"></div>
 
           <!-- Input area -->
-          <div class="oc-input-area">
+          <div class="oc-input-area openclaw-input-pill">
             <div class="oc-input-row">
               <button class="oc-btn-icon oc-photo-btn" id="oc-photo-btn" title="Subir foto clínica">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">

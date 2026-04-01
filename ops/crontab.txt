@@ -1,0 +1,5 @@
+# Cron de Aurora Derm
+# Se corre cada minuto localmente o en el servidor.
+* * * * * cd /Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm && php cron.php >> logs/cron.log 2>&1
+# Rotar y comprimir access log
+0 0 * * * cd /Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm && cp data/hce-access-log.jsonl data/hce-access-log-$(date +\%Y\%m\%d).jsonl && gzip data/hce-access-log-$(date +\%Y\%m\%d).jsonl && echo "" > data/hce-access-log.jsonl

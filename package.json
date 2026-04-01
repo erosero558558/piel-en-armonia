@@ -278,8 +278,8 @@
     "gov:contract:sprint": "node bin/verify-task-contract.js --sprint",
     "gov:alert": "node bin/alert.js",
     "dispatch:ui:gemini": "node bin/dispatch.js --role ui",
-    "backup": "bash ops/backup.sh"
-
+    "backup": "bash ops/backup.sh",
+    "ops:install-crons": "crontab ./ops/crontab.txt"
   },
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",

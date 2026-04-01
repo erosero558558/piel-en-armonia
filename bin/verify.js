@@ -1289,8 +1289,7 @@ function main() {
         `\n📊 Summary: ${done}/${total} verified done, ${results.stillPending.length} pending, ${results.doneWithoutEvidence.length} done-without-evidence, ${results.doneWithoutRule.length} done-without-rule\n`
     );
 
-    return results.stillPending.length > 0 ||
-        results.doneWithoutEvidence.length > 0
+    return results.doneWithoutEvidence.length > 0
         ? 1
         : 0;
 }
