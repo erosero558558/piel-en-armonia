@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-03-31T22:15:27.142Z",
-  "gate": "GREEN",
-  "criticalsFailed": 0,
+  "generatedAt": "2026-04-01T02:02:58.024Z",
+  "gate": "RED",
+  "criticalsFailed": 1,
   "allPassed": false,
   "checks": [
     {
@@ -15,9 +15,9 @@
     {
       "name": "gov-audit",
       "label": "Governance audit",
-      "pass": true,
+      "pass": false,
       "critical": true,
-      "detail": "10/11 gov checks"
+      "detail": "7/12 gov checks"
     },
     {
       "name": "broken-scripts-report",
@@ -29,9 +29,9 @@
     {
       "name": "turnero-release-plan",
       "label": "Turnero surfaces listas",
-      "pass": false,
+      "pass": true,
       "critical": false,
-      "detail": "BLOCKED"
+      "detail": "READY"
     },
     {
       "name": "backlog",

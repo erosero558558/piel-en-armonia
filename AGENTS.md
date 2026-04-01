@@ -2340,7 +2340,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI5-10** `[L]` `[UI]` Calendario de disponibilidad glass — grid de días como pills: disponibles=glass, sin disponibilidad=opacidad 0.3, seleccionado=glass gold sólido. Pills de horas abajo, scroll horizontal en móvil. Verificable: `grep "calendar.*glass\|slot.*pill\|day.*available" es/agendar/index.html` → match ≥4.
 
-- [ ] **UI5-11** `[M]` `[UI]` Confirmation screen booking — card glass con: servicio, fecha, médico, precio + IVA desglosado. CTA "Confirmar y pagar" gold sólido. Iconos de seguridad debajo. Verificable: `grep "booking-confirm.*glass\|iva.*desglose\|security.*badge" es/agendar/index.html` → match ≥3.
+- [x] **UI5-11** `[M]` `[UI]` Confirmation screen booking — card glass con: servicio, fecha, médico, precio + IVA desglosado. CTA "Confirmar y pagar" gold sólido. Iconos de seguridad debajo. Verificable: `grep "booking-confirm.*glass\|iva.*desglose\|security.*badge" es/agendar/index.html` → match ≥3.
 
 #### UI5-C Portal del Paciente — Clínica en el bolsillo
 
