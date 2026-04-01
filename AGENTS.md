@@ -2237,11 +2237,11 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S28-07** `[M]` Sesiones concurrentes de admin — detectar si el mismo email de administrador tiene sesión activa en más de una IP simultáneamente. Mostrar alerta en el panel: "Tu cuenta tiene una sesión activa desde [IP]. ¿Eres tú?" Con opción de cerrar todas las otras sesiones. Verificable: `GET /api.php?resource=active-sessions` → array de `sessions` con `ip`, `started_at`, `last_active`.
 
-- [ ] **S28-08** `[M]` Log de cambios en configuración de clínica — registrar en `data/config-audit.jsonl` cada cambio en `clinic-profile.json`, servicios, precios, horarios. Con quién lo cambió, cuándo, qué campo y valor anterior/nuevo. Crítico para detectar cambios no autorizados. Verificable: `GET /api.php?resource=config-audit-log` → array de `changes` con `field`, `old_value`, `new_value`, `changed_by`, `ts`.
+- [x] **S28-08** `[M]` Log de cambios en configuración de clínica — registrar en `data/config-audit.jsonl` cada cambio en `clinic-profile.json`, servicios, precios, horarios. Con quién lo cambió, cuándo, qué campo y valor anterior/nuevo. Crítico para detectar cambios no autorizados. Verificable: `GET /api.php?resource=config-audit-log` → array de `changes` con `field`, `old_value`, `new_value`, `changed_by`, `ts`.
 
 - [ ] **S28-09** `[S]` Hardening de headers HTTP — verificar y completar en `Caddyfile`: `Permissions-Policy` (sin acceso a cámara/micrófono excepto en teleconsulta), `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`. Documentar en `SECURITY.md` qué headers están activos y por qué. Verificable: `curl -I https://pielarmonia.com` → `Permissions-Policy` y `Referrer-Policy` presentes; `grep "Permissions-Policy\|Referrer-Policy" ops/caddy/Caddyfile` → match.
 
-- [ ] **S28-10** `[M]` Expiración de sesión por inactividad — si el médico no interactúa con el admin en 30 minutos, la sesión expira automáticamente y se muestra modal de re-login. El timer se reinicia con cualquier click/tecla. Sin esto, dejar el admin abierto en la sala de espera es un riesgo. Verificable: `grep "inactivity.*timer\|session.*expire.*inactivity" js/admin.js` → match; timeout configurable desde `clinic-profile.json`.
+- [x] **S28-10** `[M]` Expiración de sesión por inactividad — si el médico no interactúa con el admin en 30 minutos, la sesión expira automáticamente y se muestra modal de re-login. El timer se reinicia con cualquier click/tecla. Sin esto, dejar el admin abierto en la sala de espera es un riesgo. Verificable: `grep "inactivity.*timer\|session.*expire.*inactivity" js/admin.js` → match; timeout configurable desde `clinic-profile.json`.
 
 ---
 
