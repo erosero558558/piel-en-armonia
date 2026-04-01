@@ -302,6 +302,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://pielarmonia.com/es/mi-turno/</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://pielarmonia.com/es/pago/</loc>
     <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
