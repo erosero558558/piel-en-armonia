@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 9:29:49 a. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 10:11:25 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████████░░░░░░` **70%** completado (488/696)
+`██████████████░░░░░░` **70%** completado (490/696)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | 🎯 Sprint 2 | 19 | 5 | 79% |
-| ⏸ Sprint 3 | 63 | 4 | 94% |
+| ⏸ Sprint 3 | 64 | 3 | 96% |
 | ⏸ Sprint 4 | 24 | 2 | 92% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
 | ⏸ Sprint 6 | 12 | 13 | 48% |
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 143 | 67 | 68% |
+| ⏸ Sprint UI | 144 | 66 | 69% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -60,13 +60,12 @@ _Sprint completado. 12/12 tareas._
 - **S2-20** `[S2]` S...
 
 ## ⏸ Sprint 3 — Construir Flow OS como plataforma
-_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 3 tareas pendientes._
 
-### 🟢 Disponibles (3)
+### 🟢 Disponibles (2)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S3-11** | `[S3]` | M |
 | **S3-17** | `[S3]` | L |
 | **S3-30** | `[S3]` | L |
 
@@ -256,9 +255,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 67 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 66 tareas pendientes._
 
-### 🟢 Disponibles (66)
+### 🟢 Disponibles (65)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -267,11 +266,11 @@ _Esperando que Sprint anterior esté completo. 67 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-05** | `[S24]` | S |
 | **S24-06** | `[S24]` | M |
-| ... | | _+61 más_ |
+| ... | | _+60 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S38-05** `[S38]` → _Antigravity_ (expira en 228min)
+- **S38-05** `[S38]` → _Antigravity_ (expira en 186min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
