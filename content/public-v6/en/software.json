@@ -60,6 +60,12 @@
           "label": "Legal",
           "href": "/en/legal/terms/",
           "kind": "standard"
+        },
+        {
+          "id": "caseStudy",
+          "label": "Aurora Derm Case Study",
+          "href": "/en/software/clinic-flow-suite/aurora-derm-case-study/",
+          "kind": "standard"
         }
       ],
       "searchEntries": [
@@ -86,6 +92,12 @@
           "href": "/en/software/clinic-flow-suite/dashboard/",
           "eyebrow": "Leadership",
           "deck": "Management readout for wait time, no-show, load, and closure across the same operating journey."
+        },
+        {
+          "label": "Aurora Derm Case Study",
+          "href": "/en/software/clinic-flow-suite/aurora-derm-case-study/",
+          "eyebrow": "Success Story",
+          "deck": "How Aurora Derm reduced wait times and unified operations using Flow OS."
         }
       ]
     },

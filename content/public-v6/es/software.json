@@ -60,6 +60,12 @@
           "label": "Legal",
           "href": "/es/legal/terminos/",
           "kind": "standard"
+        },
+        {
+          "id": "caseStudy",
+          "label": "Caso Aurora Derm",
+          "href": "/es/software/turnero-clinicas/caso-aurora-derm/",
+          "kind": "standard"
         }
       ],
       "searchEntries": [
@@ -86,6 +92,12 @@
           "href": "/es/software/turnero-clinicas/dashboard/",
           "eyebrow": "Direccion",
           "deck": "Lectura gerencial de espera, no-show, carga y cierre del recorrido sobre la misma base operativa."
+        },
+        {
+          "label": "Caso Aurora Derm",
+          "href": "/es/software/turnero-clinicas/caso-aurora-derm/",
+          "eyebrow": "Caso de éxito",
+          "deck": "Cómo Aurora Derm redujo esperas y unificó sus operaciones con Flow OS."
         }
       ]
     },

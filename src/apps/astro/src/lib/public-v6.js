@@ -2220,6 +2220,7 @@ function sanitizeSoftwareData(locale, payload) {
         demo: sanitizeSoftwareSurfacePage({ ...(isObject(pages.demo) ? pages.demo : {}), locale }),
         status: sanitizeSoftwareSurfacePage({ ...(isObject(pages.status) ? pages.status : {}), locale }),
         dashboard: sanitizeSoftwareSurfacePage({ ...(isObject(pages.dashboard) ? pages.dashboard : {}), locale }),
+        caseStudy: { ...(isObject(pages.caseStudy) ? pages.caseStudy : {}), locale },
     };
     const suiteRoutes = buildSoftwareSuiteRoutes(
         locale,
@@ -2299,6 +2300,7 @@ function sanitizeSoftwareData(locale, payload) {
             demo: finalDemo,
             status: finalStatus,
             dashboard: finalDashboard,
+            caseStudy: sanitizedPages.caseStudy,
         },
     };
 }
