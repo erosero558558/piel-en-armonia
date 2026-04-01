@@ -1,58 +1,56 @@
-# Dead Code Audit
+# Auditoria de Código Muerto (queue-shared)
 
-Fecha de auditoría: `2026-03-30`
+Se encontraron 212 archivos sin referencias en `src/apps/`, `js/` ni `templates/`.
 
-Superficie auditada:
+## Top 50 más grandes
 
-- [src/apps/queue-shared](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/src/apps/queue-shared)
-
-Metodología:
-
-- se tomaron como roots las referencias reales desde HTML/JS del turnero:
-  `operador-turnos.html`, `kiosco-turnos.html`, `sala-turnos.html`, `admin.html`
-  y los entrypoints vivos bajo `src/apps/queue-operator/`, `src/apps/queue-kiosk/`,
-  `src/apps/queue-display/`, `src/apps/turnero-desktop/` y
-  `src/apps/admin-v3/shared/modules/queue/render/section/install-hub*`
-- se resolvió el grafo estático de imports/re-exports dentro de `src/apps/queue-shared`
-- un archivo se marcó como huérfano solo si no era alcanzable desde ningún root real
-
-## Resumen
-
-- `src/apps/queue-shared` contiene `400` archivos.
-- `140` archivos están referenciados directamente desde roots reales.
-- El grafo completo deja `394` archivos alcanzables.
-- Solo `6` archivos quedan realmente huérfanos.
-
-Conclusión importante:
-
-- La hipótesis histórica de que “la mayoría son `turnero-surface-*` generados y probablemente dead code” ya no se sostiene en el repo actual.
-- La mayor parte de `queue-shared` sí está viva por imports del operador, kiosco, display, desktop y el install hub del admin.
-- `S4-22` no debería intentar archivar “~80%” de la carpeta; hoy el recorte seguro es mucho más pequeño.
-
-## Huérfanos confirmados
-
-Estos seis wrappers quedaron archivados en `S4-22` bajo `_archive/turnero-surfaces/`.
-
-- `src/apps/queue-shared/turnero-release-blast-radius.js` → [_archive/turnero-surfaces/turnero-release-blast-radius.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-blast-radius.js)
-  Tamaño: `245 B`
-- `src/apps/queue-shared/turnero-release-dependency-gates.js` → [_archive/turnero-surfaces/turnero-release-dependency-gates.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-dependency-gates.js)
-  Tamaño: `257 B`
-- `src/apps/queue-shared/turnero-release-freeze-window-registry.js` → [_archive/turnero-surfaces/turnero-release-freeze-window-registry.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-freeze-window-registry.js)
-  Tamaño: `531 B`
-- `src/apps/queue-shared/turnero-release-maintenance-window.js` → [_archive/turnero-surfaces/turnero-release-maintenance-window.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-maintenance-window.js)
-  Tamaño: `263 B`
-- `src/apps/queue-shared/turnero-release-rollback-rehearsal.js` → [_archive/turnero-surfaces/turnero-release-rollback-rehearsal.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-rollback-rehearsal.js)
-  Tamaño: `263 B`
-- `src/apps/queue-shared/turnero-release-wave-planner.js` → [_archive/turnero-surfaces/turnero-release-wave-planner.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/_archive/turnero-surfaces/turnero-release-wave-planner.js)
-  Tamaño: `245 B`
-
-## Patrón observado
-
-- Los seis huérfanos son wrappers muy pequeños.
-- Todos reexportan funciones desde [turnero-release-progressive-delivery.js](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm/src/apps/queue-shared/turnero-release-progressive-delivery.js).
-- `rg` sobre sus nombres en `src`, `js`, `templates`, `*.html`, `rollup.config.mjs` y `package.json` no devolvió referencias.
-
-## Recomendación para S4-22
-
-- Mover solo estos seis archivos a `_archive/turnero-surfaces/` o eliminarlos si se confirma que eran aliases transitorios.
-- No aplicar una poda masiva sobre `queue-shared` sin rehacer el grafo, porque hoy `394/400` módulos siguen vivos.
+- `turnero-release-actions-runner.js` (40.27 KB)
+- `turnero-release-history-store.js` (25.83 KB)
+- `turnero-release-recheck-queue.js` (25.56 KB)
+- `turnero-admin-queue-surface-smoke-console.js` (25.27 KB)
+- `turnero-release-regression-radar.js` (22.95 KB)
+- `turnero-release-evidence-pack-factory.js` (20.53 KB)
+- `turnero-surface-acceptance-snapshot.js` (19.87 KB)
+- `turnero-remediation-playbook.js` (18.31 KB)
+- `turnero-surface-rollout-snapshot.js` (17.45 KB)
+- `turnero-surface-adoption-snapshot.js` (15.55 KB)
+- `turnero-surface-contract-snapshot.js` (15.40 KB)
+- `turnero-surface-escalation-ledger.js` (15.27 KB)
+- `turnero-surface-support-contact-store.js` (14.86 KB)
+- `turnero-surface-recovery-action-store.js` (14.48 KB)
+- `turnero-release-baseline-registry.js` (14.01 KB)
+- `turnero-surface-service-handover-gate.js` (13.46 KB)
+- `turnero-release-scorecard.js` (13.24 KB)
+- `turnero-release-ownership-board.js` (12.81 KB)
+- `turnero-surface-release-truth.js` (12.36 KB)
+- `turnero-clinic-onboarding-pack.js` (12.36 KB)
+- `turnero-surface-renewal-gate.js` (11.98 KB)
+- `turnero-release-owner-automation.js` (11.92 KB)
+- `turnero-release-trend-analyzer.js` (11.85 KB)
+- `turnero-surface-executive-review-readout.js` (11.74 KB)
+- `turnero-surface-package-readout.js` (11.73 KB)
+- `turnero-release-clinic-cohort-planner.js` (11.57 KB)
+- `turnero-surface-stakeholder-signoff-store.js` (11.09 KB)
+- `turnero-surface-rollout-gate.js` (11.04 KB)
+- `turnero-surface-onboarding-gate.js` (10.81 KB)
+- `turnero-release-multi-clinic-rollout.js` (10.33 KB)
+- `turnero-release-snapshot-diff.js` (10.24 KB)
+- `turnero-surface-support-snapshot.js` (10.02 KB)
+- `turnero-surface-contract-drift.js` (9.51 KB)
+- `turnero-surface-success-gate.js` (9.45 KB)
+- `turnero-release-canary-registry.js` (9.43 KB)
+- `turnero-surface-registry-source.js` (9.29 KB)
+- `turnero-surface-smoke-evidence-store.js` (9.26 KB)
+- `turnero-surface-acceptance-gate.js` (9.25 KB)
+- `turnero-surface-onboarding-readout.js` (9.01 KB)
+- `turnero-surface-package-gate.js` (8.89 KB)
+- `turnero-surface-service-handover-readout.js` (8.85 KB)
+- `ops-theme-global.js` (8.78 KB)
+- `turnero-surface-rollout-readout.js` (8.73 KB)
+- `turnero-release-multi-run-pack.js` (8.59 KB)
+- `turnero-surface-acceptance-readout.js` (8.48 KB)
+- `turnero-surface-expansion-gate.js` (8.33 KB)
+- `turnero-release-promotion-pipeline.js` (8.28 KB)
+- `turnero-surface-support-gate.js` (7.79 KB)
+- `turnero-surface-fleet-readout.js` (7.69 KB)
+- `turnero-surface-runtime-snapshot.js` (7.63 KB)

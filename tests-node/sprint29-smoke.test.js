@@ -11,7 +11,7 @@ test('Sprint 29 Smoke Tests', async (t) => {
     const data = JSON.parse(fs.readFileSync(p, 'utf8'));
     assert.ok(Array.isArray(data), 'Should be an array');
     assert.ok(data.length >= 250, 'Should have >= 250 entries');
-    assert.ok(data[0].c, 'Should have code property');
+    assert.ok(data[0].code, 'Should have code property');
   });
 
   await t.test('S29-17.2: bin/send-appointment-reminders.php --dry --json executes correctly', () => {
