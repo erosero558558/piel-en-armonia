@@ -68,6 +68,8 @@ require_once __DIR__ . '/controllers/SecurityReportController.php';
 require_once __DIR__ . '/controllers/ConfigAuditLogController.php';
 require_once __DIR__ . '/controllers/DataAccessAuditController.php';
 require_once __DIR__ . '/controllers/ActiveSessionsController.php';
+require_once __DIR__ . '/controllers/PatientDataErasureController.php';
+require_once __DIR__ . '/controllers/PatientDataExportController.php';
 
 
 // Instantiate and Handle

@@ -25,6 +25,7 @@ export function renderSidebarNav() {
             ${navGroupLabel('Flujo diario')}
             ${navItem('queue', 'Turnero', 'queue', true)}
             ${navItem('dashboard', 'Inicio', 'dashboard')}
+            ${navItem('doctor-dashboard', 'Docs Dashboard', 'dashboard')}
             ${navItem('appointments', 'Agenda', 'appointments')}
             ${navItem('callbacks', 'Pendientes', 'callbacks')}
             ${navItem('availability', 'Horarios', 'availability')}

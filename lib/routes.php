@@ -69,6 +69,8 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'data-access-audit', [DataAccessAuditController::class, 'process']);
     $router->add('GET', 'active-sessions', [ActiveSessionsController::class, 'process']);
     $router->add('DELETE', 'active-sessions', [ActiveSessionsController::class, 'process']);
+    $router->add('DELETE', 'patient-data-erasure', [PatientDataErasureController::class, 'process']);
+    $router->add('GET', 'patient-data-export', [PatientDataExportController::class, 'process']);
 
     // Push Preferences
     $router->add('GET', 'push-preferences', [PatientPortalController::class, 'getPushPreferences']);

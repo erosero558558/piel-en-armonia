@@ -8,6 +8,7 @@ import { renderQueueSection } from './queue.js';
 import { renderReviewsSection } from './reviews.js';
 import { renderSettingsSection } from './settings.js';
 import { renderGiftCardsSection } from './gift-cards.js';
+import { renderDoctorDashboardSection } from '../../../../../sections/doctor-dashboard/index.js';
 
 export function renderAllSections() {
     return `
@@ -21,5 +22,6 @@ export function renderAllSections() {
         ${renderClinicalHistorySection()}
         ${renderSettingsSection()}
         ${renderGiftCardsSection()}
+        ${renderDoctorDashboardSection()}
     `;
 }
