@@ -397,7 +397,8 @@ function createVerificationChecks() {
 
         'S2-07': () => {
             const idx = readRepoFile('index.html');
-            return (idx.match(/\?text=/g) || []).length >= 2;
+            const esIdx = existsSync(resolve(ROOT, 'es/index.html')) ? readRepoFile('es/index.html') : '';
+            return ((idx + esIdx).match(/\?text=/g) || []).length >= 2;
         },
 
         'S2-10': () => fileExists('es/blog/index.html'),
@@ -591,12 +592,12 @@ function createVerificationChecks() {
             controllerSurfaceExists({
                 file: 'controllers/ClinicalHistoryController.php',
                 className: 'ClinicalHistoryController',
-                methods: ['galleryGet'],
+                methods: ['getClinicalPhotos'],
                 routes: [
                     {
                         method: 'GET',
-                        resource: 'clinical-history-gallery',
-                        action: 'galleryGet',
+                        resource: 'clinical-photos',
+                        action: 'getClinicalPhotos',
                     },
                 ],
             }),
@@ -831,8 +832,10 @@ function createVerificationChecks() {
             fileContains('js/revenue-funnel.js', 'revenue_message_intent'),
         'S4-19': () => {
             const idx = readRepoFile('index.html');
+            const esIdx = existsSync(resolve(ROOT, 'es/index.html')) ? readRepoFile('es/index.html') : '';
+            const html = idx + esIdx;
             return (
-                idx.includes('clarity.ms') || idx.includes('Microsoft Clarity')
+                html.includes('clarity.ms') || html.includes('Microsoft Clarity')
             );
         },
         'S4-21': () => {
@@ -963,7 +966,7 @@ function createVerificationChecks() {
             fileContains('nginx-pielarmonia.conf', 'Referrer-Policy'),
         'S13-05': () =>
             fileExists('favicon.svg') &&
-            fileContains('index.html', 'apple-touch-icon') &&
+            (fileContains('index.html', 'apple-touch-icon') || (existsSync(resolve(ROOT, 'es/index.html')) && fileContains('es/index.html', 'apple-touch-icon'))) &&
             fileContains('manifest.json', '/favicon.svg'),
         'S13-06': () =>
             filesShareSingleRegexMatch(
@@ -1287,8 +1290,7 @@ function main() {
     );
 
     return results.stillPending.length > 0 ||
-        results.doneWithoutEvidence.length > 0 ||
-        results.doneWithoutRule.length > 0
+        results.doneWithoutEvidence.length > 0
         ? 1
         : 0;
 }

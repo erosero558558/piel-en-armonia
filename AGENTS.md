@@ -987,7 +987,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 2.2 Conversión por WhatsApp
 
-- [x] **S2-07** `[M]` WhatsApp links contextualizados — CADA botón CTA en el sitio debe llevar `?text=` pre-llenado por servicio:
+- [ ] **S2-07** `[M]` WhatsApp links contextualizados — CADA botón CTA en el sitio debe llevar `?text=` pre-llenado por servicio:
     - Hero: `?text=Hola, me gustaría agendar una evaluación dermatológica`
     - Acné page: `?text=Hola, me interesa una consulta sobre acné`
     - Láser page: `?text=Hola, quiero información sobre tratamiento láser`
@@ -1176,7 +1176,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 4.4 Analytics
 
 - [x] **S4-18** `[M]` Conversion funnel — trackear embudo: visita → scroll → click WhatsApp → mensaje. Eventos GA4.
-- [x] **S4-19** `[S]` Microsoft Clarity — agregar script gratis de heatmaps. Analizar scroll depth, clicks, abandono.
+- [ ] **S4-19** `[S]` Microsoft Clarity — agregar script gratis de heatmaps. Analizar scroll depth, clicks, abandono.
 - [x] **S4-20** `[M]` Dashboard de conversión en admin — vista: visitas/día, clicks WhatsApp/día, top servicios. Datos desde server logs o GA4 API.
 
 #### 4.5 Limpieza técnica
@@ -1702,7 +1702,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S13-02** `[M]` sitemap.xml — actualización y cobertura completa — sitemap tiene 73 URLs pero falta: `/es/paquetes/` (recién creada S4-13), todas las URLs nuevas de Sprint 2/3/UI. `lastmod` desactualizado en muchas. Añadir generación automática al `sync-backlog.js` o crear `bin/gen-sitemap.js`. Verificable: `grep "paquetes" sitemap.xml` → existe.
 - [x] **S13-03** `[M]` `[UI]` 404 y 500 con Design System — `404.html` y `500.html` no existen o no usan tokens del Design System. El paciente que llega a una URL rota ve una página sin marca. Crear ambas con: logo, mensaje de error amigable, CTA WhatsApp, link a inicio y servicios. Usar `aurora-public.css`. Verificable: `ls 404.html` → existe y `grep "tokens.css" 404.html` → match.
 - [x] **S13-04** `[M]` Security headers en nginx — `nginx-pielarmonia.conf` no tiene `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Sin estos headers, la clínica es vulnerable a clickjacking y XSS reflejado. Verificable: `curl -I https://aurora-derm.com | grep -i "x-frame"` → match.
-- [x] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
+- [ ] **S13-05** `[S]` Favicon y touch icons brand compliance — `favicon.ico` existe ✅ pero no hay `favicon.svg` en colores aurora (#248a65). Los touch icons para iOS (`apple-touch-icon`) no fueron auditados. El PWA `manifest.json` tampoco referencia el icon correcto. Crear `favicon.svg` con círculo aurora-600. Verificable: `grep "apple-touch-icon" index.html` → existe.
 - [ ] **S13-06** `[M]` Google Analytics ID — consistencia en todas las páginas — el audit detectó `0` resultados de GA4 ID (`G-XXXXX`) en `index.html`, `admin.html` y servicios. O no está instrumentado o está en formato legacy. Verificar qué ID está activo, que sea GA4 y que esté en todas las páginas públicas. Sin esto los datos de conversión son ciegos. Verificable: `grep -r "G-" index.html es/index.html` → mismo ID.
 
 #### 13.2 `tele-head-links.html` — regresión silenciosa detectada
@@ -2318,7 +2318,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### UI5-A Admin Panel — La consulta como arte
 
-- [ ] **UI5-01** `[L]` `[UI]` Sidebar de admin glass pill — `admin.html`: reemplazar sidebar plano por sidebar glass pill vertical: logo, grupos colapsables, perfil médico abajo con avatar. Active state: gold pill. `position: sticky`, scrollable en móvil. Verificable: `grep "sidebar.*glass\|nav.*pill.*admin" styles/aurora-admin.css` → match ≥3.
+- [x] **UI5-01** `[L]` `[UI]` Sidebar de admin glass pill — `admin.html`: reemplazar sidebar plano por sidebar glass pill vertical: logo, grupos colapsables, perfil médico abajo con avatar. Active state: gold pill. `position: sticky`, scrollable en móvil. Verificable: `grep "sidebar.*glass\|nav.*pill.*admin" styles/aurora-admin.css` → match ≥3.
 
 - [ ] **UI5-02** `[XL]` `[UI]` Cabecera de caso activo fija — al abrir un caso: cabecera glass con foto del paciente (56px), nombre grande, y 3 pills de contexto: diagnóstico activo (gold), alergias (amber/green), turno. Persiste al scrollear. Verificable: `grep "case-header.*sticky\|patient.*context.*pill" js/admin.js` → match.
 

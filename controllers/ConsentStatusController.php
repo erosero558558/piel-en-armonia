@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/stores/PatientConsentStore.php';
 
 final class ConsentStatusController
 {
-    public static function handle(array $context): void
+    public static function process(array $context): void
     {
         $method = $context['method'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $request = $_REQUEST;

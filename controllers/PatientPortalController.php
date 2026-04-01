@@ -5001,42 +5001,53 @@ final class PatientPortalController
             return;
         }
 
-        $activeSession = ClinicalHistorySessionRepository::findSessionByCaseId($store, $caseId);
-        if ($activeSession === null) {
-            $activeSession = ClinicalHistorySessionRepository::defaultSession(['caseId' => $caseId]);
-            $saveSession = ClinicalHistorySessionRepository::upsertSession($store, $activeSession);
-            $store = $saveSession['store'];
-            $activeSession = $saveSession['session'];
+        $lock = with_store_lock(static function () use ($caseId, $payload) {
+            $store = read_store();
+            $activeSession = ClinicalHistorySessionRepository::findSessionByCaseId($store, $caseId);
+            if ($activeSession === null) {
+                $activeSession = ClinicalHistorySessionRepository::defaultSession(['caseId' => $caseId]);
+                $saveSession = ClinicalHistorySessionRepository::upsertSession($store, $activeSession);
+                $store = $saveSession['store'];
+                $activeSession = $saveSession['session'];
+            }
+
+            $draft = ClinicalHistorySessionRepository::findDraftBySessionId($store, (string) $activeSession['sessionId']);
+            if ($draft === null) {
+                $draft = ClinicalHistorySessionRepository::defaultDraft($activeSession, ['caseId' => $caseId]);
+            }
+
+            if (!isset($draft['intake']['vitalSigns'])) {
+                $draft['intake']['vitalSigns'] = [];
+            }
+
+            $vitalsParams = [
+                'bloodPressure' => trim((string) ($payload['bloodPressure'] ?? '')),
+                'heartRate' => trim((string) ($payload['heartRate'] ?? '')),
+                'glucose' => trim((string) ($payload['glucose'] ?? '')),
+                'weightKg' => trim((string) ($payload['weightKg'] ?? '')),
+            ];
+
+            $newVitals = array_merge($draft['intake']['vitalSigns'], $vitalsParams);
+            $newVitals['source'] = 'patient_self_report';
+            $newVitals['reportedAt'] = local_date('c');
+
+            $draft['intake']['vitalSigns'] = $newVitals;
+
+            $saveDraft = ClinicalHistorySessionRepository::upsertDraft($store, $draft);
+            $store = $saveDraft['store'];
+
+            if (write_store($store, false)) {
+                return ['ok' => true];
+            }
+            return ['ok' => false];
+        });
+
+        if (($lock['ok'] ?? false) !== true || ($lock['result']['ok'] ?? false) !== true) {
+             self::emit(['ok' => false, 'error' => 'No se pudieron guardar los vitales concurrencia']);
+             return;
         }
 
-        $draft = ClinicalHistorySessionRepository::findDraftBySessionId($store, (string) $activeSession['sessionId']);
-        if ($draft === null) {
-            $draft = ClinicalHistorySessionRepository::defaultDraft($activeSession, ['caseId' => $caseId]);
-        }
-
-        if (!isset($draft['intake']['vitalSigns'])) {
-            $draft['intake']['vitalSigns'] = [];
-        }
-
-        $vitals = array_merge($draft['intake']['vitalSigns'], [
-            'bloodPressure' => trim((string) ($payload['bloodPressure'] ?? '')),
-            'heartRate' => trim((string) ($payload['heartRate'] ?? '')),
-            'glucose' => trim((string) ($payload['glucose'] ?? '')),
-            'weightKg' => trim((string) ($payload['weightKg'] ?? '')),
-        ]);
-        $vitals['source'] = 'patient_self_report';
-        $vitals['reportedAt'] = local_date('c');
-
-        $draft['intake']['vitalSigns'] = $vitals;
-
-        $saveDraft = ClinicalHistorySessionRepository::upsertDraft($store, $draft);
-        $store = $saveDraft['store'];
-
-        if (write_store($store, false)) {
-            self::emit(['ok' => true]);
-        } else {
-            self::emit(['ok' => false, 'error' => 'No se pudieron guardar los vitales']);
-        }
+        self::emit(['ok' => true]);
     }
 
     public static function uploadPhoto(array $context): void
@@ -5079,6 +5090,13 @@ final class PatientPortalController
         if (preg_match('/^data:image\/(\w+);base64,/', $base64, $type)) {
             $data = substr($base64, strpos($base64, ',') + 1);
             $type = strtolower($type[1]);
+            
+            $allowedTypes = ['jpeg', 'jpg', 'png', 'webp', 'gif'];
+            if (!in_array($type, $allowedTypes, true)) {
+                self::emit(['ok' => false, 'error' => 'Tipo de imagen no permitido', 'status' => 400]);
+                return;
+            }
+
             $data = base64_decode($data);
             if ($data === false) {
                 self::emit(['ok' => false, 'error' => 'Imagen invalida']);
@@ -5090,13 +5108,20 @@ final class PatientPortalController
         }
 
         $fileName = 'portal_upload_' . uniqid() . '.' . $type;
-        $savePath = __DIR__ . '/../data/uploads/' . $fileName;
-        if (!file_exists(__DIR__ . '/../data/uploads')) {
-            @mkdir(__DIR__ . '/../data/uploads', 0777, true);
+        $uploadsDir = __DIR__ . '/../data/uploads';
+        $savePath = $uploadsDir . '/' . $fileName;
+        
+        if (!file_exists($uploadsDir)) {
+            @mkdir($uploadsDir, 0750, true);
         }
+        
+        $htaccessPath = $uploadsDir . '/.htaccess';
+        if (!file_exists($htaccessPath)) {
+            @file_put_contents($htaccessPath, "php_flag engine off\n");
+        }
+
         file_put_contents($savePath, $data);
 
-        $store['clinical_uploads'] = is_array($store['clinical_uploads'] ?? null) ? $store['clinical_uploads'] : [];
         $upload = [
             'id' => time() . mt_rand(100, 999),
             'patientCaseId' => $caseId,
@@ -5106,13 +5131,23 @@ final class PatientPortalController
             'source' => 'patient_upload',
             'createdAt' => local_date('c'),
         ];
-        $store['clinical_uploads'][] = $upload;
 
-        if (write_store($store, false)) {
-            self::emit(['ok' => true]);
-        } else {
-            self::emit(['ok' => false, 'error' => 'No se pudo guardar la imagen']);
+        $lock = with_store_lock(static function () use ($upload) {
+            $store = read_store();
+            $store['clinical_uploads'] = is_array($store['clinical_uploads'] ?? null) ? $store['clinical_uploads'] : [];
+            $store['clinical_uploads'][] = $upload;
+            if (write_store($store, false)) {
+                return ['ok' => true];
+            }
+            return ['ok' => false];
+        });
+
+        if (($lock['ok'] ?? false) !== true || ($lock['result']['ok'] ?? false) !== true) {
+            self::emit(['ok' => false, 'error' => 'Error de concurrencia al guardar foto']);
+            return;
         }
+
+        self::emit(['ok' => true]);
     }
 
     private static function emitBinaryResponse(

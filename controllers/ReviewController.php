@@ -74,8 +74,20 @@ class ReviewController
                 'error' => 'Nombre y reseña son obligatorios'
             ], 400);
         }
-        $store['reviews'][] = $review;
-        write_store($store);
+        
+        $lock = with_store_lock(static function () use ($review) {
+            $store = read_store();
+            $store['reviews'][] = $review;
+            if (write_store($store, false)) {
+                return ['ok' => true];
+            }
+            return ['ok' => false];
+        });
+
+        if (($lock['ok'] ?? false) !== true) {
+             json_response(['ok' => false, 'error' => 'Error de concurrencia al guardar reseña'], 503);
+        }
+
         json_response([
             'ok' => true,
             'data' => $review

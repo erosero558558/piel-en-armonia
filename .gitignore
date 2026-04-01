@@ -91,4 +91,5 @@ data/pending-interconsult-alerts.jsonl
 data/interconsult-alerts.json
 data/follow-up-alerts.json
 data/ai-router-state.json
-
+data/uploads/
+data/hce-access-log.jsonl
