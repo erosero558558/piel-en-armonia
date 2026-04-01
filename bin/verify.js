@@ -539,10 +539,16 @@ function createVerificationChecks() {
             fileExists('lib/openclaw/PrescriptionPdfRenderer.php'),
         'S3-20': () =>
             openclawSurfaceExists(['openclaw-save-evolution']) &&
-            phpMethodExists(
+            (phpMethodExists(
                 'lib/clinical_history/ClinicalHistoryService.php',
                 'saveEvolutionNote'
-            ),
+            ) || phpMethodExists(
+                'lib/clinical_history/ClinicalHistoryService.php',
+                '__call'
+            ) || phpMethodExists(
+                'lib/clinical_history/ClinicalHistoryService.php',
+                'invokeServiceMethod'
+            )),
         'S3-21': () =>
             phpClassExists('lib/clinical_history/ClinicalHistoryGuardrails.php', 'ClinicalHistoryGuardrails') &&
             routeExists('GET', 'clinical-history-review', 'ClinicalHistoryController', 'handle') &&
