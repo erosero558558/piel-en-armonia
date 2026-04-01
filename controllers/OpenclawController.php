@@ -101,11 +101,20 @@ final class OpenclawController
         $activeSession = ClinicalHistorySessionRepository::findSessionByCaseId($store, $case['id'] ?? $caseId);
         $vitalAlerts = [];
         $vitalAlertCritical = false;
+        $integrityWarning = false;
         if ($activeSession !== null) {
             $draft = ClinicalHistorySessionRepository::findDraftBySessionId($store, (string) ($activeSession['sessionId'] ?? ''));
             if ($draft !== null) {
                 $vitalAlerts = $draft['intake']['vitalSigns']['vitalAlerts'] ?? [];
                 $vitalAlertCritical = count($vitalAlerts) > 0;
+                
+                // S31-08: Check clinical session integrity
+                if (($draft['status'] ?? '') === 'closed' && ($draft['integrityHash'] ?? '') !== '') {
+                    $computed = ClinicalHistorySessionRepository::hashDraft($draft);
+                    if ($computed !== $draft['integrityHash']) {
+                        $integrityWarning = true;
+                    }
+                }
             }
         }
 
@@ -144,9 +153,20 @@ final class OpenclawController
             'chronic_status' => $chronicStatus
         ];
 
+        // S31-09: Log de acceso a HCE por médico
+        $logEntry = json_encode([
+            'case_id' => $case['id'] ?? $caseId,
+            'accessed_by' => $_SESSION['admin_email'] ?? 'unknown',
+            'accessed_at' => gmdate('c'),
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
+            'action' => 'view_context',
+        ], JSON_UNESCAPED_UNICODE) . PHP_EOL;
+        file_put_contents(__DIR__ . '/../data/hce-access-log.jsonl', $logEntry, FILE_APPEND | LOCK_EX);
+
         json_response([
             'ok' => true,
-            'vital_alerts'     => $vitalAlerts,
+            'integrity_warning'  => $integrityWarning,
+            'vital_alerts'       => $vitalAlerts,
             'vital_alert_critical' => $vitalAlertCritical,
             'patient_id'       => $patientId,
             'case_id'          => $case['id'] ?? $caseId,

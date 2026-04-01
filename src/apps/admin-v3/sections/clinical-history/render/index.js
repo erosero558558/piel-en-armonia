@@ -1,3 +1,6 @@
+import { hasClinicalMediaFlowCases, buildClinicalHistoryPhotosSection } from './render-photos.js';
+import { buildTranscript, buildTranscriptMessageCard, buildTranscriptMetaText, buildTranscriptCountText, buildClinicalEventCard, buildEvents, buildEventTone, buildEventsMetaText, highestReviewEventSeverity } from './render-timeline.js';
+import { renderPrescriptionMedicationMirror, renderPrescriptionDirectionsMirror, buildPrescriptionItemEditor, emptyPrescriptionItem, emptyPosology, normalizePosology, normalizePrescriptionItem, normalizePrescriptionItems, prescriptionItemStarted, mutatePrescriptionItems, buildClinicalHistoryDocumentsSection, buildCertificateHistoryMetaText, buildCertificateHistoryList, emptyCertificateHistoryState, normalizeCertificateHistoryItem, readCertificateHistorySlice, consentPacketTemplate, emptyConsentPacket, emptyConsentFormSnapshot, normalizeConsentPacket, normalizeConsentPackets, normalizeConsentFormSnapshot, normalizeConsentFormSnapshots, buildLegacyConsentFromPacket, consentPacketHasSubstantiveContent, evaluateConsentPacket, deriveConsentPacketContext, buildClinicalHistoryConsentSection, emptyInterconsultation, emptyLabOrder, emptyImagingOrder, buildInterconsultationChip, buildClinicalHistoryInterconsultSection, buildLabOrderChip, buildClinicalHistoryLabOrderSection, buildImagingOrderChip, buildClinicalHistoryImagingOrderSection, buildConsentPacketChip, buildLabOrderStudyChecklist, buildImagingStudyGroupField, normalizeDocuments } from './render-documents.js';
 import { refreshAdminData } from '../../../shared/modules/data.js';
 import { getState, updateState } from '../../../shared/core/store.js';
 import { apiRequest } from '../../../shared/core/api-client.js';
@@ -10879,9 +10882,10 @@ export function renderClinicalHistorySection() {
     ensureSessionSelection();
 }
 
-import * as photos from './render-photos.js';
-import * as timeline from './render-timeline.js';
-import * as documents from './render-documents.js';
 
-export { photos, timeline, documents };
+
+
+
+
+
 

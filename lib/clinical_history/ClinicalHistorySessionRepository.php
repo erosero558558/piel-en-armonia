@@ -34,6 +34,24 @@ final class ClinicalHistorySessionRepository
             return strtolower(trim($prefix)) . '-' . $token;
         }
 
+    public static function hashDraft(array $draft): string
+    {
+        $hashable = $draft;
+        unset($hashable['integrityHash']);
+        self::recursiveKsort($hashable);
+        return hash('sha256', json_encode($hashable, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private static function recursiveKsort(array &$array): void
+    {
+        foreach ($array as &$value) {
+            if (is_array($value)) {
+                self::recursiveKsort($value);
+            }
+        }
+        ksort($array);
+    }
+
     public static function defaultSession(array $seed = []): array
         {
             $now = local_date('c');
@@ -156,6 +174,7 @@ final class ClinicalHistorySessionRepository
                 'updatedAt' => self::trimString($seed['updatedAt'] ?? $now) !== ''
                     ? self::trimString($seed['updatedAt'] ?? $now)
                     : $now,
+                'integrityHash' => self::trimString($seed['integrityHash'] ?? ''),
             ];
         }
 
@@ -387,6 +406,10 @@ final class ClinicalHistorySessionRepository
             $normalized['updatedAt'] = local_date('c');
             $normalized['version'] = max(1, (int) ($normalized['version'] ?? 1));
     
+            if ($normalized['status'] === 'closed') {
+                $normalized['integrityHash'] = self::hashDraft($normalized);
+            }
+
             $targetId = (int) ($normalized['id'] ?? 0);
             if ($targetId <= 0) {
                 foreach ($records as $existing) {

@@ -23,7 +23,7 @@
         <style>
             .portal-dashboard-surface {
                 min-height: 100vh;
-                background: #000;
+                background: var(--rb-bg, #050810);
             }
 
             .portal-dashboard-shell {
@@ -31,7 +31,7 @@
                 min-height: 100vh;
                 max-width: 520px;
                 margin: 0 auto;
-                background: #000;
+                background: var(--rb-bg, #050810);
                 box-shadow: none;
             }
 
@@ -43,7 +43,7 @@
                 font-family: var(--font-display, inherit);
                 font-size: clamp(2.5rem, 6vw, 3.5rem);
                 font-weight: 500;
-                color: #fff;
+                color: var(--text-color, #ffffff);
                 margin: 0;
                 line-height: 1.1;
                 letter-spacing: -0.02em;
@@ -76,7 +76,7 @@
         <div class="portal-app-shell portal-dashboard-shell">
             <header class="portal-header" style="border-bottom: 1px solid var(--border-color); padding: 16px 20px;">
                 <div class="portal-header__profile">
-                    <div class="portal-header__avatar" style="background:#000; border: 1px solid var(--border-color);" data-portal-patient-initials>AD</div>
+                    <div class="portal-header__avatar" style="background:var(--rb-surface); border: 1px solid var(--border-color);" data-portal-patient-initials>AD</div>
                     <div class="portal-header__greetings">
                         <span>Portal del Paciente</span>
                         <strong data-portal-patient-name>Bienvenido</strong>
@@ -98,6 +98,58 @@
                     <div class="portal-greeting">
                         <h1 class="portal-greeting-title" data-portal-greeting>Hola, Paciente</h1>
                         <p class="portal-greeting-subtitle">Bienvenido a tu suite clínica personal.</p>
+                    </div>
+
+                    <!-- S34-04: Active Condition Summary Module -->
+                    <div id="active-condition-wrapper" style="margin-top: 24px;">
+                        <article class="what-am-i-card" style="
+                            background: rgba(255, 255, 255, 0.03); 
+                            border: 1px solid rgba(255, 255, 255, 0.08); 
+                            border-radius: 16px; 
+                            padding: 20px; 
+                            backdrop-filter: blur(20px);
+                            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+                        ">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <h2 class="active-condition-simple" style="margin: 0; font-size: 1.1rem; color: var(--text-color, #ffffff); display: flex; align-items: center; gap: 8px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rb-accent)" stroke-width="2">
+                                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                    </svg>
+                                    ¿En qué estoy?
+                                </h2>
+                                <span style="font-size: 0.75rem; background: rgba(199, 163, 109, 0.15); color: var(--rb-accent); padding: 4px 8px; border-radius: 999px; font-weight: 600;">Acné Activo</span>
+                            </div>
+                            
+                            <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; margin-bottom: 16px; line-height: 1.5;">
+                                Tu último diagnóstico indica que estamos tratando un cuadro inflamatorio moderado. Sigue estas pautas críticas:
+                            </p>
+                            
+                            <ul class="patient-guidance" style="margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px;">
+                                <li style="display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-color, #ffffff); align-items: flex-start;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgba(255, 255, 255, 0.5); flex-shrink: 0; margin-top: 2px;">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span>Toma tu medícamento (Isotretinoína) puntualmente por las noches post cena.</span>
+                                </li>
+                                <li style="display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-color, #ffffff); align-items: flex-start;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgba(255, 255, 255, 0.5); flex-shrink: 0; margin-top: 2px;">
+                                        <path d="M18 11.5A6.5 6.5 0 0 0 12 5V2m0 0 3 3m-3-3-3 3"></path>
+                                        <circle cx="12" cy="17" r="5"></circle>
+                                    </svg>
+                                    <span>Evitar exposición solar prolongada y usa protector FPS 50+ diario.</span>
+                                </li>
+                                <li style="display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-color, #ffffff); align-items: flex-start;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgba(255, 255, 255, 0.5); flex-shrink: 0; margin-top: 2px;">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                    <span>Agendar tu cita de control obligatorio en 15 días.</span>
+                                </li>
+                            </ul>
+                        </article>
                     </div>
 
                     <div id="portal-alerts-container"></div>
