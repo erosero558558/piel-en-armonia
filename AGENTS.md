@@ -2491,3 +2491,88 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ---
 
+
+---
+
+## Sprint 31 — Calidad Asistencial y Decisiones Clínicas Inteligentes
+**Owner:** `codex_backend` | **Objetivo:** Que el sistema tome decisiones clínicas activas, no solo registre datos.
+
+> **Por qué importa:** Aurora Derm hoy es un good registrador. El siguiente nivel es que el sistema piense. Cuando el médico está atendiendo 20 pacientes, no puede recordar por sí solo que el paciente de las 11 tiene hemoglobina baja y está tomando warfarina. El sistema debe alertarlo.
+
+### 31.1 Alertas Proactivas en Consulta
+
+- [ ] **S31-01** `[M]` `[codex_backend]` Alerta de PA antes de prescribir AINE — si en los signos vitales de la sesión `bloodPressureSystolic > 140` y la prescripción propuesta contiene un AINE (ibuprofeno, naproxeno, diclofenaco, ketorolaco, meloxicam), el sistema devuelve `prescribing_warning: "PA elevada — los AINEs pueden empeorar la hipertensión. Considere paracetamol."`. No bloquea, solo advierte. Verificable: `POST openclaw-check-interactions` con PA sistólica 155 + ibuprofeno → `{ prescribing_warning: "..." }`.
+
+- [ ] **S31-02** `[M]` `[codex_backend]` Alerta de función renal antes de prescribir nefrotóxicos — si el paciente tiene un resultado de laboratorio de creatinina > 1.5 mg/dL (labs recientes en la HCE), y se prescribe AINE, metformina o aminoglucósido, el check-interactions devuelve `renal_risk_warning: "Creatinina elevada: X mg/dL — revisar dosis o contraindicación."`. Verificable: combo creatinina alta + metformina → `{ renal_risk_warning: "..." }`.
+
+- [ ] **S31-03** `[S]` `[codex_backend]` Precargar alergias en el contexto del GPT — en `openclaw-patient`, el campo `known_allergies` ya existe en la HCE. Si el paciente tiene alergias registradas, estas deben aparecer en `inter_visit_summary.allergies` para que el GPT "Aurora Derm Clinica" las lea automáticamente al inicio de cada chat, sin que el médico las busque. Verificable: `GET openclaw-patient?case_id=X` cuando hay alergias → `inter_visit_summary.allergies: ["penicilina", "sulfas"]`.
+
+- [ ] **S31-04** `[M]` `[codex_backend]` Semáforo de adherencia visible en el chat — si el paciente tiene `adherence_score: 'late'` en el episodio anterior (no vino en la fecha esperada), el contexto del chat debe incluir `adherence_alert: "El paciente no asistió al control previsto. Puede haber abandono de tratamiento."`. El GPT lo mencionará proactivamente. Verificable: `GET openclaw-patient?case_id=X` con adherencia late → `inter_visit_summary.adherence_alert: "..."`.
+
+### 31.2 Inteligencia de Protocolo
+
+- [ ] **S31-05** `[L]` `[codex_backend]` Protocolo automático por diagnóstico CIE-10 — cuando el médico guarda un diagnóstico con `openclaw-save-diagnosis`, si existe un protocolo de tratamiento en `data/protocols/` para ese CIE-10, devolverlo en la respuesta: `suggested_protocol: { first_line: "...", monitoring: "...", red_flags: [...] }`. Para dermatología: L70 (acné), L20 (dermatitis atópica), L40 (psoriasis), B35 (tiña). Verificable: `POST openclaw-save-diagnosis` con `cie10_code: L70` → respuesta incluye `suggested_protocol.first_line`.
+
+- [ ] **S31-06** `[M]` `[codex_backend]` Validación de dosis pediátrica — si el paciente tiene menos de 12 años y el médico prescribe dosis de adulto (detectado por `weightKg` en vitales y la dosis prescrita), devolver `dose_warning: "Paciente pediátrico: verificar dosis según peso (X kg). Dosis máxima recomendada: Y mg/kg/día."`. Verificable: caso pediátrico (8 años, 25 kg) + amoxicilina 500mg c/8h → `{ dose_warning: "..." }`.
+
+- [ ] **S31-07** `[M]` `[codex_backend]` Resumen de alta automático para el paciente — al cerrar una sesión con `openclaw-summarize-session`, generar automáticamente un SMS/WhatsApp para el paciente con: diagnóstico simple (no técnico), 3 instrucciones de toma del medicamento más importante, señal de alarma para urgencia, y fecha del próximo control. MAX 300 palabras. Verificable: `POST openclaw-summarize-session` → `{ patient_summary_wa: "string < 300 palabras" }`.
+
+### 31.3 Seguridad de Datos Clínicos
+
+- [ ] **S31-08** `[M]` `[codex_backend]` Hash de integridad por sesión clínica — al cerrar una sesión (`status: closed`), calcular `sha256(json_encode(draft))` y guardarlo como `integrityHash` en el draft. En cualquier lectura posterior, recalcular el hash y comparar. Si no coincide: `integrity_warning: true` en la respuesta. Esto detecta modificaciones post-cierre. Verificable: `GET openclaw-patient?case_id=X` con sesión cerrada → `{ integrity: "ok" }`; si el draft fue modificado a mano → `{ integrity_warning: true }`.
+
+- [ ] **S31-09** `[S]` `[codex_backend]` Log de acceso a HCE por médico — cada vez que `openclaw-patient` se llama exitosamente, registrar en `data/hce-access-log.jsonl`: `{ case_id, accessed_by, accessed_at, ip, action: 'view_context' }`. Verificable: `cat data/hce-access-log.jsonl | grep case_id` → entradas por cada GET exitoso.
+
+- [ ] **S31-10** `[M]` `[codex_backend]` Anonimización para exportación estadística — `GET /api.php?resource=stats-export` devuelve datos agrupados (dermatología: distribución por CIE-10, promedio de visitas por paciente, condiciones crónicas más comunes) sin información identificable. El médico puede compartir esta estadística con el MSP sin violar LPDP. Verificable: respuesta no contiene `primerNombre`, `cedula`, `email`, `birthDate`.
+
+---
+
+## Sprint 32 — Telemedicina Clínica de Verdad
+**Owner:** `codex_backend` | **Objetivo:** La teleconsulta no es solo videollamada — es la misma calidad clínica que la presencial, pero remota.
+
+> **Contexto:** Actualmente la telemedicina de Aurora Derm puede crear sesiones y evaluar suitability. Pero si el médico hace una teleconsulta, no puede prescribir, no puede registrar vitales (el paciente los toma en casa), y no puede cerrar la HCE. Es una teleconsulta coja.
+
+- [ ] **S32-01** `[M]` `[codex_backend]` Ingesta de vitales reportados por el paciente — endpoint `POST /api.php?resource=patient-self-vitals` autenticado con token portal del paciente. El paciente puede ingresar su propia PA (tomada en casa), FC y glucometría antes de la teleconsulta. Se guardan con `source: 'patient_self_report'` y aparecen en el chat del médico. Verificable: el paciente hace POST desde el portal → en `openclaw-patient` aparece `inter_visit_summary.self_reported_vitals`.
+
+- [ ] **S32-02** `[L]` `[codex_backend]` Prescripción electrónica en teleconsulta — en modalidad teleconsulta, la receta se envía automáticamente al email del paciente como PDF firmado digitalmente (con el logo de la clínica, número de registro médico y QR de validación). No requiere que el paciente vaya a buscar la receta en físico. Verificable: `POST openclaw-prescription` con `delivery: email` → email enviado con PDF adjunto; `prescription.deliveryStatus: 'email_sent'`.
+
+- [ ] **S32-03** `[M]` `[codex_backend]` Foto clínica en teleconsulta — el paciente puede subir hasta 3 fotos desde el portal del paciente (`POST patient-portal-photo-upload`) que se asocian automáticamente a la sesión de teleconsulta activa. El médico las ve en el chat de OpenClaw como `clinical_uploads` del caso. Verificable: foto subida por paciente → aparece en `GET clinical-photos?case_id=X` con `source: 'patient_upload'`.
+
+- [ ] **S32-04** `[S]` `[codex_backend]` Cierre de teleconsulta con HCE completa — `POST openclaw-close-telemedicine` cierra la sesión de telemedicina, genera la nota de evolución en la HCE, actualiza `appointmentStatus: 'completed'`, y envía el resumen al paciente por WhatsApp. Todo en un solo endpoint. Verificable: `POST openclaw-close-telemedicine` → `{ hce_updated: true, wa_summary_sent: true, appointment_closed: true }`.
+
+- [ ] **S32-05** `[M]` `[codex_backend]` Control diferido para teleconsulta — al cerrar una teleconsulta, si el diagnóstico requiere control en X días, crear automáticamente un `pending_followup` en el sistema: `{ case_id, reason, due_date, contact_method: 'whatsapp' }`. El cron de crónicos lo detecta y recuerda al paciente. Verificable: teleconsulta cerrada con diagnóstico L20 → `pending_followup` creado con `due_date = hoy + 30 días`.
+
+---
+
+## Sprint 33 — Panel del Médico: Visión Clínica Total
+**Owner:** `codex_backend` + `[UI]` | **Objetivo:** El médico abre el sistema y en 3 segundos sabe qué pacientes requieren atención urgente.
+
+> **El médico no es secretaria.** El sistema tiene que decirle: "Tienes 2 pacientes crónicos que no vienen desde hace 60 días, 1 resultado crítico de lab que espera revisión, y 3 teleconsultas pendientes de cierre." No al revés.
+
+- [ ] **S33-01** `[L]` `[codex_backend]` Dashboard clínico del médico — `GET /api.php?resource=doctor-dashboard` devuelve: `{ patients_critical_vitals: [], pending_lab_results: [], overdue_chronics: [], open_teleconsults: [], today_appointments: [] }`. Toda la información prioritaria en un solo endpoint. Verificable: respuesta incluye los 5 campos con datos reales del store.
+
+- [ ] **S33-02** `[M]` `[UI]` `[gemini]` Vista del dashboard médico — `src/apps/admin-v3/sections/doctor-dashboard/`: grilla Bento asimétrica con 5 cards: crisis (PA >180 detectada hoy, rojo pulsante), labs críticos (amber con número), crónicos atrasados (navy con días), teleconsultas abiertas (glass cyan), y citas del día (timeline compacto). Verificable: `grep "bento.*doctor\|crisis.*card\|vital.*alert.*pulse" src/apps/admin-v3/sections/doctor-dashboard/` → match ≥4.
+
+- [ ] **S33-03** `[M]` `[codex_backend]` Búsqueda global de pacientes — `GET /api.php?resource=patient-search?q=juan` busca en nombre, apellido, cédula, diagnóstico CIE-10 más reciente. Devuelve max 10 resultados con: foto de perfil (si existe), último diagnóstico, próxima cita, estado crónico. El médico puede ir directo al caso desde el resultado. Verificable: búsqueda con nombre parcial → `{ results: [{ case_id, name, last_diagnosis, next_appointment, chronic_status }] }`.
+
+- [ ] **S33-04** `[M]` `[codex_backend]` Estadísticas del médico — `GET /api.php?resource=doctor-stats` devuelve: pacientes atendidos este mes, consultas cerradas, prescripciones emitidas, diagnósticos más frecuentes (top 5 CIE-10), tasa de retorno de pacientes (porcentaje que volvió al menos una vez). Verificable: respuesta incluye `top_diagnoses: [{cie10Code, count}]` con datos reales.
+
+- [ ] **S33-05** `[S]` `[UI]` `[gemini]` Indicador de carga de trabajo del día — en el header del admin: pill glass con "X pacientes hoy / Y completados". Cambia de color: verde si < 60% carga, amber si 60-90%, rojo si > 90% o retrasado. Verificable: `grep "workload.*pill\|patients.*today.*header" src/apps/admin-v3/` → match.
+
+---
+
+## Sprint 34 — Portal del Paciente: Empoderamiento y Acceso Real
+**Owner:** `[UI]` `[gemini]` + `codex_backend` | **Objetivo:** El paciente tiene acceso real a su historia clínica, no solo a un recibo.
+
+> **Una historia clínica es un derecho.** En Ecuador, la LPDP garantiza al paciente acceder a sus datos de salud. Hoy el portal muestra 3 cards y un PDF de receta. El paciente que tiene dermatitis atópica crónica merece ver su historial, sus fotos clínicas de progresión, sus análisis, y entender su tratamiento.
+
+- [ ] **S34-01** `[L]` `[UI]` `[gemini]` Timeline clínico del paciente — `es/portal/historial/index.html`: timeline vertical con todas las consultas, cada una expandible con: diagnóstico, medicamentos recetados, fotos clínicas si hay, y PDF de documentos. Línea de tiempo visual, episodios como cards colapsables. Verificable: `grep "timeline.*consulta\|episode.*collapsible\|portal.*history.*card" es/portal/historial/index.html` → match ≥3.
+
+- [ ] **S34-02** `[M]` `[UI]` `[gemini]` Fotos clínicas del paciente (progresión) — `es/portal/fotos/index.html`: galería agrupada por fecha de consulta. Cada grupo muestra la foto de la lesión y la nota del médico de esa visita. El paciente ve su propia evolución. Verificable: `grep "photo.*group.*date\|evolution.*note.*patient\|progression.*gallery" es/portal/fotos/index.html` → match ≥3.
+
+- [ ] **S34-03** `[M]` `[codex_backend]` Historia clínica exportable PDF — `GET /api.php?resource=patient-record-pdf?token=X` genera un PDF de la HCE completa del paciente: datos personales, diagnósticos por fecha, medicamentos activos, resultados de laboratorio, plan de tratamiento actual. Para llevar a otro médico. Verificable: PDF generado correctamente con secciones visibles; no debe incluir notas internas del médico.
+
+- [ ] **S34-04** `[S]` `[UI]` `[gemini]` Botón "¿En qué estoy?" — en `es/portal/index.html`: card glass destacada con el diagnóstico activo en lenguaje simple, 2-3 bullets de qué significa, y qué debe hacer el paciente a continuación (tomar medicamento, volver en X días, evitar el sol, etc.). Extraído de `patient_summary` del último episodio. Verificable: `grep "active.*condition.*simple\|what-am-i-card\|patient.*guidance" es/portal/index.html` → match.
+
+- [ ] **S34-05** `[M]` `[codex_backend]` Notificación push de resultado de lab listo — cuando `receive-lab-result` registra un resultado, enviar push notification al paciente (via web push) con: "Sus resultados de [nombre lab] ya están disponibles en su portal." El paciente entra al portal y los ve. Sin esta notificación, el portal del paciente es pasivo. Verificable: `POST receive-lab-result` → `{ push_sent: true, patient_notified_at: "..." }`.
+
