@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/audit.php';
 
 final class ClinicProfileController
 {
-    public static function show(array $context): void
+    private static function show(array $context): void
     {
         require_admin_auth();
 
@@ -17,7 +17,7 @@ final class ClinicProfileController
         ]);
     }
 
-    public static function update(array $context): void
+    private static function update(array $context): void
     {
         require_admin_auth();
         require_csrf();
@@ -79,5 +79,34 @@ final class ClinicProfileController
             'data' => $next,
             'path' => clinic_profile_config_path(),
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:clinic-profile':
+                self::show($context);
+                return;
+            case 'POST:clinic-profile':
+                self::update($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'show':
+                            self::show($context);
+                            return;
+                        case 'update':
+                            self::update($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

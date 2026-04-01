@@ -10,7 +10,7 @@ require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 
 final class ClinicalHistoryController
 {
-    public static function sessionGet(array $context): void
+    private static function sessionGet(array $context): void
     {
         self::requireClinicalStorageReady([
             'session' => null,
@@ -47,7 +47,7 @@ final class ClinicalHistoryController
         ], (int) ($result['statusCode'] ?? 200));
     }
 
-    public static function sessionPost(array $context): void
+    private static function sessionPost(array $context): void
     {
         self::requireClinicalStorageReady([
             'session' => null,
@@ -68,7 +68,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    public static function saveEvolution(array $context): void
+    private static function saveEvolution(array $context): void
     {
         require_doctor_auth();
         $payload = require_json_body();
@@ -80,12 +80,30 @@ final class ClinicalHistoryController
         $procedures = trim((string) ($payload['procedures'] ?? ''));
         $plan       = trim((string) ($payload['plan'] ?? ''));
 
+        // S37-01: SOAP 4 campos con validación de completitud
+        $soapSubjective = trim((string) ($payload['soap']['subjective'] ?? ($payload['note_subjective'] ?? '')));
+        $soapObjective  = trim((string) ($payload['soap']['objective']  ?? ($payload['note_objective']  ?? '')));
+        $soapAssessment = trim((string) ($payload['soap']['assessment'] ?? ($payload['note_assessment'] ?? '')));
+        $soapPlan       = trim((string) ($payload['soap']['plan']       ?? $plan));
+
         if ($caseId === '') {
             json_response(['ok' => false, 'error' => 'caseId requerido'], 400);
         }
 
-        if ($note === '') {
+        if ($note === '' && $soapSubjective === '' && $soapObjective === '' && $soapAssessment === '') {
             json_response(['ok' => false, 'error' => 'La nota de la evolucion clinica no puede estar vacia'], 400);
+        }
+
+        // S37-01: Si type=soap validar que los 4 campos estén presentes
+        if ($type === 'soap') {
+            $missing = [];
+            if ($soapSubjective === '') $missing[] = 'subjective';
+            if ($soapObjective  === '') $missing[] = 'objective';
+            if ($soapAssessment === '') $missing[] = 'assessment';
+            if ($soapPlan       === '') $missing[] = 'plan';
+            if ($missing !== []) {
+                json_response(['ok' => false, 'error' => 'Nota SOAP incompleta', 'missing' => $missing], 400);
+            }
         }
 
         $doctorData = doctor_profile_document_fields([
@@ -97,10 +115,15 @@ final class ClinicalHistoryController
             'caseId' => $caseId,
             'type' => $type,
             'note' => $note,
+            // S37-01: 4 campos SOAP estructurados
             'soap' => [
-                'findings' => $findings,
-                'procedures' => $procedures,
-                'plan' => $plan,
+                'subjective'  => $soapSubjective ?: $note,
+                'objective'   => $soapObjective,
+                'assessment'  => $soapAssessment,
+                'plan'        => $soapPlan ?: $plan,
+                // legacy compat
+                'findings'    => $findings,
+                'procedures'  => $procedures,
             ],
             'author' => [
                 'email' => trim((string) ($_SESSION['admin_email'] ?? '')),
@@ -174,7 +197,171 @@ final class ClinicalHistoryController
         ], 201);
     }
 
-    public static function messagePost(array $context): void
+    /**
+     * S37-03: GET clinical-evolution?caseId={id}&limit=10&offset=0
+     * Reads evolutions.jsonl for the given case, paginated, newest first.
+     * Verifies integrity hash per record and marks tampered entries.
+     */
+    private static function listEvolutions(array $context): void
+    {
+        require_doctor_auth();
+
+        $caseId = trim((string) ($_GET['caseId'] ?? ''));
+        if ($caseId === '') {
+            json_response(['ok' => false, 'error' => 'caseId requerido'], 400);
+        }
+
+        $limit  = max(1, min(50, (int) ($_GET['limit']  ?? 10)));
+        $offset = max(0, (int) ($_GET['offset'] ?? 0));
+
+        $patientSlug = preg_replace('/[^a-zA-Z0-9_-]/', '', $caseId);
+        $casesDir    = __DIR__ . '/../data/cases';
+        $jsonlPath   = $casesDir . DIRECTORY_SEPARATOR . $patientSlug . DIRECTORY_SEPARATOR . 'evolutions.jsonl';
+
+        if (!is_file($jsonlPath)) {
+            json_response(['ok' => true, 'evolutions' => [], 'total' => 0, 'caseId' => $caseId]);
+        }
+
+        // Read all lines and parse — JSONL is append-only so newest = last line
+        $lines = file($jsonlPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+            json_response(['ok' => false, 'error' => 'No se pudo leer el archivo de evoluciones'], 500);
+        }
+
+        $total = count($lines);
+        // Newest first: reverse, slice, parse
+        $lines   = array_reverse($lines);
+        $sliced  = array_slice($lines, $offset, $limit);
+
+        $evolutions = [];
+        foreach ($sliced as $line) {
+            $record = json_decode($line, true);
+            if (!is_array($record)) {
+                continue;
+            }
+            // S37-10: Integrity hash verification
+            if (isset($record['integrityHash'])) {
+                $hash         = $record['integrityHash'];
+                $recordNoHash = $record;
+                unset($recordNoHash['integrityHash']);
+                $expected = hash('sha256', json_encode($recordNoHash, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                if (!hash_equals($expected, $hash)) {
+                    $record['tampered'] = true;
+                    // Log integrity violation
+                    $logEntry = json_encode([
+                        'action'      => 'integrity_violation',
+                        'caseId'      => $caseId,
+                        'evolutionId' => $record['id'] ?? 'unknown',
+                        'ts'          => date('c'),
+                    ], JSON_UNESCAPED_UNICODE) . "\n";
+                    @file_put_contents(__DIR__ . '/../data/hce-access-log.jsonl', $logEntry, FILE_APPEND | LOCK_EX);
+                }
+            }
+            $evolutions[] = $record;
+        }
+
+        // Log read access (S37-11)
+        $accessEntry = json_encode([
+            'action'      => 'read_evolution',
+            'caseId'      => $caseId,
+            'accessed_by' => trim((string) ($_SESSION['admin_email'] ?? 'unknown')),
+            'accessed_at' => date('c'),
+            'ip'          => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        ], JSON_UNESCAPED_UNICODE) . "\n";
+        @file_put_contents(__DIR__ . '/../data/hce-access-log.jsonl', $accessEntry, FILE_APPEND | LOCK_EX);
+
+        json_response([
+            'ok'         => true,
+            'evolutions' => $evolutions,
+            'total'      => $total,
+            'limit'      => $limit,
+            'offset'     => $offset,
+            'caseId'     => $caseId,
+        ]);
+    }
+
+    /**
+     * S37-02: POST clinical-anamnesis
+     * Saves structured anamnesis (antecedentes, alergias, medicamentos, habitos)
+     * into draft.intake.structured_anamnesis for use by OpenClaw context.
+     */
+    private static function saveAnamnesis(array $context): void
+    {
+        require_doctor_auth();
+        $payload = require_json_body();
+
+        $caseId    = trim((string) ($payload['caseId']    ?? ''));
+        $sessionId = trim((string) ($payload['sessionId'] ?? ''));
+
+        if ($caseId === '') {
+            json_response(['ok' => false, 'error' => 'caseId requerido'], 400);
+        }
+
+        $structuredAnamnesis = [
+            'motivo_consulta'         => trim((string) ($payload['motivo_consulta']    ?? '')),
+            'enfermedad_actual'       => trim((string) ($payload['enfermedad_actual']  ?? '')),
+            'antecedentes_personales' => array_values(array_filter(
+                (array) ($payload['antecedentes_personales'] ?? []),
+                static fn ($x) => is_array($x) && isset($x['type'])
+            )),
+            'antecedentes_familiares' => array_values(array_filter(
+                (array) ($payload['antecedentes_familiares'] ?? []),
+                static fn ($x) => is_array($x) && isset($x['type'])
+            )),
+            'medicamentos_actuales'   => array_values(array_filter(
+                (array) ($payload['medicamentos_actuales'] ?? []),
+                static fn ($x) => is_array($x) && !empty($x['name'])
+            )),
+            'alergias'                => array_values(array_filter(
+                (array) ($payload['alergias'] ?? []),
+                static fn ($x) => is_array($x) && !empty($x['allergen'])
+            )),
+            'habitos'                 => is_array($payload['habitos'] ?? null)
+                ? $payload['habitos']
+                : [],
+            'recorded_at'             => date('c'),
+            'recorded_by'             => trim((string) ($_SESSION['admin_email'] ?? '')),
+        ];
+
+        // Persist into the session draft via store lock
+        $tenantId  = get_current_tenant_id();
+        $result = mutate_store(static function (array $store) use ($caseId, $sessionId, $structuredAnamnesis, $tenantId): array {
+            // Try to find the active session for this case
+            $sessions = $store['clinical_history_sessions'] ?? [];
+            $found    = false;
+            foreach ($sessions as $sid => $session) {
+                $matchCase    = (string) ($session['caseId'] ?? $session['case_id'] ?? '') === $caseId;
+                $matchSession = $sessionId === '' || (string) ($session['id'] ?? $sid) === $sessionId;
+                $isOpen       = in_array($session['status'] ?? '', ['open', 'active', 'draft', ''], true);
+                if ($matchCase && $matchSession && $isOpen) {
+                    $store['clinical_history_sessions'][$sid]['draft']['intake']['structured_anamnesis'] = $structuredAnamnesis;
+                    $store['clinical_history_sessions'][$sid]['anamnesis_updated_at'] = date('c');
+                    $found = true;
+                    break;
+                }
+            }
+            return ['ok' => true, 'store' => $store, 'storeDirty' => $found, 'found' => $found];
+        });
+
+        // Log write access (S37-11)
+        $accessEntry = json_encode([
+            'action'      => 'write_anamnesis',
+            'caseId'      => $caseId,
+            'accessed_by' => trim((string) ($_SESSION['admin_email'] ?? 'unknown')),
+            'accessed_at' => date('c'),
+            'ip'          => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        ], JSON_UNESCAPED_UNICODE) . "\n";
+        @file_put_contents(__DIR__ . '/../data/hce-access-log.jsonl', $accessEntry, FILE_APPEND | LOCK_EX);
+
+        json_response([
+            'ok'          => true,
+            'caseId'      => $caseId,
+            'savedAt'     => $structuredAnamnesis['recorded_at'],
+            'fields_saved' => array_keys(array_filter($structuredAnamnesis, static fn ($v) => $v !== '' && $v !== [])),
+        ], 201);
+    }
+
+    private static function messagePost(array $context): void
     {
         self::requireClinicalStorageReady([
             'session' => null,
@@ -195,7 +382,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    public static function reviewGet(array $context): void
+    private static function reviewGet(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -236,7 +423,7 @@ final class ClinicalHistoryController
         ]);
     }
 
-    public static function reviewPatch(array $context): void
+    private static function reviewPatch(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -263,7 +450,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    public static function recordGet(array $context): void
+    private static function recordGet(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -304,7 +491,7 @@ final class ClinicalHistoryController
         ]);
     }
 
-    public static function recordPatch(array $context): void
+    private static function recordPatch(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -331,7 +518,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    public static function episodeActionPost(array $context): void
+    private static function episodeActionPost(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -358,7 +545,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    public static function getCarePlanPdf(array $context): void
+    private static function getCarePlanPdf(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -546,7 +733,7 @@ final class ClinicalHistoryController
         exit;
     }
 
-    public static function uploadMedia(array $context): void
+    private static function uploadMedia(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -682,7 +869,7 @@ final class ClinicalHistoryController
         ], 201);
     }
 
-    public static function getClinicalPhotos(array $context): void
+    private static function getClinicalPhotos(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -754,7 +941,7 @@ final class ClinicalHistoryController
         ]);
     }
 
-    public static function uploadClinicalPhoto(array $context): void
+    private static function uploadClinicalPhoto(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -903,7 +1090,7 @@ final class ClinicalHistoryController
      * POST clinical-vitals
      * Payload: { session_id, case_id, vital_signs: {...} }
      */
-    public static function saveVitals(array $context): void
+    private static function saveVitals(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -977,7 +1164,7 @@ final class ClinicalHistoryController
      * S30-03: Historial cronológico de signos vitales del paciente
      * GET patient-vitals-history?case_id=X
      */
-    public static function vitalsHistory(array $context): void
+    private static function vitalsHistory(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1031,7 +1218,7 @@ final class ClinicalHistoryController
      * POST receive-lab-result
      * Payload: { session_id, lab_order_id, result_date, lab_name, values: [{test_name, value, unit, reference_range, status}], summary }
      */
-    public static function receiveLabResult(array $context): void
+    private static function receiveLabResult(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1179,7 +1366,7 @@ final class ClinicalHistoryController
      * POST receive-imaging-result
      * Payload: { session_id, imaging_order_id, result_date, radiologist_name, modality, report_text, impression }
      */
-    public static function receiveImagingResult(array $context): void
+    private static function receiveImagingResult(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1259,7 +1446,7 @@ final class ClinicalHistoryController
      * POST receive-interconsult-report
      * Payload: { session_id, interconsult_id, specialist_name, specialist_specialty, report_date, findings, recommendations }
      */
-    public static function receiveInterconsultReport(array $context): void
+    private static function receiveInterconsultReport(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1314,7 +1501,7 @@ final class ClinicalHistoryController
      * POST clinical-lab-pdf-upload
      * Payload (multipart/form-data): session_id, lab_order_id, pdf
      */
-    public static function uploadClinicalLabPdf(array $context): void
+    private static function uploadClinicalLabPdf(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1435,7 +1622,7 @@ final class ClinicalHistoryController
      * S30-18: Registro RAMs (Farmacovigilancia)
      * POST adverse-reaction-report
      */
-    public static function reportAdverseReaction(array $context): void
+    private static function reportAdverseReaction(array $context): void
     {
         $payload = require_json_body();
         $caseId = trim((string) ($payload['case_id'] ?? ''));
@@ -1507,5 +1694,154 @@ final class ClinicalHistoryController
             'ok' => true,
             'event' => $result['event'] ?? []
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:clinical-history-session':
+                self::sessionGet($context);
+                return;
+            case 'POST:clinical-history-session':
+                self::sessionPost($context);
+                return;
+            case 'POST:clinical-evolution':
+                self::saveEvolution($context);
+                return;
+            case 'GET:clinical-evolution':
+                self::listEvolutions($context);
+                return;
+            case 'POST:clinical-anamnesis':
+                self::saveAnamnesis($context);
+                return;
+            case 'POST:clinical-history-message':
+                self::messagePost($context);
+                return;
+            case 'GET:clinical-history-review':
+                self::reviewGet($context);
+                return;
+            case 'PATCH:clinical-history-review':
+                self::reviewPatch($context);
+                return;
+            case 'GET:clinical-record':
+                self::recordGet($context);
+                return;
+            case 'PATCH:clinical-record':
+                self::recordPatch($context);
+                return;
+            case 'POST:clinical-episode-action':
+                self::episodeActionPost($context);
+                return;
+            case 'GET:care-plan-pdf':
+                self::getCarePlanPdf($context);
+                return;
+            case 'POST:clinical-media-upload':
+                self::uploadMedia($context);
+                return;
+            case 'GET:clinical-photos':
+                self::getClinicalPhotos($context);
+                return;
+            case 'POST:clinical-photo-upload':
+                self::uploadClinicalPhoto($context);
+                return;
+            case 'POST:clinical-vitals':
+                self::saveVitals($context);
+                return;
+            case 'GET:patient-vitals-history':
+                self::vitalsHistory($context);
+                return;
+            case 'POST:receive-lab-result':
+                self::receiveLabResult($context);
+                return;
+            case 'POST:clinical-lab-pdf-upload':
+                self::uploadClinicalLabPdf($context);
+                return;
+            case 'POST:receive-imaging-result':
+                self::receiveImagingResult($context);
+                return;
+            case 'POST:receive-interconsult-report':
+                self::receiveInterconsultReport($context);
+                return;
+            case 'POST:adverse-reaction-report':
+                self::reportAdverseReaction($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'sessionGet':
+                            self::sessionGet($context);
+                            return;
+                        case 'sessionPost':
+                            self::sessionPost($context);
+                            return;
+                        case 'saveEvolution':
+                            self::saveEvolution($context);
+                            return;
+                        case 'listEvolutions':
+                            self::listEvolutions($context);
+                            return;
+                        case 'saveAnamnesis':
+                            self::saveAnamnesis($context);
+                            return;
+                        case 'messagePost':
+                            self::messagePost($context);
+                            return;
+                        case 'reviewGet':
+                            self::reviewGet($context);
+                            return;
+                        case 'reviewPatch':
+                            self::reviewPatch($context);
+                            return;
+                        case 'recordGet':
+                            self::recordGet($context);
+                            return;
+                        case 'recordPatch':
+                            self::recordPatch($context);
+                            return;
+                        case 'episodeActionPost':
+                            self::episodeActionPost($context);
+                            return;
+                        case 'getCarePlanPdf':
+                            self::getCarePlanPdf($context);
+                            return;
+                        case 'uploadMedia':
+                            self::uploadMedia($context);
+                            return;
+                        case 'getClinicalPhotos':
+                            self::getClinicalPhotos($context);
+                            return;
+                        case 'uploadClinicalPhoto':
+                            self::uploadClinicalPhoto($context);
+                            return;
+                        case 'saveVitals':
+                            self::saveVitals($context);
+                            return;
+                        case 'vitalsHistory':
+                            self::vitalsHistory($context);
+                            return;
+                        case 'receiveLabResult':
+                            self::receiveLabResult($context);
+                            return;
+                        case 'uploadClinicalLabPdf':
+                            self::uploadClinicalLabPdf($context);
+                            return;
+                        case 'receiveImagingResult':
+                            self::receiveImagingResult($context);
+                            return;
+                        case 'receiveInterconsultReport':
+                            self::receiveInterconsultReport($context);
+                            return;
+                        case 'reportAdverseReaction':
+                            self::reportAdverseReaction($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

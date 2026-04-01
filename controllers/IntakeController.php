@@ -15,7 +15,7 @@ class IntakeController
     private const PHOTO_MAX_COUNT = 3;
     private const PHOTO_MAX_BYTES = 5242880;
 
-    public static function store(array $context): void
+    private static function store(array $context): void
     {
         require_rate_limit('public_intakes', 5, 60);
         self::requireClinicalStorageReady(
@@ -422,5 +422,28 @@ class IntakeController
     private static function buildPrefixedId(string $prefix): string
     {
         return $prefix . '_' . substr(hash('sha1', $prefix . '|' . microtime(true) . '|' . bin2hex(random_bytes(8))), 0, 16);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:flow-os-intake':
+                self::store($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'store':
+                            self::store($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

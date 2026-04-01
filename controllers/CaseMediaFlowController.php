@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 final class CaseMediaFlowController
 {
-    public static function queue(array $context): void
+    private static function queue(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -30,7 +30,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    public static function caseGet(array $context): void
+    private static function caseGet(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -46,7 +46,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    public static function proposalGenerate(array $context): void
+    private static function proposalGenerate(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -65,7 +65,7 @@ final class CaseMediaFlowController
         ], 201);
     }
 
-    public static function proposalReview(array $context): void
+    private static function proposalReview(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -85,7 +85,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    public static function publicationState(array $context): void
+    private static function publicationState(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -104,7 +104,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    public static function privateAsset(array $context): void
+    private static function privateAsset(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -117,7 +117,7 @@ final class CaseMediaFlowController
         self::streamFile($asset);
     }
 
-    public static function publicStories(array $context): void
+    private static function publicStories(array $context): void
     {
         $locale = trim((string) ($_GET['locale'] ?? 'es'));
         json_response([
@@ -129,7 +129,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    public static function publicMediaFile(array $context): void
+    private static function publicMediaFile(array $context): void
     {
         $asset = CaseMediaFlowService::resolvePublicMediaFile($_GET);
         self::streamFile($asset);
@@ -193,5 +193,70 @@ final class CaseMediaFlowController
             ];
 
         json_response($payload, 409);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:media-flow-queue':
+                self::queue($context);
+                return;
+            case 'GET:media-flow-case':
+                self::caseGet($context);
+                return;
+            case 'POST:media-flow-proposal-generate':
+                self::proposalGenerate($context);
+                return;
+            case 'POST:media-flow-proposal-review':
+                self::proposalReview($context);
+                return;
+            case 'POST:media-flow-publication-state':
+                self::publicationState($context);
+                return;
+            case 'GET:media-flow-private-asset':
+                self::privateAsset($context);
+                return;
+            case 'GET:public-case-stories':
+                self::publicStories($context);
+                return;
+            case 'GET:public-case-media-file':
+                self::publicMediaFile($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'queue':
+                            self::queue($context);
+                            return;
+                        case 'caseGet':
+                            self::caseGet($context);
+                            return;
+                        case 'proposalGenerate':
+                            self::proposalGenerate($context);
+                            return;
+                        case 'proposalReview':
+                            self::proposalReview($context);
+                            return;
+                        case 'publicationState':
+                            self::publicationState($context);
+                            return;
+                        case 'privateAsset':
+                            self::privateAsset($context);
+                            return;
+                        case 'publicStories':
+                            self::publicStories($context);
+                            return;
+                        case 'publicMediaFile':
+                            self::publicMediaFile($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

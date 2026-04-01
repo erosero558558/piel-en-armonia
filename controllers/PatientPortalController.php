@@ -14,7 +14,7 @@ require_once __DIR__ . '/../payment-lib.php';
 
 final class PatientPortalController
 {
-    public static function start(array $context): void
+    private static function start(array $context): void
     {
         $payload = require_json_body();
         $phone = trim((string) ($payload['phone'] ?? ($payload['whatsapp'] ?? '')));
@@ -27,7 +27,7 @@ final class PatientPortalController
         self::emit($result);
     }
 
-    public static function complete(array $context): void
+    private static function complete(array $context): void
     {
         $payload = require_json_body();
         $phone = trim((string) ($payload['phone'] ?? ($payload['whatsapp'] ?? '')));
@@ -44,7 +44,7 @@ final class PatientPortalController
         self::emit($result);
     }
 
-    public static function status(array $context): void
+    private static function status(array $context): void
     {
         $result = PatientPortalAuth::readStatus(
             is_array($context['store'] ?? null) ? $context['store'] : [],
@@ -54,7 +54,62 @@ final class PatientPortalController
         self::emit($result);
     }
 
-    public static function dashboard(array $context): void
+    private static function summary(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+
+        $nextAppointment = self::findNextAppointment($store, $snapshot);
+        $treatmentPlan = self::buildTreatmentPlanSummary($store, $snapshot, $patient, $nextAppointment);
+        $alerts = self::buildPatientRedFlags($store, $snapshot);
+
+        $activeDiagnosis = null;
+        if (is_array($treatmentPlan) && isset($treatmentPlan['diagnosis'])) {
+            $activeDiagnosis = $treatmentPlan['diagnosis'];
+        }
+
+        $prescription = self::buildActivePrescriptionSummary($store, $snapshot);
+        $pendingDocs = 0;
+        if (is_array($prescription) && ($prescription['hasActive'] ?? false) === true) {
+            $pendingDocs++;
+        }
+
+        $consultations = self::buildPortalHistory($store, $snapshot, $patient);
+        $lastVisit = null;
+        if (count($consultations) > 0) {
+            $lastVisit = $consultations[0]['dateLabel'] ?? null;
+        }
+
+        self::emit([
+            'ok' => true,
+            'data' => [
+                'authenticated' => true,
+                'patient' => $patient,
+                'summary' => [
+                    'upcomingAppointment' => $nextAppointment === [] ? null : self::buildAppointmentSummary($nextAppointment, $patient),
+                    'activeDiagnosis' => $activeDiagnosis,
+                    'pendingDocs' => $pendingDocs,
+                    'lastVisit' => $lastVisit,
+                    'alertCount' => is_array($alerts) ? count($alerts) : 0,
+                ],
+                'generatedAt' => local_date('c'),
+            ],
+        ]);
+    }
+
+    private static function dashboard(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -98,7 +153,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function submitSurvey(array $context): void
+    private static function submitSurvey(array $context): void
     {
         $payload = require_json_body();
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
@@ -168,7 +223,7 @@ final class PatientPortalController
         }
     }
 
-    public static function history(array $context): void
+    private static function history(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -199,7 +254,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function historyPdf(array $context): void
+    private static function historyPdf(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -370,7 +425,7 @@ final class PatientPortalController
         exit;
     }
 
-    public static function payments(array $context): void
+    private static function payments(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -455,7 +510,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function plan(array $context): void
+    private static function plan(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -484,7 +539,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function photos(array $context): void
+    private static function photos(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -512,7 +567,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function prescription(array $context): void
+    private static function prescription(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -540,7 +595,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function consent(array $context): void
+    private static function consent(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -568,7 +623,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function signConsent(array $context): void
+    private static function signConsent(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -793,7 +848,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function document(array $context): void
+    private static function document(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $bearer = PatientPortalAuth::bearerTokenFromRequest();
@@ -896,7 +951,7 @@ final class PatientPortalController
         json_response(['ok' => false, 'error' => 'Tipo de documento no soportado'], 400);
     }
 
-    public static function photoFile(array $context): void
+    private static function photoFile(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -935,7 +990,7 @@ final class PatientPortalController
         );
     }
 
-    public static function documentVerify(array $context): void
+    private static function documentVerify(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $token = trim((string) ($_GET['token'] ?? ''));
@@ -1029,7 +1084,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function getPushPreferences(array $context): void
+    private static function getPushPreferences(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -1059,7 +1114,7 @@ final class PatientPortalController
         ]);
     }
 
-    public static function setPushPreferences(array $context): void
+    private static function setPushPreferences(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -4971,7 +5026,7 @@ final class PatientPortalController
         return 'application/octet-stream';
     }
 
-    public static function selfVitals(array $context): void
+    private static function selfVitals(array $context): void
     {
         $payload = require_json_body();
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
@@ -5053,7 +5108,7 @@ final class PatientPortalController
         self::emit(['ok' => true]);
     }
 
-    public static function uploadPhoto(array $context): void
+    private static function uploadPhoto(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -5192,5 +5247,154 @@ final class PatientPortalController
             'ok' => true,
             'data' => is_array($result['data'] ?? null) ? $result['data'] : [],
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:patient-portal-auth-start':
+                self::start($context);
+                return;
+            case 'POST:patient-portal-auth-complete':
+                self::complete($context);
+                return;
+            case 'POST:patient-portal-submit-survey':
+                self::submitSurvey($context);
+                return;
+            case 'GET:patient-portal-auth-status':
+                self::status($context);
+                return;
+            case 'GET:patient-summary':
+                self::summary($context);
+                return;
+            case 'GET:patient-portal-dashboard':
+                self::dashboard($context);
+                return;
+            case 'GET:patient-portal-history':
+                self::history($context);
+                return;
+            case 'GET:patient-portal-history-pdf':
+                self::historyPdf($context);
+                return;
+            case 'GET:patient-record-pdf':
+                self::historyPdf($context);
+                return;
+            case 'GET:patient-portal-payments':
+                self::payments($context);
+                return;
+            case 'GET:patient-portal-plan':
+                self::plan($context);
+                return;
+            case 'GET:patient-portal-photos':
+                self::photos($context);
+                return;
+            case 'GET:patient-portal-prescription':
+                self::prescription($context);
+                return;
+            case 'GET:patient-portal-consent':
+                self::consent($context);
+                return;
+            case 'POST:patient-portal-consent':
+                self::signConsent($context);
+                return;
+            case 'POST:patient-self-vitals':
+                self::selfVitals($context);
+                return;
+            case 'POST:patient-portal-photo-upload':
+                self::uploadPhoto($context);
+                return;
+            case 'GET:patient-portal-photo-file':
+                self::photoFile($context);
+                return;
+            case 'GET:patient-portal-document':
+                self::document($context);
+                return;
+            case 'GET:document-verify':
+                self::documentVerify($context);
+                return;
+            case 'GET:push-preferences':
+                self::getPushPreferences($context);
+                return;
+            case 'POST:push-preferences':
+                self::setPushPreferences($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'start':
+                            self::start($context);
+                            return;
+                        case 'complete':
+                            self::complete($context);
+                            return;
+                        case 'submitSurvey':
+                            self::submitSurvey($context);
+                            return;
+                        case 'status':
+                            self::status($context);
+                            return;
+                        case 'summary':
+                            self::summary($context);
+                            return;
+                        case 'dashboard':
+                            self::dashboard($context);
+                            return;
+                        case 'history':
+                            self::history($context);
+                            return;
+                        case 'historyPdf':
+                            self::historyPdf($context);
+                            return;
+                        case 'historyPdf':
+                            self::historyPdf($context);
+                            return;
+                        case 'payments':
+                            self::payments($context);
+                            return;
+                        case 'plan':
+                            self::plan($context);
+                            return;
+                        case 'photos':
+                            self::photos($context);
+                            return;
+                        case 'prescription':
+                            self::prescription($context);
+                            return;
+                        case 'consent':
+                            self::consent($context);
+                            return;
+                        case 'signConsent':
+                            self::signConsent($context);
+                            return;
+                        case 'selfVitals':
+                            self::selfVitals($context);
+                            return;
+                        case 'uploadPhoto':
+                            self::uploadPhoto($context);
+                            return;
+                        case 'photoFile':
+                            self::photoFile($context);
+                            return;
+                        case 'document':
+                            self::document($context);
+                            return;
+                        case 'documentVerify':
+                            self::documentVerify($context);
+                            return;
+                        case 'getPushPreferences':
+                            self::getPushPreferences($context);
+                            return;
+                        case 'setPushPreferences':
+                            self::setPushPreferences($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

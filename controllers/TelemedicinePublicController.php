@@ -18,7 +18,7 @@ final class TelemedicinePublicController
     private const PHOTO_MAX_COUNT = 3;
     private const PHOTO_MAX_BYTES = 5242880;
 
-    public static function preConsultation(array $context): void
+    private static function preConsultation(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
         $access = self::resolveAccess($store);
@@ -34,7 +34,7 @@ final class TelemedicinePublicController
         ]);
     }
 
-    public static function submitPreConsultation(array $context): void
+    private static function submitPreConsultation(array $context): void
     {
         self::requireClinicalStorageReady(
             'telemedicine_preconsultation',
@@ -614,5 +614,34 @@ final class TelemedicinePublicController
         }
 
         return 'Especialista Aurora Derm';
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:telemedicine-preconsultation':
+                self::preConsultation($context);
+                return;
+            case 'POST:telemedicine-preconsultation':
+                self::submitPreConsultation($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'preConsultation':
+                            self::preConsultation($context);
+                            return;
+                        case 'submitPreConsultation':
+                            self::submitPreConsultation($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

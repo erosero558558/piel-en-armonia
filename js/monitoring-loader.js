@@ -64,8 +64,8 @@
                 }
 
                 return loadScriptWithTimeout(
-                    'https://browser.sentry-cdn.com/7.114.0/bundle.min.js',
-                    'sha384-ZI11RF8XfI7ic0+HK1UnGkClkyjeQrHLUX+42WJHeu8+O94vBhb5Wivro/pn5lhG',
+                    'https://browser.sentry-cdn.com/7.114.0/bundle.tracing.replay.min.js',
+                    'sha384-51gMU5jRjjavIBCIRU4VzXEfEVtMgbLfcUfDPin3cOVRfmBDGNCWy59iG1JUn6jo',
                     'anonymous',
                     5000
                 ).then(() => {

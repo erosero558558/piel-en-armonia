@@ -12,7 +12,7 @@ require_once __DIR__ . '/../lib/analytics/RetentionReportService.php';
 
 class AnalyticsController
 {
-    public static function recordEvent(array $context): void
+    private static function recordEvent(array $context): void
     {
         require_rate_limit('funnel-event', 120, 60);
 
@@ -37,23 +37,23 @@ class AnalyticsController
         ], 202);
     }
 
-    public static function getFunnelMetrics(array $context): void
+    private static function getFunnelMetrics(array $context): void
     {
         json_response([
             'ok' => true,
-            'data' => self::buildFunnelMetricsData($context),
+            'data' => self::__buildFunnelMetricsData($context),
         ]);
     }
 
-    public static function getBookingFunnelReport(array $context): void
+    private static function getBookingFunnelReport(array $context): void
     {
         json_response([
             'ok' => true,
-            'data' => self::buildBookingFunnelReportData($context),
+            'data' => self::__buildBookingFunnelReportData($context),
         ]);
     }
 
-    public static function getRetentionReport(array $context): void
+    private static function getRetentionReport(array $context): void
     {
         try {
             $params = RetentionReportService::resolveParamsFromQuery($_GET);
@@ -80,7 +80,7 @@ class AnalyticsController
     /**
      * @return array<string,mixed>
      */
-    public static function buildFunnelMetricsData(array $context): array
+    public static function __buildFunnelMetricsData(array $context): array
     {
         return FunnelMetricsService::buildData($context);
     }
@@ -88,7 +88,7 @@ class AnalyticsController
     /**
      * @return array<string,mixed>
      */
-    public static function buildBookingFunnelReportData(array $context): array
+    public static function __buildBookingFunnelReportData(array $context): array
     {
         return FunnelMetricsService::buildBookingFunnelReport($context);
     }
@@ -119,5 +119,46 @@ class AnalyticsController
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         echo $csv;
         exit();
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:funnel-event':
+                self::recordEvent($context);
+                return;
+            case 'GET:funnel-metrics':
+                self::getFunnelMetrics($context);
+                return;
+            case 'GET:booking-funnel-report':
+                self::getBookingFunnelReport($context);
+                return;
+            case 'GET:retention-report':
+                self::getRetentionReport($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'recordEvent':
+                            self::recordEvent($context);
+                            return;
+                        case 'getFunnelMetrics':
+                            self::getFunnelMetrics($context);
+                            return;
+                        case 'getBookingFunnelReport':
+                            self::getBookingFunnelReport($context);
+                            return;
+                        case 'getRetentionReport':
+                            self::getRetentionReport($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/PatientCaseService.php';
 
 class FlowOsController
 {
-    public static function manifest(array $context): void
+    private static function manifest(array $context): void
     {
         json_response([
             'ok' => true,
@@ -15,7 +15,7 @@ class FlowOsController
         ]);
     }
 
-    public static function journeyPreview(array $context): void
+    private static function journeyPreview(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $store = (new PatientCaseService())->hydrateStore($store);
@@ -48,5 +48,34 @@ class FlowOsController
 
         $normalized = strtolower(trim((string) $value));
         return in_array($normalized, ['1', 'true', 'yes', 'si', 'on'], true);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:flow-os-manifest':
+                self::manifest($context);
+                return;
+            case 'GET:flow-os-journey-preview':
+                self::journeyPreview($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'manifest':
+                            self::manifest($context);
+                            return;
+                        case 'journeyPreview':
+                            self::journeyPreview($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

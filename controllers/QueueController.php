@@ -8,7 +8,7 @@ require_once __DIR__ . '/../lib/TicketPrinter.php';
 
 class QueueController
 {
-    public static function state(array $context): void
+    private static function state(array $context): void
     {
         $service = new QueueService();
         $state = $service->getQueueState($context['store'] ?? []);
@@ -18,7 +18,7 @@ class QueueController
         ]);
     }
 
-    public static function publicTicket(array $context): void
+    private static function publicTicket(array $context): void
     {
         $ticketCode = trim((string) (
             $_GET['ticket']
@@ -38,7 +38,7 @@ class QueueController
         ]);
     }
 
-    public static function checkin(array $context): void
+    private static function checkin(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -69,7 +69,7 @@ class QueueController
         ], (bool) ($result['replay'] ?? false) ? 200 : 201);
     }
 
-    public static function ticket(array $context): void
+    private static function ticket(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -97,7 +97,7 @@ class QueueController
         ], 201);
     }
 
-    public static function helpRequest(array $context): void
+    private static function helpRequest(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -121,7 +121,7 @@ class QueueController
         ], (bool) ($result['replay'] ?? false) ? 200 : 201);
     }
 
-    public static function callNext(array $context): void
+    private static function callNext(array $context): void
     {
         $payload = require_json_body();
         $consultorio = isset($payload['consultorio']) ? (int) $payload['consultorio'] : (isset($payload['room']) ? (int) $payload['room'] : 0);
@@ -145,7 +145,7 @@ class QueueController
         ]);
     }
 
-    public static function patchTicket(array $context): void
+    private static function patchTicket(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -168,7 +168,7 @@ class QueueController
         ]);
     }
 
-    public static function patchHelpRequest(array $context): void
+    private static function patchHelpRequest(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -191,7 +191,7 @@ class QueueController
         ]);
     }
 
-    public static function reprint(array $context): void
+    private static function reprint(array $context): void
     {
         $payload = require_json_body();
         $ticketId = isset($payload['id']) ? (int) $payload['id'] : 0;
@@ -230,7 +230,7 @@ class QueueController
         ], $statusCode);
     }
 
-    public static function surfaceHeartbeat(array $context): void
+    private static function surfaceHeartbeat(array $context): void
     {
         $payload = require_json_body();
         $record = QueueSurfaceStatusStore::writeHeartbeat(
@@ -298,5 +298,82 @@ class QueueController
             'error' => (string) ($result['error'] ?? 'Error de turnero'),
             'code' => (string) ($result['errorCode'] ?? 'queue_error'),
         ], (int) ($result['status'] ?? 500));
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:queue-state':
+                self::state($context);
+                return;
+            case 'GET:queue-public-ticket':
+                self::publicTicket($context);
+                return;
+            case 'POST:queue-surface-heartbeat':
+                self::surfaceHeartbeat($context);
+                return;
+            case 'POST:queue-checkin':
+                self::checkin($context);
+                return;
+            case 'POST:queue-ticket':
+                self::ticket($context);
+                return;
+            case 'POST:queue-help-request':
+                self::helpRequest($context);
+                return;
+            case 'POST:queue-call-next':
+                self::callNext($context);
+                return;
+            case 'PATCH:queue-ticket':
+                self::patchTicket($context);
+                return;
+            case 'PATCH:queue-help-request':
+                self::patchHelpRequest($context);
+                return;
+            case 'POST:queue-reprint':
+                self::reprint($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'state':
+                            self::state($context);
+                            return;
+                        case 'publicTicket':
+                            self::publicTicket($context);
+                            return;
+                        case 'surfaceHeartbeat':
+                            self::surfaceHeartbeat($context);
+                            return;
+                        case 'checkin':
+                            self::checkin($context);
+                            return;
+                        case 'ticket':
+                            self::ticket($context);
+                            return;
+                        case 'helpRequest':
+                            self::helpRequest($context);
+                            return;
+                        case 'callNext':
+                            self::callNext($context);
+                            return;
+                        case 'patchTicket':
+                            self::patchTicket($context);
+                            return;
+                        case 'patchHelpRequest':
+                            self::patchHelpRequest($context);
+                            return;
+                        case 'reprint':
+                            self::reprint($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

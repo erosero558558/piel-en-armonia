@@ -11,7 +11,7 @@ class GiftCardController
     /**
      * POST /api.php?resource=gift-card-issue
      */
-    public static function issue(): void
+    private static function issue(): void
     {
         // Enforce administrative authentication for issuance
         requireAuth();
@@ -56,7 +56,7 @@ class GiftCardController
     /**
      * POST /api.php?resource=gift-card-redeem
      */
-    public static function redeem(): void
+    private static function redeem(): void
     {
         requireAuth();
 
@@ -90,7 +90,7 @@ class GiftCardController
     /**
      * GET /api.php?resource=gift-card-validate&code=XXX
      */
-    public static function validate(): void
+    private static function validate(): void
     {
         $code = $_GET['code'] ?? null;
         if (!$code) {
@@ -118,7 +118,7 @@ class GiftCardController
     /**
      * GET /api.php?resource=gift-cards-expiring
      */
-    public static function expiring(): void
+    private static function expiring(): void
     {
         requireAuth();
         
@@ -161,4 +161,45 @@ class GiftCardController
         }
     }
 
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:gift-card-issue':
+                self::issue($context);
+                return;
+            case 'POST:gift-card-redeem':
+                self::redeem($context);
+                return;
+            case 'GET:gift-card-validate':
+                self::validate($context);
+                return;
+            case 'GET:gift-cards-expiring':
+                self::expiring($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'issue':
+                            self::issue($context);
+                            return;
+                        case 'redeem':
+                            self::redeem($context);
+                            return;
+                        case 'validate':
+                            self::validate($context);
+                            return;
+                        case 'expiring':
+                            self::expiring($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
+    }
 }

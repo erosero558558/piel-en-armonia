@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/telemedicine/TelemedicineOpsSnapshot.php';
 
 final class TelemedicinePolicyController
 {
-    public static function diagnostics(array $context): void
+    private static function diagnostics(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -35,7 +35,7 @@ final class TelemedicinePolicyController
         ]);
     }
 
-    public static function readiness(array $context): void
+    private static function readiness(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -57,7 +57,7 @@ final class TelemedicinePolicyController
         ]);
     }
 
-    public static function simulate(array $context): void
+    private static function simulate(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -93,5 +93,40 @@ final class TelemedicinePolicyController
             'ok' => true,
             'data' => $result,
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:telemedicine-ops-diagnostics':
+                self::diagnostics($context);
+                return;
+            case 'GET:telemedicine-rollout-readiness':
+                self::readiness($context);
+                return;
+            case 'POST:telemedicine-policy-simulate':
+                self::simulate($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'diagnostics':
+                            self::diagnostics($context);
+                            return;
+                        case 'readiness':
+                            self::readiness($context);
+                            return;
+                        case 'simulate':
+                            self::simulate($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

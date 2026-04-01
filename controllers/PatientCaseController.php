@@ -12,7 +12,7 @@ require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
 
 class PatientCaseController
 {
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         $service = new PatientCaseService();
         $caseId = trim((string) ($_GET['caseId'] ?? ($_GET['case_id'] ?? '')));
@@ -61,7 +61,7 @@ class PatientCaseController
         ]);
     }
 
-    public static function search(array $context): void
+    public static function __search(array $context): void
     {
         $q = trim((string) ($_GET['q'] ?? ''));
         if ($q === '') {
@@ -93,7 +93,7 @@ class PatientCaseController
         json_response(['ok' => true, 'data' => $filtered]);
     }
 
-    public static function store(array $context): void
+    private static function store(array $context): void
     {
         require_rate_limit('public-preconsultation', 4, 60);
 
@@ -498,5 +498,34 @@ class PatientCaseController
             ];
 
         json_response($payload, 409);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:patient-cases':
+                self::index($context);
+                return;
+            case 'POST:patient-cases':
+                self::store($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                        case 'store':
+                            self::store($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

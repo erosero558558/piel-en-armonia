@@ -15,7 +15,7 @@ class MetricsController
     /**
      * GET /metrics - Export Prometheus metrics
      */
-    public static function export(array $context): void
+    public static function __export(array $context): void
     {
         if (!class_exists('Metrics')) {
             http_response_code(500);

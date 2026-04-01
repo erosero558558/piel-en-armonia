@@ -20,7 +20,7 @@ final class MembershipController
 {
     // ── S17-07: Membership status ─────────────────────────────────
 
-    public static function status(array $context): void
+    private static function status(array $context): void
     {
         $store     = is_array($context['store'] ?? null) ? $context['store'] : [];
         $patientId = trim((string) ($_GET['patient_id'] ?? ''));
@@ -73,7 +73,7 @@ final class MembershipController
 
     // ── S17-06: Issue / renew membership ─────────────────────────
 
-    public static function issue(array $context): void
+    private static function issue(array $context): void
     {
         require_admin_auth();
 
@@ -106,7 +106,7 @@ final class MembershipController
 
     // ── S17-08: Package balance ────────────────────────────────────
 
-    public static function packageBalance(array $context): void
+    private static function packageBalance(array $context): void
     {
         $store     = is_array($context['store'] ?? null) ? $context['store'] : [];
         $patientId = trim((string) ($_GET['patient_id'] ?? ''));
@@ -130,7 +130,7 @@ final class MembershipController
 
     // ── S17-08: Activate package ──────────────────────────────────
 
-    public static function activatePackage(array $context): void
+    private static function activatePackage(array $context): void
     {
         require_admin_auth();
 
@@ -167,7 +167,7 @@ final class MembershipController
 
     // ── S17-08: Consume session ────────────────────────────────────
 
-    public static function consumeSession(array $context): void
+    private static function consumeSession(array $context): void
     {
         require_admin_auth();
 
@@ -206,6 +206,53 @@ final class MembershipController
     {
         if (function_exists('require_admin_auth')) {
             require_admin_auth();
+        }
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:membership-status':
+                self::status($context);
+                return;
+            case 'POST:membership-issue':
+                self::issue($context);
+                return;
+            case 'GET:package-balance':
+                self::packageBalance($context);
+                return;
+            case 'POST:package-activate':
+                self::activatePackage($context);
+                return;
+            case 'POST:package-consume':
+                self::consumeSession($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'status':
+                            self::status($context);
+                            return;
+                        case 'issue':
+                            self::issue($context);
+                            return;
+                        case 'packageBalance':
+                            self::packageBalance($context);
+                            return;
+                        case 'activatePackage':
+                            self::activatePackage($context);
+                            return;
+                        case 'consumeSession':
+                            self::consumeSession($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
         }
     }
 }

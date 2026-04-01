@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 class ContentController
 {
-    public static function get(array $context): void
+    private static function get(array $context): void
     {
         $lang = isset($_GET['lang']) ? trim((string)$_GET['lang']) : 'es';
         if (!in_array($lang, ['es', 'en'], true)) {
@@ -27,5 +27,28 @@ class ContentController
         header('Cache-Control: public, max-age=3600');
         header('Content-Type: application/json; charset=utf-8');
         echo $content;
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:content':
+                self::get($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'get':
+                            self::get($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

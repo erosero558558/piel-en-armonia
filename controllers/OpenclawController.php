@@ -26,7 +26,7 @@ final class OpenclawController
      * Carga el contexto completo del paciente para alimentar la IA.
      * Este es el dato que diferencia a OpenClaw de ChatGPT solo.
      */
-    public static function patient(array $context): void
+    private static function patient(array $context): void
     {
         self::requireAuth();
 
@@ -163,12 +163,22 @@ final class OpenclawController
         }
 
         $interVisitSummary = [
-            'last_diagnosis' => $lastDx,
-            'active_medications' => $medications,
+            'last_diagnosis'      => $lastDx,
+            'active_medications'  => $medications,
             'last_evolution_date' => $history['last_evolution'] ?? '',
-            'pending_labs' => $pendingLabs,
-            'chronic_status' => $chronicStatus,
-            'self_reported_vitals' => $selfReportedVitals
+            'pending_labs'        => $pendingLabs,
+            'chronic_status'      => $chronicStatus,
+            'self_reported_vitals' => $selfReportedVitals,
+            // S37-02: Anamnesis estructurada disponible para el GPT
+            'structured_anamnesis' => $draft['intake']['structured_anamnesis'] ?? null,
+            // S31-03: Alergias preformateadas para el prompt
+            'allergies'           => array_values(array_filter(array_merge(
+                is_array($allergies) ? $allergies : [],
+                array_map(
+                    static fn ($a) => ($a['allergen'] ?? '') . (isset($a['reaction']) ? ' (' . $a['reaction'] . ')' : ''),
+                    (array) ($draft['intake']['structured_anamnesis']['alergias'] ?? [])
+                )
+            ), static fn ($v) => $v !== '')),
         ];
 
         // S31-09: Log de acceso a HCE por médico
@@ -219,7 +229,7 @@ final class OpenclawController
      * Búsqueda rápida en el catálogo CIE-10 local.
      * Latencia objetivo: <50ms (es solo búsqueda en JSON).
      */
-    public static function cie10Suggest(array $context): void
+    private static function cie10Suggest(array $context): void
     {
         self::requireAuth();
 
@@ -299,7 +309,7 @@ final class OpenclawController
      * Devuelve el protocolo de tratamiento estándar para un diagnóstico CIE-10.
      * Los protocolos se pueden extender en data/protocols/{code}.json
      */
-    public static function protocol(array $context): void
+    private static function protocol(array $context): void
     {
         self::requireAuth();
 
@@ -327,7 +337,7 @@ final class OpenclawController
      * Proxy al AI Router — Tier 1 (Codex OAuth) → Tier 2 (OpenRouter free) → Tier 3 (local)
      * Streaming support: si ?stream=1, devuelve SSE.
      */
-    public static function chat(array $context): void
+    private static function chat(array $context): void
     {
         self::requireAuth();
 
@@ -364,7 +374,7 @@ final class OpenclawController
 
     // ── saveDiagnosis ─────────────────────────────────────────────────────────
 
-    public static function saveDiagnosis(array $context): void
+    private static function saveDiagnosis(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -424,7 +434,7 @@ final class OpenclawController
         json_response($response);
     }
 
-    public static function saveChronicCondition(array $context): void
+    private static function saveChronicCondition(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -483,7 +493,7 @@ final class OpenclawController
 
     // ── saveEvolution ─────────────────────────────────────────────────────────
 
-    public static function saveEvolution(array $context): void
+    private static function saveEvolution(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -519,7 +529,7 @@ final class OpenclawController
 
     // ── savePrescription ─────────────────────────────────────────────────────
 
-    public static function savePrescription(array $context): void
+    private static function savePrescription(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -682,7 +692,7 @@ final class OpenclawController
 
     // ── getPrescriptionPdf ────────────────────────────────────────────────────
 
-    public static function getPrescriptionPdf(array $context): void
+    private static function getPrescriptionPdf(array $context): void
     {
         $rxId = trim((string) ($_GET['id'] ?? ''));
         if ($rxId === '') {
@@ -710,7 +720,7 @@ final class OpenclawController
 
     // ── generateCertificate ───────────────────────────────────────────────────
 
-    public static function generateCertificate(array $context): void
+    private static function generateCertificate(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -767,7 +777,7 @@ final class OpenclawController
         ]);
     }
 
-    public static function getCertificatePdf(array $context): void
+    private static function getCertificatePdf(array $context): void
     {
         self::requireAuth();
 
@@ -810,7 +820,7 @@ final class OpenclawController
 
     // ── checkInteractions ────────────────────────────────────────────────────
 
-    public static function checkInteractions(array $context): void
+    private static function checkInteractions(array $context): void
     {
         self::requireAuth();
         $payload = require_json_body();
@@ -1000,7 +1010,7 @@ final class OpenclawController
 
     // ── summarizeSession ─────────────────────────────────────────────────────
 
-    public static function summarizeSession(array $context): void
+    private static function summarizeSession(array $context): void
     {
         self::requireAuth();
         $payload     = require_json_body();
@@ -1069,7 +1079,7 @@ final class OpenclawController
         ]);
     }
 
-    public static function closeTelemedicine(array $context): void
+    private static function closeTelemedicine(array $context): void
     {
         self::requireDoctorAuth();
         $payload     = require_json_body();
@@ -1212,7 +1222,7 @@ final class OpenclawController
 
     // ── routerStatus ─────────────────────────────────────────────────────────
 
-    public static function routerStatus(array $context): void
+    private static function routerStatus(array $context): void
     {
         self::requireAuth();
         $router = new OpenclawAIRouter();
@@ -1229,6 +1239,43 @@ final class OpenclawController
     private static function requireDoctorAuth(): void
     {
         require_doctor_auth();
+    }
+
+    /**
+     * Fallback PDF generator when dompdf is not installed.
+     * Produces a minimal valid PDF wrapping the HTML content as plain text.
+     * NOT a substitute for dompdf — install vendor/dompdf for production.
+     */
+    private static function buildFallbackPdf(string $html): string
+    {
+        // Strip HTML tags to extract readable text
+        $text = html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>', '</div>', '</tr>'], "\n", $html)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $lines = array_slice(array_filter(array_map('trim', explode("\n", $text)), static fn ($l) => $l !== ''), 0, 80);
+
+        $bodyLines = '';
+        $yPos      = 750;
+        foreach ($lines as $line) {
+            $safe       = str_replace(['(', ')', '\\'], ['\(', '\)', '\\\\'], mb_substr($line, 0, 120));
+            $bodyLines .= "BT /F1 10 Tf {$yPos} TL 72 {$yPos} Td ({$safe}) Tj ET\n";
+            $yPos      -= 14;
+            if ($yPos < 50) {
+                break;
+            }
+        }
+
+        $stream = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
+            . "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
+            . "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n"
+            . "4 0 obj\n<< /Length " . strlen($bodyLines) . " >>\nstream\n" . $bodyLines . "endstream\nendobj\n"
+            . "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+
+        $xref   = strlen("%PDF-1.4\n") + strlen($stream);
+        $output = "%PDF-1.4\n" . $stream
+            . "xref\n0 6\n0000000000 65535 f \n"
+            . str_pad((string) 9, 10, '0', STR_PAD_LEFT) . " 00000 n \n"
+            . "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
+
+        return $output;
     }
 
     private static function buildCertificatePdfHtml(array $certificate, array $patient): string
@@ -1558,7 +1605,7 @@ final class OpenclawController
      *
      * Respuesta: { ok, closed_at, diagnosis_saved, evolution_id, stage }
      */
-    public static function fastClose(array $context): void
+    private static function fastClose(array $context): void
     {
         self::requireAuth();
         $payload = require_json_body();
@@ -1678,6 +1725,119 @@ final class OpenclawController
             file_put_contents($logPath, $entry, FILE_APPEND | LOCK_EX);
         } catch (\Throwable) {
             // El log de auditoría nunca debe interrumpir el flujo clínico
+        }
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:openclaw-patient':
+                self::patient($context);
+                return;
+            case 'GET:openclaw-cie10-suggest':
+                self::cie10Suggest($context);
+                return;
+            case 'GET:openclaw-protocol':
+                self::protocol($context);
+                return;
+            case 'POST:openclaw-chat':
+                self::chat($context);
+                return;
+            case 'POST:openclaw-save-diagnosis':
+                self::saveDiagnosis($context);
+                return;
+            case 'POST:openclaw-save-chronic':
+                self::saveChronicCondition($context);
+                return;
+            case 'POST:openclaw-save-evolution':
+                self::saveEvolution($context);
+                return;
+            case 'GET:openclaw-prescription':
+                self::getPrescriptionPdf($context);
+                return;
+            case 'POST:openclaw-prescription':
+                self::savePrescription($context);
+                return;
+            case 'POST:openclaw-certificate':
+                self::generateCertificate($context);
+                return;
+            case 'GET:openclaw-certificate':
+                self::getCertificatePdf($context);
+                return;
+            case 'POST:openclaw-interactions':
+                self::checkInteractions($context);
+                return;
+            case 'POST:openclaw-summarize':
+                self::summarizeSession($context);
+                return;
+            case 'GET:openclaw-router-status':
+                self::routerStatus($context);
+                return;
+            case 'POST:openclaw-close-telemedicine':
+                self::closeTelemedicine($context);
+                return;
+            case 'POST:openclaw-fast-close':
+                self::fastClose($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'patient':
+                            self::patient($context);
+                            return;
+                        case 'cie10Suggest':
+                            self::cie10Suggest($context);
+                            return;
+                        case 'protocol':
+                            self::protocol($context);
+                            return;
+                        case 'chat':
+                            self::chat($context);
+                            return;
+                        case 'saveDiagnosis':
+                            self::saveDiagnosis($context);
+                            return;
+                        case 'saveChronicCondition':
+                            self::saveChronicCondition($context);
+                            return;
+                        case 'saveEvolution':
+                            self::saveEvolution($context);
+                            return;
+                        case 'getPrescriptionPdf':
+                            self::getPrescriptionPdf($context);
+                            return;
+                        case 'savePrescription':
+                            self::savePrescription($context);
+                            return;
+                        case 'generateCertificate':
+                            self::generateCertificate($context);
+                            return;
+                        case 'getCertificatePdf':
+                            self::getCertificatePdf($context);
+                            return;
+                        case 'checkInteractions':
+                            self::checkInteractions($context);
+                            return;
+                        case 'summarizeSession':
+                            self::summarizeSession($context);
+                            return;
+                        case 'routerStatus':
+                            self::routerStatus($context);
+                            return;
+                        case 'closeTelemedicine':
+                            self::closeTelemedicine($context);
+                            return;
+                        case 'fastClose':
+                            self::fastClose($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
         }
     }
 }

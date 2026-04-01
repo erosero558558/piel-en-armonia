@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/stores/PatientConsentStore.php';
 
 final class ConsentStatusController
 {
-    public static function process(array $context): void
+    private static function process(array $context): void
     {
         $method = $context['method'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $request = $_REQUEST;
@@ -86,5 +86,34 @@ final class ConsentStatusController
                 'signed_version' => $targetVersion,
             ]
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:consent-status':
+                self::process($context);
+                return;
+            case 'POST:consent-status':
+                self::process($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'process':
+                            self::process($context);
+                            return;
+                        case 'process':
+                            self::process($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

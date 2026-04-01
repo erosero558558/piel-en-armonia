@@ -11,7 +11,7 @@ class ReferralController
      * Endpoint: GET /api.php?resource=referral-link&patient_id=X
      * Devuelve el código único asignado al paciente.
      */
-    public static function getLink(): void
+    private static function getLink(): void
     {
         // En un escenario productivo esto probablemente requiera sesión,
         // pero por ahora dependemos del parámetro crudo `patient_id`.
@@ -46,7 +46,7 @@ class ReferralController
      * Payload: { "code": "REF-XXXX" }
      * Invocado de manera transparente por el frontend público al detectar el ID.
      */
-    public static function trackClick(): void
+    private static function trackClick(): void
     {
         $inputData = file_get_contents('php://input');
         $payload = json_decode($inputData, true);
@@ -71,7 +71,7 @@ class ReferralController
      * Endpoint: GET /api.php?resource=referral-stats&patient_id=X
      * Devuelve los contadores de referidos (clics, conversiones, beneficio ganado y util).
      */
-    public static function getStats(): void
+    private static function getStats(): void
     {
         $patientId = $_GET['patient_id'] ?? null;
         if (!$patientId) {
@@ -95,6 +95,41 @@ class ReferralController
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['error' => 'No se pudo generar la estadistica de referidos', 'exception' => $e->getMessage()]);
+        }
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:referral-link':
+                self::getLink($context);
+                return;
+            case 'GET:referral-stats':
+                self::getStats($context);
+                return;
+            case 'POST:referral-click':
+                self::trackClick($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'getLink':
+                            self::getLink($context);
+                            return;
+                        case 'getStats':
+                            self::getStats($context);
+                            return;
+                        case 'trackClick':
+                            self::trackClick($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
         }
     }
 }

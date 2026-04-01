@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/common.php';
 
 final class StatsExportController
 {
-    public static function export(array $context): void
+    private static function export(array $context): void
     {
         self::requireAuth();
 
@@ -90,6 +90,29 @@ final class StatsExportController
         }
         if (empty($_SESSION['admin_logged_in'])) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:stats-export':
+                self::export($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'export':
+                            self::export($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
         }
     }
 }

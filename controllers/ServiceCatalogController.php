@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/ServiceCatalog.php';
 
 class ServiceCatalogController
 {
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         $catalog = self::loadCatalog();
         $services = self::normalizeServices($catalog['services']);
@@ -242,5 +242,28 @@ class ServiceCatalogController
             return mb_strpos($haystack, $needle, 0, 'UTF-8') !== false;
         }
         return strpos($haystack, $needle) !== false;
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:services-catalog':
+                self::index($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

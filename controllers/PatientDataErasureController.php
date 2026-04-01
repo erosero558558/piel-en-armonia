@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/DataAccessAudit.php';
 
 class PatientDataErasureController
 {
-    public static function process(array $request): array
+    private static function process(array $request): array
     {
         $method = strtoupper((string)($request['method'] ?? 'DELETE'));
         if ($method !== 'DELETE') {
@@ -106,5 +106,28 @@ class PatientDataErasureController
                 'retained_fields' => $retainedFields
             ]
         ];
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'DELETE:patient-data-erasure':
+                self::process($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'process':
+                            self::process($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

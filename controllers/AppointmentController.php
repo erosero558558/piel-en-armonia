@@ -10,7 +10,7 @@ class AppointmentController
     private const ALLOWED_DOCTORS = ['rosero', 'narvaez', 'indiferente'];
     private const ALLOWED_SERVICES = ['consulta', 'telefono', 'video', 'acne', 'cancer', 'laser', 'rejuvenecimiento'];
 
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         // GET /appointments (Admin)
         $store = $context['store'];
@@ -47,7 +47,7 @@ class AppointmentController
         ]);
     }
 
-    public static function checkin(array $context): void
+    private static function checkin(array $context): void
     {
         $payload = require_json_body();
         $token = trim((string) ($payload['token'] ?? ''));
@@ -112,7 +112,7 @@ class AppointmentController
         ]);
     }
 
-    public static function bookedSlots(array $context): void
+    private static function bookedSlots(array $context): void
     {
         // GET /booked-slots
         $store = $context['store'];
@@ -174,7 +174,7 @@ class AppointmentController
         ]);
     }
 
-    public static function store(array $context): void
+    private static function store(array $context): void
     {
         // POST /appointments
         // Ignoring $context['store'] to use fresh read inside lock
@@ -343,7 +343,7 @@ class AppointmentController
         ], $idempotentReplay ? 200 : 201);
     }
 
-    public static function update(array $context): void
+    private static function update(array $context): void
     {
         // PATCH /appointments (Admin)
         $payload = require_json_body();
@@ -478,7 +478,7 @@ class AppointmentController
         ]);
     }
 
-    public static function checkReschedule(array $context): void
+    private static function checkReschedule(array $context): void
     {
         // GET /reschedule
         $store = $context['store'];
@@ -532,7 +532,7 @@ class AppointmentController
         ]);
     }
 
-    public static function processReschedule(array $context): void
+    private static function processReschedule(array $context): void
     {
         // PATCH /reschedule
         require_rate_limit('reschedule', 5, 60);
@@ -868,5 +868,70 @@ class AppointmentController
         }
 
         return null;
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:appointments':
+                self::index($context);
+                return;
+            case 'POST:appointments':
+                self::store($context);
+                return;
+            case 'PATCH:appointments':
+                self::update($context);
+                return;
+            case 'PUT:appointments':
+                self::update($context);
+                return;
+            case 'POST:appointment-checkin':
+                self::checkin($context);
+                return;
+            case 'GET:booked-slots':
+                self::bookedSlots($context);
+                return;
+            case 'GET:reschedule':
+                self::checkReschedule($context);
+                return;
+            case 'PATCH:reschedule':
+                self::processReschedule($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                        case 'store':
+                            self::store($context);
+                            return;
+                        case 'update':
+                            self::update($context);
+                            return;
+                        case 'update':
+                            self::update($context);
+                            return;
+                        case 'checkin':
+                            self::checkin($context);
+                            return;
+                        case 'bookedSlots':
+                            self::bookedSlots($context);
+                            return;
+                        case 'checkReschedule':
+                            self::checkReschedule($context);
+                            return;
+                        case 'processReschedule':
+                            self::processReschedule($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

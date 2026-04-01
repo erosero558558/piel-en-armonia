@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/PatientCaseService.php';
 
 class CallbackController
 {
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         // GET /callbacks (Admin)
         $patientCaseService = new PatientCaseService();
@@ -17,7 +17,7 @@ class CallbackController
         ]);
     }
 
-    public static function store(array $context): void
+    private static function store(array $context): void
     {
         // POST /callbacks
         $store = $context['store'];
@@ -54,7 +54,7 @@ class CallbackController
         ], 201);
     }
 
-    public static function update(array $context): void
+    private static function update(array $context): void
     {
         // PATCH /callbacks (Admin)
         $store = $context['store'];
@@ -128,5 +128,46 @@ class CallbackController
         }
 
         return null;
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:callbacks':
+                self::index($context);
+                return;
+            case 'POST:callbacks':
+                self::store($context);
+                return;
+            case 'PATCH:callbacks':
+                self::update($context);
+                return;
+            case 'PUT:callbacks':
+                self::update($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                        case 'store':
+                            self::store($context);
+                            return;
+                        case 'update':
+                            self::update($context);
+                            return;
+                        case 'update':
+                            self::update($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

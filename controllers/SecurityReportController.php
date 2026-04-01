@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/monitoring.php';
 
 class SecurityReportController
 {
-    public static function get(array $context): void
+    private static function get(array $context): void
     {
         // 1. Secrets Rotation (operator pin rotation as proxy for secrets if none exists, or filemtime)
         $meta = turnero_operator_access_meta();
@@ -81,5 +81,28 @@ class SecurityReportController
             return hash_file('sha256', $path);
         }
         return null;
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:security-report':
+                self::get($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'get':
+                            self::get($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

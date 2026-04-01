@@ -16,7 +16,7 @@ final class OnboardingController
 {
     // ── S18-02: Onboarding progress ───────────────────────────────
 
-    public static function progress(array $context): void
+    private static function progress(array $context): void
     {
         require_admin_auth();
 
@@ -28,7 +28,7 @@ final class OnboardingController
         json_response(['ok' => true, 'data' => $progress]);
     }
 
-    public static function updateStep(array $context): void
+    private static function updateStep(array $context): void
     {
         require_admin_auth();
 
@@ -72,7 +72,7 @@ final class OnboardingController
      * Returns the contextual walkthrough steps for a given surface (admin/operator/kiosk).
      * The frontend stores completion in localStorage and calls this to get steps.
      */
-    public static function walkthroughConfig(array $context): void
+    private static function walkthroughConfig(array $context): void
     {
         $surface = strtolower(trim((string) ($_GET['surface'] ?? 'admin')));
 
@@ -223,5 +223,46 @@ final class OnboardingController
                 'canSkip'     => false,
             ],
         ];
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:onboarding-progress':
+                self::progress($context);
+                return;
+            case 'GET:onboarding-status':
+                self::progress($context);
+                return;
+            case 'POST:onboarding-step':
+                self::updateStep($context);
+                return;
+            case 'GET:walkthrough-config':
+                self::walkthroughConfig($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'progress':
+                            self::progress($context);
+                            return;
+                        case 'progress':
+                            self::progress($context);
+                            return;
+                        case 'updateStep':
+                            self::updateStep($context);
+                            return;
+                        case 'walkthroughConfig':
+                            self::walkthroughConfig($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

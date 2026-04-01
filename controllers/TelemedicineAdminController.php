@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 final class TelemedicineAdminController
 {
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -49,7 +49,7 @@ final class TelemedicineAdminController
         ]);
     }
 
-    public static function patch(array $context): void
+    private static function patch(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -104,5 +104,34 @@ final class TelemedicineAdminController
             ],
             (int) ($result['code'] ?? 200)
         );
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:telemedicine-intakes':
+                self::index($context);
+                return;
+            case 'PATCH:telemedicine-intakes':
+                self::patch($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                        case 'patch':
+                            self::patch($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

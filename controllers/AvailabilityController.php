@@ -7,7 +7,7 @@ class AvailabilityController
     private const ALLOWED_DOCTORS = ['rosero', 'narvaez', 'indiferente'];
     private const ALLOWED_SERVICES = ['consulta', 'telefono', 'video', 'acne', 'cancer', 'laser', 'rejuvenecimiento'];
 
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         // GET /availability
         $store = $context['store'];
@@ -85,7 +85,7 @@ class AvailabilityController
         ]);
     }
 
-    public static function update(array $context): void
+    private static function update(array $context): void
     {
         // POST /availability
         $availabilityService = CalendarAvailabilityService::fromEnv();
@@ -200,5 +200,34 @@ class AvailabilityController
             return ['ok' => false, 'error' => 'days debe estar entre 1 y 45'];
         }
         return ['ok' => true, 'value' => $days];
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:availability':
+                self::index($context);
+                return;
+            case 'POST:availability':
+                self::update($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                        case 'update':
+                            self::update($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

@@ -14,7 +14,7 @@ class FigoConfigController
     /**
      * GET /figo-config - Retrieve current configuration (masked)
      */
-    public static function show(array $context): void
+    public static function __show(array $context): void
     {
         $configMeta = self::readFigoConfigWithMeta();
         $candidatePaths = self::getConfigCandidatePaths();
@@ -41,7 +41,7 @@ class FigoConfigController
     /**
      * POST/PUT/PATCH /figo-config - Update configuration
      */
-    public static function update(array $context): void
+    public static function __update(array $context): void
     {
         require_rate_limit('figo-config', 6, 60);
 

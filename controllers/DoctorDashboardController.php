@@ -19,7 +19,7 @@ final class DoctorDashboardController
         }
     }
 
-    public static function dashboard(array $context): void
+    private static function dashboard(array $context): void
     {
         self::checkAuth();
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
@@ -177,7 +177,7 @@ final class DoctorDashboardController
         ]);
     }
 
-    public static function searchPatients(array $context): void
+    private static function searchPatients(array $context): void
     {
         self::checkAuth();
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
@@ -262,7 +262,7 @@ final class DoctorDashboardController
         json_response(['ok' => true, 'results' => $results]);
     }
 
-    public static function stats(array $context): void
+    private static function stats(array $context): void
     {
         self::checkAuth();
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
@@ -341,5 +341,40 @@ final class DoctorDashboardController
                 'retention_rate_pct' => $retentionRate
             ]
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:patient-search':
+                self::searchPatients($context);
+                return;
+            case 'GET:doctor-dashboard':
+                self::dashboard($context);
+                return;
+            case 'GET:doctor-stats':
+                self::stats($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'searchPatients':
+                            self::searchPatients($context);
+                            return;
+                        case 'dashboard':
+                            self::dashboard($context);
+                            return;
+                        case 'stats':
+                            self::stats($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

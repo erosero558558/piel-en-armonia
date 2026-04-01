@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/ServiceCatalog.php';
 
 class ServicePriorityController
 {
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         $catalog = self::loadCatalog();
         $params = self::resolveParams();
@@ -529,5 +529,28 @@ class ServicePriorityController
             return mb_strtolower($value, 'UTF-8');
         }
         return strtolower($value);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:service-priorities':
+                self::index($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

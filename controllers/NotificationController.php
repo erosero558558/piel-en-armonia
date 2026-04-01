@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/PatientPortalAuth.php';
 
 final class NotificationController
 {
-    public static function config(array $context): void
+    private static function config(array $context): void
     {
         $session = self::requirePortalSession($context);
         $snapshot = is_array($session['snapshot'] ?? null) ? $session['snapshot'] : [];
@@ -27,7 +27,7 @@ final class NotificationController
         ], $publicKey !== '' ? 200 : 503);
     }
 
-    public static function subscribe(array $context): void
+    private static function subscribe(array $context): void
     {
         $session = self::requirePortalSession($context);
         $payload = require_json_body();
@@ -57,7 +57,7 @@ final class NotificationController
         ]);
     }
 
-    public static function unsubscribe(array $context): void
+    private static function unsubscribe(array $context): void
     {
         $session = self::requirePortalSession($context);
         $payload = require_json_body();
@@ -104,5 +104,40 @@ final class NotificationController
             'error' => (string) ($auth['error'] ?? 'No autorizado'),
             'code' => (string) ($auth['code'] ?? 'patient_portal_auth_required'),
         ], (int) ($auth['status'] ?? 401));
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:notification-config':
+                self::config($context);
+                return;
+            case 'POST:notification-subscribe':
+                self::subscribe($context);
+                return;
+            case 'POST:notification-unsubscribe':
+                self::unsubscribe($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'config':
+                            self::config($context);
+                            return;
+                        case 'subscribe':
+                            self::subscribe($context);
+                            return;
+                        case 'unsubscribe':
+                            self::unsubscribe($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

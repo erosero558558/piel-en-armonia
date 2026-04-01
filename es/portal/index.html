@@ -63,6 +63,8 @@
                 margin-top: 24px;
             }
         </style>
+    <!-- Monitoring (Sentry + Analytics) -->
+        <script src="/js/monitoring-loader.js" async></script>
     <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>
 <script>
@@ -82,7 +84,11 @@
                         <strong data-portal-patient-name>Bienvenido</strong>
                     </div>
                 </div>
-                <div class="portal-header__actions">
+                <div class="portal-header__actions" style="display: flex; gap: 12px; align-items: center;">
+                    <nav class="portal-header__nav" aria-label="Navegación rápida" style="display: flex; gap: 16px; margin-right: 12px;">
+                        <a href="/es/agendar/" style="color: var(--text-color); text-decoration: none; font-size: 0.9rem; font-weight: 500;">Nueva cita</a>
+                        <a href="/es/telemedicina/" style="color: var(--text-color); text-decoration: none; font-size: 0.9rem; font-weight: 500;">Teleconsulta</a>
+                    </nav>
                     <button class="btn-icon" type="button" data-portal-logout aria-label="Cerrar sesión">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -104,6 +110,11 @@
                                 <strong>Portal del paciente</strong>
                                 <p style="margin:0">Esta &aacute;rea compila su historial y pr&oacute;ximos pasos cl&iacute;nicos. La informaci&oacute;n aqu&iacute; presentada refleja las indicaciones dadas presencialmente.</p>
                             </div>
+                        </div>
+                        <div class="portal-cta-row" style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+                            <a href="/es/agendar/" class="btn btn-primary" style="flex: 1; justify-content: center; padding: 12px 16px; border-radius: 999px;">Nueva cita</a>
+                            <a href="/es/telemedicina/" class="btn btn-secondary" style="flex: 1; justify-content: center; padding: 12px 16px; border-radius: 999px;">Teleconsulta</a>
+                            <a href="/es/portal/historial/" class="btn btn-outline" style="flex: 1; justify-content: center; padding: 12px 16px; border-radius: 999px;">Mi historial</a>
                         </div>
                     </div>
 
@@ -212,22 +223,12 @@
                     </svg>
                     <span>Receta</span>
                 </a>
-                <a class="portal-nav-item" href="/es/portal/fotos/">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="5" width="18" height="14" rx="3"></rect>
-                        <circle cx="8.5" cy="10" r="1.5"></circle>
-                        <path d="m21 15-4.5-4.5L8 19"></path>
+                <a class="portal-nav-item" href="/es/portal/pagos/">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                     </svg>
-                    <span>Fotos</span>
-                </a>
-                <a class="portal-nav-item" href="/es/portal/consentimiento/">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M7 3h7l5 5v13H7z"></path>
-                        <path d="M14 3v5h5"></path>
-                        <path d="M10 13h6"></path>
-                        <path d="M10 17h4"></path>
-                    </svg>
-                    <span>Docs</span>
+                    <span>Pagos</span>
                 </a>
             </nav>
         </div>

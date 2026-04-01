@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/PushService.php';
 
 class PushController
 {
-    public static function diagnostics(array $context): void
+    private static function diagnostics(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -16,7 +16,7 @@ class PushController
         ], $service->getDiagnostics()));
     }
 
-    public static function config(array $context): void
+    private static function config(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -31,7 +31,7 @@ class PushController
         ], $publicKey !== '' ? 200 : 503);
     }
 
-    public static function subscribe(array $context): void
+    private static function subscribe(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -53,7 +53,7 @@ class PushController
         ]);
     }
 
-    public static function unsubscribe(array $context): void
+    private static function unsubscribe(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -80,7 +80,7 @@ class PushController
         ]);
     }
 
-    public static function test(array $context): void
+    private static function test(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -111,5 +111,52 @@ class PushController
             'ok' => false,
             'error' => 'No autorizado'
         ], 401);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:push-config':
+                self::config($context);
+                return;
+            case 'POST:push-subscribe':
+                self::subscribe($context);
+                return;
+            case 'POST:push-unsubscribe':
+                self::unsubscribe($context);
+                return;
+            case 'POST:push-test':
+                self::test($context);
+                return;
+            case 'GET:push-diagnostics':
+                self::diagnostics($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'config':
+                            self::config($context);
+                            return;
+                        case 'subscribe':
+                            self::subscribe($context);
+                            return;
+                        case 'unsubscribe':
+                            self::unsubscribe($context);
+                            return;
+                        case 'test':
+                            self::test($context);
+                            return;
+                        case 'diagnostics':
+                            self::diagnostics($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

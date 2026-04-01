@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/figo_utils.php';
 
 class ConfigController
 {
-    public static function getFigoConfig(array $context): void
+    private static function getFigoConfig(array $context): void
     {
         $configMeta = api_read_figo_config_with_meta();
         $candidatePaths = api_figo_config_candidate_paths();
@@ -41,7 +41,7 @@ class ConfigController
         ]);
     }
 
-    public static function updateFigoConfig(array $context): void
+    private static function updateFigoConfig(array $context): void
     {
         require_rate_limit('figo-config', 6, 60);
 
@@ -149,5 +149,46 @@ class ConfigController
             'openclawConfigured' => $openclawEndpoint !== '',
             'timestamp' => gmdate('c')
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:figo-config':
+                self::getFigoConfig($context);
+                return;
+            case 'POST:figo-config':
+                self::updateFigoConfig($context);
+                return;
+            case 'PUT:figo-config':
+                self::updateFigoConfig($context);
+                return;
+            case 'PATCH:figo-config':
+                self::updateFigoConfig($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'getFigoConfig':
+                            self::getFigoConfig($context);
+                            return;
+                        case 'updateFigoConfig':
+                            self::updateFigoConfig($context);
+                            return;
+                        case 'updateFigoConfig':
+                            self::updateFigoConfig($context);
+                            return;
+                        case 'updateFigoConfig':
+                            self::updateFigoConfig($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

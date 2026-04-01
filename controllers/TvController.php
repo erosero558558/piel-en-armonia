@@ -9,7 +9,7 @@ class TvController
     /**
      * POST /api.php?resource=tv-heartbeat
      */
-    public static function heartbeat(array $context = []): void
+    private static function heartbeat(array $context = []): void
     {
         $payload = require_json_body();
         $deviceId = trim((string) ($payload['device_id'] ?? ''));
@@ -75,7 +75,7 @@ class TvController
     /**
      * GET /api.php?resource=tv-config
      */
-    public static function config(array $context = []): void
+    private static function config(array $context = []): void
     {
         // Esto permite gobernar dinamicamente el entorno del Turnero TV
         // Se pueden inyectar overrides leyendo una base de datos o env si se prefiere.
@@ -97,5 +97,34 @@ class TvController
                 'heartbeatIntervalMs' => 60000,
             ]
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:tv-heartbeat':
+                self::heartbeat($context);
+                return;
+            case 'GET:tv-config':
+                self::config($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'heartbeat':
+                            self::heartbeat($context);
+                            return;
+                        case 'config':
+                            self::config($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

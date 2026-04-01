@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class ClinicalPhotosController
 {
-    public static function index(array $context): void
+    public static function __index(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -58,7 +58,7 @@ final class ClinicalPhotosController
         ]);
     }
 
-    public static function upload(array $context): void
+    public static function __upload(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);

@@ -38,7 +38,7 @@ final class CertificateController
 
     // ── GET — listar o descargar ─────────────────────────────────────────────
 
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         require_admin_auth();
 
@@ -69,7 +69,7 @@ final class CertificateController
 
     // ── POST — crear certificado ──────────────────────────────────────────────
 
-    public static function store(array $context): void
+    private static function store(array $context): void
     {
         require_admin_auth();
 
@@ -684,5 +684,34 @@ TXT;
                 6=>'seis',7=>'siete',8=>'ocho',9=>'nueve',10=>'diez',
                 14=>'catorce',15=>'quince',21=>'veintiún',30=>'treinta'];
         return $map[$days] ?? (string) $days;
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:certificate':
+                self::index($context);
+                return;
+            case 'POST:certificate':
+                self::store($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                        case 'store':
+                            self::store($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

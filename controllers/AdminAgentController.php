@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 class AdminAgentController
 {
-    public static function start(array $context): void
+    private static function start(array $context): void
     {
         self::requireAgentAccess($context);
         $payload = require_json_body();
@@ -22,7 +22,7 @@ class AdminAgentController
         ], 201);
     }
 
-    public static function turn(array $context): void
+    private static function turn(array $context): void
     {
         self::requireAgentAccess($context);
         $payload = require_json_body();
@@ -37,7 +37,7 @@ class AdminAgentController
         ]);
     }
 
-    public static function status(array $context): void
+    private static function status(array $context): void
     {
         self::requireAgentAccess($context);
         self::requireClinicalStorageReadyForPayload($_GET);
@@ -48,7 +48,7 @@ class AdminAgentController
         ]);
     }
 
-    public static function events(array $context): void
+    private static function events(array $context): void
     {
         self::requireAgentAccess($context);
         self::requireClinicalStorageReadyForPayload($_GET);
@@ -59,7 +59,7 @@ class AdminAgentController
         ]);
     }
 
-    public static function approve(array $context): void
+    private static function approve(array $context): void
     {
         self::requireAgentAccess($context);
         $payload = require_json_body();
@@ -74,7 +74,7 @@ class AdminAgentController
         ]);
     }
 
-    public static function cancel(array $context): void
+    private static function cancel(array $context): void
     {
         self::requireAgentAccess($context);
         $payload = require_json_body();
@@ -152,5 +152,58 @@ class AdminAgentController
             ];
 
         json_response($response, 409);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:admin-agent-session-start':
+                self::start($context);
+                return;
+            case 'POST:admin-agent-turn':
+                self::turn($context);
+                return;
+            case 'GET:admin-agent-status':
+                self::status($context);
+                return;
+            case 'GET:admin-agent-events':
+                self::events($context);
+                return;
+            case 'POST:admin-agent-approve':
+                self::approve($context);
+                return;
+            case 'POST:admin-agent-cancel':
+                self::cancel($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'start':
+                            self::start($context);
+                            return;
+                        case 'turn':
+                            self::turn($context);
+                            return;
+                        case 'status':
+                            self::status($context);
+                            return;
+                        case 'events':
+                            self::events($context);
+                            return;
+                        case 'approve':
+                            self::approve($context);
+                            return;
+                        case 'cancel':
+                            self::cancel($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

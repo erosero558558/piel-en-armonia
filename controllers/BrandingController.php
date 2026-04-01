@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/TurneroClinicProfile.php';
 
 final class BrandingController
 {
-    public static function meta(array $context): void
+    private static function meta(array $context): void
     {
         $profile = read_turnero_clinic_profile();
         $branding = $profile['branding'] ?? [];
@@ -21,7 +21,7 @@ final class BrandingController
             ],
         ]);
     }
-    public static function manifest(array $context): void
+    private static function manifest(array $context): void
     {
         $profile = read_turnero_clinic_profile();
         $branding = $profile['branding'] ?? [];
@@ -51,7 +51,7 @@ final class BrandingController
         exit;
     }
 
-    public static function css(array $context): void
+    private static function css(array $context): void
     {
         $profile = read_turnero_clinic_profile();
         $theme = $profile['branding']['theme'] ?? [];
@@ -148,5 +148,40 @@ final class BrandingController
     private static function formatHsl(int $h, int $s, int $l): string
     {
         return "hsl({$h}, {$s}%, {$l}%)";
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:clinic-branding-meta':
+                self::meta($context);
+                return;
+            case 'GET:clinic-manifest':
+                self::manifest($context);
+                return;
+            case 'GET:clinic-branding-css':
+                self::css($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'meta':
+                            self::meta($context);
+                            return;
+                        case 'manifest':
+                            self::manifest($context);
+                            return;
+                        case 'css':
+                            self::css($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

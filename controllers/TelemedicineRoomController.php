@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/telemedicine/TelemedicineRepository.php';
 
 final class TelemedicineRoomController
 {
-    public static function token(array $context): void
+    private static function token(array $context): void
     {
         $access = self::resolveAccess($context);
         $appointment = $access['appointment'];
@@ -32,7 +32,7 @@ final class TelemedicineRoomController
         ]);
     }
 
-    public static function recordingConsent(array $context): void
+    private static function recordingConsent(array $context): void
     {
         $access = self::resolveAccess($context, true);
         $action = strtolower(trim((string) ($_POST['action'] ?? '')));
@@ -104,7 +104,7 @@ final class TelemedicineRoomController
         ]);
     }
 
-    public static function uploadRecording(array $context): void
+    private static function uploadRecording(array $context): void
     {
         $access = self::resolveAccess($context, true);
         if (($access['role'] ?? '') !== 'moderator') {
@@ -605,5 +605,40 @@ final class TelemedicineRoomController
         }
 
         return $maxUploadId + 1;
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:telemedicine-room-token':
+                self::token($context);
+                return;
+            case 'POST:telemedicine-recording-consent':
+                self::recordingConsent($context);
+                return;
+            case 'POST:telemedicine-recording':
+                self::uploadRecording($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'token':
+                            self::token($context);
+                            return;
+                        case 'recordingConsent':
+                            self::recordingConsent($context);
+                            return;
+                        case 'uploadRecording':
+                            self::uploadRecording($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

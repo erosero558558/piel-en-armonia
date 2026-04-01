@@ -16,7 +16,7 @@ if (is_file($whatsappOpenclawBootstrap)) {
 
 class PaymentController
 {
-    public static function config(array $context): void
+    private static function config(array $context): void
     {
         json_response([
             'ok' => true,
@@ -27,7 +27,7 @@ class PaymentController
         ]);
     }
 
-    public static function checkoutConfig(array $context): void
+    private static function checkoutConfig(array $context): void
     {
         json_response([
             'ok' => true,
@@ -35,7 +35,7 @@ class PaymentController
         ]);
     }
 
-    public static function checkoutIntent(array $context): void
+    private static function checkoutIntent(array $context): void
     {
         if (!payment_gateway_enabled()) {
             json_response([
@@ -105,7 +105,7 @@ class PaymentController
         ], 201);
     }
 
-    public static function checkoutConfirm(array $context): void
+    private static function checkoutConfirm(array $context): void
     {
         $payload = require_json_body();
         $orderId = trim((string) ($payload['orderId'] ?? ''));
@@ -202,7 +202,7 @@ class PaymentController
         ]);
     }
 
-    public static function checkoutSubmit(array $context): void
+    private static function checkoutSubmit(array $context): void
     {
         $payload = require_json_body();
         $method = strtolower(trim((string) ($payload['paymentMethod'] ?? '')));
@@ -256,7 +256,7 @@ class PaymentController
         ], 201);
     }
 
-    public static function checkoutTransferProof(array $context): void
+    private static function checkoutTransferProof(array $context): void
     {
         $orderId = trim((string) ($_POST['orderId'] ?? ''));
         if ($orderId === '') {
@@ -353,7 +353,7 @@ class PaymentController
         ], 201);
     }
 
-    public static function checkoutOrderReview(array $context): void
+    private static function checkoutOrderReview(array $context): void
     {
         $payload = require_json_body();
         $orderId = trim((string) ($payload['id'] ?? $payload['orderId'] ?? ''));
@@ -435,7 +435,7 @@ class PaymentController
         ]);
     }
 
-    public static function softwareSubscriptionCheckout(array $context): void
+    private static function softwareSubscriptionCheckout(array $context): void
     {
         if (function_exists('start_secure_session')) {
             start_secure_session();
@@ -512,7 +512,7 @@ class PaymentController
         ], 201);
     }
 
-    public static function createIntent(array $context): void
+    private static function createIntent(array $context): void
     {
         $store = $context['store'];
         require_rate_limit('payment-intent', 8, 60);
@@ -743,7 +743,7 @@ class PaymentController
         ]);
     }
 
-    public static function verify(array $context): void
+    private static function verify(array $context): void
     {
         require_rate_limit('payment-verify', 12, 60);
 
@@ -786,7 +786,7 @@ class PaymentController
         ]);
     }
 
-    public static function transferProof(array $context): void
+    private static function transferProof(array $context): void
     {
         require_rate_limit('transfer-proof', 6, 60);
 
@@ -860,7 +860,7 @@ class PaymentController
         ], 201);
     }
 
-    public static function webhook(array $context): void
+    private static function webhook(array $context): void
     {
         $webhookSecret = payment_stripe_webhook_secret();
         if ($webhookSecret === '') {
@@ -1220,5 +1220,94 @@ class PaymentController
         $result = array_keys($normalized);
         sort($result, SORT_STRING);
         return $result;
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:payment-config':
+                self::config($context);
+                return;
+            case 'GET:checkout-config':
+                self::checkoutConfig($context);
+                return;
+            case 'POST:checkout-transfer-proof':
+                self::checkoutTransferProof($context);
+                return;
+            case 'PATCH:checkout-orders':
+                self::checkoutOrderReview($context);
+                return;
+            case 'POST:software-subscription-checkout':
+                self::softwareSubscriptionCheckout($context);
+                return;
+            case 'POST:payment-intent':
+                self::createIntent($context);
+                return;
+            case 'POST:payment-verify':
+                self::verify($context);
+                return;
+            case 'POST:checkout-intent':
+                self::checkoutIntent($context);
+                return;
+            case 'POST:checkout-confirm':
+                self::checkoutConfirm($context);
+                return;
+            case 'POST:checkout-submit':
+                self::checkoutSubmit($context);
+                return;
+            case 'POST:transfer-proof':
+                self::transferProof($context);
+                return;
+            case 'POST:stripe-webhook':
+                self::webhook($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'config':
+                            self::config($context);
+                            return;
+                        case 'checkoutConfig':
+                            self::checkoutConfig($context);
+                            return;
+                        case 'checkoutTransferProof':
+                            self::checkoutTransferProof($context);
+                            return;
+                        case 'checkoutOrderReview':
+                            self::checkoutOrderReview($context);
+                            return;
+                        case 'softwareSubscriptionCheckout':
+                            self::softwareSubscriptionCheckout($context);
+                            return;
+                        case 'createIntent':
+                            self::createIntent($context);
+                            return;
+                        case 'verify':
+                            self::verify($context);
+                            return;
+                        case 'checkoutIntent':
+                            self::checkoutIntent($context);
+                            return;
+                        case 'checkoutConfirm':
+                            self::checkoutConfirm($context);
+                            return;
+                        case 'checkoutSubmit':
+                            self::checkoutSubmit($context);
+                            return;
+                        case 'transferProof':
+                            self::transferProof($context);
+                            return;
+                        case 'webhook':
+                            self::webhook($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

@@ -26,7 +26,7 @@ class OperatorAuthController
         exit();
     }
 
-    public static function start(array $context = []): void
+    private static function start(array $context = []): void
     {
         start_secure_session();
         require_csrf();
@@ -46,7 +46,7 @@ class OperatorAuthController
         json_response($payload, $status);
     }
 
-    public static function status(array $context = []): void
+    private static function status(array $context = []): void
     {
         start_secure_session();
 
@@ -54,7 +54,7 @@ class OperatorAuthController
         json_response($payload);
     }
 
-    public static function complete(array $context = []): void
+    private static function complete(array $context = []): void
     {
         operator_auth_require_bridge_token();
         $result = operator_auth_complete_from_bridge(require_json_body());
@@ -63,20 +63,20 @@ class OperatorAuthController
         json_response($payload, $status);
     }
 
-    public static function logout(array $context = []): void
+    private static function logout(array $context = []): void
     {
         start_secure_session();
         require_csrf();
         json_response(operator_auth_logout_payload());
     }
 
-    public static function callback(array $context = []): void
+    public static function __callback(array $context = []): void
     {
         start_secure_session();
         self::redirectOperatorAuthResult(operator_auth_handle_broker_callback($_GET));
     }
 
-    public static function oauthCallback(array $context = []): void
+    public static function __oauthCallback(array $context = []): void
     {
         $result = CalendarOAuthReauth::completeCallback($_GET);
         if (is_array($result)) {
@@ -96,14 +96,14 @@ class OperatorAuthController
         self::redirectOperatorAuthResult(operator_auth_handle_broker_callback($_GET));
     }
 
-    public static function calendarTokenStart(array $context = []): void
+    public static function __calendarTokenStart(array $context = []): void
     {
         $payload = CalendarOAuthReauth::create();
         $status = (($payload['ok'] ?? false) === true) ? 202 : 503;
         json_response($payload, $status);
     }
 
-    public static function calendarTokenStatus(array $context = []): void
+    public static function __calendarTokenStatus(array $context = []): void
     {
         $challengeId = trim((string) ($_GET['challengeId'] ?? ''));
         $payload = CalendarOAuthReauth::statusPayload($challengeId);
@@ -111,5 +111,46 @@ class OperatorAuthController
             ? 200
             : (($payload['status'] ?? '') === 'calendar_oauth_reauth_not_found' ? 404 : 400);
         json_response($payload, $status);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:operator-auth-start':
+                self::start($context);
+                return;
+            case 'GET:operator-auth-status':
+                self::status($context);
+                return;
+            case 'POST:operator-auth-complete':
+                self::complete($context);
+                return;
+            case 'POST:operator-auth-logout':
+                self::logout($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'start':
+                            self::start($context);
+                            return;
+                        case 'status':
+                            self::status($context);
+                            return;
+                        case 'complete':
+                            self::complete($context);
+                            return;
+                        case 'logout':
+                            self::logout($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

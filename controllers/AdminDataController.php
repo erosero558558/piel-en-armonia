@@ -20,7 +20,7 @@ require_once __DIR__ . '/../lib/MultiClinicDashboardService.php';
 
 class AdminDataController
 {
-    public static function index(array $context): void
+    private static function index(array $context): void
     {
         // GET /data (Admin)
         $patientCaseService = new PatientCaseService();
@@ -215,7 +215,7 @@ class AdminDataController
         return $store;
     }
 
-    public static function import(array $context): void
+    private static function import(array $context): void
     {
         // POST /import (Admin)
         $store = $context['store'];
@@ -681,7 +681,7 @@ class AdminDataController
         ];
     }
 
-    public static function businessMetrics(array $context): void
+    private static function businessMetrics(array $context): void
     {
         $store = $context['store'];
         if (!($context['isAdmin'] ?? false)) {
@@ -768,7 +768,7 @@ class AdminDataController
         return $prices[$service] ?? 35.0;
     }
 
-    public static function chronicPanel(array $context): void
+    private static function chronicPanel(array $context): void
     {
         self::requireAuth($context);
         $store = $context['store'];
@@ -835,7 +835,7 @@ class AdminDataController
         ]);
     }
 
-    public static function patientLtv(array $context): void
+    private static function patientLtv(array $context): void
     {
         self::requireAuth($context);
         $store = $context['store'];
@@ -913,7 +913,7 @@ class AdminDataController
         ]);
     }
 
-    public static function adverseReactionReport(array $context): void
+    public static function __adverseReactionReport(array $context): void
     {
         self::requireAuth($context);
         
@@ -971,6 +971,53 @@ class AdminDataController
     {
         if (!($context['isDoctor'] ?? false) && !($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:data':
+                self::index($context);
+                return;
+            case 'POST:import':
+                self::import($context);
+                return;
+            case 'GET:business-metrics':
+                self::businessMetrics($context);
+                return;
+            case 'GET:chronic-panel':
+                self::chronicPanel($context);
+                return;
+            case 'GET:patient-ltv':
+                self::patientLtv($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'index':
+                            self::index($context);
+                            return;
+                        case 'import':
+                            self::import($context);
+                            return;
+                        case 'businessMetrics':
+                            self::businessMetrics($context);
+                            return;
+                        case 'chronicPanel':
+                            self::chronicPanel($context);
+                            return;
+                        case 'patientLtv':
+                            self::patientLtv($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
         }
     }
 }

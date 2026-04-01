@@ -14,13 +14,13 @@ if (is_file($whatsappOpenclawBootstrap)) {
 
 class SystemController
 {
-    public static function monitoringConfig(array $context): void
+    public static function __monitoringConfig(array $context): void
     {
         $config = get_monitoring_config();
         json_response($config);
     }
 
-    public static function features(array $context): void
+    private static function features(array $context): void
     {
         $flags = FeatureFlags::getAll();
 
@@ -51,7 +51,7 @@ class SystemController
         ]);
     }
 
-    public static function publicRuntimeConfig(array $context): void
+    private static function publicRuntimeConfig(array $context): void
     {
         $captchaProvider = function_exists('captcha_get_provider')
             ? captcha_get_provider()
@@ -113,7 +113,7 @@ class SystemController
         ]);
     }
 
-    public static function metrics(array $context): void
+    private static function metrics(array $context): void
     {
         if (!diagnostics_request_authorized($context)) {
             audit_log_event('api.metrics_blocked', [
@@ -297,7 +297,7 @@ class SystemController
         exit;
     }
 
-    public static function clinicOnboarding(array $context): void
+    private static function clinicOnboarding(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -350,7 +350,7 @@ class SystemController
         ]);
     }
 
-    public static function predictions(array $context): void
+    private static function predictions(array $context): void
     {
         $store = $context['store'];
         $action = isset($_GET['action']) ? (string) $_GET['action'] : '';
@@ -394,5 +394,52 @@ class SystemController
         }
 
         json_response(['ok' => false, 'error' => 'Acción no soportada para predicciones'], 404);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:features':
+                self::features($context);
+                return;
+            case 'GET:public-runtime-config':
+                self::publicRuntimeConfig($context);
+                return;
+            case 'GET:metrics':
+                self::metrics($context);
+                return;
+            case 'GET:predictions':
+                self::predictions($context);
+                return;
+            case 'POST:clinic-onboarding':
+                self::clinicOnboarding($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'features':
+                            self::features($context);
+                            return;
+                        case 'publicRuntimeConfig':
+                            self::publicRuntimeConfig($context);
+                            return;
+                        case 'metrics':
+                            self::metrics($context);
+                            return;
+                        case 'predictions':
+                            self::predictions($context);
+                            return;
+                        case 'clinicOnboarding':
+                            self::clinicOnboarding($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

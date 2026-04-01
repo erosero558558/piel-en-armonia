@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
 
 class WhatsappOpenclawController
 {
-    public static function inbound(array $context): void
+    private static function inbound(array $context): void
     {
         self::ensureEnabled();
         WhatsappOpenclawConfig::assertMachineToken();
@@ -70,7 +70,7 @@ class WhatsappOpenclawController
         ], $status === 'duplicate' ? 200 : 202);
     }
 
-    public static function outbox(array $context): void
+    private static function outbox(array $context): void
     {
         self::ensureEnabled();
         WhatsappOpenclawConfig::assertMachineToken();
@@ -96,7 +96,7 @@ class WhatsappOpenclawController
         ]);
     }
 
-    public static function ack(array $context): void
+    private static function ack(array $context): void
     {
         self::ensureEnabled();
         WhatsappOpenclawConfig::assertMachineToken();
@@ -126,7 +126,7 @@ class WhatsappOpenclawController
         ]);
     }
 
-    public static function ops(array $context): void
+    private static function ops(array $context): void
     {
         self::ensureEnabled();
         if (($context['isAdmin'] ?? false) !== true) {
@@ -654,7 +654,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    public static function metrics(array $context): void
+    private static function metrics(array $context): void
     {
         self::ensureEnabled();
         if (($context['isAdmin'] ?? false) !== true) {
@@ -699,5 +699,58 @@ class WhatsappOpenclawController
             'outbox_failed' => $outboxFailed,
             'conversion_rate' => $conversionRate,
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:whatsapp-openclaw-inbound':
+                self::inbound($context);
+                return;
+            case 'GET:whatsapp-openclaw-outbox':
+                self::outbox($context);
+                return;
+            case 'POST:whatsapp-openclaw-ack':
+                self::ack($context);
+                return;
+            case 'GET:whatsapp-openclaw-ops':
+                self::ops($context);
+                return;
+            case 'POST:whatsapp-openclaw-ops':
+                self::ops($context);
+                return;
+            case 'GET:whatsapp-openclaw-metrics':
+                self::metrics($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'inbound':
+                            self::inbound($context);
+                            return;
+                        case 'outbox':
+                            self::outbox($context);
+                            return;
+                        case 'ack':
+                            self::ack($context);
+                            return;
+                        case 'ops':
+                            self::ops($context);
+                            return;
+                        case 'ops':
+                            self::ops($context);
+                            return;
+                        case 'metrics':
+                            self::metrics($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

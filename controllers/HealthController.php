@@ -15,7 +15,7 @@ require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
 
 class HealthController
 {
-    public static function check(array $context): void
+    private static function check(array $context): void
     {
         $requestStartedAt = $context['requestStartedAt'] ?? microtime(true);
         $method = $context['method'] ?? 'GET';
@@ -357,7 +357,7 @@ class HealthController
         json_response(self::publicPayload($detailedPayload));
     }
 
-    public static function diagnostics(array $context): void
+    private static function diagnostics(array $context): void
     {
         if (!diagnostics_request_authorized($context)) {
             audit_log_event('api.health_diagnostics_blocked', [
@@ -374,7 +374,7 @@ class HealthController
         self::check($context);
     }
 
-    public static function systemStatus(array $context): void
+    private static function systemStatus(array $context): void
     {
         $uptimeMinutes = 0;
         if (is_file('/proc/uptime')) {
@@ -1192,5 +1192,46 @@ class HealthController
         }
 
         return $endpointPath === '/figo-chat.php';
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:health':
+                self::check($context);
+                return;
+            case 'GET:health-diagnostics':
+                self::diagnostics($context);
+                return;
+            case 'GET:system-status':
+                self::systemStatus($context);
+                return;
+            case 'GET:health':
+                self::check($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'check':
+                            self::check($context);
+                            return;
+                        case 'diagnostics':
+                            self::diagnostics($context);
+                            return;
+                        case 'systemStatus':
+                            self::systemStatus($context);
+                            return;
+                        case 'check':
+                            self::check($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

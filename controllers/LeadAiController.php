@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 class LeadAiController
 {
-    public static function request(array $context): void
+    private static function request(array $context): void
     {
         $store = $context['store'];
         $payload = require_json_body();
@@ -38,7 +38,7 @@ class LeadAiController
         json_response(['ok' => true, 'data' => $updated], 202);
     }
 
-    public static function queue(array $context): void
+    private static function queue(array $context): void
     {
         self::requireMachineToken();
         $store = $context['store'];
@@ -49,7 +49,7 @@ class LeadAiController
         ]);
     }
 
-    public static function result(array $context): void
+    private static function result(array $context): void
     {
         self::requireMachineToken();
         $store = $context['store'];
@@ -139,5 +139,40 @@ class LeadAiController
 
         $serverKey = 'HTTP_' . $normalized;
         return trim((string) ($_SERVER[$serverKey] ?? ''));
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'POST:lead-ai-request':
+                self::request($context);
+                return;
+            case 'GET:lead-ai-queue':
+                self::queue($context);
+                return;
+            case 'POST:lead-ai-result':
+                self::result($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'request':
+                            self::request($context);
+                            return;
+                        case 'queue':
+                            self::queue($context);
+                            return;
+                        case 'result':
+                            self::result($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }

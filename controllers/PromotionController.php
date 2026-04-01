@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/promotions/PromotionEngine.php';
 
 class PromotionController
 {
-    public static function getActivePromotions(array $context): void
+    private static function getActivePromotions(array $context): void
     {
         $store = $context['store'];
         $promotions = $store['promotions'] ?? [];
@@ -64,5 +64,28 @@ class PromotionController
             'ok' => true,
             'promotions' => $activePromos
         ]);
+    }
+
+    public static function handle(array $context): void
+    {
+        $resource = $context['resource'] ?? '';
+        $method = $context['method'] ?? 'GET';
+        $key = "$method:$resource";
+        
+        switch ($key) {
+            case 'GET:active-promotions':
+                self::getActivePromotions($context);
+                return;
+            default:
+                if (isset($context['action'])) {
+                    $action = $context['action'];
+                    switch ($action) {
+                        case 'getActivePromotions':
+                            self::getActivePromotions($context);
+                            return;
+                    }
+                }
+                json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
+        }
     }
 }
