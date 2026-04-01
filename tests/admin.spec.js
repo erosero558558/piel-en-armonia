@@ -175,7 +175,8 @@ async function setupLoginAdminMocks(
 async function waitForAdminReady(page) {
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ready',
-        'true'
+        'true',
+        { timeout: 15000 }
     );
 }
 

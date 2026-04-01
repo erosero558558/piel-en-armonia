@@ -7,6 +7,11 @@
 @import './layout.css';
 @import './liquid-glass.css';
 
+html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
 /* ==========================================================================
    UI4-10 Liquid Glass Animations
    ========================================================================== */

@@ -222,7 +222,7 @@ test.describe('Admin sony_v3 runtime', () => {
             page.locator('[data-admin-priority-rail]').first()
         ).toBeVisible();
         await expect(
-            page.locator('[data-admin-workbench]').first()
+            page.locator('.active [data-admin-workbench]').first()
         ).toBeVisible();
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#pageTitle')).toHaveText('Turnero');

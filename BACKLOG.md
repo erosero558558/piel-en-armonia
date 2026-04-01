@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 10:06:39 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 10:14:23 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████████░░░░░░` **70%** completado (465/662)
+`██████████████░░░░░░` **69%** completado (466/676)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -23,7 +23,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
 | ⏸ Sprint 8 | 13 | 4 | 76% |
-| ⏸ Sprint 9 | 11 | 16 | 41% |
+| ⏸ Sprint 9 | 12 | 15 | 44% |
 | ⏸ Sprint 10 | 3 | 27 | 10% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
 | ⏸ Sprint 13 | 19 | 2 | 90% |
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 123 | 53 | 70% |
+| ⏸ Sprint UI | 123 | 67 | 65% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -148,18 +148,18 @@ _Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 | **S8-19** | `[S8]` | L |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
-_Esperando que Sprint anterior esté completo. 16 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 15 tareas pendientes._
 
-### 🟢 Disponibles (16)
+### 🟢 Disponibles (15)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S9-01** | `[S9]` | M |
 | **S9-03** | `[S9]` | L |
-| **S9-04** | `[S9]` | M |
 | **S9-13** | `[S9]` | M |
 | **S9-14** | `[S9]` | M |
-| ... | | _+11 más_ |
+| **S9-15** | `[S9]` | S |
+| ... | | _+10 más_ |
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
 _Esperando que Sprint anterior esté completo. 27 tareas pendientes._
@@ -257,9 +257,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 53 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 67 tareas pendientes._
 
-### 🟢 Disponibles (53)
+### 🟢 Disponibles (67)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -268,7 +268,7 @@ _Esperando que Sprint anterior esté completo. 53 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-05** | `[S24]` | S |
 | **S24-06** | `[S24]` | M |
-| ... | | _+48 más_ |
+| ... | | _+62 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

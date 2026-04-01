@@ -667,6 +667,7 @@ export function setOverviewMetrics(state) {
         clinicalHistoryMeta,
         multiClinicOverview,
         pendingCallbacks,
+        telemedicineMeta,
         waitingTickets,
         whatsappOpenclawOps,
     } = state;

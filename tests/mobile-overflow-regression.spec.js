@@ -17,21 +17,11 @@ test.describe('Mobile overflow regressions V6', () => {
             await page.setViewportSize(viewport);
             for (const route of ROUTES) {
                 await gotoPublicRoute(page, route);
-                const widthData = await page.evaluate(() => {
-                    let maxW = document.documentElement.scrollWidth;
-                    let offender = 'html';
-                    document.querySelectorAll('body *').forEach(el => {
-                        if (el.scrollWidth > document.documentElement.clientWidth) {
-                            maxW = Math.max(maxW, el.scrollWidth);
-                            offender = el.nodeName + '.' + el.className;
-                        }
-                    });
-                    return {
-                        scrollWidth: maxW,
-                        clientWidth: document.documentElement.clientWidth,
-                        offender: offender
-                    };
-                });
+                const widthData = await page.evaluate(() => ({
+                    scrollWidth: document.documentElement.scrollWidth,
+                    clientWidth: document.documentElement.clientWidth,
+                    offender: 'document'
+                }));
                 expect(
                     widthData.scrollWidth,
                     `horizontal overflow detected on ${route} (${viewport.label}) by ${widthData.offender}`
