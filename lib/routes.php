@@ -75,7 +75,7 @@ function register_api_routes(Router $router): void
     $router->add('DELETE', 'patient-data-erasure', [PatientDataErasureController::class, 'process']);
     $router->add('GET', 'patient-data-export', [PatientDataExportController::class, 'process']);
     $router->add('GET', 'stats-export', [StatsExportController::class, 'export']);
-    $router->add('GET', 'consent-status', [ConsentStatusController::class, 'process']);
+    $router->add('GET', 'consent-status', [ConsentStatusController::class, 'handle']);
 
     // Push Preferences
     $router->add('GET', 'push-preferences', [PatientPortalController::class, 'getPushPreferences']);

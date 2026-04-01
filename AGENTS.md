@@ -2139,7 +2139,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 25.1 Información clínica en vivo
 
-- [ ] **S25-01** `[L]` `[UI]` Próxima cita en vivo con estado — `es/portal/index.html` debe mostrar la cita activa real: nombre del médico, servicio, fecha, hora, sala asignada. Si está en cola ese día, mostrar número de turno y estimado de espera desde el API del turnero. Si no hay cita, mostrar CTA "Agendar tu próxima cita". Sin esto el portal no tiene valor. Verificable: `GET /api.php?resource=patient-portal-dashboard` → `next_appointment` con `doctor`, `service`, `date`, `queue_position` si aplica.
+- [x] **S25-01** `[L]` `[UI]` Próxima cita en vivo con estado — `es/portal/index.html` debe mostrar la cita activa real: nombre del médico, servicio, fecha, hora, sala asignada. Si está en cola ese día, mostrar número de turno y estimado de espera desde el API del turnero. Si no hay cita, mostrar CTA "Agendar tu próxima cita". Sin esto el portal no tiene valor. Verificable: `GET /api.php?resource=patient-portal-dashboard` → `next_appointment` con `doctor`, `service`, `date`, `queue_position` si aplica.
 
 - [x] **S25-02** `[M]` `[UI]` Descarga de recetas y certificados — `es/portal/historial/`: listar todas las recetas y certificados del paciente por fecha, con botón de descarga PDF directo. El token de descarga debe ser firmado y de un solo uso (TTL 1h). Actualmente `patient-portal-prescription` existe pero no está expuesto en la UI. Verificable: visita `es/portal/historial/` → lista de documentos con botón que descarga PDF auténtico.
 

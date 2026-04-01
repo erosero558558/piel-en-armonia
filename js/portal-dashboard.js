@@ -579,7 +579,9 @@
         return `
             <section class="portal-card-next lg-surface--dark portal-glass-card" data-portal-next-appointment-card>
                 <div class="portal-card-next__header">
-                    <span class="portal-card-next__kicker">Próxima cita confirmada</span>
+                    <span class="portal-card-next__kicker">
+                        ${safeAppointment.queue_position ? 'Turno #' + escapeHtml(String(safeAppointment.queue_position)) + ' en sala de espera' : 'Próxima cita confirmada'}
+                    </span>
                     <span class="portal-status-chip">Activa</span>
                 </div>
                 <div class="portal-card-next__time">

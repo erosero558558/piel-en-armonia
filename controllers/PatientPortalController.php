@@ -4533,6 +4533,7 @@ final class PatientPortalController
             'telemedicinePreConsultation' => isset($appointment['telemedicinePreConsultation']) && is_array($appointment['telemedicinePreConsultation'])
                 ? $appointment['telemedicinePreConsultation']
                 : [],
+            'queue_position' => isset($appointment['queue_position']) ? (int) $appointment['queue_position'] : null,
             'whatsappUrl' => self::buildSupportWhatsappUrl($patient, $appointment),
         ];
     }

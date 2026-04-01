@@ -3072,3 +3072,20 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
         'RUNBOOKS debe incluir styles-deferred.min.css en la limpieza local'
     );
 });
+
+test('entregables del sprint 29 existen', () => {
+    const expected = [
+        'data/cie10-derm.json',
+        'js/cie10-search.js',
+        'styles/cie10-search.css',
+        'js/clinical-photo-timeline.js',
+        'styles/clinical-photo-timeline.css',
+        'bin/send-appointment-reminders.php',
+        'bin/send-followup-reminders.php',
+        'es/bienvenida-medico/index.html',
+        'tests-node/sprint29-smoke.test.js'
+    ];
+    for (const f of expected) {
+        assert.equal(existsSync(resolve(REPO_ROOT, f)), true, `falta el archivo del sprint 29: ${f}`);
+    }
+});
