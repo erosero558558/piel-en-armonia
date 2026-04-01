@@ -2145,7 +2145,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S25-03** `[L]` `[UI]` Plan de tratamiento activo — mostrar el plan de tratamiento clínico activo en una card: diagnóstico principal, medicamentos activos con instrucciones de toma, próximo control y qué hacer si empeora. Esta información existe en la HCE pero el paciente no la ve. Es la pregunta más frecuente post-consulta. Verificable: `GET /api.php?resource=patient-portal-plan` → `active_diagnosis`, `medications` con instrucciones, `next_visit`.
 
-- [ ] **S25-04** `[M]` `[UI]` Historial de pagos en el portal — mostrar cada cita pagada con: fecha, servicio, monto, método de pago, y link de recibo PDF. Si hay saldo pendiente, mostrarlo en rojo con CTA "Pagar ahora". Sin esto el paciente llama a la clínica para pedir facturas. Verificable: `GET /api.php?resource=patient-portal-payments` → array de `payments` con `amount`, `method`, `receipt_url`.
+- [x] **S25-04** `[M]` `[UI]` Historial de pagos en el portal — mostrar cada cita pagada con: fecha, servicio, monto, método de pago, y link de recibo PDF. Si hay saldo pendiente, mostrarlo en rojo con CTA "Pagar ahora". Sin esto el paciente llama a la clínica para pedir facturas. Verificable: `GET /api.php?resource=patient-portal-payments` → array de `payments` con `amount`, `method`, `receipt_url`.
 
 #### 25.2 Autogestión del paciente
 
