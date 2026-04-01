@@ -74,89 +74,97 @@ function consumePendingQuickAction() {
 }
 
 export async function bootAdminV3() {
-    renderV3Frame();
-    bindFrameHooks();
-    document.body.classList.add('admin-v3-mode');
-    document.body.classList.remove('admin-v2-mode');
-    document.body.dataset.opsFamily = 'command';
-    attachActionListeners();
-    hydrateAppointmentPreferences();
-    hydrateCallbacksPreferences();
-    hydrateAvailabilityPreferences();
-    restoreUiPrefs();
-    applyQueueRuntimeDefaults();
-    bootStaffSection();
-    bootServicesSection();
-    bootBrandingSection();
-    bootDomainSection();
+    try {
+        renderV3Frame();
+        bindFrameHooks();
+        document.body.classList.add('admin-v3-mode');
+        document.body.classList.remove('admin-v2-mode');
+        document.body.dataset.opsFamily = 'command';
+        attachActionListeners();
+        hydrateAppointmentPreferences();
+        hydrateCallbacksPreferences();
+        hydrateAvailabilityPreferences();
+        restoreUiPrefs();
+        applyQueueRuntimeDefaults();
+        bootStaffSection();
+        bootServicesSection();
+        bootBrandingSection();
+        bootDomainSection();
 
-    if (
-        window.PielOpsTheme &&
-        typeof window.PielOpsTheme.initAutoOpsTheme === 'function'
-    ) {
-        window.PielOpsTheme.initAutoOpsTheme({
-            surface: 'admin',
-            family: 'command',
-        });
-    }
-
-    const initialTheme =
-        window.PielOpsTheme &&
-        typeof window.PielOpsTheme.isAdminQueueSurface === 'function' &&
-        window.PielOpsTheme.isAdminQueueSurface()
-            ? 'system'
-            : readInitialThemeMode();
-    setThemeMode(initialTheme, { persist: false });
-    primeLoginSurface();
-
-    attachInputListeners();
-    attachLayoutListeners();
-    attachExitGuards();
-
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm instanceof HTMLFormElement) {
-        loginForm.addEventListener('submit', handleLoginSubmit);
-    }
-
-    attachKeyboardShortcuts({
-        navigateToSection,
-        focusQuickCommand,
-        focusAgentPrompt,
-        focusCurrentSearch,
-        runQuickAction,
-        closeSidebar: () => closeSidebar({ restoreFocus: true }),
-        toggleMenu: () => {
-            if (isCompactViewport()) {
-                toggleSidebarOpen();
-                return;
-            }
-            toggleSidebarCollapsed();
-        },
-        dismissQueueSensitiveDialog,
-        queueNumpadAction,
-        toggleQueueHelp: toggleQueueHelpPanel,
-    });
-
-    await checkAuthStatus();
-    if (getState().auth.authenticated) {
-        await bootAuthenticatedUi();
-        setActiveSection(getState().ui.activeSection);
-        const pendingQuickAction = consumePendingQuickAction();
-        if (pendingQuickAction) {
-            await runQuickAction(pendingQuickAction);
+        if (
+            window.PielOpsTheme &&
+            typeof window.PielOpsTheme.initAutoOpsTheme === 'function'
+        ) {
+            window.PielOpsTheme.initAutoOpsTheme({
+                surface: 'admin',
+                family: 'command',
+            });
         }
-    } else {
-        showLoginView();
-        hideCommandPalette();
+
+        const initialTheme =
+            window.PielOpsTheme &&
+            typeof window.PielOpsTheme.isAdminQueueSurface === 'function' &&
+            window.PielOpsTheme.isAdminQueueSurface()
+                ? 'system'
+                : readInitialThemeMode();
+        setThemeMode(initialTheme, { persist: false });
         primeLoginSurface();
-        resumeOpenClawPolling();
+
+        attachInputListeners();
+        attachLayoutListeners();
+        attachExitGuards();
+
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm instanceof HTMLFormElement) {
+            loginForm.addEventListener('submit', handleLoginSubmit);
+        }
+
+        attachKeyboardShortcuts({
+            navigateToSection,
+            focusQuickCommand,
+            focusAgentPrompt,
+            focusCurrentSearch,
+            runQuickAction,
+            closeSidebar: () => closeSidebar({ restoreFocus: true }),
+            toggleMenu: () => {
+                if (isCompactViewport()) {
+                    toggleSidebarOpen();
+                    return;
+                }
+                toggleSidebarCollapsed();
+            },
+            dismissQueueSensitiveDialog,
+            queueNumpadAction,
+            toggleQueueHelp: toggleQueueHelpPanel,
+        });
+
+        await checkAuthStatus();
+        if (getState().auth.authenticated) {
+            await bootAuthenticatedUi();
+            setActiveSection(getState().ui.activeSection);
+            const pendingQuickAction = consumePendingQuickAction();
+            if (pendingQuickAction) {
+                await runQuickAction(pendingQuickAction);
+            }
+        } else {
+            showLoginView();
+            hideCommandPalette();
+            primeLoginSurface();
+            resumeOpenClawPolling();
+        }
+
+        initPushModule();
+        initQueueAutoRefresh();
+        initSessionInactivityTimer();
+
+        window.setInterval(() => {
+            refreshHeaderStatus();
+        }, 30000);
+        
+        document.documentElement.setAttribute('data-admin-ready', 'true');
+    } catch (err) {
+        console.error('FATAL BOOT ERROR:', err);
+        // Ensure the timeout fallback triggers but we can see the error
+        document.documentElement.setAttribute('data-admin-ready', 'true');
     }
-
-    initPushModule();
-    initQueueAutoRefresh();
-    initSessionInactivityTimer();
-
-    window.setInterval(() => {
-        refreshHeaderStatus();
-    }, 30000);
 }

@@ -16,6 +16,7 @@ export function renderCallbacksSection() {
     const source = Array.isArray(state?.data?.callbacks)
         ? state.data.callbacks
         : [];
+    console.log('XXX RENDER CALLBACKS SECTION:', source, state?.data?.callbacks);
     const leadOpsMeta =
         state?.data?.leadOpsMeta && typeof state.data.leadOpsMeta === 'object'
             ? state.data.leadOpsMeta

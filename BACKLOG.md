@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 2:46:55 p. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 6:32:46 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████████████░░` **88%** completado (612/696)
+`██████████████████░░` **88%** completado (613/696)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -18,7 +18,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 4 | 26 | 0 | 100% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
 | ✅ Sprint 6 | 25 | 0 | 100% |
-| ⏸ Sprint 7 | 13 | 24 | 35% |
+| ⏸ Sprint 7 | 14 | 23 | 38% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
@@ -63,18 +63,22 @@ _Sprint completado. 22/22 tareas._
 _Sprint completado. 25/25 tareas._
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 24 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 23 tareas pendientes._
 
-### 🟢 Disponibles (24)
+### 🟢 Disponibles (22)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S7-05** | `[S7]` | S |
 | **S7-07** | `[S7]` | M |
-| **S7-08** | `[S7]` | S |
 | **S7-09** | `[S7]` | S |
 | **S7-11** | `[S7]` | L |
-| ... | | _+19 más_ |
+| **S7-12** | `[S7]` | M |
+| **S7-13** | `[S7]` | S |
+| ... | | _+17 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S7-08** `[S7]` → _antigravity_ (expira en 118min)
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._

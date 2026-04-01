@@ -124,6 +124,10 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'openclaw-summarize', [OpenclawController::class, 'summarizeSession']);
     $router->add('GET', 'openclaw-router-status', [OpenclawController::class, 'routerStatus']);
     $router->add('GET', 'openclaw-next-patient', [OpenclawController::class, 'nextPatient']);
+    // OpenAPI drift fixes: previously zombie endpoints now routed
+    $router->add('POST', 'openclaw-save-chronic', [OpenclawController::class, 'saveChronicCondition']);
+    $router->add('POST', 'openclaw-close-telemedicine', [OpenclawController::class, 'closeTelemedicine']);
+    $router->add('POST', 'openclaw-fast-close', [OpenclawController::class, 'fastClose']);
 
     // Certificados médicos — standalone (lista, crear, PDF)
     $router->add('GET', 'certificate', [CertificateController::class, 'index']);

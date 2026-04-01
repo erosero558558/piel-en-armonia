@@ -67,6 +67,36 @@ import {buildTurneroSurfaceExpansionSnapshot} from '../../../../../../queue-shar
 import {getTurneroActiveClinicId as getTurneroClinicIdFromState, getTurneroActiveClinicProfile as getTurneroClinicProfileFromState, getTurneroActiveClinicProfileCatalogStatus as getTurneroClinicProfileCatalogStatusFromState, getTurneroActiveClinicProfileMeta as getTurneroClinicProfileMetaFromState, getTurneroClinicProfiles as getTurneroClinicProfilesFromState, getTurneroRegionalClinics as getTurneroRegionalClinicsFromState, getTurneroClinicBrandName as getTurneroClinicBrandNameForProfile, getTurneroClinicShortName as getTurneroClinicShortNameForProfile, getTurneroConsultorioLabel as getTurneroConsultorioLabelForProfile} from '../../../../../../queue-shared/turnero-runtime-contract.mjs';
 import {FLOW_OS_RECOVERY_FROZEN_ADMIN_PANEL_IDS, getFlowOsRecoveryFreezeNotice, hideFlowOsRecoveryHost, isFlowOsRecoveryAdminPanelFrozen, isFlowOsRecoveryFreezeActive} from '../../../../../../queue-shared/flow-os-recovery-freeze.js';
 
+import {
+    getDefaultAppDownloads,
+    getSurfaceTelemetryState,
+    normalizeSurfaceTelemetryInstance,
+    getSurfaceTelemetryInstances,
+    ensureInstallPreset,
+    buildSurfaceGoLiveTelemetrySnapshot,
+    getOperatorShellPhase,
+    buildOperatorShellLifecycleLabel,
+    buildOperatorOperationalBlocker
+} from './install-hub-install.js';
+
+import {
+    getTurneroClinicProfile,
+    getTurneroConsultorioLabel,
+    buildQueueReleaseHistoryCurrentSnapshot,
+    buildSignalAgeLabel,
+    normalizeOperatorStationKey,
+    formatQueueTicketAgeLabel,
+    buildConsultorioOperatorContext
+} from './install-hub-install.js';
+
+
+import {
+    mergeSurfaceTargets,
+    buildPreparedSurfaceUrl,
+    getLatestSurfaceDetails,
+    getOperatorSurfaceDetailsForStation,
+    isSurfaceInstanceLive
+} from './install-hub-install.js';
 
 export let queueReleaseHistoryDashboard = null;
 
@@ -82,58 +112,9 @@ export function getSurfaceTarget(appConfig, targetKey) {
     return null;
 }
 
-export function mergeSurfaceTargets(defaultTargets, loadedTargets) {
-    const fallbackTargets = defaultTargets && typeof defaultTargets === 'object' ? defaultTargets : {};
-    const runtimeTargets = loadedTargets && typeof loadedTargets === 'object' ? loadedTargets : {};
-    const targetKeys = Array.from(new Set([...Object.keys(fallbackTargets), ...Object.keys(runtimeTargets)])).filter(Boolean);
-    return Object.fromEntries(targetKeys.map(targetKey => [targetKey, {
-        ...fallbackTargets[targetKey] || ({}),
-        ...runtimeTargets[targetKey] || ({})
-    }]));
-}
 
-export function buildPreparedSurfaceUrl(surfaceKey, appConfig, preset) {
-    const url = new URL(String(appConfig.webFallbackUrl || '/'), `${window.location.origin}/`);
-    if (surfaceKey === 'operator') {
-        url.searchParams.set('station', preset.station === 'c2' ? 'c2' : 'c1');
-        url.searchParams.set('lock', preset.lock ? '1' : '0');
-        url.searchParams.set('one_tap', preset.oneTap ? '1' : '0');
-    }
-    return url.toString();
-}
 
-export function getLatestSurfaceDetails(surfaceKey) {
-    const group = getSurfaceTelemetryState(surfaceKey);
-    const latest = group.latest && typeof group.latest === 'object' ? normalizeSurfaceTelemetryInstance(group.latest, group) : null;
-    const details = latest?.details && typeof latest.details === 'object' ? latest.details : {};
-    return {
-        group,
-        latest,
-        details
-    };
-}
 
-export function getOperatorSurfaceDetailsForStation(consultorio) {
-    const slot = Number(consultorio || 0) === 2 ? 2 : 1;
-    const slotKey = `c${slot}`;
-    const {group, latest: latestRecord} = getLatestSurfaceDetails('operator');
-    const instances = getSurfaceTelemetryInstances('operator');
-    const resolvedInstances = instances.length > 0 ? instances : latestRecord ? [latestRecord] : [];
-    const assigned = resolvedInstances.find(instance => normalizeOperatorStationKey(instance?.details?.station) === slotKey) || null;
-    const fallbackLive = resolvedInstances.find(instance => isSurfaceInstanceLive(instance)) || latestRecord;
-    const latest = assigned || fallbackLive;
-    const details = latest?.details && typeof latest.details === 'object' ? latest.details : {};
-    return {
-        group,
-        instances: resolvedInstances,
-        slotKey,
-        assigned,
-        assignedDetails: assigned?.details && typeof assigned.details === 'object' ? assigned.details : {},
-        latest,
-        details,
-        fallbackLive
-    };
-}
 
 export function getQueueReleaseHistoryDashboard() {
     if (!queueReleaseHistoryDashboard) {
@@ -956,17 +937,6 @@ export function formatSurfacePlatformLabel(platform) {
     return normalized === '' ? '' : normalized;
 }
 
-export function isOperatorSurfaceOperational(instance) {
-    if (!isSurfaceInstanceLive(instance)) {
-        return false;
-    }
-    const effectiveStatus = String(instance.effectiveStatus || instance.status || 'unknown').trim().toLowerCase();
-    if (effectiveStatus !== 'ready') {
-        return false;
-    }
-    const details = instance?.details && typeof instance.details === 'object' ? instance.details : {};
-    return buildOperatorShellLifecycleLabel(details) === '';
-}
 
 export function buildSurfaceAppModeLabel(latest) {
     if (!latest || typeof latest !== 'object') {
@@ -983,13 +953,6 @@ export function buildSurfaceAppModeLabel(latest) {
     return 'Fallback web';
 }
 
-export function isSurfaceInstanceLive(instance) {
-    if (!instance || typeof instance !== 'object') {
-        return false;
-    }
-    const effectiveStatus = String(instance.effectiveStatus || instance.status || 'unknown').trim().toLowerCase();
-    return instance.stale !== true && effectiveStatus !== 'unknown';
-}
 
 export function buildKioskAlert(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);

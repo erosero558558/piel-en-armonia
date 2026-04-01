@@ -1,4 +1,7 @@
-import {getState} from '../../../../core/store.js';
+
+
+import { getState } from '../../../../core/store.js';
+
 import {createToast, escapeHtml, formatDateTime, setHtml, setText} from '../../../../ui/render.js';
 import {getActiveCalledTicketForStation, getCalledTicketForConsultorio, getQueueTicketById, getQueueSource, getVisibleTickets, getWaitingForConsultorio} from '../../selectors.js';
 import {ensureOpsAlertsState as ensureOpsAlertsStateStore, ensureOpsFocusMode as ensureOpsFocusModeStore, markOpsAlertsReviewed as markOpsAlertsReviewedStore, persistOpsFocusMode as persistOpsFocusModeStore, setOpsAlertReviewed as setOpsAlertReviewedStore} from './install-hub/ops-alerts.js';
@@ -9,10 +12,14 @@ import {buildQueueOpsAlerts as buildQueueOpsAlertsModule, renderQueueOpsAlerts a
 import {ensureInstallHubRegistryLoaded, getInstallHubDefaultAppDownloads, getInstallHubSurfaceCardCopy, getInstallHubSurfaceDefinition, getInstallHubSurfaceOrder, getInstallHubSurfaceTelemetryCopy, syncInstallHubRuntimePayload} from './install-hub/registry.js';
 import {
     getQueueAppsHubRoot, queueOpsInteractionController,
-    absoluteUrl, appendOpsLogEntry, applyFlowOsRecoveryFreezeToQueueHub, applyQueueAdminViewModeToHub, buildGuideUrl, buildOperatorProfileLabel, buildOperatorRolloutEntries, buildOperatorShellLifecycleMetaLabel, buildOperatorShellLifecycleSummaryLabel, buildOperatorShellStartupLabels, buildOperatorShellStatusMetaLabel, buildOperatorShellStatusSummaryLabel, buildOperatorShellSupportEntries, buildQrUrl, buildSignalAgeLabel, clearQueueExpertPanels, ensureQueueAdminViewMode, formatHeartbeatAge, formatIntervalAge, getActiveQueueOpsClinicId, getDesktopTarget, getTurneroClinicProfile, getTurneroClinicProfileMeta, getTurneroReleaseCommandDeckParts, isOperatorNumpadReady, mergeManifest, primeQueueAdminViewModeToHub, renderAndroidCard, renderDesktopCard, renderQueueAdminViewMode, renderQueueHubCorePanels, renderQueueHubExpertPanels, rerenderQueueOpsHub, shouldRenderQueueHubExpandedPanels, syncQueueClinicScopedLocalState
+    absoluteUrl, appendOpsLogEntry, applyFlowOsRecoveryFreezeToQueueHub, applyQueueAdminViewModeToHub, buildGuideUrl, buildOperatorProfileLabel, buildOperatorRolloutEntries, buildOperatorShellLifecycleMetaLabel, buildOperatorShellLifecycleSummaryLabel, buildOperatorShellStartupLabels, buildOperatorShellStatusMetaLabel, buildOperatorShellStatusSummaryLabel, buildOperatorShellSupportEntries, buildQrUrl, clearQueueExpertPanels, ensureQueueAdminViewMode, formatHeartbeatAge, formatIntervalAge, getActiveQueueOpsClinicId, getDesktopTarget, getTurneroReleaseCommandDeckParts, getQueueReleaseHistorySnapshotParts, isOperatorNumpadReady, isQueueBasicFullView, mergeManifest, primeQueueAdminViewModeToHub, renderAndroidCard, renderDesktopCard, renderQueueAdminViewMode, renderQueueHubCorePanels, renderQueueHubExpertPanels, rerenderQueueOpsHub, shouldRenderQueueHubExpandedPanels, syncQueueClinicScopedLocalState
 } from './install-hub-queue.js';
+import {
+    getQueueSurfaceSyncScope,
+    buildSurfaceSyncConsolePacks,
+    buildSurfaceGoLiveConsolePacks
+} from './install-hub-display.js';
 import {detectPlatform} from './install-hub/platform.js';
-import {getLatestSurfaceDetails} from './install-hub-display.js';
 import {renderQueueMainlineAuditBridge as renderQueueMainlineAuditBridgeModule} from './install-hub/mainline-audit-bridge.js';
 import {renderQueueFinalDiagnosisAdjudicationBinder as renderQueueFinalDiagnosisAdjudicationBinderModule} from './install-hub/final-diagnosis-adjudication-binder.js';
 import {renderQueueHonestRepoDiagnosisWorkspace as renderQueueHonestRepoDiagnosisWorkspaceModule} from './install-hub/honest-repo-diagnosis-workspace.js';
@@ -1052,7 +1059,7 @@ export function renderQueueInstallHub(options = {}) {
         clearQueueExpertPanels();
     }
     primeQueueAdminViewModeToHub(adminMode);
-    renderQueueHubDomainView();
+    renderQueueHubDomainViewModule({ getAdminMode: ensureQueueAdminViewMode, isBasicFullView: isQueueBasicFullView });
     applyQueueAdminViewModeToHub(adminMode);
     applyFlowOsRecoveryFreezeToQueueHub();
     if (hubRoot) {
@@ -1062,3 +1069,245 @@ export function renderQueueInstallHub(options = {}) {
     queueOpsInteractionController.scheduleSettle();
 }
 
+
+/* MOVED FROM DISPLAY TO BREAK CYCLES */
+export function mergeSurfaceTargets(defaultTargets, loadedTargets) {
+    const fallbackTargets = defaultTargets && typeof defaultTargets === 'object' ? defaultTargets : {};
+    const runtimeTargets = loadedTargets && typeof loadedTargets === 'object' ? loadedTargets : {};
+    const targetKeys = Array.from(new Set([...Object.keys(fallbackTargets), ...Object.keys(runtimeTargets)])).filter(Boolean);
+    return Object.fromEntries(targetKeys.map(targetKey => [targetKey, {
+        ...fallbackTargets[targetKey] || ({}),
+        ...runtimeTargets[targetKey] || ({})
+    }]));
+}
+
+export function buildPreparedSurfaceUrl(surfaceKey, appConfig, preset) {
+    const url = new URL(String(appConfig.webFallbackUrl || '/'), `${window.location.origin}/`);
+    if (surfaceKey === 'operator') {
+        url.searchParams.set('station', preset.station === 'c2' ? 'c2' : 'c1');
+        url.searchParams.set('lock', preset.lock ? '1' : '0');
+        url.searchParams.set('one_tap', preset.oneTap ? '1' : '0');
+    }
+    return url.toString();
+}
+
+export function getLatestSurfaceDetails(surfaceKey) {
+    const group = getSurfaceTelemetryState(surfaceKey);
+    const latest = group.latest && typeof group.latest === 'object' ? normalizeSurfaceTelemetryInstance(group.latest, group) : null;
+    const details = latest?.details && typeof latest.details === 'object' ? latest.details : {};
+    return {
+        group,
+        latest,
+        details
+    };
+}
+
+export function getOperatorSurfaceDetailsForStation(consultorio) {
+    const slot = Number(consultorio || 0) === 2 ? 2 : 1;
+    const slotKey = `c${slot}`;
+    const {group, latest: latestRecord} = getLatestSurfaceDetails('operator');
+    const instances = getSurfaceTelemetryInstances('operator');
+    const resolvedInstances = instances.length > 0 ? instances : latestRecord ? [latestRecord] : [];
+    const assigned = resolvedInstances.find(instance => normalizeOperatorStationKey(instance?.details?.station) === slotKey) || null;
+    const fallbackLive = resolvedInstances.find(instance => isSurfaceInstanceLive(instance)) || latestRecord;
+    const latest = assigned || fallbackLive;
+    const details = latest?.details && typeof latest.details === 'object' ? latest.details : {};
+    return {
+        group,
+        instances: resolvedInstances,
+        slotKey,
+        assigned,
+        assignedDetails: assigned?.details && typeof assigned.details === 'object' ? assigned.details : {},
+        latest,
+        details,
+        fallbackLive
+    };
+}
+
+export function isSurfaceInstanceLive(instance) {
+    if (!instance || typeof instance !== 'object') {
+        return false;
+    }
+    const effectiveStatus = String(instance.effectiveStatus || instance.status || 'unknown').trim().toLowerCase();
+    return instance.stale !== true && effectiveStatus !== 'unknown';
+}
+
+
+/* MOVED FROM QUEUE TO BREAK CYCLES */
+export function getTurneroClinicProfile(source = getState()) {
+    return getTurneroClinicProfileFromState(source);
+}
+
+export function getTurneroConsultorioLabel(consultorio, options = {}) {
+    return getTurneroConsultorioLabelForProfile(getTurneroClinicProfile(), consultorio, options);
+}
+
+export function buildQueueReleaseHistoryCurrentSnapshot() {
+    const parts = getQueueReleaseHistorySnapshotParts();
+    const model = buildTurneroReleaseControlCenterModel(parts);
+    const clinicId = model.clinicId || parts.clinicId || 'default-clinic';
+    return {
+        ...model,
+        snapshotId: `live-${clinicId}`,
+        source: 'queue-release-history',
+        label: model.clinicShortName || model.clinicName || clinicId
+    };
+}
+
+export function buildSignalAgeLabel(latest, fallback = 'Sin heartbeat reciente') {
+    const ageSec = Number(latest?.ageSec);
+    if (!Number.isFinite(ageSec)) {
+        return fallback;
+    }
+    return `Heartbeat hace ${formatHeartbeatAge(ageSec)}`;
+}
+
+export function normalizeOperatorStationKey(station) {
+    const normalized = String(station || '').trim().toLowerCase();
+    if (normalized === '2' || normalized === 'c2') {
+        return 'c2';
+    }
+    if (normalized === '1' || normalized === 'c1') {
+        return 'c1';
+    }
+    return '';
+}
+
+export function formatQueueTicketAgeLabel(ticket, mode) {
+    const timestampMs = getQueueTicketTimestampMs(ticket, mode);
+    if (!Number.isFinite(timestampMs)) {
+        return mode === 'called' ? 'sin marca de llamado' : 'sin marca de espera';
+    }
+    const ageSec = Math.max(0, Math.round((Date.now() - timestampMs) / 1000));
+    return mode === 'called' ? `llamado hace ${formatHeartbeatAge(ageSec)}` : `espera hace ${formatHeartbeatAge(ageSec)}`;
+}
+
+export function buildConsultorioOperatorContext(manifest, detectedPlatform, consultorio) {
+    const slot = Number(consultorio || 0) === 2 ? 2 : 1;
+    const operator = getOperatorSurfaceDetailsForStation(slot);
+    const {slotKey} = operator;
+    const operatorAssigned = Boolean(operator.assigned);
+    const operatorAssignedDetails = operator.assignedDetails || ({});
+    const operatorProfileLabel = buildOperatorProfileLabel(operatorAssignedDetails);
+    const operatorStation = normalizeOperatorStationKey(operatorAssignedDetails.station);
+    const operatorLocked = String(operatorAssignedDetails.stationMode || '').trim().toLowerCase() === 'locked';
+    const operatorInstance = operator.assigned || operator.fallbackLive;
+    const operatorSignal = isSurfaceInstanceLive(operatorInstance);
+    const operatorReady = isOperatorSurfaceOperational(operatorInstance);
+    const operatorLive = operatorSignal;
+    const operatorBlocker = buildOperatorOperationalBlocker(operatorInstance);
+    const fallbackProfileLabel = buildOperatorProfileLabel(operator.details);
+    const fallbackOperatorLabel = operator.fallbackLive ? fallbackProfileLabel ? `Operador activo en ${fallbackProfileLabel}` : String(operator.fallbackLive.deviceLabel || 'Operador activo') : 'Sin operador dedicado';
+    const operatorLabel = operatorAssigned ? String(operator.assigned?.deviceLabel || `Operador ${operatorProfileLabel || slotKey.toUpperCase()}`) : fallbackOperatorLabel;
+    const operatorUrl = buildPreparedSurfaceUrl('operator', manifest.operator || getDefaultAppDownloads().operator, {
+        ...ensureInstallPreset(detectedPlatform),
+        surface: 'operator',
+        station: slotKey,
+        lock: true
+    });
+    return {
+        slot,
+        slotKey,
+        operator,
+        operatorStation,
+        operatorLocked,
+        operatorAssigned,
+        operatorSignal,
+        operatorLive,
+        operatorReady,
+        operatorBlocker,
+        operatorLabel,
+        operatorUrl,
+        oneTapLabel: operatorAssigned ? `1 tecla ${operatorAssignedDetails.oneTap ? 'ON' : 'OFF'}` : '1 tecla sin validar',
+        numpadLabel: operatorAssigned ? buildOperatorNumpadTelemetryLabel(operatorAssignedDetails, {
+            compact: true
+        }) : 'Numpad sin señal',
+        heartbeatLabel: buildSignalAgeLabel(operator.assigned || operator.fallbackLive, 'Sin heartbeat'),
+        shellLabel: operatorAssigned ? buildSurfaceTelemetryInstanceMeta('operator', operator.assigned) : operator.fallbackLive ? buildSurfaceTelemetryInstanceMeta('operator', operator.fallbackLive) : 'Shell sin señal'
+    };
+}
+
+export function getTurneroConsultorioLabelFromStation(value, options = {}) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'c2' || normalized === '2') {
+        return getTurneroConsultorioLabel(2, options);
+    }
+    if (normalized === 'c1' || normalized === '1') {
+        return getTurneroConsultorioLabel(1, options);
+    }
+    return String(options?.fallback || 'sin señal').trim() || 'sin señal';
+}
+
+export function getTurneroClinicProfileMeta(source = getState(), profile = null) {
+    return getTurneroClinicProfileMetaFromState(source, profile);
+}
+
+export function getTurneroClinicProfileCatalogStatus(source = getState()) {
+    return getTurneroClinicProfileCatalogStatusFromState(source);
+}
+
+export function getTurneroClinicProfiles(source = getState()) {
+    return getTurneroClinicProfilesFromState(source);
+}
+
+/* MOVED FROM QUEUE TO BREAK CYCLES 3 */
+export function getOperatorShellPhase(details) {
+    return String(details?.shellPhase || '').trim().toLowerCase();
+}
+
+export function buildOperatorShellLifecycleLabel(details) {
+    if (!details || typeof details !== 'object') {
+        return '';
+    }
+    const phase = getOperatorShellPhase(details);
+    const shellContext = String(details.shellContext || '').trim().toLowerCase();
+    if (details.shellFirstRun) {
+        return 'Primer arranque';
+    }
+    if (details.shellSettingsMode || phase === 'settings') {
+        return 'Configuración local';
+    }
+    if (phase === 'retry') {
+        return 'Reintentando';
+    }
+    if (phase === 'loading') {
+        return 'Conectando';
+    }
+    if (phase === 'blocked') {
+        return 'Bloqueado';
+    }
+    if (shellContext === 'boot' || phase === 'boot') {
+        return 'Boot local';
+    }
+    return '';
+}
+
+export function buildOperatorOperationalBlocker(instance) {
+    if (!instance || typeof instance !== 'object') {
+        return 'Sin heartbeat reciente del operador.';
+    }
+    const details = instance.details && typeof instance.details === 'object' ? instance.details : {};
+    const summary = String(instance.summary || '').trim();
+    const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+    if (lifecycleLabel) {
+        const lifecycleSummary = buildOperatorShellLifecycleSummaryLabel(details);
+        return getOperatorShellPhase(details) === 'retry' ? lifecycleSummary || summary || lifecycleLabel : summary || lifecycleSummary || lifecycleLabel;
+    }
+    const effectiveStatus = String(instance.effectiveStatus || instance.status || 'unknown').trim().toLowerCase();
+    if (effectiveStatus === 'alert' || effectiveStatus === 'warning') {
+        return summary || buildOperatorNumpadTelemetryLabel(details);
+    }
+    return '';
+}
+
+export function isOperatorSurfaceOperational(instance) {
+    if (!isSurfaceInstanceLive(instance)) {
+        return false;
+    }
+    const effectiveStatus = String(instance.effectiveStatus || instance.status || 'unknown').trim().toLowerCase();
+    if (effectiveStatus !== 'ready') {
+        return false;
+    }
+    const details = instance?.details && typeof instance.details === 'object' ? instance.details : {};
+    return buildOperatorShellLifecycleLabel(details) === '';
+}

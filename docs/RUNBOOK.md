@@ -12,12 +12,16 @@ El script `ops/backup.sh` centraliza el estado total del consultorio empaquetand
 Ante corrupción del archivo principal `store.json` o borrado accidental, seguir estos pasos precisos de resiliencia:
 
 1. **Colocar sistema en mantenimiento**: Si posee ingress o proxy, desvíe el tráfico apuntando a su landing page de `maintenance.html` o baje los pods vía `kubectl scale deployment auroraderm --replicas=0`.
-2. **Navegar a Backup**: `cd data/backups/` e identifique la copia buena más reciente.
-3. **Limpiar Causa Raíz**: Borre el `store.json` corrupto (si existe) y/o muévalo a un `store.corrupt.json` por propósitos forenses.
-4. **Extraer**: `tar -xzvf store-YYYY-MM-DD-HH.tar.gz -C ../` (o manualmente sobrescribiendo los archivos en `data/`).
-5. **Validar Permisos**: Ejecute `chmod 664 data/*.json`.
-6. **Arrancar sistema**: Levante la aplicación (`kubectl scale deployment auroraderm --replicas=2` o reinicie pm2/docker).
-7. **Verificar Hard Health**: Visite internamente `/api.php?resource=health` asegurando que `store: ok`.
+2. **Listar Backups**: En el directorio del repositorio, ejecute `ls -l data/backups/` e identifique el archivo `.tar.gz.gpg` más reciente.
+3. **Restaurar**: Ejecute el script automatizado `./ops/restore.sh data/backups/store-YYYY-MM-DD-HH.tar.gz.gpg`.
+4. **Validar Archivos**: Confirme que los archivos se extrajeron correctamente y no hubo errores de cifrado GPG.
+5. **Arrancar sistema**: Levante la aplicación (`kubectl scale deployment auroraderm --replicas=2` o reinicie pm2/docker).
+6. **Verificar Hard Health**: Visite internamente `/api.php?resource=health` asegurando que `store: ok`.
+
+## 8. Backup Automatizado
+Se configuró rotación y respaldo encriptado.
+- **Crear un backup manual**: Ejecute `./ops/backup.sh`. Generará un `.gpg` en la bóveda cifrada a la llave del administrador principal.
+- **Rotación**: Retención configurada en 7 días mediante cron.
 
 ---
 *Flow OS Platform – Documentación sujeta a auditoría de Ingeniería.*

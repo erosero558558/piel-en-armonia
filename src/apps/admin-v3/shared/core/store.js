@@ -214,3 +214,14 @@ function emit() {
         }
     });
 }
+
+if (typeof window !== 'undefined') {
+    window.__adminStore = {
+        getState,
+        patchState,
+        setState,
+        updateState,
+        subscribe,
+        resetState
+    };
+}

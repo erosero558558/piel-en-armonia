@@ -649,3 +649,60 @@ paths:
                 format: binary
         '404':
           description: Certificado no encontrado
+
+  /next/patient:
+    get:
+      operationId: nextPatient
+      summary: Obtener siguiente paciente en cola
+      description: |
+        Devuelve el siguiente paciente en la cola de atención para el médico.
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Información del siguiente paciente
+
+  /cie10/search:
+    get:
+      operationId: cie10
+      summary: Búsqueda de código CIE-10
+      description: |
+        Sugiere códigos CIE-10 basados en un query libre. Alias de /cie10/suggest.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de sugerencias CIE-10
+
+  /openclaw/evolution:
+    post:
+      operationId: evolution
+      summary: Guardar nota de evolución clínica (alias)
+      description: |
+        Alias para el endpoint openclaw-evolution. Guarda nota de evolución SOAP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id, text]
+              properties:
+                case_id: { type: string }
+                text: { type: string }
+      responses:
+        '200':
+          description: Evolución guardada

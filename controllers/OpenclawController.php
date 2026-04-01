@@ -96,8 +96,13 @@ final class OpenclawController
 
         // Alergias del paciente
         $allergies = $history['allergies'] ?? [];
-
-        // Resumen IA de últimas 3 visitas (si existe)
+        $knownAllergies = $case['known_allergies'] ?? ($store['patients'][$patientId]['known_allergies'] ?? []);
+        if (is_string($knownAllergies) && trim($knownAllergies) !== '') {
+            $knownAllergies = array_map('trim', explode(',', $knownAllergies));
+        } elseif (!is_array($knownAllergies)) {
+            $knownAllergies = [];
+        }
+        $allergies = array_values(array_unique(array_filter(array_merge($allergies, $knownAllergies))));
         $lastVisitSummary = $history['ai_summary'] ?? null;
 
         // Últimas 5 visitas para el contexto
