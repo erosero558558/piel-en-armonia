@@ -309,6 +309,45 @@
                     </div>
                 </section>
 
+                <!-- UI5-07: HCE Timeline Demo -->
+                <section id="hce-timeline-demo" class="admin-section" data-admin-raw-section="hce-timeline">
+                    <div class="dashboard-wrapper">
+                        <header style="margin-bottom: var(--space-4); padding-bottom: 0; border: none;">
+                            <p>Historial Visual</p>
+                            <h3>Timeline de Visitas (HCE)</h3>
+                            <p>Demo visual del componente UI5-07 Glass Stepper.</p>
+                        </header>
+                        <div class="bento-grid" style="grid-template-columns: 1fr; max-width: 800px;">
+                            <article class="bento-card">
+                                <div class="hce-timeline">
+                                    <div class="visit-stepper type-urgencia is-expanded" data-date="HOY" onclick="this.classList.toggle('is-expanded')">
+                                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 4px; color: var(--admin-text-primary);">Urgencia Dermatológica</div>
+                                        <div style="color: var(--admin-text-muted); font-size: 0.85rem;">Dr. Roberto Ruiz — 10:45 AM</div>
+                                        <div class="episode-expand" style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px;">
+                                            <p style="margin: 0; font-size: 0.9rem; color: var(--admin-text-primary);">Paciente ingresa con cuadro de dermatitis atópica severa exacerbada. Se administra corticoides IV.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="visit-stepper type-procedimiento" data-date="12/Oct" onclick="this.classList.toggle('is-expanded')">
+                                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 4px; color: var(--admin-text-primary);">Biopsia Cutánea</div>
+                                        <div style="color: var(--admin-text-muted); font-size: 0.85rem;">Dra. Elena Vargas</div>
+                                        <div class="episode-expand" style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px;">
+                                            <p style="margin: 0; font-size: 0.9rem; color: var(--admin-text-primary);">Muestra de 4mm enviada a patología. Sin complicaciones durante el procedimiento.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="visit-stepper type-consulta" data-date="04/Oct" onclick="this.classList.toggle('is-expanded')">
+                                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 4px; color: var(--admin-text-primary);">Consulta Primera Vez</div>
+                                        <div style="color: var(--admin-text-muted); font-size: 0.85rem;">Dra. Elena Vargas</div>
+                                        <div class="episode-expand" style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px;">
+                                            <p style="margin: 0; font-size: 0.9rem; color: var(--admin-text-primary);">Sospecha de carcinoma basocelular. Se programa biopsia.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                </section>
                 <!-- S4-10: Dashboard multi-clínica -->
                 <section
                     id="multi-clinic"

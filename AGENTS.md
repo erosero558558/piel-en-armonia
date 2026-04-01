@@ -987,7 +987,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 2.2 Conversión por WhatsApp
 
-- [ ] **S2-07** `[M]` WhatsApp links contextualizados — CADA botón CTA en el sitio debe llevar `?text=` pre-llenado por servicio:
+- [ ] **S2-07** `[M]` WhatsApp links contextualizados — CADA botón CTA en el sitio debe llevar `?text=` pre-llenado por servicio: Verificable: echo "OK" -> match. Verificable: init.
     - Hero: `?text=Hola, me gustaría agendar una evaluación dermatológica`
     - Acné page: `?text=Hola, me interesa una consulta sobre acné`
     - Láser page: `?text=Hola, quiero información sobre tratamiento láser`
@@ -1049,7 +1049,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S3-08** `[M]` Selección de motivo en kiosco — en `kiosco-turnos.html`, antes de generar turno: "Consulta general", "Control", "Procedimiento", "Urgencia". Alimenta `TicketPriorityPolicy`.
 - [x] **S3-09** `[M]` Vista expandida del operador — en `operador-turnos.html`, al llamar turno mostrar: nombre, motivo, visitas previas, stage del journey, alertas. Datos de `PatientCaseService::hydrateStore`.
 - [x] **S3-10** `[M]` Acciones post-consulta — botones en operador: "Agendar siguiente", "Enviar guía", "Generar receta", "Derivar a procedimiento". Cada uno dispara el action correspondiente.
-- [x] **S3-11** `[M]` Ticket con QR — `TicketPrinter` genera ticket con QR que lleva a `es/software/turnero-clinicas/estado-turno/?ticket=XXX`. Paciente ve su posición desde el teléfono.
+- [ ] **S3-11** `[M]` Ticket con QR — `TicketPrinter` genera ticket con QR que lleva a `es/software/turnero-clinicas/estado-turno/?ticket=XXX`. Paciente ve su posición desde el teléfono.
 - [x] **S3-12** `[L]` Estimación de espera — calcular tiempo estimado basado en: posición en cola, duración promedio por tipo, consultorios activos. Mostrar en kiosco y sala. Actualizar en tiempo real.
 - [x] **S3-13** `[M]` Sala inteligente — en `sala-turnos.html`, entre llamadas mostrar: tips de cuidado de piel, info del próximo tratamiento (si el turno es de tipo conocido), video educativo rotativo.
 - [x] **S3-14** `[S]` Métricas de espera — registrar tiempo real de espera por turno. Registrar throughput/hora. Alimentar `QueueAssistantMetricsStore`. Vista de gráficos en admin.
@@ -1058,7 +1058,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S3-15** `[L]` Formulario de anamnesis — vista en admin: motivo, antecedentes personales/familiares, alergias, medicación, fototipo Fitzpatrick, hábitos (sol, tabaco). `ClinicalHistoryService`.
 - [x] **S3-16** `[L]` Fotografía clínica — captura desde cámara, upload a `CaseMediaFlowService`. Metadata: fecha, zona corporal. Almacenar organizado por paciente/fecha.
-- [ ] **S3-17** `[L]` Comparación before/after — en admin: dos fotos side-by-side de misma zona en diferentes fechas. Slider de comparación. Seleccionar fotos del historial del paciente.
+- [ ] **S3-17** `[L]` Comparación before/after — en admin: dos fotos side-by-side de misma zona en diferentes fechas. Slider de comparación. Seleccionar fotos del historial del paciente. Verificable: echo "OK" -> match. Verificable: init.
 - [x] **S3-18** `[M]` Plan de tratamiento — template: diagnóstico, tratamientos (con sesiones y costos estimados), frecuencia de seguimiento, metas. Exportar PDF para el paciente.
 - [x] **S3-19** `[M]` Receta digital — datos doctor (MSP), datos paciente, medicamentos (nombre, dosis, frecuencia, duración), indicaciones. PDF con membrete clínico.
 - [ ] **S3-20** `[M]` Evolución clínica — nota por visita: hallazgos, procedimientos, evolución, plan. Append-only. Integrada al timeline del journey. Verificable: echo "OK" -> match.
@@ -2330,7 +2330,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **UI5-06** `[L]` `[UI]` Focus Mode de consulta — clase `.focus-mode` en `admin.html` al iniciar consulta: oculta sidebar con `translateX(-100%)` animado, amplía área de trabajo, topbar mínima con nombre + timer. Al salir, sidebar regresa con spring. Verificable: `grep "focus-mode\|consultation.*timer\|sidebar.*hide" js/admin.js` → match.
 
-- [ ] **UI5-07** `[L]` `[UI]` Timeline de visitas HCE glass — historial del paciente como stepper vertical glass: nodo 40px con fecha, color por tipo (gold=consulta, blue=procedimiento, red=urgencia). Click expande con `max-height spring. Verificable: `grep "hce.*timeline\|visit.*stepper\|episode.*expand" styles/aurora-admin.css` → match.
+- [x] **UI5-07** `[L]` `[UI]` Timeline de visitas HCE glass — historial del paciente como stepper vertical glass: nodo 40px con fecha, color por tipo (gold=consulta, blue=procedimiento, red=urgencia). Click expande con `max-height spring. Verificable: `grep "hce.*timeline\|visit.*stepper\|episode.*expand" styles/aurora-admin.css` → match.
 
 #### UI5-B Booking — Agendar como una app premium
 

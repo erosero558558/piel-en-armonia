@@ -883,3 +883,77 @@ body.focus-mode .admin-content-canvas {
   color: var(--color-aurora-500);
   transform: translateY(-2px);
 }
+
+/* ==========================================================================
+   Phase UI5-07: Vertical Timeline HCE
+   Historial del paciente como stepper vertical glass
+   ========================================================================== */
+.hce-timeline {
+  display: flex;
+  flex-direction: column;
+  padding-left: 48px;
+  position: relative;
+}
+
+.hce-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 20px;
+  width: 2px;
+  background: var(--admin-border);
+}
+
+.visit-stepper {
+  position: relative;
+  margin-bottom: var(--space-6);
+  cursor: pointer;
+}
+
+.visit-stepper::before {
+  content: attr(data-date);
+  position: absolute;
+  top: 16px;
+  left: -48px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  z-index: 2;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  line-height: 1.1;
+  text-align: center;
+}
+
+.visit-stepper.type-consulta::before {
+  background: var(--admin-bg-base);
+  border: 2px solid var(--color-gold-400);
+  color: var(--color-gold-400);
+}
+
+.visit-stepper.type-procedimiento::before {
+  background: var(--admin-bg-base);
+  border: 2px solid var(--color-blue-400, #60a5fa);
+  color: var(--color-blue-400);
+}
+
+.visit-stepper.type-urgencia::before {
+  background: var(--admin-bg-base);
+  border: 2px solid var(--color-red-400, #f87171);
+  color: var(--color-red-400);
+}
+
+.episode-expand {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.visit-stepper.is-expanded .episode-expand {
+  max-height: 2000px;
+}

@@ -805,73 +805,7 @@ body .oc-msg-doctor .oc-msg-text {
   box-shadow: 0 0 12px rgba(106, 126, 150, 0.4);
 }
 
-/* UI5-07: Timeline de visitas HCE glass */
-.hce-timeline {
-  display: flex;
-  flex-direction: column;
-  padding-left: 48px;
-  position: relative;
-}
 
-.hce-timeline::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 20px;
-  width: 2px;
-  background: var(--admin-border);
-}
-
-.visit-stepper {
-  position: relative;
-  margin-bottom: var(--space-6);
-}
-
-.visit-stepper::before {
-  content: '';
-  position: absolute;
-  top: 16px;
-  left: -48px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-xs);
-  font-weight: bold;
-  z-index: 2;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-}
-
-.visit-stepper.type-consulta::before {
-  background: var(--admin-bg-base);
-  border: 2px solid var(--color-gold-400);
-  color: var(--color-gold-400);
-}
-
-.visit-stepper.type-procedimiento::before {
-  background: var(--admin-bg-base);
-  border: 2px solid var(--color-blue-400, #60a5fa);
-  color: var(--color-blue-400);
-}
-
-.visit-stepper.type-urgencia::before {
-  background: var(--admin-bg-base);
-  border: 2px solid var(--color-red-400, #f87171);
-  color: var(--color-red-400);
-}
-
-.episode-expand {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.visit-stepper.is-expanded .episode-expand {
-  max-height: 2000px;
-}
 
 /* 44. S27-02 / UI5-05: Prescription allergy-bar sticky allergy amber */
 .allergy-bar {

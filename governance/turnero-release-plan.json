@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-01T02:07:48.860Z",
+  "generatedAt": "2026-04-01T02:43:15.213Z",
   "releaseVersion": "unknown",
   "releaseChannel": "unknown",
   "allSurfacesReady": true,
@@ -10,7 +10,7 @@
       "label": "Consola Admin",
       "file": "admin.html",
       "exists": true,
-      "sizeKb": 74,
+      "sizeKb": 81,
       "hasAuth": true,
       "ready": true
     },

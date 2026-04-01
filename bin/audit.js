@@ -308,6 +308,21 @@ function main() {
         console.log(formatAuditText(report));
     }
 
+    try {
+        const { execSync } = require('child_process');
+        const fs = require('fs');
+        const path = require('path');
+        const out = execSync('node bin/qa-summary.js --json', { encoding: 'utf8', cwd: ROOT });
+        
+        const summaryPath = path.resolve(ROOT, 'governance/qa-summary.json');
+        if (!fs.existsSync(path.dirname(summaryPath))) {
+            fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
+        }
+        fs.writeFileSync(summaryPath, out, 'utf8');
+    } catch (e) {
+        // silently ignore failures to update summary
+    }
+
     return report.ok ? 0 : 1;
 }
 
