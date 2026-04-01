@@ -2336,7 +2336,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **UI5-08** `[XL]` `[UI]` Booking flow wizard 4 pasos — `es/agendar/index.html`: reemplazar formulario plano por wizard tipo Typeform: 1) servicio (cards glass), 2) fecha/hora (calendar glass), 3) datos paciente (inputs grandes), 4) confirmación + pago. Transición `translateX(100%→0)` spring entre pasos. Verificable: `grep "booking-step\|step.*active\|wizard.*step" es/agendar/index.html` → match; 4 pasos.
 
-- [ ] **UI5-09** `[L]` `[UI]` Cards de selección de servicio visual — grid de servicios: imagen, nombre grande, duración en pill gold, precio. Hover: `scale(1.02)` + borde gold. Seleccionado: checkmark gold animado. Verificable: `grep "service-card.*glass\|service.*check" es/agendar/index.html` → match ≥3.
+- [x] **UI5-09** `[L]` `[UI]` Cards de selección de servicio visual — grid de servicios: imagen, nombre grande, duración en pill gold, precio. Hover: `scale(1.02)` + borde gold. Seleccionado: checkmark gold animado. Verificable: `grep "service-card.*glass\|service.*check" es/agendar/index.html` → match ≥3.
 
 - [ ] **UI5-10** `[L]` `[UI]` Calendario de disponibilidad glass — grid de días como pills: disponibles=glass, sin disponibilidad=opacidad 0.3, seleccionado=glass gold sólido. Pills de horas abajo, scroll horizontal en móvil. Verificable: `grep "calendar.*glass\|slot.*pill\|day.*available" es/agendar/index.html` → match ≥4.
 

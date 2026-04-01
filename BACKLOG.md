@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 7:52:32 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 7:54:03 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -259,7 +259,7 @@ _Sprint completado. 10/10 tareas._
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
 _Esperando que Sprint anterior esté completo. 78 tareas pendientes._
 
-### 🟢 Disponibles (67)
+### 🟢 Disponibles (69)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -268,21 +268,19 @@ _Esperando que Sprint anterior esté completo. 78 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-04** | `[S24]` | L |
 | **S24-05** | `[S24]` | S |
-| ... | | _+62 más_ |
+| ... | | _+64 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S28-10** `[S28]` → _Session inactivity expiration_ (expira en 240min)
-- **S29-07** `[S29]` → _Antigravity_ (expira en 0min)
-- **S29-08** `[S29]` → _Antigravity_ (expira en 120min)
-- **S29-10** `[S29]` → _Antigravity_ (expira en 5min)
-- **S29-11** `[S29]` → _Antigravity_ (expira en 365min)
-- **S29-12** `[S29]` → _Antigravity_ (expira en 125min)
-- **S29-13** `[S29]` → _Antigravity_ (expira en 167min)
-- **S29-14** `[S29]` → _Antigravity_ (expira en 47min)
-- **S29-15** `[S29]` → _Antigravity_ (expira en 167min)
-- **S29-16** `[S29]` → _Antigravity_ (expira en 167min)
-- **UI5-09** `[UI5]` → _Antigravity_ (expira en 479min)
+- **S28-10** `[S28]` → _Session inactivity expiration_ (expira en 238min)
+- **S29-08** `[S29]` → _Antigravity_ (expira en 119min)
+- **S29-10** `[S29]` → _Antigravity_ (expira en 4min)
+- **S29-11** `[S29]` → _Antigravity_ (expira en 364min)
+- **S29-12** `[S29]` → _Antigravity_ (expira en 124min)
+- **S29-13** `[S29]` → _Antigravity_ (expira en 166min)
+- **S29-14** `[S29]` → _Antigravity_ (expira en 46min)
+- **S29-15** `[S29]` → _Antigravity_ (expira en 166min)
+- **S29-16** `[S29]` → _Antigravity_ (expira en 166min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
