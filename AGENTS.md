@@ -2193,7 +2193,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 27.1 Interface de consulta fluida
 
-- [ ] **S27-01** `[M]` `[UI]` Vista "Focus Mode" en consulta activa — cuando el médico inicia una consulta, el admin entra en modo pantalla completa con: foto del paciente, resumen clínico colapsable, chat de OpenClaw, y acciones rápidas (guardar diagnóstico, emitir receta, cerrar). Sin distracciones de menús laterales. Verificable: `grep "focus-mode\|consultation-focus" js/admin.js` → match; clase `.focus-mode` en `admin.html` cuando `case.status === in_consultation`.
+- [x] **S27-01** `[M]` `[UI]` Vista "Focus Mode" en consulta activa — cuando el médico inicia una consulta, el admin entra en modo pantalla completa con: foto del paciente, resumen clínico colapsable, chat de OpenClaw, y acciones rápidas (guardar diagnóstico, emitir receta, cerrar). Sin distracciones de menús laterales. Verificable: `grep "focus-mode\|consultation-focus" js/admin.js` → match; clase `.focus-mode` en `admin.html` cuando `case.status === in_consultation`.
 
 - [ ] **S27-02** `[M]` `[UI]` Panel de alergias e interacciones siempre visible — arriba del campo de prescripción, una barra fija en amber/gold que muestre las alergias activas del paciente. No debe estar enterrada en un tab. Si no hay alergias: barra verde "Sin alergias registradas". Verificable: `grep "allergy-bar\|allergy.*fixed" styles/aurora-clinical.css` → match; visible en DOM con `position: sticky`.
 

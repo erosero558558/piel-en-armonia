@@ -27,9 +27,17 @@ body.queue-display-body #displayProfileStatus,
 body.queue-display-body .display-privacy-pill,
 body.queue-display-body #displayConnectionState,
 body.queue-display-body #displayUpdatedAt,
-body.queue-display-body .display-privacy-note {
-    display: none; 
-    /* El paciente solo debe ver: La Marca, La Hora, Los Turnos */
+body.queue-display-body .display-privacy-note,
+/* ── Hosts de gobernanza interna (S30-03) — nunca visibles en TV ── */
+body.queue-display-body .turnero-surface-recovery-host,
+body.queue-display-body .turnero-surface-onboarding-host,
+body.queue-display-body .turnero-surface-acceptance-host,
+body.queue-display-body .turnero-surface-replication-host,
+body.queue-display-body .turnero-surface-runtime-host,
+body.queue-display-body [data-turnero-surface-runtime-bootstrap],
+body.queue-display-body [class*="turnero-surface-ops"] {
+    display: none !important;
+    /* La TV solo muestra: Marca, Hora, Turnos. Nunca logs del sistema. */
 }
 
 /* 3. El Super Header Bipartito */

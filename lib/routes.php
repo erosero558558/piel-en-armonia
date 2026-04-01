@@ -58,6 +58,8 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'patient-portal-prescription', [PatientPortalController::class, 'prescription']);
     $router->add('GET', 'patient-portal-consent', [PatientPortalController::class, 'consent']);
     $router->add('POST', 'patient-portal-consent', [PatientPortalController::class, 'signConsent']);
+    $router->add('POST', 'patient-self-vitals', [PatientPortalController::class, 'selfVitals']);
+    $router->add('POST', 'patient-portal-photo-upload', [PatientPortalController::class, 'uploadPhoto']);
     $router->add('GET', 'notification-config', [NotificationController::class, 'config']);
     $router->add('POST', 'notification-subscribe', [NotificationController::class, 'subscribe']);
     $router->add('POST', 'notification-unsubscribe', [NotificationController::class, 'unsubscribe']);

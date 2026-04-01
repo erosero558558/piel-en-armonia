@@ -145,12 +145,18 @@ final class OpenclawController
             $chronicStatus[] = $statusStr;
         }
 
+        $selfReportedVitals = null;
+        if (isset($draft['intake']['vitalSigns']['source']) && $draft['intake']['vitalSigns']['source'] === 'patient_self_report') {
+            $selfReportedVitals = $draft['intake']['vitalSigns'];
+        }
+
         $interVisitSummary = [
             'last_diagnosis' => $lastDx,
             'active_medications' => $medications,
             'last_evolution_date' => $history['last_evolution'] ?? '',
             'pending_labs' => $pendingLabs,
-            'chronic_status' => $chronicStatus
+            'chronic_status' => $chronicStatus,
+            'self_reported_vitals' => $selfReportedVitals
         ];
 
         // S31-09: Log de acceso a HCE por médico
@@ -631,7 +637,8 @@ final class OpenclawController
         $waUrl       = $phone !== '' ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) . '?text=' . $waMsg : '';
         $emailSent   = false;
 
-        if (isset($savedStore['prescriptions'][$rxId]) && is_array($savedStore['prescriptions'][$rxId])) {
+        $deliveryMode = trim((string) ($payload['delivery'] ?? ''));
+        if ($deliveryMode === 'email' && isset($savedStore['prescriptions'][$rxId]) && is_array($savedStore['prescriptions'][$rxId])) {
             $emailSent = maybe_send_prescription_ready_email(
                 $savedStore,
                 $savedStore['prescriptions'][$rxId],
@@ -642,6 +649,7 @@ final class OpenclawController
             );
 
             if ($emailSent) {
+                $savedStore['prescriptions'][$rxId]['deliveryStatus'] = 'email_sent';
                 $savedStore['prescriptions'][$rxId]['emailSentAt'] = local_date('c');
                 $savedStore['prescriptions'][$rxId]['emailChannel'] = 'email';
                 write_store($savedStore, false);
@@ -654,6 +662,9 @@ final class OpenclawController
             'pdf_url'         => $pdfUrl,
             'whatsapp_url'    => $waUrl,
             'email_sent'      => $emailSent,
+            'prescription'    => [
+                'deliveryStatus' => $emailSent ? 'email_sent' : 'pending',
+            ],
         ]);
     }
 

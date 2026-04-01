@@ -26,9 +26,17 @@ body.queue-kiosk-body .kiosk-header-tools,
 body.queue-kiosk-body .kiosk-progress-hint,
 body.queue-kiosk-body .kiosk-status,
 body.queue-kiosk-body .kiosk-next-step,
-body.queue-kiosk-body .kiosk-flow-cards {
-    display: none; 
-    /* El paciente solo debe ver 2 botones o 1 formulario y nada más */
+body.queue-kiosk-body .kiosk-flow-cards,
+/* ── Hosts de gobernanza interna (S30-02) — nunca visibles al paciente ── */
+body.queue-kiosk-body .turnero-surface-recovery-host,
+body.queue-kiosk-body .turnero-surface-onboarding-host,
+body.queue-kiosk-body .turnero-surface-acceptance-host,
+body.queue-kiosk-body .turnero-surface-replication-host,
+body.queue-kiosk-body .turnero-surface-runtime-host,
+body.queue-kiosk-body [data-turnero-surface-runtime-bootstrap],
+body.queue-kiosk-body [class*="turnero-surface-ops"] {
+    display: none !important;
+    /* El paciente SOLO ve los 2 botones o el formulario. Nunca logs internos. */
 }
 
 /* 3. Header simplificado (Solo la marca Aurora Derm) */

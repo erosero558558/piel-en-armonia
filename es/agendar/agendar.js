@@ -335,26 +335,47 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Normaliza un item del catálogo remoto (slug/hero/price_from) al formato interno (id/title/price)
+  function normalizeServiceItem(srv) {
+    if (!srv) return null;
+    // Si ya tiene el formato correcto (id + title) no transformar
+    if (srv.id && srv.title) return srv;
+    // Mapear desde el esquema del catalog json (slug, hero, price_from, summary, duration)
+    return {
+      id:       srv.slug       || srv.id       || '',
+      title:    srv.hero       || srv.title    || srv.name || '',
+      desc:     srv.summary    || srv.desc     || srv.description || '',
+      price:    srv.price_from ? `$${srv.price_from}` : (srv.price || 'Consultar'),
+      duration: srv.duration   || '30 min',
+      popular:  srv.popular    || srv.subcategory === 'core' || false,
+      icon:     srv.icon       || null,
+      category: srv.category   || '',
+    };
+  }
+
   async function renderServices() {
     try {
       const req = await fetch('/data/catalog/services.json');
       if (req.ok) {
-        let text = await req.text();
+        const text = await req.text();
         if (text) {
-            let data = JSON.parse(text);
-            if (Array.isArray(data)) {
-                servicesCatalog = data;
-            } else if (data && Array.isArray(data.services)) {
-                servicesCatalog = data.services;
-            } else if (data && Array.isArray(data.data)) {
-                servicesCatalog = data.data;
-            }
+          const data = JSON.parse(text);
+          let raw = [];
+          if (Array.isArray(data))             raw = data;
+          else if (Array.isArray(data.services)) raw = data.services;
+          else if (Array.isArray(data.data))     raw = data.data;
+
+          if (raw.length > 0) {
+            // Normalizar y filtrar solo los que tengan id y title validos
+            const normalized = raw.map(normalizeServiceItem).filter(s => s && s.id && s.title);
+            if (normalized.length > 0) servicesCatalog = normalized;
+          }
         }
       }
     } catch (e) {
       console.warn("Using fallback local catalog", e);
     }
-    
+
     if (!serviceGrid) return;
     serviceGrid.innerHTML = '';
     servicesCatalog.forEach(srv => {
@@ -362,19 +383,19 @@ document.addEventListener('DOMContentLoaded', () => {
       label.className = 'service-card glass-card';
       const pop = srv.popular ? `<span class="badge-popular">★ Popular</span>` : '';
       const iconHTML = srv.icon || `<div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg></div>`;
-      
+
       label.innerHTML = `
         <input type="radio" name="service" value="${srv.id}">
         <div class="card-content service-card-liquid">
            <div class="service-card-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <div class="service-icon" style="color:var(--accent); width:32px; height:32px;">${iconHTML}</div>
+              <div class="service-icon" style="color:var(--accent,#6366f1); width:32px; height:32px;">${iconHTML}</div>
               ${pop}
            </div>
-           <div class="service-title" style="color:#fff; font-family:var(--font-display); font-size:22px; margin-top:16px;">${srv.title}</div>
-           <div class="service-desc" style="color:var(--text-muted); font-size:14px; margin-top:8px; line-height:1.4;">${srv.desc}</div>
+           <div class="service-title" style="color:var(--text-primary,#f1f5f9); font-family:var(--font-display); font-size:22px; margin-top:16px;">${srv.title}</div>
+           <div class="service-desc" style="color:var(--text-secondary,#94a3b8); font-size:14px; margin-top:8px; line-height:1.4;">${srv.desc}</div>
            <div class="service-meta" style="margin-top:20px; display:flex; gap:12px; align-items:center;">
               <span class="service-duration rb-chip" style="font-size:12px;">⏱️ ${srv.duration || '30 min'}</span>
-              <span class="service-price" style="color:var(--accent); font-weight:600; font-size:16px;">💵 ${srv.price || 'Consultar'}</span>
+              <span class="service-price" style="color:var(--accent,#6366f1); font-weight:600; font-size:16px;">💵 ${srv.price || 'Consultar'}</span>
            </div>
            <div class="service-liquid-check"></div>
         </div>

@@ -1014,5 +1014,113 @@
                 }, 3000); // Check 3 seconds after boot
             });
         </script>
+        <!-- Focus Mode Overlay (S27-01) -->
+        <style>
+            body.focus-mode .admin-sidebar,
+            body.focus-mode .admin-header,
+            body.focus-mode .admin-content-canvas {
+                display: none !important;
+            }
+
+            body.focus-mode #consultation-focus-ui {
+                display: flex !important;
+            }
+
+            #consultation-focus-ui {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                z-index: 9999;
+                background: var(--rb-bg, #050810);
+                display: none;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            .focus-topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 16px 24px;
+                background: rgba(255, 255, 255, 0.02);
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+                backdrop-filter: blur(12px);
+            }
+            .focus-topbar .patient-identity {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+            }
+            .focus-topbar .patient-identity img {
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid var(--rb-accent);
+            }
+            .focus-workspace {
+                display: flex;
+                flex: 1;
+                overflow: hidden;
+            }
+            .focus-clinical-summary {
+                width: 320px;
+                background: rgba(255, 255, 255, 0.01);
+                border-right: 1px solid rgba(255,255,255,0.05);
+                padding: 24px;
+                overflow-y: auto;
+            }
+            .focus-main-area {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                background: transparent;
+                padding: 24px;
+            }
+            .focus-actions {
+                display: flex;
+                gap: 12px;
+            }
+        </style>
+
+        <div id="consultation-focus-ui" aria-hidden="true">
+            <div class="focus-topbar">
+                <div class="patient-identity">
+                    <img src="" alt="Paciente" id="focusPatientPhoto" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'currentColor\'><path d=\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z\'/></svg>'">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.25rem; font-family: var(--font-display, inherit); color: var(--text-color);" id="focusPatientName">Paciente Activo</h2>
+                        <span style="color: var(--text-muted); font-size: 0.85rem;" id="focusPatientMeta">Esperando telemetría...</span>
+                    </div>
+                </div>
+                <div class="focus-actions">
+                    <button type="button" class="btn js-focus-action" data-action="save-diagnosis" style="background: rgba(199, 163, 109, 0.1); border: 1px solid rgba(199, 163, 109, 0.3); color: var(--rb-accent); padding: 8px 16px; border-radius: 6px; font-weight: 500;">
+                        Guardar Diagnóstico
+                    </button>
+                    <button type="button" class="btn js-focus-action" data-action="issue-prescription" style="background: rgba(199, 163, 109, 0.1); border: 1px solid rgba(199, 163, 109, 0.3); color: var(--rb-accent); padding: 8px 16px; border-radius: 6px; font-weight: 500;">
+                        Emitir Receta
+                    </button>
+                    <button type="button" class="btn js-focus-action" data-action="close-focus" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger, red); padding: 8px 16px; border-radius: 6px; font-weight: 500;">
+                        Cerrar Consulta
+                    </button>
+                </div>
+            </div>
+            
+            <div class="focus-workspace">
+                <aside class="focus-clinical-summary">
+                    <h3 style="color: var(--text-color); font-size: 1rem; margin-top: 0; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; cursor: pointer;" id="focusSummaryToggle">
+                        <span>Resumen Clínico</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </h3>
+                    <div id="focusSummaryContent">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">Historial paciente comprimido...</p>
+                    </div>
+                </aside>
+                
+                <main class="focus-main-area">
+                    <div id="focusOpenClawChat" style="flex: 1; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                        <!-- OpenClaw Chat Mount Point -->
+                        [Chat de OpenClaw se inicializará aquí]
+                    </div>
+                </main>
+            </div>
+        </div>
     </body>
 </html>

@@ -4935,6 +4935,157 @@ final class PatientPortalController
         return 'application/octet-stream';
     }
 
+    public static function selfVitals(array $context): void
+    {
+        $payload = require_json_body();
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+        $patientId = trim((string) ($patient['documentNumber'] ?? ''));
+        
+        $nextAppointment = self::findNextAppointment($store, $snapshot);
+        if (!$nextAppointment) {
+            self::emit(['ok' => false, 'error' => 'No tienes una cita activa asignada']);
+            return;
+        }
+
+        $caseId = '';
+        foreach (($store['cases'] ?? $store['patient_cases'] ?? []) as $c) {
+            if (($c['patientId'] ?? '') === $patientId && (($c['status'] ?? '') === 'active' || ($c['status'] ?? '') === 'open')) {
+                $caseId = $c['id'];
+                break;
+            }
+        }
+        if ($caseId === '') {
+            self::emit(['ok' => false, 'error' => 'No se encontró un caso activo', 'statusCode' => 404]);
+            return;
+        }
+
+        $activeSession = ClinicalHistorySessionRepository::findSessionByCaseId($store, $caseId);
+        if ($activeSession === null) {
+            $activeSession = ClinicalHistorySessionRepository::defaultSession(['caseId' => $caseId]);
+            $saveSession = ClinicalHistorySessionRepository::upsertSession($store, $activeSession);
+            $store = $saveSession['store'];
+            $activeSession = $saveSession['session'];
+        }
+
+        $draft = ClinicalHistorySessionRepository::findDraftBySessionId($store, (string) $activeSession['sessionId']);
+        if ($draft === null) {
+            $draft = ClinicalHistorySessionRepository::defaultDraft($activeSession, ['caseId' => $caseId]);
+        }
+
+        if (!isset($draft['intake']['vitalSigns'])) {
+            $draft['intake']['vitalSigns'] = [];
+        }
+
+        $vitals = array_merge($draft['intake']['vitalSigns'], [
+            'bloodPressure' => trim((string) ($payload['bloodPressure'] ?? '')),
+            'heartRate' => trim((string) ($payload['heartRate'] ?? '')),
+            'glucose' => trim((string) ($payload['glucose'] ?? '')),
+            'weightKg' => trim((string) ($payload['weightKg'] ?? '')),
+        ]);
+        $vitals['source'] = 'patient_self_report';
+        $vitals['reportedAt'] = local_date('c');
+
+        $draft['intake']['vitalSigns'] = $vitals;
+
+        $saveDraft = ClinicalHistorySessionRepository::upsertDraft($store, $draft);
+        $store = $saveDraft['store'];
+
+        if (write_store($store, false)) {
+            self::emit(['ok' => true]);
+        } else {
+            self::emit(['ok' => false, 'error' => 'No se pudieron guardar los vitales']);
+        }
+    }
+
+    public static function uploadPhoto(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+        $patientId = trim((string) ($patient['documentNumber'] ?? ''));
+        
+        $caseId = '';
+        foreach (($store['cases'] ?? $store['patient_cases'] ?? []) as $c) {
+            if (($c['patientId'] ?? '') === $patientId && (($c['status'] ?? '') === 'active' || ($c['status'] ?? '') === 'open')) {
+                $caseId = $c['id'];
+                break;
+            }
+        }
+
+        if ($caseId === '') {
+            self::emit(['ok' => false, 'error' => 'No se encontró un caso activo']);
+            return;
+        }
+
+        $payload = require_json_body();
+        $base64 = trim((string) ($payload['photo'] ?? ''));
+        if ($base64 === '') {
+            self::emit(['ok' => false, 'error' => 'Se requiere una imagen en formato base64']);
+            return;
+        }
+
+        if (preg_match('/^data:image\/(\w+);base64,/', $base64, $type)) {
+            $data = substr($base64, strpos($base64, ',') + 1);
+            $type = strtolower($type[1]);
+            $data = base64_decode($data);
+            if ($data === false) {
+                self::emit(['ok' => false, 'error' => 'Imagen invalida']);
+                return;
+            }
+        } else {
+            self::emit(['ok' => false, 'error' => 'Formato requerido: data:image/...;base64,...']);
+            return;
+        }
+
+        $fileName = 'portal_upload_' . uniqid() . '.' . $type;
+        $savePath = __DIR__ . '/../data/uploads/' . $fileName;
+        if (!file_exists(__DIR__ . '/../data/uploads')) {
+            @mkdir(__DIR__ . '/../data/uploads', 0777, true);
+        }
+        file_put_contents($savePath, $data);
+
+        $store['clinical_uploads'] = is_array($store['clinical_uploads'] ?? null) ? $store['clinical_uploads'] : [];
+        $upload = [
+            'id' => time() . mt_rand(100, 999),
+            'patientCaseId' => $caseId,
+            'fileName' => $fileName,
+            'type' => 'image/' . $type,
+            'size' => strlen($data),
+            'source' => 'patient_upload',
+            'createdAt' => local_date('c'),
+        ];
+        $store['clinical_uploads'][] = $upload;
+
+        if (write_store($store, false)) {
+            self::emit(['ok' => true]);
+        } else {
+            self::emit(['ok' => false, 'error' => 'No se pudo guardar la imagen']);
+        }
+    }
+
     private static function emitBinaryResponse(
         string $bytes,
         string $contentType,
