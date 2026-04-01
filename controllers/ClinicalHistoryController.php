@@ -1038,11 +1038,33 @@ final class ClinicalHistoryController
             }
         }
 
+        // S34-05: Push Notification Patient
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepository.php';
+        $session = \ClinicalHistorySessionRepository::findSessionBySessionId(read_store(), $sessionId);
+        $patient = [];
+        if ($session && isset($session['patientId'])) {
+            $store = read_store();
+            foreach (($store['patients'] ?? []) as $p) {
+                if (($p['id'] ?? '') === $session['patientId']) {
+                    $patient = $p;
+                    break;
+                }
+            }
+        }
+        $pushSent = false;
+        if (!empty($patient)) {
+            require_once __DIR__ . '/../lib/NotificationService.php';
+            \NotificationService::sendLabResultReadyPush($patient, $labName);
+            $pushSent = true;
+        }
+
         json_response([
             'ok'             => true,
             'result_saved'   => true,
             'critical_values'=> $criticalValues,
             'alert_sent'     => !empty($criticalValues),
+            'push_sent'      => $pushSent,
+            'patient_notified_at' => gmdate('c'),
         ]);
     }
 

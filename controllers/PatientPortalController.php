@@ -246,6 +246,30 @@ final class PatientPortalController
             }
         }
 
+        $labHtml = '';
+        $labs = [];
+        $patientId = $patient['id'] ?? '';
+        foreach (($store['cases'] ?? $store['patient_cases'] ?? []) as $c) {
+            if (($c['patientId'] ?? '') === $patientId && !empty($c['labOrders'])) {
+                foreach ($c['labOrders'] as $ord) {
+                    $labs[] = $ord;
+                }
+            }
+        }
+        if (count($labs) > 0) {
+            $labHtml = '<h2>Resultados de Laboratorio / Imagenología</h2>';
+            foreach ($labs as $l) {
+                $lName = htmlspecialchars($l['labName'] ?? 'Examen General', ENT_QUOTES, 'UTF-8');
+                $lDate = htmlspecialchars($l['date'] ?? '', ENT_QUOTES, 'UTF-8');
+                $lStatus = htmlspecialchars($l['resultStatus'] ?? 'pending', ENT_QUOTES, 'UTF-8');
+                $labHtml .= "
+                <div class=\"section\">
+                    <h3>{$lName} - {$lDate}</h3>
+                    <div style=\"margin-bottom: 8px;\"><strong>Estado:</strong> {$lStatus}</div>
+                </div>";
+            }
+        }
+
         $html = "
         <!DOCTYPE html>
         <html>
@@ -285,6 +309,8 @@ final class PatientPortalController
             </div>
 
             {$historyHtml}
+            
+            {$labHtml}
 
             <div class=\"footer\">
                 Documento generado electrónicamente a través de Flow OS Patient Portal.<br>

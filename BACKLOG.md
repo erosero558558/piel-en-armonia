@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 9:05:31 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 9:09:06 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████████░░░░░░` **69%** completado (449/651)
+`██████████████░░░░░░` **70%** completado (453/651)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 103 | 62 | 62% |
+| ⏸ Sprint UI | 107 | 58 | 65% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -251,9 +251,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 62 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 58 tareas pendientes._
 
-### 🟢 Disponibles (56)
+### 🟢 Disponibles (52)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -262,16 +262,16 @@ _Esperando que Sprint anterior esté completo. 62 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-04** | `[S24]` | L |
 | **S24-05** | `[S24]` | S |
-| ... | | _+51 más_ |
+| ... | | _+47 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S29-08** `[S29]` → _Antigravity_ (expira en 47min)
-- **S29-11** `[S29]` → _Antigravity_ (expira en 292min)
-- **S29-12** `[S29]` → _Antigravity_ (expira en 52min)
-- **S29-13** `[S29]` → _Antigravity_ (expira en 94min)
-- **S29-15** `[S29]` → _Antigravity_ (expira en 94min)
-- **S29-16** `[S29]` → _Antigravity_ (expira en 94min)
+- **S29-08** `[S29]` → _Antigravity_ (expira en 44min)
+- **S29-11** `[S29]` → _Antigravity_ (expira en 289min)
+- **S29-12** `[S29]` → _Antigravity_ (expira en 49min)
+- **S29-13** `[S29]` → _Antigravity_ (expira en 91min)
+- **S29-15** `[S29]` → _Antigravity_ (expira en 91min)
+- **S29-16** `[S29]` → _Antigravity_ (expira en 91min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

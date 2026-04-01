@@ -52,6 +52,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'patient-portal-dashboard', [PatientPortalController::class, 'dashboard']);
     $router->add('GET', 'patient-portal-history', [PatientPortalController::class, 'history']);
     $router->add('GET', 'patient-portal-history-pdf', [PatientPortalController::class, 'historyPdf']);
+    $router->add('GET', 'patient-record-pdf', [PatientPortalController::class, 'historyPdf']);
     $router->add('GET', 'patient-portal-payments', [PatientPortalController::class, 'payments']);
     $router->add('GET', 'patient-portal-plan', [PatientPortalController::class, 'plan']);
     $router->add('GET', 'patient-portal-photos', [PatientPortalController::class, 'photos']);

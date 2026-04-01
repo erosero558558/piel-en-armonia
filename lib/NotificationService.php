@@ -377,6 +377,38 @@ final class NotificationService
         self::push($payload, $criteria);
     }
 
+    public static function sendLabResultReadyPush(array $patient, string $labName): void
+    {
+        $patientId = trim((string) ($patient['id'] ?? ''));
+        if ($patientId === '') {
+            $phone = self::normalizePhone((string) ($patient['phone'] ?? ''));
+            if ($phone === '') {
+                return;
+            }
+            $criteria = [
+                'phone' => $phone,
+                'channel' => 'patient_portal',
+            ];
+        } else {
+            $criteria = [
+                'patientId' => $patientId,
+                'channel' => 'patient_portal',
+            ];
+        }
+
+        $payload = [
+            'category' => 'lab_results_ready',
+            'title' => 'Resultados Disponibles',
+            'body' => "Sus resultados de {$labName} ya están disponibles en su portal.",
+            'data' => [
+                'type' => 'lab_result_ready',
+                'url' => '/es/portal/historial/'
+            ]
+        ];
+
+        self::push($payload, $criteria);
+    }
+
     private static function push(array $payload, array $criteria): void
     {
         require_once __DIR__ . '/PushService.php';

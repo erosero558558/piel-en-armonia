@@ -333,6 +333,64 @@ paths:
         '200':
           description: Diagnóstico aplicado
 
+  /save/chronic:
+    post:
+      operationId: saveChronicCondition
+      summary: Guardar condición crónica
+      description: |
+        Registra una condición crónica para el paciente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id, cie10_code]
+              properties:
+                case_id: { type: string }
+                cie10_code: { type: string }
+      responses:
+        '200':
+          description: Condición crónica guardada
+
+  /close/telemedicine:
+    post:
+      operationId: closeTelemedicine
+      summary: Cerrar consulta de telemedicina
+      description: |
+        Cierra formalmente una consulta de telemedicina.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id]
+              properties:
+                case_id: { type: string }
+      responses:
+        '200':
+          description: Telemedicina cerrada
+
+  /close/fast:
+    post:
+      operationId: fastClose
+      summary: Cierre rápido de consulta
+      description: |
+        Cierra una consulta en 1 click (S24).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id]
+              properties:
+                case_id: { type: string }
+      responses:
+        '200':
+          description: Consulta cerrada
+
   /save/prescription:
     post:
       operationId: savePrescription
