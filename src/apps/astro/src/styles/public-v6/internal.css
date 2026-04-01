@@ -176,11 +176,12 @@
 .v6-internal-rail nav {
     display: grid;
     gap: 8px;
+    min-width: 0;
 }
 
 .v6-internal-rail a {
     min-height: 28px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     padding: 6px 8px;
     border: 1px solid transparent;

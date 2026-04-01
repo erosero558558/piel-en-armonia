@@ -87,9 +87,9 @@ class AdminDataController
             'generatedAt' => local_date('c'),
         ];
 
-        if (class_exists('AnalyticsController') && method_exists('AnalyticsController', 'buildFunnelMetricsData')) {
+        if (class_exists('AnalyticsController') && method_exists('AnalyticsController', '__buildFunnelMetricsData')) {
             try {
-                $store['funnelMetrics'] = AnalyticsController::buildFunnelMetricsData($context);
+                $store['funnelMetrics'] = AnalyticsController::__buildFunnelMetricsData($context);
             } catch (\Throwable $th) {
                 // Keep /data resilient if metrics export is temporarily unavailable.
                 $store['funnelMetrics'] = null;

@@ -69,12 +69,38 @@
             });
     }
 
+    async function fetchPatientSummary() {
+        const session = getSession();
+        if (!isFreshSession(session)) return null;
+        try {
+            const token = String(session.token || '');
+            if (!token) return null;
+            const res = await window.fetch('/api.php?resource=patient-summary', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.ok && data.data && data.data.summary) {
+                    return data.data.summary;
+                }
+            }
+        } catch (err) {
+            console.error('[portal-shell] failed to fetch patient summary', err);
+        }
+        return null;
+    }
+
     window.AuroraPatientPortalShell = {
         clearSession,
         getSession,
         isFreshSession,
         redirectToLogin,
         updatePatient,
+        fetchPatientSummary,
     };
 
     document.addEventListener('DOMContentLoaded', () => {

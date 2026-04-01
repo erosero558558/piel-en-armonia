@@ -146,9 +146,15 @@ final class ClinicalHistoryController
             @mkdir($caseDir, 0750, true);
         }
 
+        // S37-10: Compute integrity hash before persisting (allows tamper detection on read)
+        $evolutionRecord['integrityHash'] = hash(
+            'sha256',
+            json_encode($evolutionRecord, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        );
+
         $evolutionsPath = $caseDir . DIRECTORY_SEPARATOR . 'evolutions.jsonl';
         $entryLine = json_encode($evolutionRecord, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
-        
+
         $bytes = @file_put_contents($evolutionsPath, $entryLine, FILE_APPEND | LOCK_EX);
         if ($bytes === false) {
             json_response(['ok' => false, 'error' => 'No se pudo almacenar la evolucion clinica en el registro inmutable'], 500);

@@ -1032,6 +1032,17 @@
             return;
         }
 
+        if (portalShell && typeof portalShell.fetchPatientSummary === 'function') {
+            portalShell.fetchPatientSummary().then(summary => {
+                const wrapper = document.getElementById('active-condition-wrapper');
+                const banner = document.querySelector('[data-portal-condition-banner]');
+                if (summary && summary.activeDiagnosis && wrapper && banner) {
+                    banner.textContent = summary.activeDiagnosis;
+                    wrapper.style.display = 'block';
+                }
+            });
+        }
+
         nextAppointmentContainer.innerHTML = renderSkeletonCard();
         if (treatmentPlanContainer instanceof HTMLElement) {
             treatmentPlanContainer.innerHTML = renderTreatmentPlanSkeleton();

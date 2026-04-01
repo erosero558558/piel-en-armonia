@@ -146,11 +146,11 @@ class ServicePriorityController
     {
         $map = [];
         $hasSignals = false;
-        if (!class_exists('AnalyticsController') || !method_exists('AnalyticsController', 'buildFunnelMetricsData')) {
+        if (!class_exists('AnalyticsController') || !method_exists('AnalyticsController', '__buildFunnelMetricsData')) {
             return ['map' => $map, 'hasSignals' => false];
         }
 
-        $payload = AnalyticsController::buildFunnelMetricsData($context);
+        $payload = AnalyticsController::__buildFunnelMetricsData($context);
         $rows = isset($payload['serviceFunnel']) && is_array($payload['serviceFunnel']) ? $payload['serviceFunnel'] : [];
         foreach ($rows as $row) {
             if (!is_array($row)) {
