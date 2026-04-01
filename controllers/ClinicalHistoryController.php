@@ -1724,6 +1724,12 @@ final class ClinicalHistoryController
             case 'POST:clinical-anamnesis':
                 self::saveAnamnesis($context);
                 return;
+            case 'GET:hce-audit-log':          // S37-11
+                self::getAuditLog($context);
+                return;
+            case 'POST:admin-lab-result-share': // S37-06
+                self::adminLabShare($context);
+                return;
             case 'POST:clinical-history-message':
                 self::messagePost($context);
                 return;
@@ -1849,5 +1855,91 @@ final class ClinicalHistoryController
                 }
                 json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
         }
+    }
+
+    // ── S37-11: GET hce-audit-log ─────────────────────────────────────────────
+    private static function getAuditLog(array $context): void
+    {
+        require_doctor_auth();
+        $caseId = trim((string) ($context['query']['caseId'] ?? $context['query']['case_id'] ?? ''));
+        $limit  = max(1, min(100, (int) ($context['query']['limit']  ?? 20)));
+        $offset = max(0,          (int) ($context['query']['offset'] ?? 0));
+        $logPath = __DIR__ . '/../data/hce-access-log.jsonl';
+        if (!file_exists($logPath)) {
+            json_response(['ok' => true, 'entries' => [], 'total' => 0]);
+            return;
+        }
+        $lines = file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+            json_response(['ok' => true, 'entries' => [], 'total' => 0]);
+            return;
+        }
+        $entries = [];
+        foreach ($lines as $line) {
+            $decoded = json_decode($line, true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+            if ($caseId !== '' && ($decoded['case_id'] ?? $decoded['caseId'] ?? '') !== $caseId) {
+                continue;
+            }
+            $entries[] = $decoded;
+        }
+        $entries = array_reverse($entries);
+        $total   = count($entries);
+        $paged   = array_values(array_slice($entries, $offset, $limit));
+        json_response([
+            'ok'      => true,
+            'entries' => $paged,
+            'total'   => $total,
+            'limit'   => $limit,
+            'offset'  => $offset,
+            'has_more'=> ($offset + $limit) < $total,
+        ]);
+    }
+
+    // ── S37-06: POST admin-lab-result-share ───────────────────────────────────
+    private static function adminLabShare(array $context): void
+    {
+        require_doctor_auth();
+        $payload    = require_json_body();
+        $sessionId  = trim((string) ($payload['session_id']   ?? ''));
+        $labOrderId = trim((string) ($payload['lab_order_id'] ?? ''));
+        $shared     = (bool) ($payload['shared'] ?? false);
+        if ($sessionId === '' || $labOrderId === '') {
+            json_response(['ok' => false, 'error' => 'session_id y lab_order_id requeridos'], 400);
+            return;
+        }
+        $result = mutate_store(static function (array $store) use ($sessionId, $labOrderId, $shared): array {
+            $found = false;
+            foreach (array_keys($store['clinical_history_sessions'] ?? []) as $sid) {
+                $sess = $store['clinical_history_sessions'][$sid];
+                if (trim((string) ($sess['sessionId'] ?? $sid)) !== $sessionId) {
+                    continue;
+                }
+                $orders = $store['clinical_history_sessions'][$sid]['draft']['documents']['labOrders'] ?? [];
+                foreach (array_keys($orders) as $oidx) {
+                    $oid = trim((string) ($orders[$oidx]['labOrderId'] ?? $orders[$oidx]['id'] ?? ''));
+                    if ($oid !== $labOrderId) {
+                        continue;
+                    }
+                    $store['clinical_history_sessions'][$sid]['draft']['documents']['labOrders'][$oidx]['shared_with_patient'] = $shared;
+                    $store['clinical_history_sessions'][$sid]['draft']['documents']['labOrders'][$oidx]['shared_updated_at']   = gmdate('c');
+                    $found = true;
+                    break 2;
+                }
+            }
+            return ['ok' => $found, 'store' => $store, 'storeDirty' => $found, 'found' => $found];
+        });
+        if (!($result['found'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'lab_order_id no encontrado'], 404);
+            return;
+        }
+        json_response([
+            'ok'                  => true,
+            'lab_order_id'        => $labOrderId,
+            'shared_with_patient' => $shared,
+            'updated_at'          => gmdate('c'),
+        ]);
     }
 }

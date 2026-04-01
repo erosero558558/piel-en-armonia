@@ -1568,7 +1568,7 @@
         if (!header || header.dataset.v6DrawerReady === 'true') return;
         header.dataset.v6DrawerReady = 'true';
 
-        var drawer = header.querySelector('[data-v6-drawer]');
+        var drawer = document.querySelector('[data-v6-drawer]');
         var openButton = header.querySelector('[data-v6-drawer-open]');
         var panel = drawer
             ? drawer.querySelector('[data-v6-drawer-panel]')

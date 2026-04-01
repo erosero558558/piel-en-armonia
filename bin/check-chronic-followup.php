@@ -5,8 +5,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/../lib/common.php';
 require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
 
-$options = getopt('', ['dry']);
-$isDryRun = isset($options['dry']);
+$options    = getopt('', ['dry', 'dry-run', 'json']);
+$isDryRun   = isset($options['dry']) || isset($options['dry-run']);
+$outputJson = isset($options['json']);
 
 $store = read_store();
 $patients = $store['patients'] ?? [];
@@ -109,6 +110,53 @@ if (!empty($alerts) && !$isDryRun) {
     }
     $mergedAlerts = array_merge($existingAlerts, $alerts);
     file_put_contents($alertsFilePath, json_encode($mergedAlerts, JSON_PRETTY_PRINT));
+}
+
+
+// ── S37-09: Construir pending_reactivations ──────────────────────────────────
+$reactivations = [];
+foreach ($patients as $recCaseId => $recPatient) {
+    if (!isset($recPatient['chronicConditions']) || !is_array($recPatient['chronicConditions'])) { continue; }
+    $lastVisitDate = null;
+    foreach ($appointments as $app) {
+        if (($app['caseId'] ?? '') !== $recCaseId) { continue; }
+        if (!in_array($app['status'] ?? '', ['completed', 'attended'], true)) { continue; }
+        $appDate = $app['date'] ?? $app['started_at'] ?? '';
+        if ($appDate && ($lastVisitDate === null || $appDate > $lastVisitDate)) { $lastVisitDate = $appDate; }
+    }
+    if ($lastVisitDate === null) { continue; }
+    $daysSince = (int) round((strtotime($nowStr) - strtotime($lastVisitDate)) / 86400);
+    if ($daysSince < 60) { continue; }
+    foreach ($recPatient['chronicConditions'] as $cond) {
+        $condName = $cond['cie10Label'] ?? $cond['cie10Code'] ?? 'condicion cronica';
+        $reactivations[] = [
+            'id'                => 'react-' . substr(md5($recCaseId . $condName), 0, 12),
+            'patientId'         => $recCaseId,
+            'caseId'            => $recCaseId,
+            'last_visit_date'   => $lastVisitDate,
+            'chronic_diagnosis' => $condName,
+            'days_since_visit'  => $daysSince,
+            'contact_next_step' => $daysSince > 90 ? 'call' : 'whatsapp',
+            'detected_at'       => gmdate('c'),
+        ];
+        break;
+    }
+}
+
+if ($outputJson || $isDryRun) {
+    echo json_encode(['pending_reactivations' => $reactivations, 'count' => count($reactivations)], JSON_PRETTY_PRINT) . "\n";
+    if ($isDryRun) { exit(0); }
+}
+
+if ($reactivations !== [] && !$isDryRun) {
+    $storeR = read_store();
+    $existR = $storeR['pending_reactivations'] ?? [];
+    $existIds = array_column($existR, 'patientId');
+    foreach ($reactivations as $react) {
+        if (!in_array($react['patientId'], $existIds, true)) { $existR[] = $react; }
+    }
+    $storeR['pending_reactivations'] = array_values($existR);
+    write_store($storeR, false);
 }
 
 echo "Procesados {$sentCount} seguimientos crónicos vencidos.\n";

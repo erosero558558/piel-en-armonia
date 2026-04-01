@@ -384,6 +384,14 @@ export function emptyHcu005() {
         therapeuticPlan: '',
         careIndications: '',
         prescriptionItems: [],
+        // S38-01: SOAP estrucurado 4 campos — coexiste con evolutionNote (retrocompatible)
+        soap: {
+            subjective: '',    // S — Subjetivo: motivo + relato paciente
+            objective: '',     // O — Objetivo: examen físico + vitales del día
+            assessment: '',    // A — Valoración: diagnóstico principal + diferencial
+            plan: '',          // P — Plan: tratamiento + indicaciones + seguimiento
+        },
+        soapMode: 'freetext', // 'freetext' | 'structured'
     };
 }
 
@@ -868,6 +876,21 @@ export function normalizeHcu005(source, fallback = {}) {
     const safeFallback =
         fallback && typeof fallback === 'object' ? fallback : {};
 
+    // Normalize the SOAP sub-object from both source paths
+    const rawSoap = safeSource.soap ?? safeFallback.soap ?? {};
+    const normalizedSoap = {
+        subjective: typeof rawSoap.subjective === 'string' ? rawSoap.subjective.trim() : '',
+        objective:  typeof rawSoap.objective  === 'string' ? rawSoap.objective.trim()  : '',
+        assessment: typeof rawSoap.assessment === 'string' ? rawSoap.assessment.trim() : '',
+        plan:       typeof rawSoap.plan       === 'string' ? rawSoap.plan.trim()       : '',
+    };
+    // Detect SOAP mode: if any soap field has content, prefer structured
+    const hasSoapContent = Object.values(normalizedSoap).some(v => v !== '');
+    const explicitMode = safeSource.soapMode ?? safeFallback.soapMode;
+    const soapMode = explicitMode === 'structured' || (hasSoapContent && explicitMode !== 'freetext')
+        ? 'structured'
+        : 'freetext';
+
     return {
         ...defaults,
         ...safeFallback,
@@ -887,6 +910,8 @@ export function normalizeHcu005(source, fallback = {}) {
         prescriptionItems: normalizePrescriptionItems(
             safeSource.prescriptionItems ?? safeFallback.prescriptionItems
         ),
+        soap: normalizedSoap,
+        soapMode,
     };
 }
 
@@ -1256,14 +1281,36 @@ export function evaluateHcu005(hcu005) {
     const hasDiagnosticImpression = normalized.diagnosticImpression !== '';
     const hasPlanOrCare =
         normalized.therapeuticPlan !== '' || normalized.careIndications !== '';
+
+    // S38-01: SOAP structure completeness
+    const soap = normalized.soap;
+    const hasSoapSubjective = soap.subjective !== '';
+    const hasSoapObjective  = soap.objective  !== '';
+    const hasSoapAssessment = soap.assessment !== '';
+    const hasSoapPlan       = soap.plan       !== '';
+    const hasSoapNote = hasSoapSubjective && hasSoapObjective && hasSoapAssessment && hasSoapPlan;
+    const hasSoapPartial = hasSoapSubjective || hasSoapObjective || hasSoapAssessment || hasSoapPlan;
+    const soapMissing = normalized.soapMode === 'structured'
+        ? []
+        : normalized.soapMode === 'structured' || hasSoapPartial
+            ? [
+                !hasSoapSubjective && 'subjective',
+                !hasSoapObjective  && 'objective',
+                !hasSoapAssessment && 'assessment',
+                !hasSoapPlan       && 'plan',
+              ].filter(Boolean)
+            : [];
+
     const hasAnyContent =
         hasEvolutionNote ||
         hasDiagnosticImpression ||
         hasPlanOrCare ||
+        hasSoapNote ||
+        hasSoapPartial ||
         startedItems.length > 0;
     const status = !hasAnyContent
         ? 'missing'
-        : hasEvolutionNote &&
+        : (hasEvolutionNote || hasSoapNote) &&
             hasDiagnosticImpression &&
             hasPlanOrCare &&
             incompleteItems.length === 0
@@ -1277,6 +1324,11 @@ export function evaluateHcu005(hcu005) {
         hasPlanOrCare,
         startedPrescriptionItems: startedItems.length,
         incompletePrescriptionItems: incompleteItems.length,
+        // S38-01: SOAP fields
+        hasSoapNote,
+        hasSoapPartial,
+        soapMissing,
+        soapMode: normalized.soapMode,
     };
 }
 
@@ -7716,17 +7768,239 @@ export function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons
         'HCU-form.005/2008',
         'Paridad semántica trazable para evolución, impresión, plan e indicaciones del episodio.',
         `
-                ${textareaField(
-                    'hcu005_evolution_note',
-                    'Evolución clínica',
-                    hcu005.evolutionNote,
-                    {
-                        rows: 5,
-                        placeholder:
-                            'Describe la evolución clínica del episodio.',
-                        disabled,
-                    }
-                )}
+                ${(() => {
+                    const soapMode = hcu005.soapMode;
+                    const soap = hcu005.soap;
+                    const isStructured = soapMode === 'structured';
+                    const d = disabled ? 'disabled' : '';
+
+                    // Helper: completeness indicator badge
+                    const completeBadge = (hasContent) =>
+                        `<span class="soap-completeness-badge ${hasContent ? 'soap-complete' : 'soap-incomplete'}" aria-live="polite">${hasContent ? '🟢' : '🔴'}</span>`;
+
+                    // Helper: build one SOAP panel
+                    const soapPanel = (letter, title, fieldId, value, placeholder, hint, rows = 4) => `
+                        <article class="soap-panel glass-card" data-soap-panel="${letter.toLowerCase()}" id="soap-panel-${letter.toLowerCase()}">
+                            <header class="soap-panel-header">
+                                <span class="soap-letter-badge soap-letter-${letter.toLowerCase()}">${letter}</span>
+                                <h4 class="soap-panel-title">${title}</h4>
+                                ${completeBadge(value !== '')}
+                            </header>
+                            <div class="soap-panel-body">
+                                <textarea
+                                    id="${fieldId}"
+                                    name="${fieldId}"
+                                    class="clinical-history-textarea soap-textarea"
+                                    data-soap-field="${letter.toLowerCase()}"
+                                    placeholder="${placeholder}"
+                                    rows="${rows}"
+                                    ${d}
+                                    oninput="(function(el){
+                                        var badge = el.closest('[data-soap-panel]').querySelector('.soap-completeness-badge');
+                                        var hasVal = el.value.trim() !== '';
+                                        if(badge){ badge.textContent = hasVal ? '🟢' : '🔴'; badge.className = 'soap-completeness-badge ' + (hasVal ? 'soap-complete' : 'soap-incomplete'); }
+                                        var legacy = document.getElementById('hcu005_evolution_note');
+                                        if(legacy){ var s=document.getElementById('soap_subjective'); var o=document.getElementById('soap_objective'); var a=document.getElementById('soap_assessment'); var p=document.getElementById('soap_plan'); legacy.value = [s&&s.value?'S: '+s.value:'', o&&o.value?'O: '+o.value:'', a&&a.value?'A: '+a.value:'', p&&p.value?'P: '+p.value:''].filter(Boolean).join('\\n'); }
+                                    })(this)"
+                                >${escapeHtml(value)}</textarea>
+                                ${hint ? `<small class="soap-panel-hint">${hint}</small>` : ''}
+                            </div>
+                        </article>`;
+
+                    return `
+                    <div class="soap-mode-container" data-soap-mode-container="${soapMode}" id="soapModeContainer">
+                        <div class="soap-mode-toggle-row">
+                            <span class="soap-mode-label">Nota de evolución</span>
+                            <div class="soap-mode-switcher" role="group" aria-label="Modo de nota">
+                                <button
+                                    type="button"
+                                    id="btnSoapModeStructured"
+                                    class="soap-mode-btn ${isStructured ? 'soap-mode-btn--active' : ''}"
+                                    data-soap-mode-target="structured"
+                                    ${disabled ? 'disabled' : ''}
+                                    onclick="(function(){
+                                        var c = document.getElementById('soapModeContainer');
+                                        c.setAttribute('data-soap-mode-container','structured');
+                                        document.getElementById('soap_mode_value').value = 'structured';
+                                        document.getElementById('soapStructuredPanels').style.display = '';
+                                        document.getElementById('soapFreetextPanel').style.display = 'none';
+                                        document.getElementById('btnSoapModeStructured').classList.add('soap-mode-btn--active');
+                                        document.getElementById('btnSoapModeFreetext').classList.remove('soap-mode-btn--active');
+                                    })()"
+                                >📋 SOAP estructurado</button>
+                                <button
+                                    type="button"
+                                    id="btnSoapModeFreetext"
+                                    class="soap-mode-btn ${!isStructured ? 'soap-mode-btn--active' : ''}"
+                                    data-soap-mode-target="freetext"
+                                    ${disabled ? 'disabled' : ''}
+                                    onclick="(function(){
+                                        var c = document.getElementById('soapModeContainer');
+                                        c.setAttribute('data-soap-mode-container','freetext');
+                                        document.getElementById('soap_mode_value').value = 'freetext';
+                                        document.getElementById('soapStructuredPanels').style.display = 'none';
+                                        document.getElementById('soapFreetextPanel').style.display = '';
+                                        document.getElementById('btnSoapModeFreetext').classList.add('soap-mode-btn--active');
+                                        document.getElementById('btnSoapModeStructured').classList.remove('soap-mode-btn--active');
+                                    })()"
+                                >📝 Nota libre</button>
+                            </div>
+                        </div>
+
+                        <input type="hidden" id="soap_mode_value" name="soap_mode_value" value="${escapeHtml(soapMode)}">
+
+                        <!-- S38-01: 4 paneles SOAP estructurados -->
+                        <div id="soapStructuredPanels" class="soap-panels-grid" style="${isStructured ? '' : 'display:none'}">
+                            ${soapPanel('S', 'Subjetivo — Relato del paciente', 'soap_subjective', soap.subjective,
+                                'Motivo de consulta y relato de la enfermedad actual en palabras del paciente. ¿Qué le pasa? ¿Desde cuándo? ¿Cómo evolucionó?',
+                                'Mínimo recomendado: 30 palabras — motivo + historia + síntomas asociados.', 5)}
+                            ${soapPanel('O', 'Objetivo — Examen físico', 'soap_objective', soap.objective,
+                                'Hallazgos del examen físico: estado general, sistema afectado, lesiones dermatológicas (morfología, distribución, tamaño), signos vitales del día si aplica.',
+                                'Incluir: aspecto lesional, distribución, signos acompañantes.', 4)}
+                            ${soapPanel('A', 'Valoración — Diagnóstico', 'soap_assessment', soap.assessment,
+                                'Diagnóstico principal (CIE-10 recomendado, ej: L20.0), diagnóstico diferencial, razonamiento clínico.',
+                                'Ej: L20.0 Dermatitis atópica, DD: psoriasis (L40.0), dermatitis de contacto (L23).', 3)}
+                            ${soapPanel('P', 'Plan — Tratamiento y seguimiento', 'soap_plan', soap.plan,
+                                'Medicamentos prescritos, dosis, indicaciones de cuidado, reposo, referencia a especialista, próximo control.',
+                                'Si escribe "control en X días" se agenda automáticamente. Ejemplo: "Control en 14 días".', 4)}
+                            <div class="soap-save-row">
+                                <button
+                                    type="button"
+                                    id="btnSaveSoapEvolution"
+                                    class="clinical-history-action-btn soap-save-btn"
+                                    ${disabled ? 'disabled' : ''}
+                                    onclick="(function(btn){
+                                        btn.disabled = true;
+                                        btn.textContent = '⏳ Guardando...';
+                                        var caseId = document.querySelector('[data-case-id]')?.getAttribute('data-case-id') || '';
+                                        var payload = {
+                                            caseId: caseId,
+                                            type: 'soap',
+                                            soap: {
+                                                subjective: (document.getElementById('soap_subjective')?.value || '').trim(),
+                                                objective:  (document.getElementById('soap_objective')?.value  || '').trim(),
+                                                assessment: (document.getElementById('soap_assessment')?.value || '').trim(),
+                                                plan:       (document.getElementById('soap_plan')?.value       || '').trim(),
+                                            }
+                                        };
+                                        var missing = Object.entries(payload.soap).filter(function(e){ return e[1] === ''; }).map(function(e){ return e[0]; });
+                                        if(missing.length > 0){
+                                            alert('Faltan campos SOAP: ' + missing.join(', ') + '. Todos los 4 campos son requeridos.');
+                                            btn.disabled = false; btn.textContent = '💾 Guardar nota SOAP';
+                                            return;
+                                        }
+                                        fetch('/api.php?resource=clinical-evolution', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(payload)
+                                        }).then(function(r){ return r.json(); }).then(function(data){
+                                            if(data.ok){
+                                                btn.textContent = '✅ SOAP guardado';
+                                                btn.style.color = 'var(--color-success, #00c853)';
+                                                if(data.followup_created && data.followup && data.followup.target_date){
+                                                    var toast = document.createElement('div');
+                                                    toast.className = 'clinical-toast clinical-toast--info';
+                                                    toast.textContent = '📅 Control programado automáticamente para ' + data.followup.target_date;
+                                                    document.body.appendChild(toast);
+                                                    setTimeout(function(){ toast.remove(); }, 6000);
+                                                }
+                                                setTimeout(function(){ btn.disabled = false; btn.textContent = '💾 Guardar nota SOAP'; btn.style.color = ''; }, 3000);
+                                            } else {
+                                                var errMsg = data.error || 'Error al guardar';
+                                                if(data.missing){ errMsg += ' (Faltan: ' + data.missing.join(', ') + ')'; }
+                                                alert('❌ ' + errMsg);
+                                                btn.disabled = false; btn.textContent = '💾 Guardar nota SOAP';
+                                            }
+                                        }).catch(function(e){
+                                            alert('❌ Error de red: ' + e.message);
+                                            btn.disabled = false; btn.textContent = '💾 Guardar nota SOAP';
+                                        });
+                                    })(this)"
+                                >💾 Guardar nota SOAP</button>
+                                <button
+                                    type="button"
+                                    id="btnLoadPreviousSoap"
+                                    class="clinical-history-action-btn"
+                                    style="margin-left:8px;"
+                                    ${disabled ? 'disabled' : ''}
+                                    onclick="(function(btn){
+                                        var caseId = document.querySelector('[data-case-id]')?.getAttribute('data-case-id') || '';
+                                        if(!caseId){ alert('No hay caso activo'); return; }
+                                        fetch('/api.php?resource=clinical-evolution&caseId=' + encodeURIComponent(caseId) + '&limit=1').then(function(r){ return r.json(); }).then(function(data){
+                                            var last = data.evolutions && data.evolutions[0];
+                                            if(last && last.soap){
+                                                var s = document.getElementById('soap_subjective');
+                                                var o = document.getElementById('soap_objective');
+                                                var a = document.getElementById('soap_assessment');
+                                                var p = document.getElementById('soap_plan');
+                                                if(s) s.value = last.soap.subjective || '';
+                                                if(o) o.value = last.soap.objective  || '';
+                                                if(a) a.value = last.soap.assessment || '';
+                                                if(p) p.value = last.soap.plan       || '';
+                                                [s,o,a,p].forEach(function(el){ if(el) el.dispatchEvent(new Event('input')); });
+                                                alert('✅ Nota SOAP anterior cargada como referencia. Modifique antes de guardar.');
+                                            } else {
+                                                alert('No hay nota SOAP previa para este caso.');
+                                            }
+                                        });
+                                    })(this)"
+                                >📋 Cargar nota previa</button>
+                            </div>
+                        </div>
+
+                        <!-- Modo nota libre (retrocompatible) -->
+                        <div id="soapFreetextPanel" style="${isStructured ? 'display:none' : ''}">
+                            ${textareaField(
+                                'hcu005_evolution_note',
+                                'Nota de evolución libre',
+                                hcu005.evolutionNote || [
+                                    soap.subjective ? 'S: ' + soap.subjective : '',
+                                    soap.objective  ? 'O: ' + soap.objective  : '',
+                                    soap.assessment ? 'A: ' + soap.assessment : '',
+                                    soap.plan       ? 'P: ' + soap.plan       : '',
+                                ].filter(Boolean).join('\n'),
+                                {
+                                    rows: 5,
+                                    placeholder: 'Nota libre de evolución del episodio clínico.',
+                                    disabled,
+                                }
+                            )}
+                        </div>
+
+                        <!-- Hidden legacy field always present for form collector compatibility -->
+                        ${isStructured ? `<input type="hidden" id="hcu005_evolution_note" name="hcu005_evolution_note" value="${escapeHtml([
+                            soap.subjective ? 'S: ' + soap.subjective : '',
+                            soap.objective  ? 'O: ' + soap.objective  : '',
+                            soap.assessment ? 'A: ' + soap.assessment : '',
+                            soap.plan       ? 'P: ' + soap.plan       : '',
+                        ].filter(Boolean).join('\n'))}">` : ''}
+                    </div>
+                    <style>
+                        .soap-panels-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+                        .soap-panel { border: 1px solid var(--glass-border, rgba(255,255,255,0.15)); border-radius: 12px; overflow: hidden; background: var(--glass-surface, rgba(255,255,255,0.04)); }
+                        .soap-panel-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--glass-header, rgba(255,255,255,0.06)); border-bottom: 1px solid var(--glass-border, rgba(255,255,255,0.1)); }
+                        .soap-letter-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0; }
+                        .soap-letter-s { background: #4f8ef7; }
+                        .soap-letter-o { background: #7c5cbf; }
+                        .soap-letter-a { background: #e67c3a; }
+                        .soap-letter-p { background: #27ae60; }
+                        .soap-panel-title { margin: 0; font-size: 13px; font-weight: 600; flex: 1; }
+                        .soap-completeness-badge { font-size: 14px; transition: all 0.3s; }
+                        .soap-panel-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+                        .soap-textarea { width: 100%; resize: vertical; }
+                        .soap-panel-hint { color: var(--color-text-muted, #8a8a8a); font-size: 11px; }
+                        .soap-mode-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+                        .soap-mode-label { font-weight: 600; font-size: 13px; }
+                        .soap-mode-switcher { display: flex; gap: 6px; }
+                        .soap-mode-btn { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--glass-border, rgba(255,255,255,0.2)); background: transparent; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+                        .soap-mode-btn--active { background: var(--color-primary, #4f8ef7); color: #fff; border-color: var(--color-primary, #4f8ef7); }
+                        .soap-save-row { display: flex; align-items: center; padding: 8px 0 4px; }
+                        .soap-save-btn { font-weight: 600; }
+                        .clinical-toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; padding: 12px 20px; background: var(--glass-surface, #1a2a3a); border: 1px solid var(--glass-border, rgba(255,255,255,0.2)); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: fadeInUp 0.3s ease; }
+                        @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+                    </style>
+                    `;
+                })()}
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
                         'hcu005_diagnostic_impression',
@@ -8213,6 +8487,14 @@ export function serializeDraftForm(form, baseDraft) {
         diagnosticImpression: readValue('hcu005_diagnostic_impression'),
         therapeuticPlan: readValue('hcu005_therapeutic_plan'),
         careIndications: readValue('hcu005_care_indications'),
+        // S38-01: Read SOAP structured fields from the 4-panel form
+        soapMode: readValue('soap_mode_value') || 'freetext',
+        soap: {
+            subjective: (form.querySelector('#soap_subjective')?.value ?? '').trim(),
+            objective:  (form.querySelector('#soap_objective')?.value  ?? '').trim(),
+            assessment: (form.querySelector('#soap_assessment')?.value ?? '').trim(),
+            plan:       (form.querySelector('#soap_plan')?.value       ?? '').trim(),
+        },
         prescriptionItems: Array.from(
             form.querySelectorAll('[data-hcu005-prescription-item]')
         )

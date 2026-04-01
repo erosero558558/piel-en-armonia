@@ -35,59 +35,22 @@ const CLINICAL_SAMPLE_PHOTOS = [
     'images/optimized/v6-clinic-telemedicine-review-1400.jpg',
 ];
 const OPENCLAW_ENDPOINTS = [
-    { method: 'GET', resource: 'openclaw-patient', action: 'patient' },
-    {
-        method: 'GET',
-        resource: 'openclaw-cie10-suggest',
-        action: 'cie10Suggest',
-    },
-    { method: 'GET', resource: 'openclaw-protocol', action: 'protocol' },
-    { method: 'POST', resource: 'openclaw-chat', action: 'chat' },
-    {
-        method: 'POST',
-        resource: 'openclaw-save-diagnosis',
-        action: 'saveDiagnosis',
-    },
-    {
-        method: 'POST',
-        resource: 'openclaw-save-evolution',
-        action: 'saveEvolution',
-    },
-    {
-        method: 'GET',
-        resource: 'openclaw-prescription',
-        action: 'getPrescriptionPdf',
-    },
-    {
-        method: 'POST',
-        resource: 'openclaw-prescription',
-        action: 'savePrescription',
-    },
-    {
-        method: 'POST',
-        resource: 'openclaw-certificate',
-        action: 'generateCertificate',
-    },
-    {
-        method: 'GET',
-        resource: 'openclaw-certificate',
-        action: 'getCertificatePdf',
-    },
-    {
-        method: 'POST',
-        resource: 'openclaw-interactions',
-        action: 'checkInteractions',
-    },
-    {
-        method: 'POST',
-        resource: 'openclaw-summarize',
-        action: 'summarizeSession',
-    },
-    {
-        method: 'GET',
-        resource: 'openclaw-router-status',
-        action: 'routerStatus',
-    },
+    { method: 'GET',  resource: 'openclaw-patient',            action: 'handle' },
+    { method: 'GET',  resource: 'openclaw-cie10-suggest',      action: 'handle' },
+    { method: 'GET',  resource: 'openclaw-protocol',           action: 'handle' },
+    { method: 'POST', resource: 'openclaw-chat',               action: 'handle' },
+    { method: 'POST', resource: 'openclaw-save-diagnosis',     action: 'handle' },
+    { method: 'POST', resource: 'openclaw-save-chronic',       action: 'handle' },
+    { method: 'POST', resource: 'openclaw-save-evolution',     action: 'handle' },
+    { method: 'GET',  resource: 'openclaw-prescription',       action: 'handle' },
+    { method: 'POST', resource: 'openclaw-prescription',       action: 'handle' },
+    { method: 'GET',  resource: 'openclaw-certificate',        action: 'handle' },
+    { method: 'POST', resource: 'openclaw-certificate',        action: 'handle' },
+    { method: 'POST', resource: 'openclaw-interactions',       action: 'handle' },
+    { method: 'POST', resource: 'openclaw-summarize',          action: 'handle' },
+    { method: 'GET',  resource: 'openclaw-router-status',      action: 'handle' },
+    { method: 'POST', resource: 'openclaw-close-telemedicine', action: 'handle' },
+    { method: 'POST', resource: 'openclaw-fast-close',         action: 'handle' },
 ];
 const VERIFY_ALLOWED_EVIDENCE_TYPES = ['file_exists', 'grep', 'json_key'];
 const FILE_EXISTS_EVIDENCE_TASKS = new Set([
@@ -559,69 +522,18 @@ function createVerificationChecks() {
             );
         },
         'S3-15': () =>
-            controllerSurfaceExists({
-                file: 'controllers/ClinicalHistoryController.php',
-                className: 'ClinicalHistoryController',
-                methods: ['sessionGet', 'sessionPost', 'messagePost'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'clinical-history-session',
-                        action: 'sessionGet',
-                    },
-                    {
-                        method: 'POST',
-                        resource: 'clinical-history-session',
-                        action: 'sessionPost',
-                    },
-                    {
-                        method: 'POST',
-                        resource: 'clinical-history-message',
-                        action: 'messagePost',
-                    },
-                ],
-            }) && fileExists('lib/clinical_history/ClinicalHistoryService.php'),
+            phpClassExists('controllers/ClinicalHistoryController.php', 'ClinicalHistoryController') &&
+            routeExists('GET', 'clinical-history-session', 'ClinicalHistoryController', 'handle') &&
+            routeExists('POST', 'clinical-history-session', 'ClinicalHistoryController', 'handle') &&
+            fileExists('lib/clinical_history/ClinicalHistoryService.php'),
         'S3-16': () =>
             fileExists('lib/CaseMediaFlowService.php') &&
-            controllerSurfaceExists({
-                file: 'controllers/ClinicalHistoryController.php',
-                className: 'ClinicalHistoryController',
-                methods: ['uploadMedia'],
-                routes: [
-                    {
-                        method: 'POST',
-                        resource: 'clinical-media-upload',
-                        action: 'uploadMedia',
-                    },
-                ],
-            }) &&
+            routeExists('POST', 'clinical-media-upload', 'ClinicalHistoryController', 'handle') &&
             allFilesExist(CLINICAL_SAMPLE_PHOTOS),
         'S3-17': () =>
-            controllerSurfaceExists({
-                file: 'controllers/ClinicalHistoryController.php',
-                className: 'ClinicalHistoryController',
-                methods: ['getClinicalPhotos'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'clinical-photos',
-                        action: 'getClinicalPhotos',
-                    },
-                ],
-            }),
+            routeExists('GET', 'clinical-photos', 'ClinicalHistoryController', 'handle'),
         'S3-18': () =>
-            controllerSurfaceExists({
-                file: 'controllers/ClinicalHistoryController.php',
-                className: 'ClinicalHistoryController',
-                methods: ['getCarePlanPdf'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'care-plan-pdf',
-                        action: 'getCarePlanPdf',
-                    },
-                ],
-            }),
+            routeExists('GET', 'care-plan-pdf', 'ClinicalHistoryController', 'handle'),
         'S3-19': () =>
             openclawSurfaceExists(['openclaw-prescription']) &&
             fileExists('lib/openclaw/PrescriptionPdfRenderer.php'),
@@ -632,79 +544,19 @@ function createVerificationChecks() {
                 'saveEvolutionNote'
             ),
         'S3-21': () =>
-            phpClassExists(
-                'lib/clinical_history/ClinicalHistoryGuardrails.php',
-                'ClinicalHistoryGuardrails'
-            ) &&
-            controllerSurfaceExists({
-                file: 'controllers/ClinicalHistoryController.php',
-                className: 'ClinicalHistoryController',
-                methods: ['reviewGet', 'reviewPatch'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'clinical-history-review',
-                        action: 'reviewGet',
-                    },
-                    {
-                        method: 'PATCH',
-                        resource: 'clinical-history-review',
-                        action: 'reviewPatch',
-                    },
-                ],
-            }),
+            phpClassExists('lib/clinical_history/ClinicalHistoryGuardrails.php', 'ClinicalHistoryGuardrails') &&
+            routeExists('GET', 'clinical-history-review', 'ClinicalHistoryController', 'handle') &&
+            routeExists('PATCH', 'clinical-history-review', 'ClinicalHistoryController', 'handle'),
         'S3-22': () =>
-            phpClassExists(
-                'lib/clinical_history/ClinicalHistoryLegalReadiness.php',
-                'ClinicalHistoryLegalReadiness'
-            ) &&
-            phpMethodExists(
-                'lib/clinical_history/ClinicalHistoryLegalReadiness.php',
-                'build'
-            ) &&
-            controllerSurfaceExists({
-                file: 'controllers/ClinicalHistoryController.php',
-                className: 'ClinicalHistoryController',
-                methods: ['recordGet', 'recordPatch'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'clinical-record',
-                        action: 'recordGet',
-                    },
-                    {
-                        method: 'PATCH',
-                        resource: 'clinical-record',
-                        action: 'recordPatch',
-                    },
-                ],
-            }),
+            phpClassExists('lib/clinical_history/ClinicalHistoryLegalReadiness.php', 'ClinicalHistoryLegalReadiness') &&
+            phpMethodExists('lib/clinical_history/ClinicalHistoryLegalReadiness.php', 'build') &&
+            routeExists('GET', 'clinical-record', 'ClinicalHistoryController', 'handle') &&
+            routeExists('PATCH', 'clinical-record', 'ClinicalHistoryController', 'handle'),
         'S3-23': () =>
-            phpClassExists(
-                'lib/clinical_history/ComplianceMSP.php',
-                'ComplianceMSP'
-            ) &&
-            phpMethodExists(
-                'lib/clinical_history/ComplianceMSP.php',
-                'validate'
-            ) &&
-            controllerSurfaceExists({
-                file: 'controllers/ClinicalHistoryController.php',
-                className: 'ClinicalHistoryController',
-                methods: ['recordPatch', 'episodeActionPost'],
-                routes: [
-                    {
-                        method: 'PATCH',
-                        resource: 'clinical-record',
-                        action: 'recordPatch',
-                    },
-                    {
-                        method: 'POST',
-                        resource: 'clinical-episode-action',
-                        action: 'episodeActionPost',
-                    },
-                ],
-            }),
+            phpClassExists('lib/clinical_history/ComplianceMSP.php', 'ComplianceMSP') &&
+            phpMethodExists('lib/clinical_history/ComplianceMSP.php', 'validate') &&
+            routeExists('PATCH', 'clinical-record', 'ClinicalHistoryController', 'handle') &&
+            routeExists('POST', 'clinical-episode-action', 'ClinicalHistoryController', 'handle'),
         'S3-24': () => fileExists('es/agendar/index.html'),
         'S3-28': () => {
             const workbench = readRepoFile(
@@ -725,67 +577,19 @@ function createVerificationChecks() {
             );
         },
         'S3-29': () =>
-            controllerSurfaceExists({
-                file: 'controllers/TelemedicineAdminController.php',
-                className: 'TelemedicineAdminController',
-                methods: ['index', 'patch'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'telemedicine-intakes',
-                        action: 'index',
-                    },
-                    {
-                        method: 'PATCH',
-                        resource: 'telemedicine-intakes',
-                        action: 'patch',
-                    },
-                ],
-            }) &&
-            controllerSurfaceExists({
-                file: 'controllers/TelemedicinePolicyController.php',
-                className: 'TelemedicinePolicyController',
-                methods: ['diagnostics', 'readiness', 'simulate'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'telemedicine-ops-diagnostics',
-                        action: 'diagnostics',
-                    },
-                    {
-                        method: 'GET',
-                        resource: 'telemedicine-rollout-readiness',
-                        action: 'readiness',
-                    },
-                    {
-                        method: 'POST',
-                        resource: 'telemedicine-policy-simulate',
-                        action: 'simulate',
-                    },
-                ],
-            }) &&
+            routeExists('GET', 'telemedicine-intakes', 'TelemedicineAdminController', 'handle') &&
+            routeExists('PATCH', 'telemedicine-intakes', 'TelemedicineAdminController', 'handle') &&
+            routeExists('GET', 'telemedicine-ops-diagnostics', 'TelemedicinePolicyController', 'handle') &&
+            routeExists('GET', 'telemedicine-rollout-readiness', 'TelemedicinePolicyController', 'handle') &&
+            routeExists('POST', 'telemedicine-policy-simulate', 'TelemedicinePolicyController', 'handle') &&
             fileExists('lib/telemedicine/TelemedicineIntakeService.php') &&
             fileExists('lib/telemedicine/TelemedicineSuitabilityEvaluator.php'),
         'S3-30': () => fileExists('es/telemedicina/consulta/index.html'),
         'S3-32': () => fileExists('es/pago/index.html'),
         'S3-36': () =>
-            controllerSurfaceExists({
-                file: 'controllers/DoctorProfileController.php',
-                className: 'DoctorProfileController',
-                methods: ['show', 'update'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'doctor-profile',
-                        action: 'show',
-                    },
-                    {
-                        method: 'POST',
-                        resource: 'doctor-profile',
-                        action: 'update',
-                    },
-                ],
-            }),
+            phpClassExists('controllers/DoctorProfileController.php', 'DoctorProfileController') &&
+            routeExists('GET', 'doctor-profile', 'DoctorProfileController', 'handle') &&
+            routeExists('POST', 'doctor-profile', 'DoctorProfileController', 'handle'),
         'S3-OC1': () =>
             openclawSurfaceExists([
                 'openclaw-patient',
@@ -799,23 +603,9 @@ function createVerificationChecks() {
                 'openclaw-router-status',
             ]),
         'S3-OC3': () =>
-            controllerSurfaceExists({
-                file: 'controllers/CertificateController.php',
-                className: 'CertificateController',
-                methods: ['index', 'store'],
-                routes: [
-                    {
-                        method: 'GET',
-                        resource: 'certificate',
-                        action: 'index',
-                    },
-                    {
-                        method: 'POST',
-                        resource: 'certificate',
-                        action: 'store',
-                    },
-                ],
-            }) &&
+            phpClassExists('controllers/CertificateController.php', 'CertificateController') &&
+            routeExists('GET', 'certificate', 'CertificateController', 'handle') &&
+            routeExists('POST', 'certificate', 'CertificateController', 'handle') &&
             openclawSurfaceExists(['openclaw-certificate']) &&
             fileExists('controllers/DoctorProfileController.php'),
         'S3-OC4': () =>
@@ -1036,7 +826,7 @@ function createVerificationChecks() {
         // ── Sprint 17 ──────────────────────────────────────────────────────
         'S17-15': () =>
             fileContains('js/dynamic-reviews.js', '.dynamic-reviews[data-service]') &&
-            routeExists('GET', 'reviews', 'ReviewController', 'index'),
+            routeExists('GET', 'reviews', 'ReviewController', 'handle'),
 
         // ── UI4 ────────────────────────────────────────────────────────────
         'UI4-01': () =>

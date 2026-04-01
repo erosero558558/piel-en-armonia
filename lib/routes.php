@@ -105,6 +105,8 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'clinical-evolution', [ClinicalHistoryController::class, 'handle']);
     $router->add('GET', 'clinical-evolution', [ClinicalHistoryController::class, 'handle']);    // S37-03: historial de evoluciones paginado
     $router->add('POST', 'clinical-anamnesis', [ClinicalHistoryController::class, 'handle']);     // S37-02: anamnesis estructurada
+    $router->add('GET', 'hce-audit-log', [ClinicalHistoryController::class, 'handle']);           // S37-11: audit log de acceso a evoluciones
+    $router->add('POST', 'admin-lab-result-share', [ClinicalHistoryController::class, 'handle']); // S37-06: visibilidad de labs en portal
     $router->add('POST', 'clinical-history-message', [ClinicalHistoryController::class, 'handle']);
     $router->add('GET', 'clinical-history-review', [ClinicalHistoryController::class, 'handle']);
     $router->add('PATCH', 'clinical-history-review', [ClinicalHistoryController::class, 'handle']);
