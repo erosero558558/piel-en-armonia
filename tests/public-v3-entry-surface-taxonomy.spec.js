@@ -120,6 +120,7 @@ test.describe('Public V6 surface taxonomy', () => {
 
         templateIds.forEach((templateId) => {
             expect(templateId).toBeTruthy();
+            if(!templateId) return;
             expect(templateId.startsWith('v3')).toBeFalsy();
             expect(templateId.startsWith('v5')).toBeFalsy();
             expect(

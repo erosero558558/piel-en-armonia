@@ -279,7 +279,8 @@
     "gov:alert": "node bin/alert.js",
     "dispatch:ui:gemini": "node bin/dispatch.js --role ui",
     "backup": "bash ops/backup.sh",
-    "ops:install-crons": "crontab ./ops/crontab.txt"
+    "ops:install-crons": "crontab -l 2>/dev/null | cat - ops/crontab.txt | crontab -",
+    "postinstall": "git worktree prune"
   },
   "lint-staged": {
     "*.php": "node bin/run-php-cs-fixer.js fix",

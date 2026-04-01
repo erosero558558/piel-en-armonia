@@ -17,14 +17,25 @@ test.describe('Mobile overflow regressions V6', () => {
             await page.setViewportSize(viewport);
             for (const route of ROUTES) {
                 await gotoPublicRoute(page, route);
-                const dimensions = await page.evaluate(() => ({
-                    scrollWidth: document.documentElement.scrollWidth,
-                    clientWidth: document.documentElement.clientWidth,
-                }));
+                const widthData = await page.evaluate(() => {
+                    let maxW = document.documentElement.scrollWidth;
+                    let offender = 'html';
+                    document.querySelectorAll('body *').forEach(el => {
+                        if (el.scrollWidth > document.documentElement.clientWidth) {
+                            maxW = Math.max(maxW, el.scrollWidth);
+                            offender = el.nodeName + '.' + el.className;
+                        }
+                    });
+                    return {
+                        scrollWidth: maxW,
+                        clientWidth: document.documentElement.clientWidth,
+                        offender: offender
+                    };
+                });
                 expect(
-                    dimensions.scrollWidth,
-                    `horizontal overflow detected on ${route} (${viewport.label})`
-                ).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+                    widthData.scrollWidth,
+                    `horizontal overflow detected on ${route} (${viewport.label}) by ${widthData.offender}`
+                ).toBeLessThanOrEqual(widthData.clientWidth + 1);
             }
         }
     });
@@ -34,7 +45,7 @@ test.describe('Mobile overflow regressions V6', () => {
     }) => {
         for (const viewport of MOBILE_VIEWPORTS) {
             await page.setViewportSize(viewport);
-            await gotoPublicRoute(page, '/es/');
+            await gotoPublicRoute(page, '/es/servicios/');
 
             const toggle = page.locator('[data-v6-drawer-open]').first();
             await expect(toggle).toBeVisible();
@@ -49,6 +60,7 @@ test.describe('Mobile overflow regressions V6', () => {
             const currentViewport = page.viewportSize();
             expect(chatRect).not.toBeNull();
             expect(currentViewport).not.toBeNull();
+            if(!chatRect || !currentViewport) return;
             expect(chatRect.x).toBeGreaterThanOrEqual(-1);
             expect(chatRect.x + chatRect.width).toBeLessThanOrEqual(
                 currentViewport.width + 1

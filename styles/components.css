@@ -574,3 +574,122 @@ body[data-theme="admin"] .empty-state h3 {
   letter-spacing: var(--tracking-wide);
   font-weight: 600;
 }
+
+/* ==========================================================================
+   Intelligent Disclaimers (S9-24)
+   ========================================================================== */
+
+.disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  border-left: 4px solid transparent;
+  margin-top: var(--space-4);
+}
+
+.disclaimer i, .disclaimer svg {
+  font-size: 1.25rem;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.disclaimer-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.disclaimer strong {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* Modifiers */
+.disclaimer--service {
+  background: var(--pub-bg-warm);
+  color: var(--pub-text-muted);
+  border-left-color: var(--color-stone-400);
+}
+
+.disclaimer--service strong {
+  color: var(--pub-text-primary);
+}
+
+.disclaimer--telemedicine {
+  background: hsla(210, 60%, 50%, 0.1);
+  color: var(--color-stone-700);
+  border-left-color: var(--color-info);
+}
+
+.disclaimer--telemedicine strong {
+  color: var(--color-info);
+}
+
+.disclaimer--prescription {
+  background: hsla(38, 85%, 52%, 0.15);
+  color: var(--color-stone-800);
+  border-left-color: var(--color-warning);
+}
+
+.disclaimer--prescription strong {
+  color: #b45309; /* stronger amber for text */
+}
+
+.disclaimer--certificate {
+  background: hsla(145, 55%, 40%, 0.1);
+  color: var(--color-stone-700);
+  border-left-color: var(--color-success);
+}
+
+.disclaimer--certificate strong {
+  color: #047857; /* stronger emerald for text */
+}
+
+.disclaimer--portal {
+  background: hsla(270, 60%, 50%, 0.08);
+  color: var(--color-stone-700);
+  border-left-color: #8b5cf6;
+}
+
+.disclaimer--portal strong {
+  color: #7c3aed; /* deeper purple */
+}
+
+/* Dark mode / Admin support */
+body[data-theme="admin"] .disclaimer--service {
+  background: rgba(255,255,255,0.05);
+  color: var(--admin-text-muted);
+  border-left-color: var(--color-stone-600);
+}
+
+body[data-theme="admin"] .disclaimer--telemedicine {
+  background: hsla(210, 60%, 50%, 0.15);
+  color: #93c5fd; /* light blue */
+}
+
+body[data-theme="admin"] .disclaimer--prescription {
+  background: hsla(38, 85%, 52%, 0.15);
+  color: #fcd34d; /* light amber */
+}
+
+body[data-theme="admin"] .disclaimer--certificate {
+  background: hsla(145, 55%, 40%, 0.15);
+  color: #6ee7b7; /* light emerald */
+}
+
+body[data-theme="admin"] .disclaimer--portal {
+  background: hsla(270, 60%, 50%, 0.15);
+  color: #c4b5fd; /* light purple */
+}
+
+body[data-theme="admin"] .disclaimer strong {
+  color: var(--admin-text-primary);
+}

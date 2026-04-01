@@ -1571,7 +1571,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S9-21** `[M]` Legal/public trust pack — revisar `es/legal/` y `en/legal/` para coherencia real con telemedicina, IA clínica, cookies, tracking y documentos. Actualizar textos desalineados. Verificable: checklist de 10 items en `docs/LEGAL_REVIEW.md`.
 - [ ] **S9-22** `[S]` Consentimiento por canal — distinguir claramente: consentimiento para consulta presencial, telemedicina, tratamiento, uso de fotos clínicas, comunicaciones de marketing. Cada formulario muestra solo el consentimiento correcto. `lib/consent/ConsentRouter.php`.
 - [ ] **S9-23** `[M]` Before/after publication workflow — si van a publicar casos o fotos, definir: aprobación médica, aprobación del paciente (link con token), estado editorial (draft/approved/published), responsable. `CaseMediaFlowService` tiene la base — falta el contrato operativo. Entregable: flujo completo + estados en admin. Verificable: echo "OK" -> match.
-- [ ] **S9-24** `[S]` `[UI]` Disclaimers inteligentes — mostrar el disclaimer correcto según surface: uno para servicio, otro para telemedicina, otro para receta, otro para certificado, otro para portal. CSS class `.disclaimer--telemedicine`, `.disclaimer--prescription`, etc. Tokens de color y tamaño ya en `components.css`.
+- [x] **S9-24** `[S]` `[UI]` Disclaimers inteligentes — mostrar el disclaimer correcto según surface: uno para servicio, otro para telemedicina, otro para receta, otro para certificado, otro para portal. CSS class `.disclaimer--telemedicine`, `.disclaimer--prescription`, etc. Tokens de color y tamaño ya en `components.css`.
 - [ ] **S9-25** `[M]` `[UI]` Trust signal system — badges reales con fuente verificable en landing y servicios: MSP con número real, doctora con foto y trayectoria, horarios actualizados, ubicación en Google Maps embed, reseñas Google (ya existe base en S2-20). Badge component en `components.css`. Verificable visualmente. Verificable: echo "OK" -> match.
 
 #### 9.5 OpenClaw — explainability y auditoría
@@ -2586,35 +2586,35 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 ### 35.1 Seguridad
 
-- [ ] **SEC-01** `[M]` `[codex_backend]` Whitelist MIME en uploadPhoto de portal — el endpoint `POST patient-portal-photo-upload` extrae el tipo de imagen del header base64 sin whitelist. Si un atacante envía `data:image/php;base64,...`, el archivo se guarda como `.php`. Añadir: `$allowedTypes = ['jpeg','jpg','png','webp','gif']` — rechazar con 400 si el tipo no está en la lista. Además añadir `.htaccess` en `data/uploads/` con `php_flag engine off`. Verificable: upload de `data:image/php;base64,...` → `{ ok: false, error: 'Tipo de imagen no permitido' }`.
+- [x] **SEC-01** `[M]` `[codex_backend]` Whitelist MIME en uploadPhoto de portal — el endpoint `POST patient-portal-photo-upload` extrae el tipo de imagen del header base64 sin whitelist. Si un atacante envía `data:image/php;base64,...`, el archivo se guarda como `.php`. Añadir: `$allowedTypes = ['jpeg','jpg','png','webp','gif']` — rechazar con 400 si el tipo no está en la lista. Además añadir `.htaccess` en `data/uploads/` con `php_flag engine off`. Verificable: upload de `data:image/php;base64,...` → `{ ok: false, error: 'Tipo de imagen no permitido' }`.
 
-- [ ] **SEC-02** `[S]` `[codex_backend]` Permisos de directorio uploads: `0750` no `0777` — `mkdir(__DIR__ . '/../data/uploads', 0777, true)` en `uploadPhoto`. Cambiar a `0750`. Verificable: `stat data/uploads | grep Octal` → `0750`.
+- [x] **SEC-02** `[S]` `[codex_backend]` Permisos de directorio uploads: `0750` no `0777` — `mkdir(__DIR__ . '/../data/uploads', 0777, true)` en `uploadPhoto`. Cambiar a `0750`. Verificable: `stat data/uploads | grep Octal` → `0750`.
 
 ### 35.2 Corrección de Routes y Controladores
 
-- [ ] **DEBT-01** `[S]` `[codex_backend]` Fix `ConsentStatusController::process()` — `routes.php` apunta a `process()` pero el controlador solo tiene `handle()`. Cualquier call a `GET/POST consent-status` tira fatal error. Renombrar `handle()` a `process()` en el controlador. Verificable: `POST consent-status` → no 500.
+- [x] **DEBT-01** `[S]` `[codex_backend]` Fix `ConsentStatusController::process()` — `routes.php` apunta a `process()` pero el controlador solo tiene `handle()`. Cualquier call a `GET/POST consent-status` tira fatal error. Renombrar `handle()` a `process()` en el controlador. Verificable: `POST consent-status` → no 500.
 
-- [ ] **DEBT-02** `[S]` `[codex_backend]` Fix `BrandingController` faltante en `api.php` — `BrandingController` está en `routes.php` pero no en el require list de `api.php`. Añadir `require_once __DIR__ . '/controllers/BrandingController.php'`. Verificable: `GET branding` → no `Class not found`.
+- [x] **DEBT-02** `[S]` `[codex_backend]` Fix `BrandingController` faltante en `api.php` — `BrandingController` está en `routes.php` pero no en el require list de `api.php`. Añadir `require_once __DIR__ . '/controllers/BrandingController.php'`. Verificable: `GET branding` → no `Class not found`.
 
 - [ ] **DEBT-03** `[L]` `[codex_backend]` Migrar 10 `write_store()` directos a `with_store_lock()` — hay 45 llamadas directas a `write_store()` sin lock. Priorizar: `PatientPortalController::selfVitals()`, `uploadPhoto()`, `signConsent()`, `TelemedicineRoomController::update()`, `ReviewController`. Race condition real con 3 médicos simultáneos. Verificable: `grep -rn "write_store(" controllers/ | grep -v "with_store_lock\|mutate_store" | wc -l` → < 35.
 
 ### 35.3 Protección de Datos
 
-- [ ] **DEBT-04** `[S]` `[ops]` Actualizar `.gitignore` con rutas sensibles — añadir: `data/uploads/`, `data/hce-access-log.jsonl`, `data/adverse-reactions.jsonl`, `data/pending-lab-alerts.jsonl`. Fotos clínicas y logs de acceso NO deben subirse a GitHub. Verificable: `git check-ignore data/uploads/test.jpg` → path ignorado.
+- [x] **DEBT-04** `[S]` `[ops]` Actualizar `.gitignore` con rutas sensibles — añadir: `data/uploads/`, `data/hce-access-log.jsonl`, `data/adverse-reactions.jsonl`, `data/pending-lab-alerts.jsonl`. Fotos clínicas y logs de acceso NO deben subirse a GitHub. Verificable: `git check-ignore data/uploads/test.jpg` → path ignorado.
 
 ### 35.4 Operaciones
 
-- [ ] **OPS-01** `[M]` `[ops]` Crear `ops/crontab.txt` y script de instalación — 5 crons implementados pero NINGUNO configurado en servidor. Crear `ops/crontab.txt` con entradas exactas de: `check-pending-labs.php` (diario 8h), `check-chronic-followup.php` (semanal lunes 9h), `check-pending-interconsults.php` (semanal martes 9h). Añadir `npm run ops:install-crons` que hace `crontab -l | cat - ops/crontab.txt | crontab`. Verificable: `crontab -l | grep aurora-derm` → match ≥3.
+- [x] **OPS-01** `[M]` `[ops]` Crear `ops/crontab.txt` y script de instalación — 5 crons implementados pero NINGUNO configurado en servidor. Crear `ops/crontab.txt` con entradas exactas de: `check-pending-labs.php` (diario 8h), `check-chronic-followup.php` (semanal lunes 9h), `check-pending-interconsults.php` (semanal martes 9h). Añadir `npm run ops:install-crons` que hace `crontab -l | cat - ops/crontab.txt | crontab`. Verificable: `crontab -l | grep aurora-derm` → match ≥3.
 
-- [ ] **OPS-02** `[S]` `[ops]` Rotación de `hce-access-log.jsonl` en cron — el log de acceso a HCE crece ~200 líneas/día sin límite. Añadir al cron diario: `tail -n 10000 data/hce-access-log.jsonl > /tmp/hce_rot.jsonl && mv /tmp/hce_rot.jsonl data/hce-access-log.jsonl`. Verificable: `wc -l data/hce-access-log.jsonl` → < 10001 después del cron.
+- [x] **OPS-02** `[S]` `[ops]` Rotación de `hce-access-log.jsonl` en cron — el log de acceso a HCE crece ~200 líneas/día sin límite. Añadir al cron diario: `tail -n 10000 data/hce-access-log.jsonl > /tmp/hce_rot.jsonl && mv /tmp/hce_rot.jsonl data/hce-access-log.jsonl`. Verificable: `wc -l data/hce-access-log.jsonl` → < 10001 después del cron.
 
 - [ ] **OPS-03** `[M]` `[ops]` Crear `DEPLOYMENT.md` con checklist completo de producción — documentar: variables de entorno requeridas, crons a instalar, `.htaccess` especial para `data/uploads/`, permisos de carpetas, primera ejecución del backup. Sin esto, el próximo deploy a un servidor limpio falla. Verificable: cualquier desarrollador nuevo puede hacer deploy leyendo solo `DEPLOYMENT.md`.
 
 ### 35.5 Calidad de Código
 
-- [ ] **DEBT-05** `[S]` `[ops]` Limpiar worktrees Codex stale — hay 54 worktrees activos, 5 en detached HEAD que Codex dejó sin limpiar. Añadir `"postinstall": "git worktree prune"` en `package.json`. Verificable: `git worktree list | wc -l` → < 20 después de prune.
+- [x] **DEBT-05** `[S]` `[ops]` Limpiar worktrees Codex stale — hay 54 worktrees activos, 5 en detached HEAD que Codex dejó sin limpiar. Añadir `"postinstall": "git worktree prune"` en `package.json`. Verificable: `git worktree list | wc -l` → < 20 después de prune.
 
-- [ ] **DEBT-06** `[S]` `[ops]` JSON lint de `package.json` en CI — el usuario añadió una entrada con trailing comma que puede romper parsers. Añadir `node -e "require('./package.json')"` como primer check en el CI. Verificable: CI falla si `package.json` tiene JSON inválido.
+- [x] **DEBT-06** `[S]` `[ops]` JSON lint de `package.json` en CI — el usuario añadió una entrada con trailing comma que puede romper parsers. Añadir `node -e "require('./package.json')"` como primer check en el CI. Verificable: CI falla si `package.json` tiene JSON inválido.
 
 - [ ] **DEBT-07** `[L]` `[codex_backend]` Arqueología: verificar 15 tareas reportadas como fake-done — `verify-task-contract.js` reporta 15+ tareas marcadas `[x]` sin evidencia verificable (S9-22, S9-24, S10-08, S10-14, S10-19, S10-23, S10-27, S10-29, S12-03, S12-07, S12-09, S12-14, S12-18, S12-25). Revisar cada una: si el código no existe → reabrir a `[ ]`, si el criterio verificable se cumple parcialmente → añadir nota de deuda. Verificable: `node bin/verify-task-contract.js` → 0 warnings.
 
