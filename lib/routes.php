@@ -27,6 +27,7 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'health', [HealthController::class, 'check']);
     $router->add('GET', 'health-diagnostics', [HealthController::class, 'diagnostics']);
+    $router->add('GET', 'system-status', [HealthController::class, 'systemStatus']);
 
     $router->add('GET', 'payment-config', [PaymentController::class, 'config']);
     $router->add('GET', 'checkout-config', [PaymentController::class, 'checkoutConfig']);
@@ -59,6 +60,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'clinical-history-review', [ClinicalHistoryController::class, 'reviewGet']);
     $router->add('PATCH', 'clinical-history-review', [ClinicalHistoryController::class, 'reviewPatch']);
     $router->add('GET', 'clinical-history-gallery', [ClinicalHistoryController::class, 'galleryGet']);
+    $router->add('GET', 'clinical-photos', [ClinicalHistoryController::class, 'handle']);
     $router->add('GET', 'clinical-record', [ClinicalHistoryController::class, 'recordGet']);
     $router->add('PATCH', 'clinical-record', [ClinicalHistoryController::class, 'recordPatch']);
     $router->add('POST', 'clinical-episode-action', [ClinicalHistoryController::class, 'episodeActionPost']);
