@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 10:22:44 a. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 10:30:51 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████████████░░░░` **82%** completado (571/696)
+`████████████████░░░░` **82%** completado (573/696)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -26,7 +26,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 9 | 13 | 14 | 48% |
 | ⏸ Sprint 10 | 3 | 27 | 10% |
 | ⏸ Sprint 12 | 21 | 5 | 81% |
-| ⏸ Sprint 13 | 20 | 1 | 95% |
+| ✅ Sprint 13 | 21 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ✅ Sprint 14 | 14 | 0 | 100% |
 | ✅ Sprint 15 | 13 | 0 | 100% |
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ✅ Sprint 22 | 9 | 0 | 100% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 185 | 25 | 88% |
+| ⏸ Sprint UI | 186 | 24 | 89% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -186,14 +186,8 @@ _Esperando que Sprint anterior esté completo. 5 tareas pendientes._
 | **S12-28** | `[S12]` | M |
 | **S12-29** | `[S12]` | M |
 
-## ⏸ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
-_Esperando que Sprint anterior esté completo. 1 tareas pendientes._
-
-### 🟢 Disponibles (1)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **S13-06** | `[S13]` | M |
+## ✅ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
+_Sprint completado. 21/21 tareas._
 
 ## ✅ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Sprint completado. 20/20 tareas._
@@ -223,9 +217,9 @@ _Sprint completado. 9/9 tareas._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 25 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 
-### 🟢 Disponibles (24)
+### 🟢 Disponibles (23)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -234,11 +228,11 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 | **S31-05** | `[S31]` | L |
 | **S35-07** | `[S35]` | S |
 | **S36-02** | `[S36]` | S |
-| ... | | _+19 más_ |
+| ... | | _+18 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S38-05** `[S38]` → _Antigravity_ (expira en 175min)
+- **S38-05** `[S38]` → _Antigravity_ (expira en 167min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
