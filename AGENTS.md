@@ -2362,13 +2362,13 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### UI5-E Micro-UX de Primer Nivel
 
-- [ ] **UI5-19** `[M]` `[UI]` Toast notifications glass system — `js/aurora-toast.js` (nuevo): reemplaza todos los `alert()` del sistema. Toasts en bottom-right, glass, ícono de estado, desaparecen en 4s con `opacity: 1→0` spring. API: `window.toast.show('msg', 'success'|'error'|'warning'|'info')`. Verificable: `grep "window.toast\|toast.*glass\|toast.*spring" js/aurora-toast.js` → match; archivo nuevo.
+- [x] **UI5-19** `[M]` `[UI]` Toast notifications glass system — `js/aurora-toast.js` (nuevo): reemplaza todos los `alert()` del sistema. Toasts en bottom-right, glass, ícono de estado, desaparecen en 4s con `opacity: 1→0` spring. API: `window.toast.show('msg', 'success'|'error'|'warning'|'info')`. Verificable: `grep "window.toast\|toast.*glass\|toast.*spring" js/aurora-toast.js` → match; archivo nuevo.
 
-- [ ] **UI5-20** `[M]` `[UI]` Skeleton screens glass — reemplazar spinners con skeletons glass en: lista de pacientes, carga de HCE, resultados OpenClaw. Shimmer: `background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 50%, ...)` en loop. Verificable: `grep "skeleton.*glass\|skeleton.*shimmer" styles/aurora-admin.css` → match ≥3; 0 spinners durante carga.
+- [x] **UI5-20** `[M]` `[UI]` Skeleton screens glass — reemplazar spinners con skeletons glass en: lista de pacientes, carga de HCE, resultados OpenClaw. Shimmer: `background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 50%, ...)` en loop. Verificable: `grep "skeleton.*glass\|skeleton.*shimmer" styles/aurora-admin.css` → match ≥3; 0 spinners durante carga.
 
-- [ ] **UI5-21** `[M]` `[UI]` Empty states ilustrados — cuando no hay datos: ilustración SVG minimalista + título `clamp(1.2rem,3vw,1.8rem)` + CTA contextual glass. Sin texto plano "No hay registros." en ninguna surface. Verificable: `grep "empty-state\|empty.*svg\|empty.*cta" styles/aurora-admin.css` → match ≥3.
+- [x] **UI5-21** `[M]` `[UI]` Empty states ilustrados — cuando no hay datos: ilustración SVG minimalista + título `clamp(1.2rem,3vw,1.8rem)` + CTA contextual glass. Sin texto plano "No hay registros." en ninguna surface. Verificable: `grep "empty-state\|empty.*svg\|empty.*cta" styles/aurora-admin.css` → match ≥3.
 
-- [ ] **UI5-22** `[S]` `[UI]` Modo oscuro consistente — auditar `admin.html`, `kiosk.html`, `queue-display.html`, portal y booking: background base `var(--rb-bg, #050810)` en todas. Verificable: `grep -r "background.*#fff\|background.*white" styles/aurora-admin.css styles/aurora-clinical.css` → 0 matches.
+- [x] **UI5-22** `[S]` `[UI]` Modo oscuro consistente — auditar `admin.html`, `kiosk.html`, `queue-display.html`, portal y booking: background base `var(--rb-bg, #050810)` en todas. Verificable: `grep -r "background.*#fff\|background.*white" styles/aurora-admin.css styles/aurora-clinical.css` → 0 matches.
 
 ---
 

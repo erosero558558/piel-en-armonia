@@ -726,7 +726,7 @@ body.focus-mode .admin-content-canvas {
    ========================================================================== */
 
 /* UI5-20 Skeleton Loaders Glass */
-.lg-skeleton {
+.skeleton-glass {
   background: linear-gradient(
     90deg, 
     rgba(255, 255, 255, 0.04) 25%, 
@@ -734,23 +734,23 @@ body.focus-mode .admin-content-canvas {
     rgba(255, 255, 255, 0.04) 75%
   );
   background-size: 200% 100%;
-  animation: lg-shimmer 1.5s infinite linear;
+  animation: skeleton-shimmer 1.5s infinite linear;
   border-radius: var(--radius-md, 8px);
   color: transparent !important;
   border: 1px solid rgba(255, 255, 255, 0.02);
 }
 
-.lg-skeleton * {
+.skeleton-glass * {
   visibility: hidden;
 }
 
-@keyframes lg-shimmer {
+@keyframes skeleton-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
 /* UI5-21 Empty States Ilustrados */
-.lg-empty-state {
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -760,7 +760,7 @@ body.focus-mode .admin-content-canvas {
   background: transparent;
 }
 
-.lg-empty-state svg {
+.empty-state svg {
   width: 120px;
   height: auto;
   margin-bottom: var(--space-6);
@@ -769,21 +769,21 @@ body.focus-mode .admin-content-canvas {
   filter: drop-shadow(0 0 20px rgba(199, 163, 109, 0.2));
 }
 
-.lg-empty-state h3 {
+.empty-state h3 {
   font-family: var(--reborn-font-display, var(--font-display));
   font-size: clamp(1.2rem, 3vw, 1.8rem);
   color: var(--admin-text-primary);
   margin-bottom: var(--space-2);
 }
 
-.lg-empty-state p {
+.empty-state p {
   color: var(--admin-text-muted);
   max-width: 400px;
   margin: 0 auto var(--space-6);
   line-height: 1.5;
 }
 
-.lg-empty-state .lg-empty-cta {
+.empty-state .empty-state-cta {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(12px);
   border: 1px solid var(--admin-border);
@@ -796,7 +796,7 @@ body.focus-mode .admin-content-canvas {
   cursor: pointer;
 }
 
-.lg-empty-state .lg-empty-cta:hover {
+.empty-state .empty-state-cta:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: var(--color-aurora-500);
   color: var(--color-aurora-500);

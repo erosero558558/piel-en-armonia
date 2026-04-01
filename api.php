@@ -65,9 +65,9 @@ require_once __DIR__ . '/controllers/PromotionController.php';
 require_once __DIR__ . '/controllers/TvController.php';
 require_once __DIR__ . '/controllers/ClinicalPhotosController.php';
 require_once __DIR__ . '/controllers/SecurityReportController.php';
+require_once __DIR__ . '/controllers/ConfigAuditLogController.php';
 
 
 // Instantiate and Handle
 $kernel = new ApiKernel();
 $kernel->handleRequest();
-require_once __DIR__ . '/controllers/ConfigAuditLogController.php';
