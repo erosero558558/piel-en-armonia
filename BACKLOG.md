@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 8:14:17 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 8:22:01 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████████░░░░░░░` **67%** completado (420/626)
+`██████████████░░░░░░` **68%** completado (423/626)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -27,7 +27,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 10 | 3 | 27 | 10% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
 | ⏸ Sprint 13 | 20 | 1 | 95% |
-| ⏸ Sprint UI | 19 | 1 | 95% |
+| ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint 14 | 11 | 3 | 79% |
 | ⏸ Sprint 15 | 3 | 10 | 23% |
 | ✅ Sprint 16 | 13 | 0 | 100% |
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 75 | 65 | 54% |
+| ⏸ Sprint UI | 77 | 63 | 55% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -193,14 +193,8 @@ _Esperando que Sprint anterior esté completo. 1 tareas pendientes._
 |----|--------|-------|
 | **S13-06** | `[S13]` | M |
 
-## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
-_Esperando que Sprint anterior esté completo. 1 tareas pendientes._
-
-### 🟢 Disponibles (1)
-
-| ID | Tamaño | Tarea |
-|----|--------|-------|
-| **UI3-20** | `[UI3]` | M |
+## ✅ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
+_Sprint completado. 20/20 tareas._
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 3 tareas pendientes._
@@ -257,9 +251,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 65 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 63 tareas pendientes._
 
-### 🟢 Disponibles (58)
+### 🟢 Disponibles (55)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -268,17 +262,18 @@ _Esperando que Sprint anterior esté completo. 65 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-04** | `[S24]` | L |
 | **S24-05** | `[S24]` | S |
-| ... | | _+53 más_ |
+| ... | | _+50 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S29-08** `[S29]` → _Antigravity_ (expira en 98min)
-- **S29-11** `[S29]` → _Antigravity_ (expira en 344min)
-- **S29-12** `[S29]` → _Antigravity_ (expira en 104min)
-- **S29-13** `[S29]` → _Antigravity_ (expira en 145min)
-- **S29-14** `[S29]` → _Antigravity_ (expira en 25min)
-- **S29-15** `[S29]` → _Antigravity_ (expira en 145min)
-- **S29-16** `[S29]` → _Antigravity_ (expira en 145min)
+- **S25-04** `[S25]` → _Antigravity_ (expira en 234min)
+- **S29-08** `[S29]` → _Antigravity_ (expira en 91min)
+- **S29-11** `[S29]` → _Antigravity_ (expira en 336min)
+- **S29-12** `[S29]` → _Antigravity_ (expira en 96min)
+- **S29-13** `[S29]` → _Antigravity_ (expira en 138min)
+- **S29-14** `[S29]` → _Antigravity_ (expira en 18min)
+- **S29-15** `[S29]` → _Antigravity_ (expira en 138min)
+- **S29-16** `[S29]` → _Antigravity_ (expira en 138min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

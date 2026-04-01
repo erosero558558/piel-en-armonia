@@ -375,26 +375,38 @@ final class PatientPortalController
             $billing = is_array($apt['billing'] ?? null) ? $apt['billing'] : [];
             $status = (string) ($billing['status'] ?? '');
             $amountPaid = (float) ($billing['amountPaid'] ?? 0);
+            $amountDue = (float) ($billing['amountDue'] ?? 0);
             
-            if (($status === 'paid' || $status === 'partial') && $amountPaid > 0) {
+            if ($status === 'paid' || $status === 'partial' || $status === 'pending') {
+                if ($amountPaid <= 0 && $amountDue <= 0) continue;
+
                 $ts = strtotime(strval($apt['date'] ?? 'now'));
                 if (!$ts) $ts = time();
                 
                 $dateLabel = date('d \d\e ', $ts) . ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][intval(date('n',$ts)) - 1] . date(' Y', $ts);
                 
                 $totalPaid += $amountPaid;
-                if ($lastPaymentDate === null) {
+                if ($lastPaymentDate === null && $amountPaid > 0) {
                     $lastPaymentDate = $dateLabel;
+                }
+
+                $methodL = (string) ($billing['method'] ?? 'Tarjeta / Efectivo');
+                if ($methodL === '') $methodL = 'Tarjeta / Efectivo';
+
+                $receiptUrl = null;
+                if ($amountPaid > 0 && !empty($billing['invoiceId'])) {
+                    $receiptUrl = '/api.php?resource=patient-portal-document&type=receipt&id=' . rawurlencode((string)$billing['invoiceId']);
                 }
 
                 $payments[] = [
                     'id' => (string) ($apt['id'] ?? uniqid()),
                     'dateLabel' => $dateLabel,
-                    'concept' => 'Pago por Atenciones y Procedimientos',
+                    'serviceName' => (string) ($apt['serviceName'] ?? 'Atencion Dermatologica'),
                     'amountLabel' => sprintf('$%.2f', $amountPaid),
-                    'methodLabel' => 'Tarjeta / Transferencia',
-                    'status' => 'completed',
-                    'pdfUrl' => null,
+                    'amountDue' => $amountDue,
+                    'methodLabel' => $methodL,
+                    'status' => $amountDue > 0 ? 'pending' : 'completed',
+                    'receipt_url' => $receiptUrl,
                 ];
             }
         }
