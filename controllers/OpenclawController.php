@@ -854,10 +854,14 @@ final class OpenclawController
 
         if ($caseId !== '') {
             $store = read_store();
+            $weightKg = null;
             // Buscar la sesión activa del caso para obtener datos de la paciente
             foreach (($store['clinical_history_drafts'] ?? []) as $draft) {
                 if (trim((string) ($draft['caseId'] ?? '')) === $caseId) {
                     $pregnancyStatus = $draft['intake']['datosPaciente']['embarazo'] ?? null;
+                    if (isset($draft['intake']['vitalSigns']['weightKg'])) {
+                        $weightKg = (float) $draft['intake']['vitalSigns']['weightKg'];
+                    }
                     break;
                 }
             }
@@ -916,6 +920,26 @@ final class OpenclawController
             }
         }
 
+        // S31-06: Pediatric Dose Validation
+        $doseWarning = null;
+        if (isset($patientAgeYears) && $patientAgeYears < 12) {
+            $hasAmoxi = false;
+            foreach ($proposed as $med) {
+                if (stripos($med, 'amoxicilina') !== false) {
+                    $hasAmoxi = true;
+                    break;
+                }
+            }
+            
+            if ($hasAmoxi) {
+                if (isset($weightKg) && $weightKg > 0) {
+                    $doseWarning = "Paciente pediátrico: verificar dosis según peso ({$weightKg} kg). Dosis máxima recomendada para amoxicilina: 80-90 mg/kg/día.";
+                } else {
+                    $doseWarning = "Paciente pediátrico (< 12 años): verificar dosis de amoxicilina. Peso no registrado en signos vitales.";
+                }
+            }
+        }
+
         json_response([
             'ok'                    => true,
             'has_interactions'      => count($interactions) > 0,
@@ -927,6 +951,7 @@ final class OpenclawController
             'teratogenicity_note'   => $teratogenicityWarning
                 ? 'ADVERTENCIA: medicamento(s) teratogénico(s) detectado(s). Confirme que la paciente no está embarazada antes de prescribir.'
                 : null,
+            'dose_warning'          => $doseWarning,
         ]);
     }
 
@@ -949,7 +974,7 @@ final class OpenclawController
             'messages' => [
                 [
                     'role'    => 'system',
-                    'content' => 'Eres un asistente médico. Genera un resumen estructurado de la consulta. Responde SOLO con JSON válido con estas claves: evolution_text (nota clínica para HCE), patient_summary (resumen en lenguaje no técnico para el paciente, incluyendo: diagnóstico simple, medicamentos con instrucciones claras de toma, fecha del próximo control, y 3 señales de alarma para consulta urgente), pending_actions (array de tareas pendientes).',
+                    'content' => 'Eres un asistente médico. Genera un resumen estructurado de la consulta. Responde SOLO con JSON válido con estas claves: evolution_text (nota clínica para HCE), patient_summary_wa (resumen en lenguaje no técnico para el paciente, MÁXIMO 300 palabras, incluyendo: diagnóstico simple, 3 instrucciones de medicación más importantes, fecha de próximo control, y señal de alarma para consulta urgente), pending_actions (array de tareas pendientes).',
                 ],
                 [
                     'role'    => 'user',
@@ -973,7 +998,7 @@ final class OpenclawController
             $parsed = @json_decode($raw, true);
             if (is_array($parsed)) {
                 $evolutionText  = (string) ($parsed['evolution_text'] ?? '');
-                $patientSummary = (string) ($parsed['patient_summary'] ?? '');
+                $patientSummary = (string) ($parsed['patient_summary_wa'] ?? $parsed['patient_summary'] ?? '');
                 $pendingActions = (array) ($parsed['pending_actions'] ?? []);
             }
         }
@@ -995,7 +1020,7 @@ final class OpenclawController
         json_response([
             'ok'              => true,
             'evolution_text'  => $evolutionText,
-            'patient_summary' => $patientSummary,
+            'patient_summary_wa' => $patientSummary,
             'pending_actions' => $pendingActions,
             'whatsapp_url'    => $waUrl,
         ]);

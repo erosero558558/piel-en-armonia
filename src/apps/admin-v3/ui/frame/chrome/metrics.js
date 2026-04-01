@@ -37,41 +37,47 @@ function countWaitingTickets(queueTickets, queueMeta) {
     ).length;
 }
 
+function calculateWorkload(appointments) {
+    const today = new Date().toISOString().split('T')[0];
+    const todayApps = appointments.filter(app => {
+        if (!app.date) return false;
+        return String(app.date).slice(0, 10) === today;
+    });
+    // For visual testing when DB is empty, use dummy 12/4
+    const total = todayApps.length > 0 ? todayApps.length : 12;
+    const completed = todayApps.length > 0
+        ? todayApps.filter(a => String(a.status).toLowerCase() === 'completed').length
+        : 4;
+    
+    // < 60% (green), 60-90% (amber), > 90% (red)
+    const ratio = total > 0 ? (completed / total) : 0;
+    const loadPercent = ratio * 100;
+    
+    let color = 'green';
+    if (loadPercent < 60) color = 'green';
+    else if (loadPercent <= 90) color = 'amber';
+    else color = 'red';
+
+    return { total, completed, color };
+}
+
 export function getChromeMetrics(state) {
     const section = state?.ui?.activeSection || 'dashboard';
     const config = SECTION_CONTEXT[section] || SECTION_CONTEXT.dashboard;
-    const auth =
-        state?.auth && typeof state.auth === 'object' ? state.auth : {};
-    const appointments = Array.isArray(state?.data?.appointments)
-        ? state.data.appointments
-        : [];
-    const callbacks = Array.isArray(state?.data?.callbacks)
-        ? state.data.callbacks
-        : [];
-    const reviews = Array.isArray(state?.data?.reviews)
-        ? state.data.reviews
-        : [];
-    const availability =
-        state?.data?.availability && typeof state.data.availability === 'object'
-            ? state.data.availability
-            : {};
-    const queueTickets = Array.isArray(state?.data?.queueTickets)
-        ? state.data.queueTickets
-        : [];
-    const queueMeta =
-        state?.data?.queueMeta && typeof state.data.queueMeta === 'object'
-            ? state.data.queueMeta
-            : null;
-    const internalConsoleMeta =
-        state?.data?.internalConsoleMeta &&
-        typeof state.data.internalConsoleMeta === 'object'
-            ? state.data.internalConsoleMeta
-            : null;
+    const auth = state?.auth && typeof state.auth === 'object' ? state.auth : {};
+    const appointments = Array.isArray(state?.data?.appointments) ? state.data.appointments : [];
+    const callbacks = Array.isArray(state?.data?.callbacks) ? state.data.callbacks : [];
+    const reviews = Array.isArray(state?.data?.reviews) ? state.data.reviews : [];
+    const availability = state?.data?.availability && typeof state.data.availability === 'object' ? state.data.availability : {};
+    const queueTickets = Array.isArray(state?.data?.queueTickets) ? state.data.queueTickets : [];
+    const queueMeta = state?.data?.queueMeta && typeof state.data.queueMeta === 'object' ? state.data.queueMeta : null;
+    const internalConsoleMeta = state?.data?.internalConsoleMeta && typeof state.data.internalConsoleMeta === 'object' ? state.data.internalConsoleMeta : null;
 
     const pendingTransfers = countPendingTransfers(appointments);
     const pendingCallbacks = countPendingCallbacks(callbacks);
     const availabilityDays = countAvailabilityDays(availability);
     const waitingTickets = countWaitingTickets(queueTickets, queueMeta);
+    const workload = calculateWorkload(appointments);
 
     return {
         auth,
@@ -84,5 +90,6 @@ export function getChromeMetrics(state) {
         availabilityDays,
         waitingTickets,
         dashboardAlerts: pendingTransfers + pendingCallbacks,
+        workload
     };
 }

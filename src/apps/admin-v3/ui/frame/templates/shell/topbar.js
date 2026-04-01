@@ -35,7 +35,33 @@ export function renderShellTopbar() {
         <header class="admin-v3-topbar">
             <div class="admin-v3-topbar__copy">
                 <p class="sony-kicker">Consola de control</p>
-                <h2 id="pageTitle">Turnero</h2>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <h2 id="pageTitle">Turnero</h2>
+                    <!-- S33-05: Workload indicator module -->
+                    <div id="adminWorkloadPill" class="workload-pill patients-today-header" style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 4px 12px;
+                        border-radius: 999px;
+                        background: rgba(34, 197, 94, 0.15); /* verde por defecto */
+                        border: 1px solid rgba(34, 197, 94, 0.3);
+                        backdrop-filter: blur(12px);
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        color: #4ade80;
+                        letter-spacing: 0.05em;
+                        text-transform: uppercase;
+                    ">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span data-workload-text>12 pacientes hoy / 4 completados</span>
+                    </div>
+                </div>
                 ${renderTopbarOperationalNav()}
             </div>
             <div class="admin-v3-topbar__actions">

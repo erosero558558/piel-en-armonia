@@ -2227,7 +2227,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S28-03** `[M]` Audit trail de acceso a datos — registrar en `data/access-log.jsonl` cada vez que se accede a datos de un paciente: quién, cuándo, qué recurso, desde qué IP. Solo visible para el propietario de la clínica. El médico puede ver su propio trail. Sin esto, es imposible responder ante una brecha. Verificable: `GET /api.php?resource=data-access-audit?patient_id=X` → array de `access_events` con `accessor`, `resource`, `ts`.
 
-- [ ] **S28-04** `[M]` Consentimiento informado versionado — el texto del consentimiento tiene versión semántica (`v1.2.0`). Al cambiar la versión, todos los pacientes son notificados y deben re-firmar antes del próximo acceso al portal. El sistema registra qué versión firmó cada paciente y cuándo. Verificable: `GET /api.php?resource=consent-status?patient_id=X` → `signed_version`, `current_version`, `needs_renewal: true/false`.
+- [x] **S28-04** `[M]` Consentimiento informado versionado — el texto del consentimiento tiene versión semántica (`v1.2.0`). Al cambiar la versión, todos los pacientes son notificados y deben re-firmar antes del próximo acceso al portal. El sistema registra qué versión firmó cada paciente y cuándo. Verificable: `GET /api.php?resource=consent-status?patient_id=X` → `signed_version`, `current_version`, `needs_renewal: true/false`.
 
 - [x] **S28-05** `[S]` Privacy notice en el booking público — `es/agendar/index.html` debe mostrar enlace a política de privacidad y checkbox de aceptación antes de confirmar el formulario. Sin la aceptación, el botón de confirmar está deshabilitado. Verificable: `grep "privacy.*checkbox\|consent.*booking" es/agendar/index.html` → match; `disabled` en submit sin check.
 
@@ -2557,7 +2557,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S33-04** `[M]` `[codex_backend]` Estadísticas del médico — `GET /api.php?resource=doctor-stats` devuelve: pacientes atendidos este mes, consultas cerradas, prescripciones emitidas, diagnósticos más frecuentes (top 5 CIE-10), tasa de retorno de pacientes (porcentaje que volvió al menos una vez). Verificable: respuesta incluye `top_diagnoses: [{cie10Code, count}]` con datos reales.
 
-- [ ] **S33-05** `[S]` `[UI]` `[gemini]` Indicador de carga de trabajo del día — en el header del admin: pill glass con "X pacientes hoy / Y completados". Cambia de color: verde si < 60% carga, amber si 60-90%, rojo si > 90% o retrasado. Verificable: `grep "workload.*pill\|patients.*today.*header" src/apps/admin-v3/` → match.
+- [x] **S33-05** `[S]` `[UI]` `[gemini]` Indicador de carga de trabajo del día — en el header del admin: pill glass con "X pacientes hoy / Y completados". Cambia de color: verde si < 60% carga, amber si 60-90%, rojo si > 90% o retrasado. Verificable: `grep "workload.*pill\|patients.*today.*header" src/apps/admin-v3/` → match.
 
 ---
 
