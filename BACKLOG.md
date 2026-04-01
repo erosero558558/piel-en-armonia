@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 10:05:56 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 10:06:39 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.

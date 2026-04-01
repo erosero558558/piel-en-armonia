@@ -189,12 +189,12 @@ async function openDashboardSection(page) {
 
 test.describe('Panel de administracion', () => {
     test('pagina admin carga correctamente', async ({ page }) => {
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page).toHaveTitle(/Admin|Aurora Derm/);
     });
 
     test('formulario de login esta visible', async ({ page }) => {
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         const loginForm = page
             .locator('#loginForm, form, [class*="login"]')
             .first();
@@ -204,7 +204,7 @@ test.describe('Panel de administracion', () => {
     test('tema claro/oscuro funciona en login y persiste tras recarga', async ({
         page,
     }) => {
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
 
         const darkThemeBtn = page
@@ -249,7 +249,7 @@ test.describe('Panel de administracion', () => {
             authMode: 'openclaw_chatgpt',
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
 
         await expect(page.locator('#openclawLoginStage')).toBeVisible();
@@ -325,7 +325,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
 
         await page
@@ -467,7 +467,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
 
         await page
@@ -585,7 +585,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
 
         await page
@@ -619,7 +619,7 @@ test.describe('Panel de administracion', () => {
     }) => {
         await setupLoginAdminMocks(page);
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         const passwordInput = page.locator('#adminPassword');
         const loginBtn = page.locator('#loginBtn');
@@ -646,7 +646,7 @@ test.describe('Panel de administracion', () => {
             loginError: 'Credenciales inválidas',
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         const passwordInput = page.locator('#adminPassword');
         const loginBtn = page.locator('#loginBtn');
@@ -671,7 +671,7 @@ test.describe('Panel de administracion', () => {
     }) => {
         await setupLoginAdminMocks(page, { twoFactorRequired: true });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
 
         await page.locator('#adminPassword').fill('clave-test');
@@ -697,7 +697,7 @@ test.describe('Panel de administracion', () => {
     }) => {
         await setupLoginAdminMocks(page, { twoFactorRequired: false });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
 
         await page.locator('#adminPassword').fill('clave-test');
@@ -715,7 +715,7 @@ test.describe('Panel de administracion', () => {
     test('dashboard incluye desgloses de embudo extendidos', async ({
         page,
     }) => {
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page.locator('#funnelAbandonList')).toHaveCount(1);
         await expect(page.locator('#funnelEntryList')).toHaveCount(1);
         await expect(page.locator('#funnelSourceList')).toHaveCount(1);
@@ -786,7 +786,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await openDashboardSection(page);
         await expect(page.locator('#dashboardAssistantUtility')).toBeVisible();
         await expect(page.locator('#dashboardAssistantStatus')).toHaveText(
@@ -938,7 +938,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await openDashboardSection(page);
         await expect(page.locator('#dashboardConversionChip')).toHaveText(
             'Con traccion'
@@ -1051,7 +1051,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await openDashboardSection(page);
@@ -1119,7 +1119,7 @@ test.describe('Panel de administracion', () => {
             ],
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await openDashboardSection(page);
         await expect(page.locator('#opsTodaySummaryCard')).toBeVisible();
@@ -1216,7 +1216,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await openDashboardSection(page);
 
@@ -1511,7 +1511,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         await openDashboardSection(page);
 
@@ -1685,7 +1685,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         await openDashboardSection(page);
 
@@ -1856,7 +1856,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         await openDashboardSection(page);
 
@@ -1957,7 +1957,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await openDashboardSection(page);
@@ -2024,7 +2024,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await openDashboardSection(page);
@@ -2056,7 +2056,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await openDashboardSection(page);
@@ -2088,7 +2088,7 @@ test.describe('Panel de administracion', () => {
             },
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await waitForAdminReady(page);
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await openDashboardSection(page);
@@ -2138,7 +2138,7 @@ test.describe('Panel de administracion', () => {
             ],
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await openDashboardSection(page);
         await expect(page.locator('.dashboard-card-operations')).toBeVisible();
         await expect(
@@ -2195,7 +2195,7 @@ test.describe('Panel de administracion', () => {
             ],
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
         await page.locator('.nav-item[data-section="callbacks"]').click();
@@ -2253,7 +2253,7 @@ test.describe('Panel de administracion', () => {
             ],
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
         await page.locator('.nav-item[data-section="callbacks"]').click();
@@ -2306,7 +2306,7 @@ test.describe('Panel de administracion', () => {
             ],
         });
 
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
         await page.locator('.nav-item[data-section="callbacks"]').click();
@@ -2334,7 +2334,7 @@ test.describe('Panel de administracion', () => {
 
     test('tema tambien funciona en dashboard autenticado', async ({ page }) => {
         await setupAuthenticatedAdminMocks(page);
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
 
         await expect(page.locator('#adminDashboard')).toBeVisible();
         const headerDarkBtn = page
@@ -2388,7 +2388,7 @@ test.describe('Panel de administracion', () => {
 
     test('tema en admin se sincroniza via storage event', async ({ page }) => {
         await setupAuthenticatedAdminMocks(page);
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
         await page.evaluate(() => {
@@ -2451,7 +2451,7 @@ test.describe('Panel de administracion', () => {
             ],
         });
         await page.setViewportSize({ width: 1366, height: 900 });
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
 
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await expect(page).toHaveURL(/#callbacks$/);
@@ -2486,7 +2486,7 @@ test.describe('Panel de administracion', () => {
     }) => {
         await setupAuthenticatedAdminMocks(page);
         await page.setViewportSize({ width: 1366, height: 900 });
-        await page.goto('/admin.html');
+        page.on("console", m => console.log("PAGE LOG:", m.text())); await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
         await page.keyboard.press('Alt+Shift+M');

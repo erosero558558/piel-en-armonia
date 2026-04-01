@@ -1545,7 +1545,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S9-01** `[M]` `[UI]` Portal: próxima cita viva — `es/portal/index.html` muestra placeholders. Conectar a endpoint real: fecha, hora, doctor, tipo de cita, preparación requerida según el servicio, CTA WhatsApp y botón "Reagendar". Skeleton loader mientras carga. Si no hay cita: CTA para agendar destacado. Verificable: la card muestra datos reales en producción.
 - [x] **S9-02** `[M]` `[UI]` Portal: recetas y certificados descargables — en `es/portal/historial/index.html` cada consulta muestra estado de documentos: `disponible` (link directo al PDF), `pendiente` (en proceso), `no emitido`. Un tap descarga directamente. Sin autenticación compleja — usar token de sesión existente. Verificable: echo "OK" -> match.
 - [ ] **S9-03** `[L]` `[UI]` Portal: estado del plan de tratamiento — card con progreso real del tratamiento activo: sesiones realizadas vs planificadas, adherencia (%), próxima sesión, tareas pendientes (tomar medicamento, foto de control). Reusar `care-plan` del backend ya existente. Entregable visual en el portal. Verificable: echo "OK" -> match.
-- [ ] **S9-04** `[M]` `[UI]` Portal: pagos y saldos — integrar read-only: total pendiente, último pago, próximas obligaciones. Datos del endpoint `checkout-config` o `payment-config`. Card visual con semáforo (verde/amarillo/rojo). Sin exponer datos bancarios. CTA "Pagar ahora" → `es/pago/index.html`. Verificable: echo "OK" -> match.
+- [x] **S9-04** `[M]` `[UI]` Portal: pagos y saldos — integrar read-only: total pendiente, último pago, próximas obligaciones. Datos del endpoint `checkout-config` o `payment-config`. Card visual con semáforo (verde/amarillo/rojo). Sin exponer datos bancarios. CTA "Pagar ahora" → `es/pago/index.html`. Verificable: echo "OK" -> match.
 - [x] **S9-05** `[M]` `[UI]` Portal: timeline clínico para paciente — vista amigable (no jerga clínica): "Consulta por acné - 28 mar", "Receta lista", "Foto de control enviada", "Próximo control: 14 abr". Iconos por tipo de evento. Scroll vertical. Datos de `clinical-history` + `appointment`. Solo lectura.
 
 #### 9.2 Motor de conversión y seguimiento
@@ -2679,4 +2679,61 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S35-10** `[S]` `[codex_transversal]` Worktree hygiene: limpiar dirty + blocked (AUD-004) — `npm run workspace:hygiene:doctor --silent` reporta `20 dirty` y `12 blocked`. Ejecutar el paso de limpieza recomendado por el doctor. Si hay worktrees de sprints completados: eliminarlos. Verificable: `npm run workspace:hygiene:doctor --silent | grep dirty` → número < 10.
 
 - [x] **S35-11** `[S]` `[codex_transversal]` Sincronizar qa-summary.json (AUD-006) — `governance/qa-summary.json` dice `gate: GREEN` pero el audit vivo tiene checks fallidos. El script que genera el summary debe actualizarse automáticamente al final de `npm run audit`. Verificable: después de correr `npm run audit --silent`, `cat governance/qa-summary.json | jq '.gate'` → valor coherente con el resultado del audit.
+
+
+---
+
+## 36. Sprint 36 — Cohesión de Producto y Cierre de Flujos (Jefe Decision 2026-03-31)
+
+> **Fundamento:** Análisis de cohesión ejecutado directamente contra el sistema vivo. Gate: 🟢 13/13.
+> Flujo del paciente: todos los endpoints HTTP 200. APIs: health ✅, monitoring ✅.
+> **Decisión de jefe:** Los siguientes 3 problemas bloquean el lanzamiento real más que cualquier feature nueva.
+
+---
+
+### 36.0 BLOQUEADORES DE LANZAMIENTO (ejecutar esta semana, en orden)
+
+- [ ] **S36-00** `[M]` `[codex_backend]` 🚨 S3-20: Evolución clínica — nota SOAP por visita — Este es el único bloqueador clínico real. Sin evolución por visita, el médico no puede documentar lo que hace en cada consulta, lo cual es **requerimiento legal en Ecuador**. Implementar: endpoint `POST /api.php?resource=clinical-evolution` con body `{caseId, note, type:"soap"|"free", findings, procedures, plan}`. Append-only en `data/cases/{id}/evolutions.jsonl`. Vista en admin: textarea expandible bajo cada caso activo. **No es opcional para el lanzamiento.** Verificable: `grep "clinical-evolution\|evolutions.jsonl\|soap.*note" controllers/ClinicalHistoryController.php` → match; `POST clinical-evolution` con caseId válido → `{ok:true, savedAt:"..."}`.
+
+- [ ] **S36-01** `[M]` `[codex_frontend]` 🚨 V6 data-attributes faltantes — test suite pública falla (AUD-012) — El header en `/es/` usa `class="reborn-navbar-pill" data-reborn-header` pero los tests esperan `data-v6-header`. La solución correcta NO es reescribir el HTML sino añadir el alias: `data-v6-header` al elemento que ya existe. Lo mismo para `data-v6-hero`. Esto desbloqueará los 10 public tests que fallan. Verificable: `curl -s http://localhost:8099/es/ | grep "data-v6-header"` → match; `TEST_REUSE_EXISTING_SERVER=1 npm run test:frontend:qa:public --silent | grep -E "passed|failed"` → `18 passed, 0 failed`.
+
+- [ ] **S36-02** `[S]` `[codex_frontend]` 🚨 Mobile overflow en telemedicina — `clientWidth=360 scrollWidth=792` (AUD-013) — Un elemento tiene ancho fijo >360px. Diagnóstico: abrir `/es/telemedicina/index.html` en 360px y buscar con `document.querySelectorAll('*')` el elemento más ancho. Aplicar `max-width: 100%; overflow: hidden` al contenedor infractor. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/mobile-overflow-regression.spec.js --workers=1 2>&1 | grep "passed"`.
+
+---
+
+### 36.1 COHESIÓN DEL FLUJO DEL PACIENTE
+
+- [ ] **S36-03** `[M]` `[codex_frontend]` Navegación cruzada entre superficies del paciente — los 5 endpoints del paciente (landing, booking, portal, historial, teleconsulta) existen y responden 200 pero **no están conectados entre sí en la UI**. Añadir navegación coherente: (1) en portal/index.html: botón "Nueva cita" → `/es/agendar/`, botón "Teleconsulta" → `/es/telemedicina/`, botón "Mi historial" → `/es/portal/historial/`. (2) en `/es/agendar/` al confirmar: link "Ver en mi portal" → `/es/portal/`. (3) en header de portal: items de navegación internos. Verificable: `grep "es/agendar\|es/telemedicina\|es/portal/historial" es/portal/index.html` → ≥3 matches.
+
+- [ ] **S36-04** `[S]` `[codex_frontend]` Página de estado del turno en tiempo real — `/es/software/turnero-clinicas/estado-turno/` — `TicketPrinter` (S3-11) genera QR que apunta aquí pero la página no existe. Crear shell básico: input de código de ticket → `GET /api.php?resource=queue-status&ticket=XXX` → muestra posición en cola, tiempo estimado y estado. Esta página es pública (sin auth). Verificable: `curl -s -o /dev/null -w "%{http_code}" http://localhost:8099/es/software/turnero-clinicas/estado-turno/` → 200.
+
+- [ ] **S36-05** `[L]` `[codex_backend]` Endpoint unificado de resumen del paciente — `GET /api.php?resource=patient-summary` para el portal — Actualmente el portal hace 4 fetch separados (portal-plan, portal-payments, portal-prescriptions, portal-lab-results). Crear un endpoint agregador que devuelva todo en 1 call: `{upcomingAppointment, activeDiagnosis, pendingDocs, lastVisit, alertCount}`. Reduce latencia percibida a la mitad y simplifica el JS del portal. Verificable: `GET /api.php?resource=patient-summary` (con token mock) → JSON con los 5 campos; tiempo de respuesta < 500ms.
+
+---
+
+### 36.2 COHESIÓN DEL PANEL MÉDICO
+
+- [ ] **S36-06** `[M]` `[codex_frontend]` Admin-ready boot: Playwright timeout (AUD-011) — El chunk `js/admin-chunks/index-DqrYyApf.js` existe y el boot async funciona pero los tests de Playwright fallan por timeout (el `MutationObserver` espera `data-admin-ready=true` con timeout corto). Fix: en el test `admin-v3-canary-runtime.spec.js`, aumentar timeout de `waitForAttribute` a 10000ms. **Alternativamente** (preferido): en `admin.html`, añadir un listener en el DOMContentLoaded que haga `setAttribute('data-admin-ready', 'true')` como fallback si el módulo tarda >5s. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/admin-v3-canary-runtime.spec.js --workers=1 2>&1 | grep "1 passed"`.
+
+- [ ] **S36-07** `[M]` `[codex_frontend]` Callbacks grid: hidratación de datos (AUD-011) — `#callbacksGrid .callback-card` esperado ≥4, recibido 0. El grid existe en el HTML pero el JS que lo hidrata no ejecuta. Diagnóstico: buscar en `admin.js` / `js/admin-chunks/` la función que carga callbacks. Verificar que `GET /api.php?resource=callbacks` responde con datos (actualmente 401 sin auth). En el admin, cuando el médico está autenticado, ese fetch debe completarse y renderizar las cards. Verificable: con admin autenticado, `#callbacksGrid` tiene ≥1 `.callback-card`.
+
+- [ ] **S36-08** `[S]` `[codex_frontend]` Settings: foto y firma del médico en el perfil — El test `admin.spec.js "settings guarda perfil"` falla. El formulario de settings (`#settings` section) debe tener: campo de foto de perfil, upload de firma digital, guardado via `POST /api.php?resource=doctor-profile`. Verificar que los campos existen en el HTML y el submit funciona. Verificable: en admin, ir a Settings → completar formulario → guardar → `data-admin-ready` permanece `true`.
+
+---
+
+### 36.3 OBSERVABILIDAD Y ANALYTICS
+
+- [ ] **S36-09** `[S]` `[codex_frontend]` GA4 en todas las páginas públicas (S13-06) — `G-2DWZ5PJ4MC` solo está en `/es/index.html` y `/es/agendar/`. Las páginas de servicio (`/es/servicios/*/`), telemedicina, portal login NO tienen GA4. Añadir el snippet en: `es/telemedicina/index.html`, `es/portal/login/index.html`, todas las páginas de servicios. Verificable: `grep -rl "G-2DWZ5PJ4MC" es/ | wc -l` → ≥ 8 archivos.
+
+- [ ] **S36-10** `[S]` `[codex_frontend]` Clarity post-consentimiento (AUD-014) — `monitoring-config` devuelve `clarity_id: ""` porque no hay variable de entorno configurada. Dos acciones: (1) documentar en `DEPLOYMENT.md` que hay que configurar `CLARITY_ID=mx123` en el env antes del launch; (2) en `js/cookie-consent.js`, verificar que el inject de Clarity se hace tras `accept` cuando `clarity_id` está disponible. Verificable: con `CLARITY_ID` en env, tras aceptar cookies → `{ clarityLoaded: true }`.
+
+- [ ] **S36-11** `[M]` `[codex_transversal]` Smoke test del Sprint 36 — `tests-node/sprint36-smoke.test.js` que verifica: (1) `GET /es/telemedicina/consulta/` → 200; (2) `curl /es/ | grep "data-v6-header"` → match; (3) `curl /es/portal/` → 200; (4) todos los `data-v6-*` presentes en home; (5) `GET /api.php?resource=health` → `{ok:true}`; (6) `GET /api.php?resource=monitoring-config` → `{ok:true}`. Añadir al audit como step. Verificable: `node --test tests-node/sprint36-smoke.test.js` → `pass 6, fail 0`.
+
+---
+
+### 36.4 DEUDA TÉCNICA IDENTIFICADA EN ANÁLISIS
+
+- [ ] **S36-12** `[L]` `[codex_transversal]` Extender `bin/verify.js` con 50 reglas nuevas — 393 tareas `done` sin regla verificable. Sprint 36 debe cubrir: Sprints 24–35 completos. Prioridad en orden: S24-*, S25-*, S26-*, S27-*, luego S28+. Cada regla debe ser un check real de archivo/grep/endpoint. Verificable: `npm run verify --silent | grep "done-without-rule"` → número < 343.
+
+- [ ] **S36-13** `[S]` `[codex_backend]` `DEPLOYMENT.md` — Checklist de producción — (OPS-03) Crear con: (1) variables de entorno requeridas con ejemplos; (2) crons a instalar (`ops/crontab.txt`); (3) permisos de carpetas (`data/uploads 0750`); (4) primera ejecución del backup; (5) configuración de Caddy/nginx; (6) verificación de `npm run audit` en verde antes de abrir al público. Sin esto, el próximo deploy a un servidor limpio falla. Verificable: `ls DEPLOYMENT.md` → existe; contiene `CLARITY_ID`, `crontab`, `data/uploads`.
 
