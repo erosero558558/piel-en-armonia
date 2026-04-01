@@ -255,15 +255,55 @@ export function renderDashboardOperationsGrid() {
                 <ul id="dashboardReputationQueue" class="sony-list dashboard-attention-list"></ul>
             </article>
 
+            <article class="sony-panel dashboard-card-business">
+                <header>
+                    <div>
+                        <h3>Metricas del mes</h3>
+                        <small id="dashboardBusinessMeta">KPIs operativos a 30 dias.</small>
+                    </div>
+                    <span class="dashboard-signal-chip" id="dashboardBusinessChip" data-state="neutral">
+                        Cargando...
+                    </span>
+                </header>
+                <div class="sony-panel-stats">
+                    <div><span>Asistidos</span><strong id="businessPatientsSeen">0</strong></div>
+                    <div><span>Nuevos</span><strong id="businessNewPatients">0</strong></div>
+                    <div><span>No-Show</span><strong id="businessNoShowRate">0%</strong></div>
+                    <div><span>Ingresos</span><strong id="businessRevenue">$0.00</strong></div>
+                </div>
+                <p id="dashboardBusinessSummary">
+                    El rendimiento del consultorio de los ultimos 30 dias se proyecta aqui.
+                </p>
+                <div class="dashboard-signal-stack dashboard-conversion-signal-stack">
+                    <article class="dashboard-signal-card">
+                        <span>Top 1</span>
+                        <strong id="businessTopService1">Ninguno</strong>
+                    </article>
+                    <article class="dashboard-signal-card">
+                        <span>Top 2</span>
+                        <strong id="businessTopService2">Ninguno</strong>
+                    </article>
+                    <article class="dashboard-signal-card">
+                        <span>Top 3</span>
+                        <strong id="businessTopService3">Ninguno</strong>
+                    </article>
+                </div>
+            </article>
+
             <article class="sony-panel dashboard-card-conversion" id="funnelSummary">
                 <header>
                     <div>
                         <h3>Conversion publica</h3>
                         <small id="dashboardConversionMeta">Visitas al flujo, clicks a WhatsApp y drop-off de booking por servicio.</small>
                     </div>
-                    <span class="dashboard-signal-chip" id="dashboardConversionChip" data-state="neutral">
-                        Sin datos
-                    </span>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="dashboard-signal-chip" id="dashboardConversionFreshnessChip" data-state="neutral">
+                            Calculando...
+                        </span>
+                        <span class="dashboard-signal-chip" id="dashboardConversionChip" data-state="neutral">
+                            Sin datos
+                        </span>
+                    </div>
                 </header>
                 <p class="dashboard-secondary-summary" id="dashboardConversionSummary">
                     Cuando el funnel publico reciba eventos, aqui veras el ritmo diario y los servicios que mejor convierten.

@@ -56,14 +56,14 @@
 
     // ── API calls ─────────────────────────────────────────────────────────────
 
-    async function fetchPhotos(caseId) {
-        const res = await fetch(`/api.php?resource=clinical-photos&caseId=${encodeURIComponent(caseId)}`, {
+    async function fetchVisits(caseId) {
+        const res = await fetch(`/api.php?resource=clinical-photos&case_id=${encodeURIComponent(caseId)}`, {
             credentials: 'same-origin',
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
         });
         if (!res.ok) throw new Error(`API error ${res.status}`);
         const data = await res.json();
-        return Array.isArray(data.photos) ? data.photos : [];
+        return Array.isArray(data.data) ? data.data : [];
     }
 
     async function uploadPhoto(caseId, file, region, notes) {
@@ -85,12 +85,11 @@
     // ── Render: timeline card ─────────────────────────────────────────────────
 
     function renderPhotoCard(photo, index) {
-        const src    = esc(photo.thumbnailUrl || photo.url || '');
+        const src    = esc(photo.url || '');
         const full   = esc(photo.url || '');
         const date   = formatDate(photo.capturedAt || photo.createdAt);
         const region = regionLabel(photo.region);
         const notes  = esc(photo.notes || '');
-        const visit  = photo.visitLabel ? `<span class="cpt-visit-chip">${esc(photo.visitLabel)}</span>` : '';
 
         return `
         <article class="cpt-card" data-cpt-index="${index}" data-cpt-full="${full}">
@@ -106,7 +105,6 @@
             </div>
             <div class="cpt-card-meta">
                 <span class="cpt-region-tag">${esc(region)}</span>
-                ${visit}
                 <time class="cpt-date" datetime="${esc(photo.capturedAt || '')}"> ${date}</time>
                 ${notes ? `<p class="cpt-notes">${notes}</p>` : ''}
             </div>
@@ -182,23 +180,37 @@
 
     // ── Render: full panel ────────────────────────────────────────────────────
 
-    function renderPanel(photos, caseId) {
-        const byVisit = groupByVisit(photos);
-        const groups = Object.entries(byVisit).map(([visitKey, visitPhotos]) => {
-            const [date] = visitKey.split('|');
-            const cards = visitPhotos.map((p, i) => renderPhotoCard(p, photos.indexOf(p))).join('');
+    function renderPanel(visits, caseId, allPhotosFlat) {
+        let totalPhotosCount = 0;
+
+        const groups = visits.map((visit) => {
+            const dateStr = formatDate(visit.session_date);
+            const excerpt = visit.evolution_note_excerpt 
+                ? `<blockquote class="cpt-visit-evolution">${esc(visit.evolution_note_excerpt)}</blockquote>` 
+                : '';
+            
+            const visitPhotos = visit.photos || [];
+            totalPhotosCount += visitPhotos.length;
+
+            const cards = visitPhotos.map((p) => {
+                const index = allPhotosFlat.length;
+                allPhotosFlat.push(p);
+                return renderPhotoCard(p, index);
+            }).join('');
+
             return `
             <section class="cpt-visit-group">
                 <h4 class="cpt-visit-label">
                     <span class="cpt-visit-icon">📅</span>
-                    Consulta — ${date}
+                    Consulta — ${dateStr}
                     <span class="cpt-visit-count">${visitPhotos.length} foto${visitPhotos.length !== 1 ? 's' : ''}</span>
                 </h4>
+                ${excerpt}
                 <div class="cpt-card-grid">${cards}</div>
             </section>`;
         });
 
-        const emptyState = photos.length === 0
+        const emptyState = totalPhotosCount === 0
             ? `<div class="cpt-empty-state">
                 <span class="cpt-empty-icon">🩻</span>
                 <p>Sin fotos clínicas para este caso.</p>
@@ -212,7 +224,7 @@
                 <div>
                     <h3 class="cpt-title">📸 Fotos clínicas</h3>
                     <p class="cpt-subtitle">
-                        ${photos.length} foto${photos.length !== 1 ? 's' : ''} · ${Object.keys(byVisit).length} visita${Object.keys(byVisit).length !== 1 ? 's' : ''}
+                        ${totalPhotosCount} foto${totalPhotosCount !== 1 ? 's' : ''} · ${visits.length} visita${visits.length !== 1 ? 's' : ''}
                     </p>
                 </div>
                 <div class="cpt-header-actions">
@@ -241,17 +253,6 @@
                 <img class="cpt-lightbox-img" id="cptLightboxImg" alt="Foto clínica">
             </div>
         </div>`;
-    }
-
-    function groupByVisit(photos) {
-        const groups = {};
-        for (const photo of photos) {
-            const dateStr = formatDate(photo.capturedAt || photo.createdAt);
-            const key = `${dateStr}|${photo.visitId || 'no-visit'}`;
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(photo);
-        }
-        return groups;
     }
 
     // ── Event wiring ──────────────────────────────────────────────────────────
@@ -399,18 +400,19 @@
 
             host.innerHTML = '<div class="cpt-loading" aria-busy="true">Cargando fotos clínicas...</div>';
 
-            let photos = [];
+            let visits = [];
+            let allPhotosFlat = [];
             try {
-                photos = await fetchPhotos(caseId);
+                visits = await fetchVisits(caseId);
             } catch (err) {
                 host.innerHTML = `<p class="cpt-error">No se pudieron cargar las fotos: ${esc(err.message)}</p>`;
                 return;
             }
 
-            host.innerHTML = renderPanel(photos, caseId);
+            host.innerHTML = renderPanel(visits, caseId, allPhotosFlat);
 
             const doRefresh = () => this.mount(host, opts);
-            wireEvents(host, caseId, photos, doRefresh);
+            wireEvents(host, caseId, allPhotosFlat, doRefresh);
         },
 
         /** Reload the panel programmatically */

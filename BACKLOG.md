@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 31/3/2026, 6:36:25 p. m. | Fuente: AGENTS.md_
+_Generado: 31/3/2026, 7:52:32 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`████████████░░░░░░░░` **62%** completado (387/626)
+`█████████████░░░░░░░` **65%** completado (407/626)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | 🎯 Sprint 2 | 20 | 4 | 83% |
-| ⏸ Sprint 3 | 63 | 4 | 94% |
+| ⏸ Sprint 3 | 65 | 2 | 97% |
 | ⏸ Sprint 4 | 25 | 1 | 96% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
 | ⏸ Sprint 6 | 12 | 13 | 48% |
@@ -22,7 +22,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
-| ⏸ Sprint 8 | 10 | 7 | 59% |
+| ⏸ Sprint 8 | 13 | 4 | 76% |
 | ⏸ Sprint 9 | 9 | 18 | 33% |
 | ⏸ Sprint 10 | 3 | 27 | 10% |
 | ⏸ Sprint 12 | 4 | 22 | 15% |
@@ -36,7 +36,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 19 | 18 | 0 | 100% |
 | ⏸ Sprint 22 | 0 | 9 | 0% |
 | ✅ Sprint 23 | 10 | 0 | 100% |
-| ⏸ Sprint UI | 47 | 93 | 34% |
+| ⏸ Sprint UI | 62 | 78 | 44% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -59,15 +59,13 @@ _Sprint completado. 12/12 tareas._
 - **S2-20** `[S2]` S...
 
 ## ⏸ Sprint 3 — Construir Flow OS como plataforma
-_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 2 tareas pendientes._
 
-### 🟢 Disponibles (3)
+### 🟢 Disponibles (1)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S3-20** | `[S3]` | M |
-| **S3-30** | `[S3]` | L |
-| **S3-32** | `[S3]` | L |
 
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
 
@@ -133,18 +131,16 @@ _Sprint completado. 20/20 tareas._
 _Sprint completado. 0/0 tareas._
 
 ## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
-_Esperando que Sprint anterior esté completo. 7 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 4 tareas pendientes._
 
-### 🟢 Disponibles (7)
+### 🟢 Disponibles (4)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S8-10** | `[S8]` | M |
-| **S8-11** | `[S8]` | M |
-| **S8-13** | `[S8]` | M |
 | **S8-14** | `[S8]` | M |
 | **S8-16** | `[S8]` | S |
-| ... | | _+2 más_ |
+| **S8-18** | `[S8]` | M |
+| **S8-19** | `[S8]` | L |
 
 ## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
 _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
@@ -261,9 +257,9 @@ _Esperando que Sprint anterior esté completo. 9 tareas pendientes._
 _Sprint completado. 10/10 tareas._
 
 ## ⏸ Sprint UI — Fase 4: Liquid Glass (ANTIGRAVITY EXCLUSIVO)
-_Esperando que Sprint anterior esté completo. 93 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 78 tareas pendientes._
 
-### 🟢 Disponibles (88)
+### 🟢 Disponibles (67)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -272,15 +268,21 @@ _Esperando que Sprint anterior esté completo. 93 tareas pendientes._
 | **S24-03** | `[S24]` | M |
 | **S24-04** | `[S24]` | L |
 | **S24-05** | `[S24]` | S |
-| ... | | _+83 más_ |
+| ... | | _+62 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S29-07** `[S29]` → _Antigravity_ (expira en 76min)
-- **S29-08** `[S29]` → _Antigravity_ (expira en 196min)
-- **S29-10** `[S29]` → _Antigravity_ (expira en 81min)
-- **S29-11** `[S29]` → _Antigravity_ (expira en 441min)
-- **S29-12** `[S29]` → _Antigravity_ (expira en 201min)
+- **S28-10** `[S28]` → _Session inactivity expiration_ (expira en 240min)
+- **S29-07** `[S29]` → _Antigravity_ (expira en 0min)
+- **S29-08** `[S29]` → _Antigravity_ (expira en 120min)
+- **S29-10** `[S29]` → _Antigravity_ (expira en 5min)
+- **S29-11** `[S29]` → _Antigravity_ (expira en 365min)
+- **S29-12** `[S29]` → _Antigravity_ (expira en 125min)
+- **S29-13** `[S29]` → _Antigravity_ (expira en 167min)
+- **S29-14** `[S29]` → _Antigravity_ (expira en 47min)
+- **S29-15** `[S29]` → _Antigravity_ (expira en 167min)
+- **S29-16** `[S29]` → _Antigravity_ (expira en 167min)
+- **UI5-09** `[UI5]` → _Antigravity_ (expira en 479min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

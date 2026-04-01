@@ -471,7 +471,7 @@ final class TelemedicineIntakeService
     {
         $base = is_array($existing) ? $existing : [];
         $origin = LeadOpsService::normalizeLeadOrigin([
-            'source' => 'legacy_booking_bridge',
+            'source' => trim((string) ($appointment['source'] ?? 'booking_public')),
             'campaign' => (string) ($appointment['campaign'] ?? ''),
             'surface' => (string) ($appointment['surface'] ?? $channel),
             'service_intent' => (string) ($appointment['service_intent'] ?? ($appointment['service'] ?? '')),
@@ -479,7 +479,7 @@ final class TelemedicineIntakeService
         ], $appointment);
         return [
             'id' => (int) ($base['id'] ?? 0),
-            'source' => 'legacy_booking_bridge',
+            'source' => $origin['source'],
             'campaign' => $origin['campaign'],
             'surface' => $origin['surface'],
             'service_intent' => $origin['service_intent'],

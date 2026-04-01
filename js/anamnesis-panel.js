@@ -433,6 +433,25 @@
 
       if (dxJson.ok !== false) {
         setStatus(caseId, '✓ Historia clínica guardada correctamente', 'success');
+        
+        // S30-10: Detección automática de condición crónica
+        if (dxJson.chronic_condition_detected) {
+          const days = dxJson.suggested_followup_days || 90;
+          if (confirm(`¿Desea agregar este diagnóstico a las condiciones crónicas del paciente con seguimiento cada ${days} días?`)) {
+            await fetch('/api.php?resource=openclaw-save-chronic', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                case_id: caseId,
+                cie10_code: data.diagnostico_cie10,
+                cie10_description: data.diagnostico,
+                followup_days: days
+              }),
+              credentials: 'same-origin',
+            }).catch(() => {});
+          }
+        }
+
         // Dispatch event for other panels to react
         document.dispatchEvent(new CustomEvent('aurora:anamnesis:saved', {
           detail: { caseId, data, dxResult: dxJson }

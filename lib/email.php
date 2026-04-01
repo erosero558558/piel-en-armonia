@@ -1038,6 +1038,11 @@ function build_appointment_email_html(array $appointment): string
     $checkinToken = htmlspecialchars($context['checkinToken'], ENT_QUOTES, 'UTF-8');
     $prepInstructions = htmlspecialchars(get_service_preparation_instructions((string) ($appointment['service'] ?? '')), ENT_QUOTES, 'UTF-8');
 
+    $whatsappPhone = preg_replace('/[^0-9]/', '', (string) ((read_turnero_clinic_profile()['branding']['whatsapp'] ?? AppConfig::WHATSAPP_NUMBER)));
+    $waText = rawurlencode('Confirmo mi cita del ' . $context['dateLabel'] . ' a las ' . $context['timeLabel']);
+    $waDeeplink = 'https://wa.me/' . $whatsappPhone . '?text=' . $waText;
+    $waBtn = $whatsappPhone !== '' ? build_email_cta_button($waDeeplink, 'Confirmar asistencia por WhatsApp') : '';
+
     $checkinBlock = $context['checkinToken'] !== ''
         ? '<div style="margin:0 0 20px;padding:16px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;">'
             . '<p style="margin:0 0 8px;font-weight:700;color:#0d1a2f;">Codigo de llegada al kiosco</p>'
@@ -1062,7 +1067,8 @@ function build_appointment_email_html(array $appointment): string
         )
         . $prepBlock
         . $checkinBlock
-        . '<p style="margin:0 0 25px;line-height:1.6;color:#555;">Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.</p>'
+        . $waBtn
+        . '<p style="margin:25px 0 25px;line-height:1.6;color:#555;">Adjuntamos un archivo de calendario (.ics) para que puedas agregar esta cita a tu agenda.</p>'
         . build_email_cta_button($context['rescheduleUrl'], 'Reprogramar Cita')
         . '<p style="margin:0;font-size:13px;color:#94a3b8;text-align:center;">Si necesitas ayuda, responde a este correo.</p>';
 

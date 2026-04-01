@@ -213,7 +213,7 @@ final class ClinicalMediaService
                 'path' => $legacyPath,
                 'diskPath' => self::resolveLegacyDiskPath($legacyPath),
                 'name' => $originalName,
-            ], ['source' => 'legacy_booking_bridge']);
+            ], ['source' => 'intake_form']);
             $store = $staged['store'];
             $record = $staged['upload'];
         }
@@ -263,7 +263,7 @@ final class ClinicalMediaService
                 'mime' => (string) ($appointment['transferProofMime'] ?? ''),
                 'size' => (int) ($appointment['transferProofSize'] ?? 0),
                 'diskPath' => self::resolveLegacyDiskPath($legacyPath),
-            ], ['source' => 'legacy_booking_bridge']);
+            ], ['source' => 'booking_public']);
             $store = $staged['store'];
             $record = $staged['upload'];
         }

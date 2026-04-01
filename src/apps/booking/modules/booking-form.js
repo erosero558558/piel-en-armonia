@@ -539,6 +539,9 @@ export function init(inputDeps) {
             trackFormStep('service_selected', {
                 service: this.value,
             });
+            if (deps && typeof deps.trackEvent === 'function') {
+                deps.trackEvent('booking_step_service_selected', { service: this.value });
+            }
         }
 
         updateAvailableTimes().catch(() => undefined);
@@ -569,6 +572,9 @@ export function init(inputDeps) {
         timeSelect.addEventListener('change', () => {
             if (timeSelect.value) {
                 trackFormStep('time_selected');
+                if (deps && typeof deps.trackEvent === 'function') {
+                    deps.trackEvent('booking_step_datetime_selected', { time: timeSelect.value });
+                }
             }
         });
     }

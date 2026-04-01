@@ -28,7 +28,7 @@ final class TelemedicineConsentSnapshot
             'medicalDisclaimerHash' => $telemedicineVersion['hash'],
             'sourceRoute' => trim((string) ($context['sourceRoute'] ?? '/api.php?resource=appointments')),
             'locale' => trim((string) ($context['locale'] ?? $appointment['locale'] ?? 'es')),
-            'frontendSurface' => trim((string) ($context['frontendSurface'] ?? $appointment['frontendSurface'] ?? 'legacy_booking')),
+            'frontendSurface' => trim((string) ($context['frontendSurface'] ?? $appointment['frontendSurface'] ?? 'booking_public')),
             'channel' => $channel,
         ];
     }

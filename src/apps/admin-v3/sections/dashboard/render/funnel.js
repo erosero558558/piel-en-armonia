@@ -637,6 +637,29 @@ export function setFunnelMetrics(funnel) {
         conversionChip.textContent = conversionStatus.label;
         conversionChip.setAttribute('data-state', conversionStatus.tone);
     }
+    
+    const freshness = Object.keys(asObject(funnel.data_freshness || funnel.dataFreshness)).length > 0 
+        ? asObject(funnel.data_freshness || funnel.dataFreshness) 
+        : null;
+        
+    const freshnessChip = document.getElementById('dashboardConversionFreshnessChip');
+    if (freshnessChip) {
+        if (!freshness) {
+            freshnessChip.textContent = 'Calculando...';
+            freshnessChip.setAttribute('data-state', 'neutral');
+            freshnessChip.style.display = 'none';
+        } else if (freshness.stale) {
+            const lagMinutes = Math.round((freshness.age_ms || 0) / 60000);
+            freshnessChip.textContent = lagMinutes > 60 ? `Desfasado (${Math.round(lagMinutes/60)}h)` : `Desfasado (${lagMinutes}m)`;
+            freshnessChip.setAttribute('data-state', 'warning');
+            freshnessChip.style.display = 'inline-flex';
+        } else {
+            freshnessChip.textContent = 'En linea';
+            freshnessChip.setAttribute('data-state', 'success');
+            freshnessChip.style.display = 'inline-flex';
+        }
+    }
+
     setText('#dashboardConversionSummary', buildConversionSummary(conversion));
     setText('#funnelDailyVisitsToday', formatNumber(conversion.today.visits));
     setText(

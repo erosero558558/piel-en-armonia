@@ -4,6 +4,7 @@ import {
     setHtml,
     setText,
 } from '../../../shared/ui/render.js';
+import { apiRequest } from '../../../shared/core/api-client.js';
 import { heroSummary } from '../markup.js';
 
 function normalizeNumber(value) {
@@ -844,4 +845,30 @@ export function setOverviewMetrics(state) {
         )
     );
     setHtml('#dashboardMultiClinicList', buildMultiClinicRowsMarkup(multiClinic));
+}
+
+export async function loadBusinessMetrics() {
+    try {
+        const response = await apiRequest({ resource: 'business-metrics' });
+        if (response.ok && response.data) {
+            setText('#businessPatientsSeen', response.data.patients_seen);
+            setText('#businessNewPatients', response.data.new_patients);
+            setText('#businessNoShowRate', `${response.data.no_show_rate}%`);
+            setText('#businessRevenue', `$${Number(response.data.revenue_estimate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+            
+            const services = response.data.top_services || [];
+            setText('#businessTopService1', services[0] ? String(services[0]).toUpperCase() : 'Ninguno');
+            setText('#businessTopService2', services[1] ? String(services[1]).toUpperCase() : 'Ninguno');
+            setText('#businessTopService3', services[2] ? String(services[2]).toUpperCase() : 'Ninguno');
+
+            setText('#dashboardBusinessChip', 'Calculado');
+            document.getElementById('dashboardBusinessChip')?.setAttribute('data-state', 'success');
+        } else {
+            document.getElementById('dashboardBusinessChip')?.setAttribute('data-state', 'alert');
+        }
+    } catch (e) {
+        console.error('BusinessMetrics Error:', e);
+        setText('#dashboardBusinessChip', 'Restringido');
+        document.getElementById('dashboardBusinessChip')?.setAttribute('data-state', 'warning');
+    }
 }

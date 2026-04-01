@@ -28,6 +28,7 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'health', [HealthController::class, 'check']);
     $router->add('GET', 'health-diagnostics', [HealthController::class, 'diagnostics']);
+    $router->add('GET', 'security-report', [SecurityReportController::class, 'get']);
 
     $router->add('GET', 'payment-config', [PaymentController::class, 'config']);
     $router->add('GET', 'checkout-config', [PaymentController::class, 'checkoutConfig']);
@@ -50,6 +51,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'patient-portal-dashboard', [PatientPortalController::class, 'dashboard']);
     $router->add('GET', 'patient-portal-history', [PatientPortalController::class, 'history']);
     $router->add('GET', 'patient-portal-history-pdf', [PatientPortalController::class, 'historyPdf']);
+    $router->add('GET', 'patient-portal-payments', [PatientPortalController::class, 'payments']);
     $router->add('GET', 'patient-portal-plan', [PatientPortalController::class, 'plan']);
     $router->add('GET', 'patient-portal-photos', [PatientPortalController::class, 'photos']);
     $router->add('GET', 'patient-portal-prescription', [PatientPortalController::class, 'prescription']);
@@ -85,7 +87,6 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'clinical-history-message', [ClinicalHistoryController::class, 'messagePost']);
     $router->add('GET', 'clinical-history-review', [ClinicalHistoryController::class, 'reviewGet']);
     $router->add('PATCH', 'clinical-history-review', [ClinicalHistoryController::class, 'reviewPatch']);
-    $router->add('GET', 'clinical-history-gallery', [ClinicalHistoryController::class, 'galleryGet']);
     $router->add('GET', 'clinical-record', [ClinicalHistoryController::class, 'recordGet']);
     $router->add('PATCH', 'clinical-record', [ClinicalHistoryController::class, 'recordPatch']);
     $router->add('POST', 'clinical-episode-action', [ClinicalHistoryController::class, 'episodeActionPost']);
@@ -105,8 +106,7 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'media-flow-proposal-review', [CaseMediaFlowController::class, 'proposalReview']);
     $router->add('POST', 'media-flow-publication-state', [CaseMediaFlowController::class, 'publicationState']);
     $router->add('GET', 'media-flow-private-asset', [CaseMediaFlowController::class, 'privateAsset']);
-    $router->add('GET', 'clinical-photos', [ClinicalPhotosController::class, 'index']);
-    $router->add('POST', 'clinical-photo-upload', [ClinicalPhotosController::class, 'upload']);
+
     $router->add('GET', 'public-case-stories', [CaseMediaFlowController::class, 'publicStories']);
     $router->add('GET', 'public-case-media-file', [CaseMediaFlowController::class, 'publicMediaFile']);
 
@@ -125,6 +125,12 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'appointments', [AppointmentController::class, 'store']);
     $router->add('PATCH', 'appointments', [AppointmentController::class, 'update']);
     $router->add('PUT', 'appointments', [AppointmentController::class, 'update']);
+    $router->add('POST', 'appointment-checkin', [AppointmentController::class, 'checkin']);
+    
+    $router->add('GET', 'business-metrics', [AdminDataController::class, 'businessMetrics']);
+    $router->add('GET', 'chronic-panel', [AdminDataController::class, 'chronicPanel']);
+    $router->add('GET', 'patient-ltv', [AdminDataController::class, 'patientLtv']);
+    $router->add('POST', 'adverse-reaction-report', [ClinicalHistoryController::class, 'reportAdverseReaction']);
 
     $router->add('GET', 'callbacks', [CallbackController::class, 'index']);
     $router->add('POST', 'callbacks', [CallbackController::class, 'store']);
@@ -146,6 +152,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'openclaw-protocol', [OpenclawController::class, 'protocol']);
     $router->add('POST', 'openclaw-chat', [OpenclawController::class, 'chat']);
     $router->add('POST', 'openclaw-save-diagnosis', [OpenclawController::class, 'saveDiagnosis']);
+    $router->add('POST', 'openclaw-save-chronic', [OpenclawController::class, 'saveChronicCondition']);
     $router->add('POST', 'openclaw-save-evolution', [OpenclawController::class, 'saveEvolution']);
     $router->add('GET', 'openclaw-prescription', [OpenclawController::class, 'getPrescriptionPdf']);
     $router->add('POST', 'openclaw-prescription', [OpenclawController::class, 'savePrescription']);

@@ -43,11 +43,14 @@ body.admin-body {
 /* Sidebar Navigation */
 .admin-sidebar {
   width: var(--sidebar-collapsed);
-  height: 100vh;
-  background: var(--reborn-surface-glass);
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
-  border-right: 1px solid var(--admin-border);
+  height: calc(100vh - 32px);
+  margin: 16px 0 16px 16px;
+  border-radius: var(--radius-2xl, 24px);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(48px) saturate(200%);
+  -webkit-backdrop-filter: blur(48px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   transition: width var(--transition-normal);
@@ -132,19 +135,12 @@ body.admin-body {
 }
 
 .sidebar-nav a.nav-item.active {
-  color: var(--admin-text-primary);
-  background: var(--admin-accent-glow);
-}
-
-.sidebar-nav a.nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background-color: var(--admin-accent);
-  border-radius: 0 4px 4px 0;
+  color: var(--color-gold-100, #fef3c7);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.2);
+  border-radius: var(--radius-lg, 12px);
+  margin: 0 12px;
+  padding: 12px;
 }
 
 /* User / Settings pin at bottom */
@@ -238,13 +234,37 @@ body.admin-body {
 .admin-content-canvas {
   flex: 1;
   background-color: var(--admin-bg-surface);
-  border-radius: var(--radius-2xl) 0 0 0;
+  border-radius: var(--radius-2xl, 24px);
   border: 1px solid var(--admin-border);
-  border-right: none;
-  border-bottom: none;
+  margin: 0 16px 16px 16px;
   overflow: hidden;
   position: relative;
   box-shadow: -10px -10px 30px rgba(0, 0, 0, 0.2);
+  transition: margin var(--transition-normal), border-radius var(--transition-normal);
+}
+
+/* UI5-06: Focus Mode */
+body.focus-mode .admin-sidebar {
+  transform: translateX(-150%);
+  position: absolute; /* Take out of flow to expand canvas */
+  pointer-events: none;
+}
+
+body.focus-mode .admin-header {
+  height: 48px; /* Topbar mínima */
+}
+
+body.focus-mode .admin-header .admin-search,
+body.focus-mode .admin-header .admin-stats {
+  display: none;
+}
+
+body.focus-mode .admin-content-canvas {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  border-right: none;
+  border-bottom: none;
 }
 
 .admin-dashboard__raw-shell {
@@ -700,15 +720,85 @@ body.admin-body {
   }
 }
 
-/* Skeleton Loaders (UI2-16 / UI2-11) */
-.skeleton {
-  background: linear-gradient(90deg, #1a1a2e 25%, #23234a 50%, #1a1a2e 75%);
+/* ==========================================================================
+   Micro-UX (UI5-20, UI5-21)
+   Skeletons & Empty States
+   ========================================================================== */
+
+/* UI5-20 Skeleton Loaders Glass */
+.lg-skeleton {
+  background: linear-gradient(
+    90deg, 
+    rgba(255, 255, 255, 0.04) 25%, 
+    rgba(255, 255, 255, 0.10) 50%, 
+    rgba(255, 255, 255, 0.04) 75%
+  );
   background-size: 200% 100%;
-  animation: aurora-shimmer 1.5s infinite linear;
+  animation: lg-shimmer 1.5s infinite linear;
   border-radius: var(--radius-md, 8px);
+  color: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.02);
 }
 
-@keyframes aurora-shimmer {
+.lg-skeleton * {
+  visibility: hidden;
+}
+
+@keyframes lg-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* UI5-21 Empty States Ilustrados */
+.lg-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+  background: transparent;
+}
+
+.lg-empty-state svg {
+  width: 120px;
+  height: auto;
+  margin-bottom: var(--space-6);
+  stroke: var(--color-aurora-300);
+  opacity: 0.5;
+  filter: drop-shadow(0 0 20px rgba(199, 163, 109, 0.2));
+}
+
+.lg-empty-state h3 {
+  font-family: var(--reborn-font-display, var(--font-display));
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  color: var(--admin-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.lg-empty-state p {
+  color: var(--admin-text-muted);
+  max-width: 400px;
+  margin: 0 auto var(--space-6);
+  line-height: 1.5;
+}
+
+.lg-empty-state .lg-empty-cta {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--admin-border);
+  color: var(--color-aurora-400);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.lg-empty-state .lg-empty-cta:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-aurora-500);
+  color: var(--color-aurora-500);
+  transform: translateY(-2px);
 }

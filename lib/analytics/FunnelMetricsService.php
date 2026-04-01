@@ -26,6 +26,11 @@ final class FunnelMetricsService
         'chat_started',
         'chat_handoff_whatsapp',
         'whatsapp_click',
+        'booking_step_service_selected',
+        'booking_step_datetime_selected',
+        'consultation_closed',
+        'prescription_downloaded',
+        'portal_opened',
     ];
 
     public static function normalizeEventName($value): string
@@ -36,6 +41,24 @@ final class FunnelMetricsService
     public static function isAllowedEvent(string $event): bool
     {
         return $event !== '' && in_array($event, self::ALLOWED_EVENTS, true);
+    }
+
+    /**
+     * @param array<string,string|int|float> $labels
+     */
+    public static function recordEvent(string $event, array $labels = []): void
+    {
+        if (!self::isAllowedEvent($event)) {
+            return;
+        }
+
+        if (class_exists('Metrics')) {
+            $metricLabels = array_merge(['event' => $event], $labels);
+            \Metrics::increment('conversion_funnel_events_total', $metricLabels);
+            self::recordDerivedMetrics($event, $metricLabels);
+        }
+
+        FunnelTimelineStore::recordEvent($event, $labels);
     }
 
     /**
@@ -321,6 +344,11 @@ final class FunnelMetricsService
             'idempotency' => self::buildIdempotencySnapshot($rawMetrics),
             'queueAssistant' => QueueAssistantMetricsStore::buildReport(),
             'generatedAt' => gmdate('c'),
+            'data_freshness' => class_exists('Metrics') ? Metrics::getDataFreshness() : [
+                'source' => 'missing',
+                'last_updated_at' => gmdate('c'),
+                'age_minutes' => 0,
+            ],
         ];
     }
 

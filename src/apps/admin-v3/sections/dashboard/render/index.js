@@ -22,7 +22,7 @@ import { setFlowMetrics } from './flow.js';
 import { setFunnelMetrics } from './funnel.js';
 import { setJourneyHistory } from './journey.js';
 import { setLiveStatus } from './live.js';
-import { setOverviewMetrics } from './overview.js';
+import { setOverviewMetrics, loadBusinessMetrics } from './overview.js';
 import { renderDashboardCharts } from './charts.js';
 
 let whatsappOpsActionBusy = false;
@@ -1015,6 +1015,7 @@ export function renderDashboard(state) {
     };
 
     setOverviewMetrics(dashboardState);
+    loadBusinessMetrics();
     setLiveStatus(dashboardState);
     setFlowMetrics(dashboardState);
     setJourneyHistory(dashboardState);

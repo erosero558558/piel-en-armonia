@@ -27,6 +27,7 @@ class ApiConfig
             'monitoring-config:GET' => [60, 60],
             'metrics:GET' => [60, 60],
             'health-diagnostics:GET' => [30, 60],
+            'security-report:GET' => [30, 60],
             'funnel-metrics:GET' => [60, 60],
             'retention-report:GET' => [30, 60],
             'lead-ai-queue:GET' => [60, 60],
@@ -107,6 +108,8 @@ class ApiConfig
             // Admin (authenticated)
             'data:GET' => [60, 60],
             'import:POST' => [5, 60],
+            'chronic-panel:GET' => [60, 60],
+            'patient-ltv:GET' => [60, 60],
             'push-config:GET' => [60, 60],
             'push-subscribe:POST' => [15, 60],
             'push-unsubscribe:POST' => [15, 60],
@@ -140,6 +143,7 @@ class ApiConfig
             'openclaw-cie10-suggest:GET'   => [60, 60],   // búsqueda rápida
             'openclaw-protocol:GET'        => [60, 60],   // protocolos estáticos
             'openclaw-save-diagnosis:POST' => [30, 60],   // escritura clínica
+            'openclaw-save-chronic:POST'   => [30, 60],   // escritura de cronicos
             'openclaw-save-evolution:POST' => [30, 60],
             'openclaw-prescription:POST'   => [20, 60],   // receta = documento oficial
             'openclaw-prescription:GET'    => [60, 60],   // descarga PDF
@@ -243,6 +247,7 @@ class ApiConfig
         return [
             ['method' => 'GET', 'resource' => 'metrics'],
             ['method' => 'GET', 'resource' => 'health-diagnostics'],
+            ['method' => 'GET', 'resource' => 'security-report'],
         ];
     }
 }

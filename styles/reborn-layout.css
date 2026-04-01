@@ -1,85 +1,258 @@
-/* =========================================================================
-   Aurora Derm - Clinical Tech Engine (REBORN)
-   Phase RB-06: Layout Bento Grid
-   Liquid Reborn Convergence
-   ========================================================================= */
+/* reborn-layout.css
+ * RB-04 Navbar Píldora
+ * RB-05 Hero Cinemático
+ * RB-06 Bento Grid Layout
+ */
 
-.reborn-bento {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--reborn-space-4, 24px);
-    width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: var(--reborn-space-6, 48px) var(--reborn-space-4, 24px);
+/* =========================================
+   RB-04: NAVBAR GLASSMORPHISM (PÍLDORA)
+   ========================================= */
+.reborn-nav-wrapper {
+  position: fixed;
+  top: 24px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none; /* Let clicks pass through outside the pill */
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.reborn-bento__cell {
-    /* Base aesthetic dictated by RB-06 */
-    border-radius: 24px;
-    background: rgba(28, 28, 30, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-
-    /* Convergence with Liquid Glass */
-    backdrop-filter: blur(32px) saturate(180%);
-    -webkit-backdrop-filter: blur(32px) saturate(180%);
-    box-shadow: 0 16px 40px rgba(3, 8, 18, 0.4);
-    
-    padding: 32px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    overflow: hidden;
-    position: relative;
-    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+.reborn-nav-wrapper.nav-hidden {
+  transform: translateY(-150%);
 }
 
-.reborn-bento__cell:hover {
-    transform: translateY(-4px) scale(1.01);
+.reborn-nav {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid var(--border-glass-light);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  min-width: 320px;
+  max-width: 800px;
+  width: calc(100% - 48px);
 }
 
-/* Span utilities for bento varying sizes */
-.reborn-bento__cell--span-2 {
-    grid-column: span 2;
+.reborn-nav-brand {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-base);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.reborn-bento__cell--row-span-2 {
-    grid-row: span 2;
+.reborn-nav-brand svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--text-primary);
 }
 
-.reborn-bento__cell--full {
-    grid-column: 1 / -1;
+.reborn-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-/* Specific Aesthetic for dark mode */
-.reborn-bento__cell::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    border-top: 1px solid rgba(255, 255, 255, 0.16);
-    mix-blend-mode: overlay;
+.btn-nav-book {
+  padding: 8px 16px;
+  background-color: var(--text-primary);
+  color: var(--bg-oled);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: transform var(--transition-fast), background var(--transition-fast);
 }
+
+.btn-nav-book:hover {
+  background-color: var(--text-secondary);
+  transform: scale(0.97);
+}
+
+.btn-hamburger {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--border-glass);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-hamburger span {
+  width: 14px;
+  height: 1.5px;
+  background-color: var(--text-primary);
+  border-radius: 1px;
+}
+
+.btn-hamburger:hover {
+  background: var(--border-glass-light);
+  transform: scale(0.95);
+}
+
+
+/* =========================================
+   RB-05: HERO CINEMÁTICO (INDEX)
+   ========================================= */
+.reborn-hero {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-height: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-align: center;
+}
+
+.reborn-hero-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1;
+}
+
+.reborn-hero-bg img, .reborn-hero-bg video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+
+/* OLED Fade out gradient on the bottom for smooth scroll transition */
+.reborn-hero-bg::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; width: 100%; height: 50%;
+  background: linear-gradient(to bottom, transparent, var(--bg-oled) 90%);
+  z-index: 2;
+}
+
+.reborn-hero-content {
+  position: relative;
+  z-index: 10;
+  max-width: 1000px;
+  padding: 0 5vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.reborn-hero h1 {
+  font-size: var(--text-hero);
+  text-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
+.reborn-hero-ctas {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+
+/* =========================================
+   RB-06: BENTO GRID
+   ========================================= */
+.reborn-bento-section {
+  padding: 120px 5vw;
+}
+
+.reborn-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: minmax(180px, auto);
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.bento-card {
+  background: var(--bg-glass);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-glass);
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: var(--text-primary);
+  transition: transform var(--transition-fluid), box-shadow var(--transition-fluid);
+}
+
+.bento-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  background: var(--bg-glass-hover);
+}
+
+.bento-card-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.bento-card:hover .bento-card-bg {
+  opacity: 0.4;
+}
+
+.bento-card-bg img, .bento-card-bg video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bento-card-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.bento-card h3 {
+  font-family: var(--font-body); /* Using Inter for tech-clean look on bento titles */
+  font-size: clamp(1.2rem, 1.5vw, 1.8rem);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.bento-card p {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+
+/* Span Definitions */
+.span-full { grid-column: span 12; }
+.span-half { grid-column: span 6; }
+.span-third { grid-column: span 4; }
+.span-two-thirds { grid-column: span 8; }
+.row-span-2 { grid-row: span 2; }
 
 @media (max-width: 1024px) {
-    .reborn-bento {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .reborn-bento__cell--span-2 {
-        grid-column: span 2;
-    }
+  .span-third { grid-column: span 6; }
+  .span-two-thirds { grid-column: span 12; }
 }
 
 @media (max-width: 768px) {
-    .reborn-bento {
-        grid-template-columns: 1fr;
-    }
-    .reborn-bento__cell--span-2,
-    .reborn-bento__cell--full {
-        grid-column: 1 / -1;
-    }
-    .reborn-bento__cell--row-span-2 {
-        grid-row: auto;
-    }
+  .span-half, .span-third, .span-two-thirds, .span-full { grid-column: span 12; }
 }

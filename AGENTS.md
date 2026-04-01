@@ -1524,7 +1524,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 8.5 Telemedicina — deuda técnica
 
 - [x] **S8-12** `[M]` Telemedicine legacy uploads cleanup — `stagedLegacyUploadsCount > 0` en diagnósticos. Migrar todos los uploads pendientes fuera del staging legacy. Verificable: `TelemedicineOpsDiagnostics.stagedLegacyUploadsCount === 0` en producción.
-- [ ] **S8-13** `[M]` Telemedicine source contract — origen `legacy_booking` aparece en sesiones de telemedicina sin trazabilidad real. Reemplazar defaults ambiguos por fuentes explícitas: `intake_form`, `booking_public`, `operator_manual`, `whatsapp_lead`. Verificable: `grep -rn "legacy_booking" lib/` → 0 resultados en código nuevo.
+- [x] **S8-13** `[M]` Telemedicine source contract — origen `legacy_booking` aparece en sesiones de telemedicina sin trazabilidad real. Reemplazar defaults ambiguos por fuentes explícitas: `intake_form`, `booking_public`, `operator_manual`, `whatsapp_lead`. Verificable: `grep -rn "legacy_booking" lib/` → 0 resultados en código nuevo.
 - [ ] **S8-14** `[M]` Telemedicine diagnostics surface — `TelemedicineOpsDiagnostics` existe en el controller pero solo es accesible desde backend. Exponer `GET /api.php?resource=telemedicine-ops-diagnostics` en admin con card visual: staging count, pending evals, suitability score. El médico puede ver el estado real sin revisar logs. Verificable: echo "OK" -> match.
 
 #### 8.6 Deuda de código

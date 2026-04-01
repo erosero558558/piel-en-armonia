@@ -92,6 +92,11 @@
 
         if (session && session.patient && typeof session.patient === 'object') {
             updatePatient(session.patient);
+            if (document.body && document.body.dataset.portalSessionRequired === 'true') {
+                if (window.Piel && window.Piel.AnalyticsEngine && typeof window.Piel.AnalyticsEngine.trackEvent === 'function') {
+                    window.Piel.AnalyticsEngine.trackEvent('portal_opened');
+                }
+            }
         }
     });
 })(window, document);

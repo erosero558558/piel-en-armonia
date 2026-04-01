@@ -47,6 +47,76 @@ class AppointmentController
         ]);
     }
 
+    public static function checkin(array $context): void
+    {
+        $payload = require_json_body();
+        $token = trim((string) ($payload['token'] ?? ''));
+        if ($token === '' || strlen($token) < 16) {
+            json_response([
+                'ok' => false,
+                'error' => 'Token invalido',
+                'code' => 'invalid_token'
+            ], 400);
+        }
+
+        $lockResult = with_store_lock(function () use ($token) {
+            $store = read_store();
+            $found = false;
+            $updatedAppointment = null;
+
+            foreach ($store['appointments'] as &$appt) {
+                if (($appt['rescheduleToken'] ?? '') === $token) {
+                    if (($appt['status'] ?? '') === 'cancelled') {
+                        return ['ok' => false, 'error' => 'Cita cancelada', 'code' => 404];
+                    }
+                    if (($appt['status'] ?? '') === 'checked_in') {
+                        return ['ok' => true, 'updated' => $appt];
+                    }
+                    $appt['status'] = 'checked_in';
+                    $appt['checked_in_at'] = date('c');
+                    $found = true;
+                    $updatedAppointment = $appt;
+                    break;
+                }
+            }
+            unset($appt);
+
+            if (!$found) {
+                return ['ok' => false, 'error' => 'Cita no encontrada', 'code' => 404];
+            }
+
+            if (!write_store($store)) {
+                return ['ok' => false, 'error' => 'Storage write failed', 'code' => 503];
+            }
+
+            return ['ok' => true, 'updated' => $updatedAppointment];
+        });
+
+        if (($lockResult['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($lockResult['error'] ?? 'Store lock failed')
+            ], (int) ($lockResult['code'] ?? 503));
+        }
+
+        $result = $lockResult['result'];
+        if (($result['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'Error desconocido')
+            ], (int) ($result['code'] ?? 500));
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => [
+                'id' => $result['updated']['id'],
+                'status' => $result['updated']['status'],
+                'checked_in_at' => $result['updated']['checked_in_at']
+            ]
+        ]);
+    }
+
     public static function bookedSlots(array $context): void
     {
         // GET /booked-slots

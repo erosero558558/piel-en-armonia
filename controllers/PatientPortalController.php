@@ -340,6 +340,79 @@ final class PatientPortalController
         exit;
     }
 
+    public static function payments(array $context): void
+    {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $session = PatientPortalAuth::authenticateSession(
+            $store,
+            PatientPortalAuth::bearerTokenFromRequest()
+        );
+
+        if (($session['ok'] ?? false) !== true) {
+            self::emit($session);
+            return;
+        }
+
+        $sessionData = is_array($session['data'] ?? null) ? $session['data'] : [];
+        $snapshot = is_array($sessionData['snapshot'] ?? null) ? $sessionData['snapshot'] : [];
+        $patient = is_array($sessionData['patient'] ?? null) ? $sessionData['patient'] : [];
+
+        $payments = [];
+        $totalPaid = 0.0;
+        $lastPaymentDate = null;
+        
+        $appointments = is_array($snapshot['appointments'] ?? null) ? $snapshot['appointments'] : [];
+        
+        // Ordenamos las citas de más reciente a más antigua
+        usort($appointments, function($a, $b) {
+            $d1 = strval($a['date'] ?? '');
+            $d2 = strval($b['date'] ?? '');
+            return strcmp($d2, $d1);
+        });
+
+        foreach ($appointments as $apt) {
+            $billing = is_array($apt['billing'] ?? null) ? $apt['billing'] : [];
+            $status = (string) ($billing['status'] ?? '');
+            $amountPaid = (float) ($billing['amountPaid'] ?? 0);
+            
+            if (($status === 'paid' || $status === 'partial') && $amountPaid > 0) {
+                $ts = strtotime(strval($apt['date'] ?? 'now'));
+                if (!$ts) $ts = time();
+                
+                $dateLabel = date('d \d\e ', $ts) . ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][intval(date('n',$ts)) - 1] . date(' Y', $ts);
+                
+                $totalPaid += $amountPaid;
+                if ($lastPaymentDate === null) {
+                    $lastPaymentDate = $dateLabel;
+                }
+
+                $payments[] = [
+                    'id' => (string) ($apt['id'] ?? uniqid()),
+                    'dateLabel' => $dateLabel,
+                    'concept' => 'Pago por Atenciones y Procedimientos',
+                    'amountLabel' => sprintf('$%.2f', $amountPaid),
+                    'methodLabel' => 'Tarjeta / Transferencia',
+                    'status' => 'completed',
+                    'pdfUrl' => null,
+                ];
+            }
+        }
+
+        self::emit([
+            'ok' => true,
+            'data' => [
+                'authenticated' => true,
+                'patient' => $patient,
+                'summary' => [
+                    'totalPaid' => sprintf('$%.2f', $totalPaid),
+                    'lastPaymentDate' => $lastPaymentDate,
+                ],
+                'payments' => $payments,
+                'generatedAt' => local_date('c'),
+            ],
+        ]);
+    }
+
     public static function plan(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];

@@ -388,6 +388,10 @@
                     throw new Error('portal_prescription_download_failed');
                 }
 
+                if (window.Piel && window.Piel.AnalyticsEngine && typeof window.Piel.AnalyticsEngine.trackEvent === 'function') {
+                    window.Piel.AnalyticsEngine.trackEvent('prescription_downloaded', { document_type: 'prescription' });
+                }
+
                 triggerBlobDownload(response.blob, parseFilename(response.headers, fileName));
             } catch (_error) {
                 button.textContent = 'Reintentar PDF';

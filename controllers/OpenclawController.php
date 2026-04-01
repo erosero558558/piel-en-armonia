@@ -109,6 +109,41 @@ final class OpenclawController
             }
         }
 
+        // Labs pendientes o recientes (S30-19)
+        $pendingLabs = [];
+        $labOrders = $case['labOrders'] ?? [];
+        foreach ($labOrders as $order) {
+            if (($order['resultStatus'] ?? '') === 'not_received') {
+                $pendingLabs[] = $order['labName'] ?? 'Laboratorio pendiente';
+            } elseif (($order['resultStatus'] ?? '') === 'received') {
+                $daysDiff = (time() - strtotime($order['receivedAt'] ?? date('c'))) / 86400;
+                if ($daysDiff <= 30) {
+                    $pendingLabs[] = ($order['labName'] ?? 'Laboratorio') . ' (Resultados recientes disponibles)';
+                }
+            }
+        }
+
+        // Estado de condiciones crónicas
+        $chronicStatus = [];
+        $conditions = $case['chronicConditions'] ?? ($store['patients'][$patientId]['chronicConditions'] ?? []);
+        foreach ($conditions as $cond) {
+            $statusStr = $cond['cie10Label'] ?? $cond['cie10Code'] ?? 'Condición';
+            if (($cond['status'] ?? '') !== 'controlled') {
+                $statusStr .= ' (Descontrolado/Vencido)';
+            } else {
+                $statusStr .= ' (Controlado)';
+            }
+            $chronicStatus[] = $statusStr;
+        }
+
+        $interVisitSummary = [
+            'last_diagnosis' => $lastDx,
+            'active_medications' => $medications,
+            'last_evolution_date' => $history['last_evolution'] ?? '',
+            'pending_labs' => $pendingLabs,
+            'chronic_status' => $chronicStatus
+        ];
+
         json_response([
             'ok' => true,
             'vital_alerts'     => $vitalAlerts,
@@ -135,6 +170,7 @@ final class OpenclawController
             'visit_count'        => count($history['episodes'] ?? []),
             'photos_available'   => !empty($history['photos']),
             'ai_summary'         => $lastVisitSummary,
+            'inter_visit_summary' => $interVisitSummary,
         ]);
     }
 
@@ -330,7 +366,81 @@ final class OpenclawController
             ]);
         });
 
-        json_response(['ok' => true, 'saved' => true, 'data' => $result]);
+        // S30-10: Detección automática de condición crónica
+        $chronicPrefixes = ['I10', 'E11', 'J44', 'E03'];
+        $isChronic = false;
+        $upperCode = strtoupper($cie10Code);
+        foreach ($chronicPrefixes as $prefix) {
+            if (str_starts_with($upperCode, $prefix)) {
+                $isChronic = true;
+                break;
+            }
+        }
+
+        $response = ['ok' => true, 'saved' => true, 'data' => $result];
+        if ($isChronic) {
+            $response['chronic_condition_detected'] = true;
+            $response['suggested_followup_days'] = 90;
+        }
+
+        json_response($response);
+    }
+
+    public static function saveChronicCondition(array $context): void
+    {
+        self::requireAuth();
+        $payload = require_json_body();
+
+        $caseId = trim((string) ($payload['case_id'] ?? ''));
+        $cie10Code = trim((string) ($payload['cie10_code'] ?? ''));
+        $cie10Desc = trim((string) ($payload['cie10_description'] ?? ''));
+        $frequency = (int) ($payload['followup_days'] ?? 90);
+
+        if ($caseId === '' || $cie10Code === '') {
+            json_response(['ok' => false, 'error' => 'case_id y cie10_code requeridos'], 400);
+        }
+
+        $result = self::mutateStore(static function (array $store) use ($caseId, $cie10Code, $cie10Desc, $frequency): array {
+            $patients = $store['patients'] ?? [];
+            if (!isset($patients[$caseId])) {
+                return ['ok' => false, 'error' => 'Paciente no encontrado'];
+            }
+
+            $conditions = $patients[$caseId]['chronicConditions'] ?? [];
+            $exists = false;
+            foreach ($conditions as &$cond) {
+                if (($cond['cie10Code'] ?? '') === $cie10Code) {
+                    $cond['controlFrequencyDays'] = $frequency;
+                    $cond['nextControlDue'] = gmdate('Y-m-d', strtotime('+' . $frequency . ' days'));
+                    $exists = true;
+                    break;
+                }
+            }
+            unset($cond);
+
+            if (!$exists) {
+                $conditions[] = [
+                    'cie10Code' => $cie10Code,
+                    'cie10Label' => $cie10Desc,
+                    'diagnosedAt' => local_date('Y-m-d'),
+                    'controlFrequencyDays' => $frequency,
+                    'lastControlDate' => local_date('Y-m-d'),
+                    'nextControlDue' => gmdate('Y-m-d', strtotime('+' . $frequency . ' days')),
+                    'status' => 'controlled',
+                ];
+            }
+
+            $patients[$caseId]['chronicConditions'] = $conditions;
+            $patients[$caseId]['updatedAt'] = gmdate('c');
+            $store['patients'] = $patients;
+
+            return ['ok' => true, 'chronicConditions' => $conditions, 'store' => $store];
+        });
+
+        if ($result['ok'] ?? false) {
+            json_response(['ok' => true, 'chronicConditions' => $result['chronicConditions']]);
+        }
+        json_response($result, 400);
     }
 
     // ── saveEvolution ─────────────────────────────────────────────────────────
@@ -1058,6 +1168,7 @@ final class OpenclawController
                 'dose' => trim((string) ($medication['dose'] ?? '')),
                 'frequency' => trim((string) ($medication['frequency'] ?? '')),
                 'duration' => trim((string) ($medication['duration'] ?? '')),
+                'durationDays' => (int) ($medication['duration_days'] ?? $medication['durationDays'] ?? 0),
                 'instructions' => trim((string) ($medication['instructions'] ?? $medication['notes'] ?? '')),
             ];
         }, $medications);

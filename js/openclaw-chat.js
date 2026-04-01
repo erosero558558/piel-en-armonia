@@ -152,17 +152,17 @@ Contexto del paciente se te dará como sistema de contexto.`,
 
   function renderMessageBubble(msg) {
     const isDoctor = msg.role === 'user';
-    const time = new Date(msg.ts).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+    const avatar = isDoctor 
+      ? '<div class="oc-msg-avatar oc-avatar-dr">Dr.</div>' 
+      : `<div class="oc-msg-avatar oc-avatar-ai"><svg viewBox="0 0 24 24" fill="var(--oc-accent)"><circle cx="12" cy="12" r="10"></circle></svg></div>`;
     return `
     <div class="oc-msg ${isDoctor ? 'oc-msg-doctor' : 'oc-msg-ai'}" data-id="${msg.id}">
-      ${!isDoctor ? '<div class="oc-msg-avatar">🤖</div>' : ''}
+      ${avatar}
       <div class="oc-msg-content">
         ${msg.photo ? `<img src="${msg.photo}" class="oc-msg-photo" alt="Foto clínica">` : ''}
         <div class="oc-msg-text">${formatMarkdown(msg.content)}</div>
         ${msg.actions && msg.actions.length ? renderInlineActions(msg.actions, msg.id) : ''}
-        <div class="oc-msg-time">${time}</div>
       </div>
-      ${isDoctor ? '<div class="oc-msg-avatar oc-msg-avatar-dr">Dr.</div>' : ''}
     </div>`;
   }
 
@@ -738,7 +738,7 @@ CONTEXTO DEL PACIENTE:
     const id = `stream-${Date.now()}`;
     const html = `
     <div class="oc-msg oc-msg-ai oc-msg-streaming" id="${id}">
-      <div class="oc-msg-avatar">🤖</div>
+      <div class="oc-msg-avatar oc-avatar-ai"><svg viewBox="0 0 24 24" fill="var(--oc-accent)"><circle cx="12" cy="12" r="10"></circle></svg></div>
       <div class="oc-msg-content">
         <div class="oc-msg-text"><span class="oc-typing-dot"></span><span class="oc-typing-dot"></span><span class="oc-typing-dot"></span></div>
       </div>
@@ -969,349 +969,100 @@ CONTEXTO DEL PACIENTE:
     style.id = 'oc-styles';
     style.textContent = `
       :root {
-        --oc-bg: #0f0f13;
-        --oc-surface: #1a1a24;
-        --oc-surface-2: #23232f;
-        --oc-border: #2d2d3d;
-        --oc-accent: #7c6fff;
-        --oc-accent-glow: rgba(124, 111, 255, 0.2);
-        --oc-text: #f0f0f0;
-        --oc-text-dim: #8888aa;
+        --oc-bg: #000000;
+        --oc-surface: rgba(28, 28, 30, 0.5);
+        --oc-surface-2: rgba(44, 44, 46, 0.7);
+        --oc-border: rgba(255, 255, 255, 0.08);
+        --oc-accent: #d4af37;
+        --oc-accent-glow: rgba(212, 175, 55, 0.1);
+        --oc-text: #f5f5f7;
+        --oc-text-dim: #86868b;
         --oc-green: #22c55e;
         --oc-yellow: #f59e0b;
         --oc-red: #ef4444;
-        --oc-radius: 12px;
+        --oc-radius: 20px;
         --oc-font: 'Inter', -apple-system, sans-serif;
       }
 
       .oc-shell {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        background: var(--oc-bg);
-        color: var(--oc-text);
-        font-family: var(--oc-font);
-        font-size: 14px;
-        border-radius: var(--oc-radius);
-        overflow: hidden;
-        border: 1px solid var(--oc-border);
+        display: flex; flex-direction: column; height: 100%; min-height: 600px;
+        background: var(--oc-bg); color: var(--oc-text); font-family: var(--oc-font);
+        font-size: 15px; border-radius: var(--oc-radius); overflow: hidden;
+        border: 1px solid var(--oc-border); padding-bottom: 8px;
+        position: relative;
       }
-
-      /* Header */
-      .oc-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--oc-border);
-        background: var(--oc-surface);
-      }
+      .oc-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--oc-border); background: transparent; }
       .oc-header-left { display: flex; align-items: center; gap: 10px; }
-      .oc-header-right { display: flex; gap: 4px; }
-      .oc-logo {
-        display: flex; align-items: center; gap: 6px;
-        font-weight: 600; font-size: 14px; color: var(--oc-accent);
-      }
-      .oc-status {
-        font-size: 11px; color: var(--oc-text-dim);
-        background: var(--oc-surface-2);
-        padding: 2px 8px; border-radius: 20px;
-      }
-      .oc-runtime-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 4px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(239, 68, 68, 0.48);
-        background: rgba(239, 68, 68, 0.18);
-        color: #fecaca;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-      }
+      .oc-header-right { display: flex; gap: 8px; }
+      .oc-logo { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 15px; color: var(--oc-text); }
+      .oc-status { font-size: 11px; color: var(--oc-text-dim); border: 1px solid var(--oc-border); padding: 2px 8px; border-radius: 20px; }
+      
+      .oc-layout { display: flex; flex: 1; overflow: hidden; position: relative; }
+      .oc-chat-panel { flex: 1; display: flex; flex-direction: column; position: relative; }
+      
+      .oc-messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; padding-bottom: 140px; scrollbar-width: none; }
+      .oc-welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: var(--oc-text-dim); text-align: center; gap: 16px; }
+      .oc-welcome-icon { font-size: 48px; opacity: 0.5; }
 
-      /* Layout */
-      .oc-layout {
-        display: flex;
-        flex: 1;
-        overflow: hidden;
-      }
-
-      /* Chat panel */
-      .oc-chat-panel {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        border-right: 1px solid var(--oc-border);
-      }
-
-      .oc-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        scrollbar-width: thin;
-        scrollbar-color: var(--oc-border) transparent;
-      }
-
-      /* Welcome state */
-      .oc-welcome {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        flex: 1;
-        min-height: 200px;
-        color: var(--oc-text-dim);
-        text-align: center;
-        gap: 10px;
-      }
-      .oc-welcome-icon { font-size: 40px; }
-
-      /* Messages */
-      .oc-msg {
-        display: flex;
-        gap: 10px;
-        max-width: 85%;
-        animation: oc-fade-in 0.2s ease;
-      }
-      @keyframes oc-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-      .oc-msg-doctor { align-self: flex-end; flex-direction: row-reverse; }
-      .oc-msg-ai { align-self: flex-start; }
-
-      .oc-msg-avatar {
-        width: 28px; height: 28px;
-        border-radius: 50%;
-        background: var(--oc-surface-2);
-        border: 1px solid var(--oc-border);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 13px;
-        flex-shrink: 0;
-      }
-      .oc-msg-avatar-dr {
-        background: var(--oc-accent-glow);
-        border-color: var(--oc-accent);
-        font-size: 9px; font-weight: 700; color: var(--oc-accent);
-      }
-
-      .oc-msg-content {
-        background: var(--oc-surface);
-        border: 1px solid var(--oc-border);
-        border-radius: var(--oc-radius);
-        padding: 10px 14px;
-        max-width: 100%;
-      }
-      .oc-msg-doctor .oc-msg-content {
-        background: var(--oc-accent-glow);
-        border-color: var(--oc-accent);
-      }
-
-      .oc-msg-text { line-height: 1.6; }
-      .oc-msg-text p { margin: 0 0 8px; }
+      /* Flat Messages like ChatGPT */
+      .oc-msg { display: flex; gap: 16px; align-items: flex-start; max-width: 100%; align-self: stretch; animation: oc-fade-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+      .oc-msg-avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 500; font-size: 12px; }
+      .oc-avatar-dr { background: var(--oc-surface-2); color: var(--oc-text); }
+      .oc-avatar-ai { background: transparent; }
+      
+      .oc-msg-content { flex: 1; color: var(--oc-text); line-height: 1.6; }
+      .oc-msg-text p { margin: 0 0 12px; }
       .oc-msg-text p:last-child { margin: 0; }
-      .oc-msg-text ul { margin: 4px 0; padding-left: 18px; }
-      .oc-msg-text li { margin: 2px 0; }
-      .oc-msg-text h3, .oc-msg-text h4 { font-size: 13px; font-weight: 600; margin: 8px 0 4px; color: var(--oc-accent); }
-      .oc-msg-text code { background: var(--oc-surface-2); padding: 2px 5px; border-radius: 4px; font-size: 12px; }
-      .oc-msg-text strong { color: #fff; }
-
+      .oc-msg-text h3, .oc-msg-text h4 { font-size: 16px; font-weight: 500; margin: 16px 0 8px; color: var(--oc-accent); }
+      .oc-msg-text ul { padding-left: 20px; margin: 8px 0; }
+      .oc-msg-text code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
       .oc-msg-photo { max-width: 240px; border-radius: 8px; display: block; margin-bottom: 8px; }
-      .oc-msg-time { font-size: 10px; color: var(--oc-text-dim); margin-top: 6px; }
-
-      /* Streaming */
-      .oc-cursor { animation: oc-blink 0.7s infinite; }
-      @keyframes oc-blink { 50% { opacity: 0; } }
-      .oc-typing-dot {
-        display: inline-block; width: 6px; height: 6px;
-        border-radius: 50%; background: var(--oc-text-dim); margin: 0 2px;
-        animation: oc-bounce 1.2s infinite;
-      }
-      .oc-typing-dot:nth-child(2) { animation-delay: 0.2s; }
-      .oc-typing-dot:nth-child(3) { animation-delay: 0.4s; }
-      @keyframes oc-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
-
-      /* Inline actions */
-      .oc-inline-actions {
-        display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
-      }
-      .oc-action-chip {
-        background: var(--oc-surface-2);
-        border: 1px solid var(--oc-border);
-        color: var(--oc-text);
-        padding: 5px 10px; border-radius: 20px;
-        font-size: 12px; cursor: pointer;
-        transition: all 0.15s;
-        display: flex; align-items: center; gap: 4px;
-      }
-      .oc-action-chip:hover {
-        background: var(--oc-accent-glow);
-        border-color: var(--oc-accent);
-        color: var(--oc-accent);
-      }
-
-      /* Actions bar */
-      .oc-actions-bar {
-        padding: 8px 16px; border-top: 1px solid var(--oc-border);
-        background: var(--oc-surface);
-        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      }
-      .oc-actions-label { font-size: 11px; color: var(--oc-text-dim); white-space: nowrap; }
-      .oc-actions-row { display: flex; gap: 6px; flex-wrap: wrap; }
-      .oc-alert-banner {
-        margin: 12px 16px 0;
-        padding: 12px 14px;
-        border-radius: 10px;
-        border: 1px solid rgba(245, 158, 11, 0.45);
-        background: rgba(245, 158, 11, 0.12);
-      }
-      .oc-alert-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 10px;
-      }
-      .oc-alert-header p {
-        margin: 4px 0 0;
-        color: var(--oc-text-dim);
-        line-height: 1.5;
-      }
-      .oc-alert-dismiss {
-        background: none;
-        border: none;
-        color: var(--oc-text);
-        cursor: pointer;
-        font-size: 20px;
-        line-height: 1;
-        padding: 0;
-      }
-      .oc-alert-list {
-        margin: 0;
-        padding-left: 18px;
-      }
-      .oc-alert-item + .oc-alert-item { margin-top: 10px; }
-      .oc-alert-item span { color: var(--oc-text-dim); margin-left: 4px; }
-      .oc-alert-severity {
-        display: inline-block;
-        margin-left: 8px;
-        padding: 1px 8px;
-        border-radius: 999px;
-        background: rgba(245, 158, 11, 0.18);
-        color: #fbbf24;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-      }
-      .oc-alert-description {
-        margin-top: 4px;
-        color: var(--oc-text-dim);
-        line-height: 1.5;
-      }
-
-      /* Input area */
-      .oc-input-area {
-        border-top: 1px solid var(--oc-border);
-        padding: 12px 16px;
-        background: var(--oc-surface);
-      }
-      .oc-input-row {
-        display: flex; align-items: flex-end; gap: 8px;
-        background: var(--oc-surface-2);
-        border: 1px solid var(--oc-border);
-        border-radius: var(--oc-radius);
-        padding: 8px 10px;
-        transition: border-color 0.15s;
-      }
-      .oc-input-row:focus-within { border-color: var(--oc-accent); }
-      .oc-textarea {
-        flex: 1; background: none; border: none; outline: none;
-        color: var(--oc-text); font-family: var(--oc-font); font-size: 14px;
-        resize: none; line-height: 1.5; max-height: 120px;
-        scrollbar-width: thin;
-      }
+      
+      /* Input Pill */
+      .oc-input-area { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px; background: linear-gradient(to top, var(--oc-bg) 60%, transparent); pointer-events: none; }
+      .oc-input-row { pointer-events: auto; display: flex; align-items: flex-end; gap: 12px; background: rgba(28,28,30,0.8); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.12); border-radius: 28px; padding: 12px 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 800px; margin: 0 auto; transition: border-color 0.2s; }
+      .oc-input-row:focus-within { border-color: rgba(255,255,255,0.3); }
+      .oc-textarea { flex: 1; background: transparent; border: none; outline: none; color: var(--oc-text); font-family: var(--oc-font); font-size: 15px; resize: none; max-height: 200px; padding: 4px 0; scrollbar-width: none; }
       .oc-textarea::placeholder { color: var(--oc-text-dim); }
-
-      /* Buttons */
-      .oc-btn-icon {
-        background: none; border: none; cursor: pointer;
-        color: var(--oc-text-dim); padding: 6px;
-        border-radius: 6px; transition: all 0.15s;
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0;
-      }
-      .oc-btn-icon:hover { color: var(--oc-text); background: var(--oc-surface-2); }
+      
+      /* Botones */
+      .oc-btn-icon { background: transparent; border: none; color: var(--oc-text-dim); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+      .oc-btn-icon:hover { background: rgba(255,255,255,0.1); color: var(--oc-text); }
       .oc-recording { color: var(--oc-red) !important; animation: oc-pulse 1s infinite; }
-      @keyframes oc-pulse { 50% { opacity: 0.5; } }
+      .oc-send-btn { background: var(--oc-text); color: var(--oc-bg); border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; flex-shrink: 0; }
+      .oc-send-btn:hover { transform: scale(1.05); }
+      .oc-send-btn:disabled { opacity: 0.3; }
 
-      .oc-send-btn {
-        background: var(--oc-accent); border: none; cursor: pointer;
-        color: #fff; padding: 8px; border-radius: 8px;
-        transition: all 0.15s; display: flex; align-items: center;
-        flex-shrink: 0;
-      }
-      .oc-send-btn:hover { background: #6b5ee0; transform: translateY(-1px); }
-      .oc-send-btn:active { transform: none; }
-      .oc-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+      /* AI Chips (RB-08 Glassmorphism) */
+      .oc-inline-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+      .oc-action-chip { background: rgba(255,255,255,0.03); border: 1px solid var(--oc-border); color: var(--oc-text); padding: 8px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+      .oc-action-chip:hover { border-color: var(--oc-accent); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(212,175,55,0.15); background: rgba(212,175,55,0.05); }
 
-      /* Context panel */
-      .oc-context-panel {
-        width: 260px; flex-shrink: 0;
-        overflow-y: auto; background: var(--oc-surface);
-        scrollbar-width: thin;
-      }
-      .oc-context-header {
-        padding: 12px 16px; font-size: 11px; font-weight: 600;
-        text-transform: uppercase; letter-spacing: 0.08em;
-        color: var(--oc-text-dim); border-bottom: 1px solid var(--oc-border);
-        position: sticky; top: 0; background: var(--oc-surface);
-      }
-      .oc-context-body { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
-
-      .oc-patient-card {
-        background: var(--oc-accent-glow); border: 1px solid var(--oc-accent);
-        border-radius: 8px; padding: 12px;
-      }
-      .oc-patient-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
-      .oc-patient-info { display: flex; gap: 10px; font-size: 12px; color: var(--oc-text-dim); }
-
-      .oc-context-section {
-        background: var(--oc-surface-2); border: 1px solid var(--oc-border);
-        border-radius: 8px; padding: 10px;
-      }
-      .oc-context-alert { border-color: var(--oc-yellow); background: rgba(245, 158, 11, 0.08); }
-      .oc-context-section-title {
-        font-size: 10px; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.06em; color: var(--oc-text-dim); margin-bottom: 6px;
-      }
-      .oc-context-section-body { font-size: 13px; line-height: 1.5; }
-      .oc-context-section-meta { font-size: 11px; color: var(--oc-text-dim); margin-top: 4px; }
-      .oc-context-item {
-        font-size: 12px; padding: 3px 0;
-        border-bottom: 1px solid var(--oc-border); display: flex; gap: 6px;
-      }
+      /* Streaming block cursor */
+      .oc-cursor { display: inline-block; width: 10px; height: 15px; background: var(--oc-accent); margin-left: 4px; animation: oc-blink 1s step-end infinite; }
+      @keyframes oc-blink { 0%, 100% {opacity: 1} 50% {opacity: 0} }
+      
+      /* Context Right Panel */
+      .oc-context-panel { width: 300px; border-left: 1px solid var(--oc-border); background: transparent; display: flex; flex-direction: column; }
+      .oc-context-header { padding: 16px; font-size: 12px; font-weight: 500; color: var(--oc-text-dim); border-bottom: 1px solid var(--oc-border); text-transform: uppercase; letter-spacing: 0.05em; }
+      .oc-context-body { padding: 16px; overflow-y: auto; scrollbar-width: none; }
+      .oc-patient-card { background: transparent; padding: 0; margin-bottom: 32px; border: none; }
+      .oc-patient-name { font-size: 18px; font-weight: 400; font-family: var(--font-display, Georgia); color: var(--oc-text); margin-bottom: 8px; }
+      .oc-patient-info { font-size: 13px; color: var(--oc-text-dim); }
+      
+      .oc-context-section { background: rgba(255,255,255,0.03); border: 1px solid var(--oc-border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+      .oc-context-section-title { font-size: 11px; font-weight: 500; color: var(--oc-text-dim); text-transform: uppercase; margin-bottom: 12px; }
+      .oc-context-item { font-size: 13px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
       .oc-context-item:last-child { border-bottom: none; }
-      .oc-context-date { color: var(--oc-text-dim); flex-shrink: 0; }
-      .oc-context-summary { font-size: 12px; color: var(--oc-text-dim); font-style: italic; }
-
-      /* Toast */
-      .oc-toast {
-        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-        background: var(--oc-green); color: #fff; padding: 10px 20px;
-        border-radius: 20px; font-size: 13px; z-index: 9999;
-        animation: oc-toast-in 0.2s ease; pointer-events: none;
-      }
-      @keyframes oc-toast-in { from { opacity:0; transform: translateX(-50%) translateY(10px); } }
-
-      /* Loading */
+      
+      /* Extra utils */
+      .oc-runtime-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(239,68,68,0.48); background: rgba(239,68,68,0.18); color: #fecaca; font-size: 11px; font-weight: 700; letter-spacing: 0.01em; }
+      .oc-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--oc-accent); color: var(--oc-bg); padding: 12px 24px; border-radius: 99px; font-size: 13px; font-weight: 500; z-index: 9999; animation: oc-toast-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); pointer-events: none; }
+      @keyframes oc-toast-in { from { opacity:0; transform: translateX(-50%) translateY(20px); } }
       .oc-loading-context { text-align: center; color: var(--oc-text-dim); padding: 20px; font-size: 13px; }
 
-      /* Mobile */
       @media (max-width: 768px) {
         .oc-context-panel { display: none; }
-        .oc-msg { max-width: 95%; }
       }
     `;
     document.head.appendChild(style);

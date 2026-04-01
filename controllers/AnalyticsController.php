@@ -29,11 +29,7 @@ class AnalyticsController
         }
 
         $labels = FunnelMetricsService::buildEventLabels($payload, $event);
-        if (class_exists('Metrics')) {
-            Metrics::increment('conversion_funnel_events_total', $labels);
-            FunnelMetricsService::recordDerivedMetrics($event, $labels);
-        }
-        FunnelTimelineStore::recordEvent($event, $labels);
+        FunnelMetricsService::recordEvent($event, $labels);
 
         json_response([
             'ok' => true,

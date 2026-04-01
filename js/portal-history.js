@@ -323,7 +323,7 @@
         const fileName = String(safeItem.fileName || '').trim();
 
         return `
-            <article class="portal-timeline-document" data-status="${escapeHtml(status)}">
+            <article class="portal-timeline-document lg-surface--dark portal-glass-card" data-status="${escapeHtml(status)}">
                 <div class="portal-timeline-document__header">
                     <div class="portal-timeline-document__copy">
                         <strong>${escapeHtml(title)}</strong>
@@ -334,7 +334,7 @@
                 ${issuedAtLabel ? `<span class="portal-timeline-document__meta">${escapeHtml(issuedAtLabel)}</span>` : ''}
                 ${
                     status === 'available' && downloadUrl
-                        ? `<a class="portal-timeline-document__action" data-portal-document-link data-document-type="${escapeHtml(safeItem.type || '')}" href="${escapeHtml(downloadUrl)}" download="${escapeHtml(fileName || 'documento-aurora-derm.pdf')}">Descargar PDF</a>`
+                        ? `<a class="portal-timeline-document__action btn btn-secondary glass-pill" data-portal-document-link data-document-type="${escapeHtml(safeItem.type || '')}" href="${escapeHtml(downloadUrl)}" download="${escapeHtml(fileName || 'documento-aurora-derm.pdf')}">Descargar PDF</a>`
                         : ''
                 }
             </article>

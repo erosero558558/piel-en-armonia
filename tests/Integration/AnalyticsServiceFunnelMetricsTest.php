@@ -224,8 +224,8 @@ class AnalyticsServiceFunnelMetricsTest extends TestCase
         $summary = is_array($payload['summary'] ?? null) ? $payload['summary'] : [];
         $this->assertSame(2, (int) ($summary['servicesTracked'] ?? -1));
         $this->assertSame('botox', (string) ($summary['biggestDropoffService'] ?? ''));
-        $this->assertSame('open_to_slot', (string) ($summary['biggestDropoffStage'] ?? ''));
-        $this->assertSame(5, (int) ($summary['biggestDropoffCount'] ?? -1));
+        $this->assertSame('detail_to_open', (string) ($summary['biggestDropoffStage'] ?? ''));
+        $this->assertSame(10, (int) ($summary['biggestDropoffCount'] ?? -1));
 
         $serviceFunnelMap = $this->serviceFunnelMap($payload['rows']);
         $botox = $serviceFunnelMap['botox'] ?? [];
@@ -237,8 +237,8 @@ class AnalyticsServiceFunnelMetricsTest extends TestCase
         $this->assertSame(37.5, (float) ($botox['openToSlotPct'] ?? -1));
         $this->assertSame(66.7, (float) ($botox['slotToConfirmedPct'] ?? -1));
         $this->assertSame(11.1, (float) ($botox['detailToConfirmedPct'] ?? -1));
-        $this->assertSame('open_to_slot', (string) ($botox['largestDropoffStage'] ?? ''));
-        $this->assertSame(5, (int) ($botox['largestDropoffCount'] ?? -1));
+        $this->assertSame('detail_to_open', (string) ($botox['largestDropoffStage'] ?? ''));
+        $this->assertSame(10, (int) ($botox['largestDropoffCount'] ?? -1));
     }
 
     public function testRecordEventBuildsDailyConversionDashboard(): void

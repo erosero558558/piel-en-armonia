@@ -240,16 +240,16 @@ final class LeadScoringService
         $sourceToken = self::normalizeToken($source);
         $surfaceToken = self::normalizeToken($surface);
 
-        if ($sourceToken === 'whatsapp_openclaw' || str_contains($surfaceToken, 'whatsapp')) {
+        if ($sourceToken === 'whatsapp_openclaw' || $sourceToken === 'whatsapp_lead' || str_contains($surfaceToken, 'whatsapp')) {
             return 12;
         }
-        if ($sourceToken === 'public_preconsultation' || str_contains($surfaceToken, 'preconsulta')) {
+        if ($sourceToken === 'public_preconsultation' || $sourceToken === 'intake_form' || str_contains($surfaceToken, 'preconsulta')) {
             return 10;
         }
-        if ($sourceToken === 'booking' || $surfaceToken === 'booking_form' || $surfaceToken === 'chatbot') {
+        if ($sourceToken === 'booking' || $sourceToken === 'booking_public' || $surfaceToken === 'booking_form' || $surfaceToken === 'chatbot') {
             return 8;
         }
-        if ($sourceToken === 'legacy_booking_bridge') {
+        if ($sourceToken === 'operator_manual') {
             return 6;
         }
 
@@ -261,17 +261,17 @@ final class LeadScoringService
         $sourceToken = self::normalizeToken($source);
         $surfaceToken = self::normalizeToken($surface);
 
-        if ($sourceToken === 'whatsapp_openclaw' || str_contains($surfaceToken, 'whatsapp')) {
+        if ($sourceToken === 'whatsapp_openclaw' || $sourceToken === 'whatsapp_lead' || str_contains($surfaceToken, 'whatsapp')) {
             return 'Canal conversacional con alta probabilidad de cierre rapido.';
         }
-        if ($sourceToken === 'public_preconsultation' || str_contains($surfaceToken, 'preconsulta')) {
+        if ($sourceToken === 'public_preconsultation' || $sourceToken === 'intake_form' || str_contains($surfaceToken, 'preconsulta')) {
             return 'Lead ya dejo contexto clinico y material previo.';
         }
-        if ($sourceToken === 'booking' || $surfaceToken === 'booking_form' || $surfaceToken === 'chatbot') {
+        if ($sourceToken === 'booking' || $sourceToken === 'booking_public' || $surfaceToken === 'booking_form' || $surfaceToken === 'chatbot') {
             return 'Lead ya avanzo en el flujo de reserva.';
         }
-        if ($sourceToken === 'legacy_booking_bridge') {
-            return 'Lead proveniente de bridge telemedico.';
+        if ($sourceToken === 'operator_manual') {
+            return 'Lead ingresado manualmente u origen heredado.';
         }
 
         return 'Canal no clasificado; se usa peso base.';

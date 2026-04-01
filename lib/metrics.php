@@ -316,4 +316,39 @@ class Metrics
 
         return app_prometheus_alias_output(implode("\n", $output));
     }
+
+    /**
+     * @return array{source: string, last_updated_at: string, age_minutes: int}
+     */
+    public static function getDataFreshness(): array
+    {
+        self::init();
+
+        if (self::$useRedis) {
+            return [
+                'source' => 'live',
+                'last_updated_at' => gmdate('c'),
+                'age_minutes' => 0,
+            ];
+        }
+
+        if (self::$filePath !== null && file_exists(self::$filePath)) {
+            $mtime = @filemtime(self::$filePath);
+            if ($mtime !== false) {
+                $ageMinutes = (int) floor((time() - $mtime) / 60);
+                $source = $ageMinutes > 60 ? 'stale' : 'cached';
+                return [
+                    'source' => $source,
+                    'last_updated_at' => gmdate('c', $mtime),
+                    'age_minutes' => $ageMinutes,
+                ];
+            }
+        }
+
+        return [
+            'source' => 'missing',
+            'last_updated_at' => gmdate('c'),
+            'age_minutes' => 0,
+        ];
+    }
 }

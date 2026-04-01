@@ -343,7 +343,7 @@
 
     function renderBillingUnavailable() {
         return `
-            <section class="portal-plan-card portal-billing-card portal-empty-state">
+            <section class="portal-plan-card portal-billing-card portal-empty-state lg-surface--dark portal-glass-card">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="portal-empty-icon" aria-hidden="true" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -360,7 +360,7 @@
     function renderMembershipCard(membership) {
         if (!membership || typeof membership !== 'object') {
             return `
-                <section class="portal-plan-card portal-empty-state">
+                <section class="portal-plan-card portal-empty-state lg-surface--dark portal-glass-card">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="portal-empty-icon" aria-hidden="true" stroke="currentColor" stroke-width="2">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                     </svg>
@@ -401,7 +401,7 @@
             : '';
 
         return `
-            <section class="portal-plan-card">
+            <section class="portal-plan-card lg-surface--dark portal-glass-card">
                 <div class="portal-plan-card__header" style="justify-content:space-between;">
                     <strong style="color:var(--admin-text); font-size:1.1em;">⭐ Membresía Aurora</strong>
                     ${headerStatus}
@@ -423,7 +423,7 @@
 
     function renderSkeletonCard() {
         return `
-            <section class="portal-card-next" data-portal-next-skeleton style="opacity:0.78;">
+            <section class="portal-card-next lg-surface--dark portal-glass-card" data-portal-next-skeleton style="opacity:0.78;">
                 <div class="portal-card-next__header">
                     <div class="skeleton" style="width: 132px; height: 14px;"></div>
                     <div class="skeleton" style="width: 44px; height: 14px;"></div>
@@ -453,14 +453,14 @@
 
     function renderActionSkeletons() {
         return `
-            <article class="portal-support-card" style="opacity:0.78;">
+            <article class="portal-support-card lg-surface--dark portal-glass-card" style="opacity:0.78;">
                 <div class="skeleton" style="width: 42px; height: 42px; border-radius: 14px;"></div>
                 <div style="display:flex; flex-direction:column; gap:8px; flex:1;">
                     <div class="skeleton" style="width: 52%; height: 16px;"></div>
                     <div class="skeleton" style="width: 90%; height: 12px;"></div>
                 </div>
             </article>
-            <article class="portal-support-card" style="opacity:0.78;">
+            <article class="portal-support-card lg-surface--dark portal-glass-card" style="opacity:0.78;">
                 <div class="skeleton" style="width: 42px; height: 42px; border-radius: 14px;"></div>
                 <div style="display:flex; flex-direction:column; gap:8px; flex:1;">
                     <div class="skeleton" style="width: 48%; height: 16px;"></div>
@@ -472,7 +472,7 @@
 
     function renderTreatmentPlanSkeleton() {
         return `
-            <section class="portal-plan-card" data-portal-treatment-plan-skeleton style="opacity:0.8;">
+            <section class="portal-plan-card lg-surface--dark portal-glass-card" data-portal-treatment-plan-skeleton style="opacity:0.8;">
                 <div style="display:grid; gap:12px; width:100%;">
                     <div class="skeleton" style="width: 36%; height: 14px;"></div>
                     <div class="skeleton" style="width: 62%; height: 22px;"></div>
@@ -491,7 +491,7 @@
 
     function renderMembershipSkeleton() {
         return `
-            <section class="portal-plan-card" style="opacity:0.8;">
+            <section class="portal-plan-card lg-surface--dark portal-glass-card" style="opacity:0.8;">
                 <div style="display:grid; gap:12px; width:100%;">
                     <div class="skeleton" style="width: 48%; height: 18px;"></div>
                     <div class="skeleton" style="width: 80%; height: 14px;"></div>
@@ -503,7 +503,7 @@
 
     function renderBillingSkeleton() {
         return `
-            <section class="portal-plan-card portal-billing-card" data-portal-billing-skeleton style="opacity:0.8;">
+            <section class="portal-plan-card portal-billing-card lg-surface--dark portal-glass-card" data-portal-billing-skeleton style="opacity:0.8;">
                 <div style="display:grid; gap:12px; width:100%;">
                     <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
                         <div style="display:grid; gap:8px; flex:1;">
@@ -577,7 +577,7 @@
         ).trim();
 
         return `
-            <section class="portal-card-next" data-portal-next-appointment-card>
+            <section class="portal-card-next lg-surface--dark portal-glass-card" data-portal-next-appointment-card>
                 <div class="portal-card-next__header">
                     <span class="portal-card-next__kicker">Próxima cita confirmada</span>
                     <span class="portal-status-chip">Activa</span>
@@ -639,7 +639,7 @@
         const whatsappUrl = String(safeSupport.whatsappUrl || '').trim();
 
         return `
-            <section class="portal-card-next portal-empty-state" data-portal-empty-state>
+            <section class="portal-card-next portal-empty-state lg-surface--dark portal-glass-card" data-portal-empty-state>
                 <span class="portal-card-next__kicker">Sin cita pendiente</span>
                 <strong>No tienes una cita activa por ahora</strong>
                 <p>Agenda tu próxima consulta desde el sitio o escríbenos y te ayudamos a encontrar el mejor horario.</p>
@@ -657,7 +657,7 @@
 
     function renderErrorState() {
         return `
-            <section class="portal-card-next portal-empty-state">
+            <section class="portal-card-next portal-empty-state lg-surface--dark portal-glass-card">
                 <span class="portal-card-next__kicker">Portal temporalmente ocupado</span>
                 <strong>No pudimos cargar tu próxima cita</strong>
                 <p>Intenta recargar en unos segundos o escríbenos por WhatsApp para confirmarla.</p>
@@ -731,7 +731,7 @@
                             ? '★'
                             : 'H';
                 return `
-                    <a class="portal-support-card" href="${escapeHtml(item.href)}"${item.external ? ' target="_blank" rel="noopener noreferrer"' : ''}>
+                    <a class="portal-support-card lg-surface--dark portal-glass-card" href="${escapeHtml(item.href)}"${item.external ? ' target="_blank" rel="noopener noreferrer"' : ''}>
                         <span class="portal-support-card__icon" aria-hidden="true">${icon}</span>
                         <span class="portal-support-card__body">
                             <strong>${escapeHtml(item.label)}</strong>
@@ -765,10 +765,7 @@
                 }
 
                 return `
-                    <li class="portal-plan-card__task" data-portal-treatment-task>
-                        <span class="portal-plan-card__task-dot" aria-hidden="true"></span>
-                        <span>${escapeHtml(label)}</span>
-                    </li>
+                    <span class="glass-pill" data-portal-treatment-task>${escapeHtml(label)}</span>
                 `;
             })
             .filter(Boolean)
@@ -788,7 +785,7 @@
         const tasksHtml = renderTreatmentTasks(safePlan.tasks);
 
         return `
-            <section class="portal-plan-card" data-portal-treatment-plan-card>
+            <section class="portal-plan-card lg-surface--dark portal-glass-card" data-portal-treatment-plan-card>
                 <div class="portal-plan-card__header">
                     <div class="portal-plan-card__info">
                         <span class="portal-inline-label">Plan activo</span>
@@ -829,8 +826,8 @@
                     tasksHtml
                         ? `
                             <div class="portal-plan-card__tasks">
-                                <span class="portal-inline-label">Tareas pendientes</span>
-                                <ul>${tasksHtml}</ul>
+                                <span class="portal-inline-label">Indicaciones y Tareas</span>
+                                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">${tasksHtml}</div>
                             </div>
                         `
                         : ''
@@ -841,7 +838,7 @@
 
     function renderTreatmentPlanEmpty() {
         return `
-            <section class="portal-plan-card portal-plan-card--empty" data-portal-treatment-plan-empty>
+            <section class="portal-plan-card portal-plan-card--empty lg-surface--dark portal-glass-card" data-portal-treatment-plan-empty>
                 <div class="portal-plan-card__info">
                     <span class="portal-inline-label">Plan en preparación</span>
                     <strong>Todavía no tenemos un plan activo visible</strong>
@@ -883,7 +880,7 @@
         }
 
         return `
-            <section class="portal-plan-card portal-billing-card" data-portal-billing-card>
+            <section class="portal-plan-card portal-billing-card lg-surface--dark portal-glass-card" data-portal-billing-card>
                 <div class="portal-plan-card__header">
                     <div class="portal-plan-card__info">
                         <span class="portal-inline-label">Resumen financiero</span>

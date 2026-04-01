@@ -564,13 +564,27 @@ final class ClinicalHistoryController
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
         }
 
-        $caseId = trim((string) ($_GET['caseId'] ?? ''));
+        $caseId = trim((string) ($_GET['case_id'] ?? $_GET['caseId'] ?? ''));
         if ($caseId === '') {
-            json_response(['ok' => false, 'error' => 'caseId es requerido'], 400);
+            json_response(['ok' => false, 'error' => 'case_id es requerido'], 400);
         }
 
         $store = read_store();
-        $photos = [];
+        $photosByDate = [];
+        $evolutionsByDate = [];
+
+        // Collect all evolution notes for this case, group by date
+        foreach (($store['clinical_history_events'] ?? []) as $event) {
+            $eCaseId = trim((string) ($event['caseId'] ?? ''));
+            if ($eCaseId === $caseId && ($event['type'] ?? '') === 'openclaw_evolution') {
+                $dateTs = strtotime($event['createdAt'] ?? $event['occurredAt'] ?? 'now');
+                $date = date('Y-m-d', $dateTs);
+                if (!isset($evolutionsByDate[$date])) {
+                    $evolutionsByDate[$date] = [];
+                }
+                $evolutionsByDate[$date][] = $event['message'] ?? '';
+            }
+        }
 
         foreach (($store['clinical_uploads'] ?? []) as $upload) {
             $uCaseId = trim((string) ($upload['patientCaseId'] ?? ''));
@@ -581,25 +595,38 @@ final class ClinicalHistoryController
                     ? '/api.php?resource=media-flow-private-asset&type=clinical_media&path=' . urlencode($privatePath)
                     : '';
                 
-                $photos[] = [
+                $capturedAt = $upload['createdAt'] ?? '';
+                $dateTs = strtotime($capturedAt);
+                if (!$dateTs) $dateTs = time();
+                $date = date('Y-m-d', $dateTs);
+
+                if (!isset($photosByDate[$date])) {
+                    $photosByDate[$date] = [
+                        'session_date' => $date,
+                        'evolution_note_excerpt' => implode("\n\n", $evolutionsByDate[$date] ?? []),
+                        'photos' => []
+                    ];
+                }
+
+                $photosByDate[$date]['photos'][] = [
                     'id' => (int) ($upload['id'] ?? 0),
                     'url' => $url,
-                    'thumbnailUrl' => $url,
+                    'type' => $upload['mime'] ?? 'image/jpeg',
                     'region' => $upload['bodyZone'] ?? '',
                     'notes' => $upload['notes'] ?? '',
-                    'capturedAt' => $upload['createdAt'] ?? '',
-                    'visitLabel' => $upload['visitLabel'] ?? 'Consulta',
+                    'capturedAt' => $capturedAt,
                 ];
             }
         }
 
-        usort($photos, static function($a, $b) {
-            return $a['capturedAt'] <=> $b['capturedAt'];
+        $result = array_values($photosByDate);
+        usort($result, static function($a, $b) {
+            return strcmp($a['session_date'], $b['session_date']);
         });
 
         json_response([
             'ok' => true,
-            'photos' => array_values($photos)
+            'data' => $result
         ]);
     }
 
@@ -1250,6 +1277,79 @@ final class ClinicalHistoryController
         json_response([
             'ok' => true,
             'pdf_url' => $lockResult['result']['pdfUrl'] ?? ''
+        ]);
+    }
+
+    /**
+     * S30-18: Registro RAMs (Farmacovigilancia)
+     * POST adverse-reaction-report
+     */
+    public static function reportAdverseReaction(array $context): void
+    {
+        $payload = require_json_body();
+        $caseId = trim((string) ($payload['case_id'] ?? ''));
+        $medication = trim((string) ($payload['medication'] ?? ''));
+        $reaction = trim((string) ($payload['reaction'] ?? ''));
+        $severity = trim((string) ($payload['severity'] ?? 'mild'));
+
+        if ($caseId === '' || $medication === '' || $reaction === '') {
+            json_response(['ok' => false, 'error' => 'case_id, medication y reaction son obligatorios'], 400);
+        }
+
+        $result = self::mutateStore(static function (array $store) use ($caseId, $medication, $reaction, $severity): array {
+            $event = [
+                'type' => 'adverse_drug_reaction',
+                'caseId' => $caseId,
+                'message' => "Reacción adversa reportada: {$reaction} tras uso de {$medication}",
+                'metadata' => [
+                    'medication' => $medication,
+                    'reaction' => $reaction,
+                    'severity' => $severity,
+                    'reportedBy' => $_SESSION['admin_email'] ?? 'system',
+                ],
+                'status' => 'closed',
+            ];
+
+            require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryRepository.php';
+            $upsertEvent = ClinicalHistoryRepository::upsertEvent($store, $event);
+            return [
+                'ok' => true,
+                'store' => $upsertEvent['store'],
+                'storeDirty' => true,
+                'event' => $upsertEvent['event']
+            ];
+        });
+
+        if (($result['ok'] ?? false) === false) {
+            json_response(['ok' => false, 'error' => 'Error al guardar reacción'], 500);
+        }
+
+        // Add to RAMs registry JSONL for governance
+        $ramsFile = __DIR__ . '/../data/adverse-reactions.jsonl';
+        $reportData = json_encode([
+            'caseId' => $caseId,
+            'medication' => $medication,
+            'reaction' => $reaction,
+            'severity' => $severity,
+            'reportedAt' => gmdate('c'),
+            'eventId' => $result['event']['id'] ?? ''
+        ]);
+        file_put_contents($ramsFile, $reportData . "\n", FILE_APPEND);
+
+        if ($severity === 'severe' || $severity === 'critical') {
+            $cmd = sprintf(
+                'php %s/../bin/notify-lab-critical.php --case_id=%s --test=%s --value=%s > /dev/null 2>&1 &',
+                escapeshellarg(__DIR__),
+                escapeshellarg($caseId),
+                escapeshellarg('Reacción: ' . $medication),
+                escapeshellarg($reaction . ' (' . $severity . ')')
+            );
+            @exec($cmd);
+        }
+
+        json_response([
+            'ok' => true,
+            'event' => $result['event'] ?? []
         ]);
     }
 }

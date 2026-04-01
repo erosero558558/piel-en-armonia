@@ -33,6 +33,7 @@ final class ClinicalHistoryPrescriptionRepository
                 'route' => self::trimString($item['route'] ?? ''),
                 'frequency' => self::trimString($item['frequency'] ?? ''),
                 'duration' => self::trimString($item['duration'] ?? ''),
+                'durationDays' => (int) ($item['durationDays'] ?? $item['duration_days'] ?? 0),
                 'quantity' => self::trimString($item['quantity'] ?? ''),
                 'instructions' => self::trimString($item['instructions'] ?? ''),
             ];

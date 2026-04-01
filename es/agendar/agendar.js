@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function setMinDate() {
+  function setMinDate(daysToGenerate = 14) {
     const today = new Date();
     // if past 18:00, tomorrow is minimum
     if (today.getHours() >= 18) {
@@ -120,10 +120,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const isoDate = today.toISOString().split('T')[0];
     dateInput.min = isoDate;
+    
     // Set a reasonable max date to 45 days
-    const max = new Date();
+    const max = new Date(today);
     max.setDate(max.getDate() + 45);
     dateInput.max = max.toISOString().split('T')[0];
+
+    const inlineCalendar = document.getElementById('inline-calendar');
+    if (!inlineCalendar) return;
+
+    inlineCalendar.innerHTML = '';
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    let currentDate = new Date(today);
+    for (let i = 0; i < daysToGenerate; i++) {
+        const iso = currentDate.toISOString().split('T')[0];
+        const dayOfWeek = currentDate.getDay();
+        const dateNum = currentDate.getDate();
+
+        const pill = document.createElement('div');
+        pill.className = 'calendar-day-pill';
+        pill.dataset.date = iso;
+
+        // Visual distinction for sundays, disable them as the clinic is closed
+        if (dayOfWeek === 0) {
+            pill.classList.add('is-disabled');
+        }
+
+        pill.innerHTML = `
+            <span class="calendar-day-name">${dayNames[dayOfWeek]}</span>
+            <span class="calendar-day-number">${dateNum}</span>
+        `;
+
+        if (dayOfWeek !== 0) {
+            pill.addEventListener('click', () => {
+                inlineCalendar.querySelectorAll('.calendar-day-pill').forEach(p => p.classList.remove('is-selected'));
+                pill.classList.add('is-selected');
+                dateInput.value = iso;
+                handleDateSelection({ target: dateInput });
+            });
+        }
+
+        inlineCalendar.appendChild(pill);
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
   }
 
   function setLoadingState(config) {
@@ -189,6 +229,46 @@ document.addEventListener('DOMContentLoaded', () => {
       if (newStep === 'datetime' && dateInput.value) {
         handleDateSelection({ target: dateInput });
       }
+
+      if (newStep === 'details') {
+        populateConfirmation();
+      }
+    }
+  }
+
+  function populateConfirmation() {
+    const srv = servicesCatalog.find(s => s.id === state.service);
+    const srvTitle = srv ? srv.title : state.service;
+    const srvPriceStr = srv ? String(srv.price || '$0') : '$0';
+    
+    const numericStr = srvPriceStr.replace(/[^0-9.]/g, '');
+    let price = parseFloat(numericStr) || 0;
+    if (Number.isNaN(price)) price = 0;
+    
+    let docTitle = 'Cualquier Especialista';
+    if (state.doctor === 'rosero') docTitle = 'Dra. Eunice Rosero';
+    if (state.doctor === 'narvaez') docTitle = 'Dr. Víctor Narváez';
+
+    const confSrvElem = document.getElementById('conf-service');
+    if (confSrvElem) confSrvElem.textContent = srvTitle;
+    
+    const confDocElem = document.getElementById('conf-doctor');
+    if (confDocElem) confDocElem.textContent = docTitle;
+    
+    const confDateElem = document.getElementById('conf-datetime');
+    if (confDateElem) confDateElem.textContent = `${state.date} a las ${state.time} hrs`;
+
+    if (price === 0) {
+      document.getElementById('conf-subtotal').textContent = 'Consultar';
+      document.getElementById('conf-iva').textContent = 'Consultar';
+      document.getElementById('conf-total').textContent = 'Consultar';
+    } else {
+      const iva = price * 0.15;
+      const total = price + iva;
+
+      document.getElementById('conf-subtotal').textContent = `$${price.toFixed(2)}`;
+      document.getElementById('conf-iva').textContent = `$${iva.toFixed(2)}`;
+      document.getElementById('conf-total').textContent = `$${total.toFixed(2)}`;
     }
   }
 
@@ -213,7 +293,20 @@ document.addEventListener('DOMContentLoaded', () => {
       'waitlist': ['prog-service', 'prog-doctor', 'prog-datetime', 'prog-details']
     };
 
+    const widthMap = {
+      'service': '0%',
+      'doctor': '33.33%',
+      'datetime': '66.66%',
+      'details': '100%',
+      'telemedicinaIntake': '100%',
+      'waitlist': '100%'
+    };
+
     const activeIds = map[currentStep] || [];
+    const pLine = document.getElementById('progress-line');
+    if (pLine && widthMap[currentStep] !== undefined) {
+      pLine.style.width = widthMap[currentStep];
+    }
     
     ['prog-service', 'prog-doctor', 'prog-datetime', 'prog-details', 'prog-success'].forEach(id => {
       const el = document.getElementById(id);
@@ -262,15 +355,18 @@ document.addEventListener('DOMContentLoaded', () => {
       
       label.innerHTML = `
         <input type="radio" name="service" value="${srv.id}">
-        <div class="service-card-header">
-           <div class="service-icon">${iconHTML}</div>
-           ${pop}
-        </div>
-        <div class="service-title" style="color:#fff">${srv.title}</div>
-        <div class="service-desc" style="color:var(--pub-text-muted)">${srv.desc}</div>
-        <div class="service-meta" style="border-top: 1px solid rgba(255,255,255,0.1)">
-           <span class="service-duration" style="color:var(--pub-text-muted)">⏱️ ${srv.duration || '30 min'}</span>
-           <span class="service-price" style="color:#fff;font-weight:600">💵 ${srv.price || 'Consultar'}</span>
+        <div class="card-content service-card-liquid">
+           <div class="service-card-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="service-icon" style="color:var(--accent); width:32px; height:32px;">${iconHTML}</div>
+              ${pop}
+           </div>
+           <div class="service-title" style="color:#fff; font-family:var(--font-display); font-size:22px; margin-top:16px;">${srv.title}</div>
+           <div class="service-desc" style="color:var(--text-muted); font-size:14px; margin-top:8px; line-height:1.4;">${srv.desc}</div>
+           <div class="service-meta" style="margin-top:20px; display:flex; gap:12px; align-items:center;">
+              <span class="service-duration rb-chip" style="font-size:12px;">⏱️ ${srv.duration || '30 min'}</span>
+              <span class="service-price" style="color:var(--accent); font-weight:600; font-size:16px;">💵 ${srv.price || 'Consultar'}</span>
+           </div>
+           <div class="service-liquid-check"></div>
         </div>
       `;
       serviceGrid.appendChild(label);

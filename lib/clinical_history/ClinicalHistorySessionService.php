@@ -422,6 +422,43 @@ public function  episodeAction(array $store, array $payload): array
             return $this->mutateClinicalRecord($store, $payload, 'certificate');
         }
 
+        if ($action === 'complete_procedure') {
+            [$session, $draft] = $this->findContext($store, $payload);
+            $procedure = ClinicalHistoryRepository::trimString($payload['procedure'] ?? '');
+            
+            if ($procedure !== '' && $draft !== null) {
+                $consents = $draft['procedure_consents'] ?? [];
+                $hasConsent = false;
+                foreach ($consents as $consent) {
+                    if (strcasecmp($consent['procedure_name'] ?? '', $procedure) === 0 && ($consent['patient_confirmed'] ?? false) === true) {
+                        $hasConsent = true;
+                        break;
+                    }
+                }
+                
+                $reqProcs = ['electrocoagulación', 'electrocoagulacion', 'crioterapia', 'aplicación de toxina botulínica', 'peelings profundos', 'botox', 'toxina botulinica'];
+                $procLower = strtolower($procedure);
+                $requiresConsent = false;
+                foreach ($reqProcs as $rp) {
+                    if (str_contains($procLower, $rp)) {
+                        $requiresConsent = true;
+                        break;
+                    }
+                }
+
+                if ($requiresConsent && !$hasConsent) {
+                    return [
+                        'ok' => false,
+                        'consent_required' => true,
+                        'procedure' => $procedure,
+                        'error' => 'Consentimiento requerido para este procedimiento',
+                        'statusCode' => 403
+                    ];
+                }
+            }
+            return $this->mutateClinicalRecord($store, $payload, 'complete-procedure');
+        }
+
         if ($action === 'request_missing_data') {
             return $this->mutateClinicalRecord($store, $payload, 'follow-up');
         }
@@ -545,6 +582,8 @@ public function  getPatientHistory(array $store, string $patientId): array
                          'status' => 'active',
                          'medications' => array_map(function ($i) { return $i['medication'] ?? ''; }, $event['metadata']['items'] ?? []),
                      ];
+                } elseif ($event['type'] === 'adverse_drug_reaction') {
+                     $allergies[] = 'RAM: ' . ($event['message'] ?? 'Reacción adversa detectada');
                 }
             }
         }
@@ -563,6 +602,9 @@ public function  getPatientHistory(array $store, string $patientId): array
         usort($episodes, static function ($a, $b) {
             return strcmp($b['date'] ?? '', $a['date'] ?? '');
         });
+
+        // Deduplicate allergies/RAMs
+        $allergies = array_values(array_unique($allergies));
 
         return [
             'episodes' => $episodes,
@@ -1185,6 +1227,37 @@ public function  mutateClinicalRecord(array $store, array $payload, string $mode
             ['draft' => $draft]
         );
         $draft = $this->applyDraftPatches($draft, $payload);
+        
+        $procedures = $draft['clinicianDraft']['hcu005']['proceduresPerformed'] ?? [];
+        if (is_array($procedures) && count($procedures) > 0) {
+            $hasProcedure = false;
+            foreach ($procedures as $p) {
+                if (trim((string)($p['procedure'] ?? $p['description'] ?? '')) !== '') {
+                    $hasProcedure = true;
+                    break;
+                }
+            }
+            if ($hasProcedure) {
+                $hasSignedConsent = false;
+                $consents = $draft['documents']['consentForms'] ?? $draft['documents']['procedure_consents'] ?? [];
+                if (is_array($consents)) {
+                    foreach ($consents as $consent) {
+                        if (($consent['status'] ?? '') === 'signed' || ($consent['status'] ?? '') === 'completed') {
+                            $hasSignedConsent = true;
+                            break;
+                        }
+                    }
+                }
+                if (!$hasSignedConsent) {
+                    return [
+                        'ok' => false,
+                        'statusCode' => 403,
+                        'error' => 'No se puede registrar procedimiento sin un consentimiento informado firmado.',
+                        'errorCode' => 'procedure_consent_required'
+                    ];
+                }
+            }
+        }
         $modeAuditReason = '';
         $modeAuditAction = $this->accessAuditActionForMode($mode);
         $modeAuditMeta = [];
@@ -1478,6 +1551,16 @@ public function  mutateClinicalRecord(array $store, array $payload, string $mode
                 'approvedBy' => (string) ($draft['approval']['approvedBy'] ?? ''),
                 'finalDraftVersion' => (int) ($draft['approval']['finalDraftVersion'] ?? 0),
             ]);
+
+            if (!class_exists('FunnelMetricsService', false) && file_exists(__DIR__ . '/../analytics/FunnelMetricsService.php')) {
+                require_once __DIR__ . '/../analytics/FunnelMetricsService.php';
+            }
+            if (class_exists('FunnelMetricsService', false)) {
+                \FunnelMetricsService::recordEvent('consultation_closed', [
+                    'doctor' => (string) ($session['doctorId'] ?? 'System'),
+                    'caseId' => (string) ($session['caseId'] ?? '')
+                ]);
+            }
         } else {
             $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'receive-interconsult-report', 'create-lab-order', 'issue-lab-order', 'cancel-lab-order', 'create-imaging-order', 'issue-imaging-order', 'cancel-imaging-order', 'receive-imaging-report', 'prescription', 'certificate', 'schedule-follow-up', 'deliver-care-plan'], true)
                 && ((bool) ($draft['requiresHumanReview'] ?? true) === false);
