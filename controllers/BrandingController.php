@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/TurneroClinicProfile.php';
 
 final class BrandingController
 {
-    private static function meta(array $context): void
+    public static function meta(array $context): void
     {
         $profile = read_turnero_clinic_profile();
         $branding = $profile['branding'] ?? [];
@@ -21,7 +21,7 @@ final class BrandingController
             ],
         ]);
     }
-    private static function manifest(array $context): void
+    public static function manifest(array $context): void
     {
         $profile = read_turnero_clinic_profile();
         $branding = $profile['branding'] ?? [];
@@ -51,7 +51,7 @@ final class BrandingController
         exit;
     }
 
-    private static function css(array $context): void
+    public static function css(array $context): void
     {
         $profile = read_turnero_clinic_profile();
         $theme = $profile['branding']['theme'] ?? [];
@@ -104,7 +104,7 @@ final class BrandingController
         exit;
     }
 
-    private static function hexToHsl(string $hex): array
+    public static function hexToHsl(string $hex): array
     {
         $hex = ltrim($hex, '#');
         if (strlen($hex) === 3) {
@@ -145,7 +145,7 @@ final class BrandingController
         ];
     }
 
-    private static function formatHsl(int $h, int $s, int $l): string
+    public static function formatHsl(int $h, int $s, int $l): string
     {
         return "hsl({$h}, {$s}%, {$l}%)";
     }

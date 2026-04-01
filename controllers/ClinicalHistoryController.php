@@ -10,7 +10,7 @@ require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 
 final class ClinicalHistoryController
 {
-    private static function sessionGet(array $context): void
+    public static function sessionGet(array $context): void
     {
         self::requireClinicalStorageReady([
             'session' => null,
@@ -47,7 +47,7 @@ final class ClinicalHistoryController
         ], (int) ($result['statusCode'] ?? 200));
     }
 
-    private static function sessionPost(array $context): void
+    public static function sessionPost(array $context): void
     {
         self::requireClinicalStorageReady([
             'session' => null,
@@ -430,7 +430,7 @@ final class ClinicalHistoryController
         ], 201);
     }
 
-    private static function messagePost(array $context): void
+    public static function messagePost(array $context): void
     {
         self::requireClinicalStorageReady([
             'session' => null,
@@ -451,7 +451,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    private static function reviewGet(array $context): void
+    public static function reviewGet(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -492,7 +492,7 @@ final class ClinicalHistoryController
         ]);
     }
 
-    private static function reviewPatch(array $context): void
+    public static function reviewPatch(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -519,7 +519,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    private static function recordGet(array $context): void
+    public static function recordGet(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -560,7 +560,7 @@ final class ClinicalHistoryController
         ]);
     }
 
-    private static function recordPatch(array $context): void
+    public static function recordPatch(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -587,7 +587,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    private static function episodeActionPost(array $context): void
+    public static function episodeActionPost(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -614,7 +614,7 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
-    private static function getCarePlanPdf(array $context): void
+    public static function getCarePlanPdf(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -802,7 +802,7 @@ final class ClinicalHistoryController
         exit;
     }
 
-    private static function uploadMedia(array $context): void
+    public static function uploadMedia(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -938,7 +938,7 @@ final class ClinicalHistoryController
         ], 201);
     }
 
-    private static function getClinicalPhotos(array $context): void
+    public static function getClinicalPhotos(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1010,7 +1010,7 @@ final class ClinicalHistoryController
         ]);
     }
 
-    private static function uploadClinicalPhoto(array $context): void
+    public static function uploadClinicalPhoto(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1159,7 +1159,7 @@ final class ClinicalHistoryController
      * POST clinical-vitals
      * Payload: { session_id, case_id, vital_signs: {...} }
      */
-    private static function saveVitals(array $context): void
+    public static function saveVitals(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1233,7 +1233,7 @@ final class ClinicalHistoryController
      * S30-03: Historial cronológico de signos vitales del paciente
      * GET patient-vitals-history?case_id=X
      */
-    private static function vitalsHistory(array $context): void
+    public static function vitalsHistory(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1287,7 +1287,7 @@ final class ClinicalHistoryController
      * POST receive-lab-result
      * Payload: { session_id, lab_order_id, result_date, lab_name, values: [{test_name, value, unit, reference_range, status}], summary }
      */
-    private static function receiveLabResult(array $context): void
+    public static function receiveLabResult(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1469,7 +1469,7 @@ final class ClinicalHistoryController
      * POST receive-imaging-result
      * Payload: { session_id, imaging_order_id, result_date, radiologist_name, modality, report_text, impression }
      */
-    private static function receiveImagingResult(array $context): void
+    public static function receiveImagingResult(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1571,7 +1571,7 @@ final class ClinicalHistoryController
      * POST receive-interconsult-report
      * Payload: { session_id, interconsult_id, specialist_name, specialist_specialty, report_date, findings, recommendations }
      */
-    private static function receiveInterconsultReport(array $context): void
+    public static function receiveInterconsultReport(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1591,7 +1591,7 @@ final class ClinicalHistoryController
     /**
      * @param array<string,mixed> $data
      */
-    private static function requireClinicalStorageReady(array $data): void
+    public static function requireClinicalStorageReady(array $data): void
     {
         $readiness = function_exists('internal_console_readiness_snapshot')
             ? internal_console_readiness_snapshot()
@@ -1626,7 +1626,7 @@ final class ClinicalHistoryController
      * POST clinical-lab-pdf-upload
      * Payload (multipart/form-data): session_id, lab_order_id, pdf
      */
-    private static function uploadClinicalLabPdf(array $context): void
+    public static function uploadClinicalLabPdf(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -1747,7 +1747,7 @@ final class ClinicalHistoryController
      * S30-18: Registro RAMs (Farmacovigilancia)
      * POST adverse-reaction-report
      */
-    private static function reportAdverseReaction(array $context): void
+    public static function reportAdverseReaction(array $context): void
     {
         $payload = require_json_body();
         $caseId = trim((string) ($payload['case_id'] ?? ''));
@@ -1977,7 +1977,7 @@ final class ClinicalHistoryController
     }
 
     // ── S37-11: GET hce-audit-log ─────────────────────────────────────────────
-    private static function getAuditLog(array $context): void
+    public static function getAuditLog(array $context): void
     {
         require_doctor_auth();
         $caseId = trim((string) ($context['query']['caseId'] ?? $context['query']['case_id'] ?? ''));
@@ -2018,7 +2018,7 @@ final class ClinicalHistoryController
     }
 
     // ── S37-06: POST admin-lab-result-share ───────────────────────────────────
-    private static function adminLabShare(array $context): void
+    public static function adminLabShare(array $context): void
     {
         require_doctor_auth();
         $payload    = require_json_body();

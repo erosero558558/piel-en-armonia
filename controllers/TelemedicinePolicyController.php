@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/telemedicine/TelemedicineOpsSnapshot.php';
 
 final class TelemedicinePolicyController
 {
-    private static function diagnostics(array $context): void
+    public static function diagnostics(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -35,7 +35,7 @@ final class TelemedicinePolicyController
         ]);
     }
 
-    private static function readiness(array $context): void
+    public static function readiness(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -57,7 +57,7 @@ final class TelemedicinePolicyController
         ]);
     }
 
-    private static function simulate(array $context): void
+    public static function simulate(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);

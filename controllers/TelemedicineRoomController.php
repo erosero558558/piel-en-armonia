@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/telemedicine/TelemedicineRepository.php';
 
 final class TelemedicineRoomController
 {
-    private static function token(array $context): void
+    public static function token(array $context): void
     {
         $access = self::resolveAccess($context);
         $appointment = $access['appointment'];
@@ -32,7 +32,7 @@ final class TelemedicineRoomController
         ]);
     }
 
-    private static function recordingConsent(array $context): void
+    public static function recordingConsent(array $context): void
     {
         $access = self::resolveAccess($context, true);
         $action = strtolower(trim((string) ($_POST['action'] ?? '')));
@@ -104,7 +104,7 @@ final class TelemedicineRoomController
         ]);
     }
 
-    private static function uploadRecording(array $context): void
+    public static function uploadRecording(array $context): void
     {
         $access = self::resolveAccess($context, true);
         if (($access['role'] ?? '') !== 'moderator') {
@@ -256,7 +256,7 @@ final class TelemedicineRoomController
         json_response(['ok' => false, 'error' => 'No se pudo guardar la grabacion en disco'], 500);
     }
 
-    private static function findAppointmentById(array $store, int $id): ?array
+    public static function findAppointmentById(array $store, int $id): ?array
     {
         foreach (($store['appointments'] ?? []) as $appt) {
             if (is_array($appt) && (int) ($appt['id'] ?? 0) === $id) {
@@ -266,7 +266,7 @@ final class TelemedicineRoomController
         return null;
     }
 
-    private static function findAppointmentByRescheduleToken(array $store, string $token): ?array
+    public static function findAppointmentByRescheduleToken(array $store, string $token): ?array
     {
         $needle = trim($token);
         if ($needle === '') {
@@ -282,7 +282,7 @@ final class TelemedicineRoomController
         return null;
     }
 
-    private static function appointmentMatchesPatient(array $appointment, array $snapshot): bool
+    public static function appointmentMatchesPatient(array $appointment, array $snapshot): bool
     {
         $patientPhone = trim((string) ($snapshot['phone'] ?? ''));
         $appointmentPhone = trim((string) ($appointment['whatsapp'] ?? $appointment['phone'] ?? ''));
@@ -294,7 +294,7 @@ final class TelemedicineRoomController
         return false;
     }
 
-    private static function resolveAccess(array $context, bool $allowPostBody = false): array
+    public static function resolveAccess(array $context, bool $allowPostBody = false): array
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $appointmentId = (int) ($_GET['id'] ?? ($allowPostBody ? ($_POST['id'] ?? $_POST['appointmentId'] ?? 0) : 0));
@@ -365,7 +365,7 @@ final class TelemedicineRoomController
         ];
     }
 
-    private static function resolveModeratorLabel(array $appointment): string
+    public static function resolveModeratorLabel(array $appointment): string
     {
         $doctorAssigned = trim((string) ($appointment['doctorAssigned'] ?? ''));
         if ($doctorAssigned !== '') {
@@ -380,13 +380,13 @@ final class TelemedicineRoomController
         return 'Especialista Aurora Derm';
     }
 
-    private static function resolveParticipantLabel(array $appointment): string
+    public static function resolveParticipantLabel(array $appointment): string
     {
         $displayName = trim((string) ($appointment['name'] ?? 'Paciente'));
         return $displayName !== '' ? $displayName : 'Paciente';
     }
 
-    private static function normalizeRecordingConsent($value, array $appointment): array
+    public static function normalizeRecordingConsent($value, array $appointment): array
     {
         $existing = is_array($value) ? $value : [];
         $doctor = is_array($existing['doctorConsent'] ?? null) ? $existing['doctorConsent'] : [];
@@ -418,7 +418,7 @@ final class TelemedicineRoomController
         ];
     }
 
-    private static function mutateRecordingConsent(
+    public static function mutateRecordingConsent(
         array $consent,
         array $appointment,
         array $access,
@@ -536,14 +536,14 @@ final class TelemedicineRoomController
         ];
     }
 
-    private static function recordingConsentAllowsUpload(array $consent): bool
+    public static function recordingConsentAllowsUpload(array $consent): bool
     {
         return (string) ($consent['status'] ?? '') === 'granted'
             && (string) ($consent['doctorConsent']['status'] ?? '') === 'granted'
             && (string) ($consent['patientConsent']['status'] ?? '') === 'granted';
     }
 
-    private static function syncRecordingConsentToIntake(array $store, array $appointment, array $consent): array
+    public static function syncRecordingConsentToIntake(array $store, array $appointment, array $consent): array
     {
         $intake = TelemedicineRepository::findIntakeByAppointmentId($store, (int) ($appointment['id'] ?? 0));
         if (!is_array($intake)) {
@@ -555,7 +555,7 @@ final class TelemedicineRoomController
         return is_array($saved['store'] ?? null) ? $saved['store'] : $store;
     }
 
-    private static function appendCaseTimelineEvent(array $store, array $appointment, array $event): array
+    public static function appendCaseTimelineEvent(array $store, array $appointment, array $event): array
     {
         $caseId = trim((string) ($appointment['patientCaseId'] ?? ''));
         if ($caseId === '') {
@@ -597,7 +597,7 @@ final class TelemedicineRoomController
         return $store;
     }
 
-    private static function nextClinicalUploadId(array $store): int
+    public static function nextClinicalUploadId(array $store): int
     {
         $maxUploadId = 0;
         foreach (($store['clinical_uploads'] ?? []) as $upload) {

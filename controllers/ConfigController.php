@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/figo_utils.php';
 
 class ConfigController
 {
-    private static function getFigoConfig(array $context): void
+    public static function getFigoConfig(array $context): void
     {
         $configMeta = api_read_figo_config_with_meta();
         $candidatePaths = api_figo_config_candidate_paths();
@@ -41,7 +41,7 @@ class ConfigController
         ]);
     }
 
-    private static function updateFigoConfig(array $context): void
+    public static function updateFigoConfig(array $context): void
     {
         require_rate_limit('figo-config', 6, 60);
 

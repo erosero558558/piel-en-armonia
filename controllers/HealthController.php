@@ -428,7 +428,7 @@ class HealthController
     /**
      * @return array{source:string,version:string,timezone:string,servicesCount:int,configured:bool}
      */
-    private static function collectServiceCatalogSnapshot(): array
+    public static function collectServiceCatalogSnapshot(): array
     {
         $catalog = load_service_catalog_payload();
         $services = (array) ($catalog['services'] ?? []);
@@ -443,7 +443,7 @@ class HealthController
         ];
     }
 
-    private static function resolveServiceCatalogPath(): string
+    public static function resolveServiceCatalogPath(): string
     {
         return service_catalog_path();
     }
@@ -467,7 +467,7 @@ class HealthController
      *   brokerEmailVerifiedRequired:bool
      * }
      */
-    private static function collectAuthSnapshot(): array
+    public static function collectAuthSnapshot(): array
     {
         $recommendedMode = function_exists('operator_auth_recommended_mode')
             ? (string) operator_auth_recommended_mode()
@@ -543,7 +543,7 @@ class HealthController
      * @param array<string,mixed> $detailedPayload
      * @return array<string,mixed>
      */
-    private static function publicPayload(array $detailedPayload): array
+    public static function publicPayload(array $detailedPayload): array
     {
         $payload = [
             'ok' => (bool) ($detailedPayload['ok'] ?? false),
@@ -575,7 +575,7 @@ class HealthController
         return $payload;
     }
 
-    private static function publicCalendarSummaryFields(array $detailedPayload): array
+    public static function publicCalendarSummaryFields(array $detailedPayload): array
     {
         $fields = [
             'calendarConfigured',
@@ -598,7 +598,7 @@ class HealthController
         return $payload;
     }
 
-    private static function publicSyncSummaryPayload($raw): ?array
+    public static function publicSyncSummaryPayload($raw): ?array
     {
         if (!is_array($raw)) {
             return null;
@@ -632,7 +632,7 @@ class HealthController
         ];
     }
 
-    private static function collectAiRouterSnapshot(): array
+    public static function collectAiRouterSnapshot(): array
     {
         $status = [
             'router_mode' => 'unknown',
@@ -687,7 +687,7 @@ class HealthController
         ];
     }
 
-    private static function publicAiRouterSummary(array $snapshot): array
+    public static function publicAiRouterSummary(array $snapshot): array
     {
         return [
             'ok' => (bool) ($snapshot['ok'] ?? false),
@@ -701,7 +701,7 @@ class HealthController
         ];
     }
 
-    private static function publicAiTierSummary($raw): array
+    public static function publicAiTierSummary($raw): array
     {
         if (!is_array($raw)) {
             return [
@@ -722,7 +722,7 @@ class HealthController
         return $payload;
     }
 
-    private static function collectDataFilesSnapshot(): array
+    public static function collectDataFilesSnapshot(): array
     {
         $cie10Path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cie10.json';
         $protocolsPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'protocols';
@@ -754,7 +754,7 @@ class HealthController
         ];
     }
 
-    private static function publicDataFilesSummary(array $snapshot): array
+    public static function publicDataFilesSummary(array $snapshot): array
     {
         return [
             'ok' => (bool) ($snapshot['ok'] ?? false),
@@ -764,7 +764,7 @@ class HealthController
         ];
     }
 
-    private static function publicFileCheckSummary($raw): array
+    public static function publicFileCheckSummary($raw): array
     {
         if (!is_array($raw)) {
             return [
@@ -784,7 +784,7 @@ class HealthController
         return $payload;
     }
 
-    private static function collectDoctorProfileSnapshot(): array
+    public static function collectDoctorProfileSnapshot(): array
     {
         $path = doctor_profile_config_path();
         $profile = read_doctor_profile();
@@ -802,7 +802,7 @@ class HealthController
         ];
     }
 
-    private static function collectClinicProfileSnapshot(): array
+    public static function collectClinicProfileSnapshot(): array
     {
         $path = clinic_profile_config_path();
         $profile = read_clinic_profile();
@@ -819,7 +819,7 @@ class HealthController
         ];
     }
 
-    private static function publicProfileSummary(array $snapshot): array
+    public static function publicProfileSummary(array $snapshot): array
     {
         $payload = [
             'ok' => (bool) ($snapshot['ok'] ?? false),
@@ -843,7 +843,7 @@ class HealthController
         return $payload;
     }
 
-    private static function findAiProviderSnapshot(array $providers, callable $matcher): array
+    public static function findAiProviderSnapshot(array $providers, callable $matcher): array
     {
         foreach ($providers as $provider) {
             if (is_array($provider) && $matcher($provider)) {
@@ -854,7 +854,7 @@ class HealthController
         return [];
     }
 
-    private static function anyAiProviderActive(array $providers): bool
+    public static function anyAiProviderActive(array $providers): bool
     {
         foreach ($providers as $provider) {
             if ((bool) ($provider['active'] ?? false)) {
@@ -865,7 +865,7 @@ class HealthController
         return false;
     }
 
-    private static function maxAiProviderCooldown(array $providers): int
+    public static function maxAiProviderCooldown(array $providers): int
     {
         $max = 0;
         foreach ($providers as $provider) {
@@ -875,12 +875,12 @@ class HealthController
         return $max;
     }
 
-    private static function isAiCodexConfigured(): bool
+    public static function isAiCodexConfigured(): bool
     {
         return api_figo_env_gateway_endpoint() !== '' || trim((string) (getenv('OPENCLAW_CODEX_ENDPOINT') ?: '')) !== '';
     }
 
-    private static function isAiOpenRouterConfigured(): bool
+    public static function isAiOpenRouterConfigured(): bool
     {
         return api_first_non_empty([
             getenv('OPENCLAW_OPENROUTER_KEY'),
@@ -888,7 +888,7 @@ class HealthController
         ]) !== '';
     }
 
-    private static function countDirectoryEntries(string $path): int
+    public static function countDirectoryEntries(string $path): int
     {
         if (!is_dir($path)) {
             return 0;
@@ -910,7 +910,7 @@ class HealthController
         return $count;
     }
 
-    private static function isValidJsonConfigFile(string $path): bool
+    public static function isValidJsonConfigFile(string $path): bool
     {
         if (!is_file($path) || !is_readable($path)) {
             return false;
@@ -924,7 +924,7 @@ class HealthController
         return is_array(json_decode($raw, true));
     }
 
-    private static function resolveCalendarReachable(
+    public static function resolveCalendarReachable(
         bool $calendarActive,
         bool $calendarRequired,
         bool $calendarConfigured,
@@ -949,7 +949,7 @@ class HealthController
         return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
     }
 
-    private static function resolveCalendarMode(
+    public static function resolveCalendarMode(
         bool $calendarActive,
         bool $calendarRequired,
         bool $blockOnFailure,
@@ -964,7 +964,7 @@ class HealthController
         return 'live';
     }
 
-    private static function resolveCalendarTokenHealthy(
+    public static function resolveCalendarTokenHealthy(
         bool $calendarActive,
         bool $calendarRequired,
         bool $calendarConfigured,
@@ -1000,7 +1000,7 @@ class HealthController
         return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
     }
 
-    private static function timestampGreater(string $leftIso, string $rightIso): bool
+    public static function timestampGreater(string $leftIso, string $rightIso): bool
     {
         $left = strtotime($leftIso);
         $right = strtotime($rightIso);
@@ -1010,7 +1010,7 @@ class HealthController
         return $left > $right;
     }
 
-    private static function resolve_figo_endpoint(): string
+    public static function resolve_figo_endpoint(): string
     {
         $envCandidates = [
             getenv('FIGO_CHAT_ENDPOINT'),
@@ -1074,7 +1074,7 @@ class HealthController
      *
      * @return array<string,int|float|bool>
      */
-    private static function collectIdempotencySnapshot(): array
+    public static function collectIdempotencySnapshot(): array
     {
         $default = [
             'available' => false,
@@ -1150,7 +1150,7 @@ class HealthController
         ];
     }
 
-    private static function is_figo_recursive_config(string $endpoint): bool
+    public static function is_figo_recursive_config(string $endpoint): bool
     {
         $endpoint = trim($endpoint);
         if ($endpoint === '') {

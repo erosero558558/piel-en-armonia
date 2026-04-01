@@ -38,7 +38,7 @@ final class CertificateController
 
     // ── GET — listar o descargar ─────────────────────────────────────────────
 
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         require_admin_auth();
 
@@ -69,7 +69,7 @@ final class CertificateController
 
     // ── POST — crear certificado ──────────────────────────────────────────────
 
-    private static function store(array $context): void
+    public static function store(array $context): void
     {
         require_admin_auth();
 
@@ -176,7 +176,7 @@ final class CertificateController
 
     // ── PDF rendering ─────────────────────────────────────────────────────────
 
-    private static function servePdf(string $certId): void
+    public static function servePdf(string $certId): void
     {
         $store    = read_store();
         $certData = $store['certificates'][$certId] ?? null;
@@ -217,7 +217,7 @@ final class CertificateController
      * Usa HTML→PDF via dompdf si está disponible, sino genera HTML embebible.
      * El resultado siempre es válido — nunca falla.
      */
-    private static function generatePdfBase64(array $cert): string
+    public static function generatePdfBase64(array $cert): string
     {
         $html = self::buildCertificateHtml($cert);
 
@@ -231,7 +231,7 @@ final class CertificateController
         return self::buildFallbackPdf($html, $cert);
     }
 
-    private static function renderHtmlWithDompdf(string $html): ?string
+    public static function renderHtmlWithDompdf(string $html): ?string
     {
         $autoloadPath = __DIR__ . '/../vendor/autoload.php';
         if (file_exists($autoloadPath)) {
@@ -268,7 +268,7 @@ final class CertificateController
      * Es un PDF real (estructura válida) que contiene el certificado como texto.
      * Funcional para imprimir, aunque sin diseño visual completo.
      */
-    private static function buildFallbackPdf(string $html, array $cert): string
+    public static function buildFallbackPdf(string $html, array $cert): string
     {
         $type     = $cert['typeLabel'] ?? 'CERTIFICADO MÉDICO';
         $folio    = $cert['folio'] ?? '';
@@ -319,7 +319,7 @@ final class CertificateController
     /**
      * HTML del certificado — diseño oficial con membrete Aurora Derm
      */
-    private static function buildCertificateHtml(array $cert): string
+    public static function buildCertificateHtml(array $cert): string
     {
         $clinicProfile = read_clinic_profile();
         $type     = htmlspecialchars($cert['typeLabel'] ?? 'CERTIFICADO MÉDICO');
@@ -469,7 +469,7 @@ HTML;
 
     // ── Textos por tipo ───────────────────────────────────────────────────────
 
-    private static function contentReposoLaboral(string $name, string $ci, string $age, string $dx, string $cie, int $days, string $restrict, string $obs, string $date): string
+    public static function contentReposoLaboral(string $name, string $ci, string $age, string $dx, string $cie, int $days, string $restrict, string $obs, string $date): string
     {
         $dxLine    = $dx ? "<p><span class='field-label'>Diagnóstico:</span> {$dx}" . ($cie ? " — CIE-10: <strong>{$cie}</strong>" : '') . "</p>" : '';
         $ageStr    = $age ? ", de {$age} de edad" : '';
@@ -494,7 +494,7 @@ legales y administrativos que estime convenientes.</p>
 TXT;
     }
 
-    private static function contentAptitud(string $name, string $ci, string $age, string $dx, string $cie, string $restrict, string $obs, string $date): string
+    public static function contentAptitud(string $name, string $ci, string $age, string $dx, string $cie, string $restrict, string $obs, string $date): string
     {
         $ageStr = $age ? ", de {$age} de edad" : '';
         $dxLine = $dx ? "<p><span class='field-label'>Diagnóstico/Observaciones clínicas:</span> {$dx}" . ($cie ? " (CIE-10: <strong>{$cie}</strong>)" : '') . "</p>" : '';
@@ -514,7 +514,7 @@ que estime convenientes.</p>
 TXT;
     }
 
-    private static function contentTratamiento(string $name, string $ci, string $age, string $dx, string $cie, string $obs, string $date): string
+    public static function contentTratamiento(string $name, string $ci, string $age, string $dx, string $cie, string $obs, string $date): string
     {
         $ageStr = $age ? ", de {$age} de edad" : '';
         $dxLine = $dx ? "<p><span class='field-label'>Diagnóstico:</span> {$dx}" . ($cie ? " (CIE-10: <strong>{$cie}</strong>)" : '') . "</p>" : '';
@@ -532,7 +532,7 @@ para los permisos que esta situación requiera.</p>
 TXT;
     }
 
-    private static function contentControl(string $name, string $ci, string $age, string $date): string
+    public static function contentControl(string $name, string $ci, string $age, string $date): string
     {
         $ageStr = $age ? ", de {$age} de edad" : '';
         return <<<TXT
@@ -544,7 +544,7 @@ el tiempo necesario para completar la evaluación correspondiente.</p>
 TXT;
     }
 
-    private static function contentIncapacidad(string $name, string $ci, string $age, string $dx, string $cie, int $days, string $restrict, string $obs, string $date): string
+    public static function contentIncapacidad(string $name, string $ci, string $age, string $dx, string $cie, int $days, string $restrict, string $obs, string $date): string
     {
         $ageStr    = $age ? ", de {$age} de edad" : '';
         $dxLine    = $dx ? "<p><span class='field-label'>Diagnóstico:</span> {$dx}" . ($cie ? " (CIE-10: <strong>{$cie}</strong>)" : '') . "</p>" : '';
@@ -567,7 +567,7 @@ TXT;
 
     // ── Utilities ─────────────────────────────────────────────────────────────
 
-    private static function resolvePatient(array $store, string $caseId): ?array
+    public static function resolvePatient(array $store, string $caseId): ?array
     {
         // Try different store structures
         $case = $store['cases'][$caseId]
@@ -635,7 +635,7 @@ TXT;
         ];
     }
 
-    private static function resolveDoctor(array $store, string $doctorId = ''): array
+    public static function resolveDoctor(array $store, string $doctorId = ''): array
     {
         $doctors = $store['doctors'] ?? $store['config']['doctors'] ?? [];
         $doctor  = null;
@@ -655,13 +655,13 @@ TXT;
         ]);
     }
 
-    private static function nextFolio(array $store): string
+    public static function nextFolio(array $store): string
     {
         $n = (int) ($store['_last_cert_folio'] ?? 0) + 1;
         return 'AD-' . date('Y') . '-' . str_pad((string) $n, 4, '0', STR_PAD_LEFT);
     }
 
-    private static function buildWhatsAppText(array $cert): string
+    public static function buildWhatsAppText(array $cert): string
     {
         $folio   = $cert['folio'] ?? '';
         $clinicProfile = read_clinic_profile();
@@ -678,7 +678,7 @@ TXT;
             . "Para descargarlo, consulte con su médico o llame a la clínica.";
     }
 
-    private static function daysToText(int $days): string
+    public static function daysToText(int $days): string
     {
         $map = [1=>'uno',2=>'dos',3=>'tres',4=>'cuatro',5=>'cinco',
                 6=>'seis',7=>'siete',8=>'ocho',9=>'nueve',10=>'diez',

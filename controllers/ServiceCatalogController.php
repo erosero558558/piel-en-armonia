@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/ServiceCatalog.php';
 
 class ServiceCatalogController
 {
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         $catalog = self::loadCatalog();
         $services = self::normalizeServices($catalog['services']);
@@ -81,7 +81,7 @@ class ServiceCatalogController
     /**
      * @return array{source:string,version:string,timezone:string,services:array<int,mixed>}
      */
-    private static function loadCatalog(): array
+    public static function loadCatalog(): array
     {
         $catalog = load_service_catalog_payload();
 
@@ -97,7 +97,7 @@ class ServiceCatalogController
      * @param array<int,mixed> $services
      * @return array<int,array<string,mixed>>
      */
-    private static function normalizeServices(array $services): array
+    public static function normalizeServices(array $services): array
     {
         $normalized = [];
         foreach ($services as $item) {
@@ -142,7 +142,7 @@ class ServiceCatalogController
     /**
      * @return array{slug:string,category:string,subcategory:string,audience:string,doctor:string,q:string,qRaw:string,limit:int,offset:int}
      */
-    private static function resolveFilters(): array
+    public static function resolveFilters(): array
     {
         $qRaw = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
         $q = $qRaw !== '' ? self::toLower($qRaw) : '';
@@ -173,7 +173,7 @@ class ServiceCatalogController
         ];
     }
 
-    private static function normalizeToken(mixed $value): string
+    public static function normalizeToken(mixed $value): string
     {
         if (!is_string($value)) {
             return '';
@@ -186,7 +186,7 @@ class ServiceCatalogController
      * @param mixed $values
      * @return array<int,string>
      */
-    private static function normalizeTokenList(mixed $values): array
+    public static function normalizeTokenList(mixed $values): array
     {
         if (!is_array($values)) {
             return [];
@@ -206,7 +206,7 @@ class ServiceCatalogController
      * @param mixed $values
      * @return array<int,string>
      */
-    private static function normalizeStringList(mixed $values): array
+    public static function normalizeStringList(mixed $values): array
     {
         if (!is_array($values)) {
             return [];
@@ -225,7 +225,7 @@ class ServiceCatalogController
         return $normalized;
     }
 
-    private static function toLower(string $value): string
+    public static function toLower(string $value): string
     {
         if (function_exists('mb_strtolower')) {
             return mb_strtolower($value, 'UTF-8');
@@ -233,7 +233,7 @@ class ServiceCatalogController
         return strtolower($value);
     }
 
-    private static function contains(string $haystack, string $needle): bool
+    public static function contains(string $haystack, string $needle): bool
     {
         if ($needle === '') {
             return true;

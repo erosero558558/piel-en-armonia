@@ -8,7 +8,7 @@ require_once __DIR__ . '/../lib/DataAccessAudit.php';
 
 class DataAccessAuditController
 {
-    private static function process(array $request): array
+    public static function process(array $request): array
     {
         if ($request['method'] !== 'GET') {
             return [

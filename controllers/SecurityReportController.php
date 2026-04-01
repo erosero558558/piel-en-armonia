@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/monitoring.php';
 
 class SecurityReportController
 {
-    private static function get(array $context): void
+    public static function get(array $context): void
     {
         // 1. Secrets Rotation (operator pin rotation as proxy for secrets if none exists, or filemtime)
         $meta = turnero_operator_access_meta();
@@ -46,7 +46,7 @@ class SecurityReportController
         ]);
     }
 
-    private static function getLatestAdminLogins(int $limit): array
+    public static function getLatestAdminLogins(int $limit): array
     {
         $logins = [];
         if (function_exists('audit_log_file_path')) {
@@ -75,7 +75,7 @@ class SecurityReportController
         return $logins;
     }
 
-    private static function getFileHash(string $path): ?string
+    public static function getFileHash(string $path): ?string
     {
         if (is_file($path) && is_readable($path)) {
             return hash_file('sha256', $path);

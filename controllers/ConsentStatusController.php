@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/stores/PatientConsentStore.php';
 
 final class ConsentStatusController
 {
-    private static function process(array $context): void
+    public static function process(array $context): void
     {
         $method = $context['method'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $request = $_REQUEST;
@@ -30,7 +30,7 @@ final class ConsentStatusController
         }
     }
 
-    private static function readStatus(string $patientId, string $consentType): void
+    public static function readStatus(string $patientId, string $consentType): void
     {
         try {
             $activeVersionData = ConsentVersioning::getActiveVersion($consentType);
@@ -56,7 +56,7 @@ final class ConsentStatusController
         ]);
     }
 
-    private static function signConsent(string $patientId, string $consentType, array $request): void
+    public static function signConsent(string $patientId, string $consentType, array $request): void
     {
         $targetVersion = trim($request['version'] ?? '');
         if ($targetVersion === '') {

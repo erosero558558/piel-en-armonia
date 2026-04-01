@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 class ReviewController
 {
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         // GET /reviews
         $store = $context['store'];
@@ -62,7 +62,7 @@ class ReviewController
         ]);
     }
 
-    private static function store(array $context): void
+    public static function store(array $context): void
     {
         // POST /reviews
         $store = $context['store'];

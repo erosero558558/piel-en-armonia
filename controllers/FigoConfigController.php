@@ -140,7 +140,7 @@ class FigoConfigController
     /**
      * Read figo config with metadata
      */
-    private static function readFigoConfigWithMeta(): array
+    public static function readFigoConfigWithMeta(): array
     {
         $paths = self::getConfigCandidatePaths();
         foreach ($paths as $path) {
@@ -171,7 +171,7 @@ class FigoConfigController
     /**
      * Get candidate paths for figo config
      */
-    private static function getConfigCandidatePaths(): array
+    public static function getConfigCandidatePaths(): array
     {
         $paths = [];
 
@@ -207,7 +207,7 @@ class FigoConfigController
     /**
      * Resolve default config path
      */
-    private static function resolveConfigPath(): string
+    public static function resolveConfigPath(): string
     {
         return data_dir_path() . DIRECTORY_SEPARATOR . 'figo-config.json';
     }
@@ -215,7 +215,7 @@ class FigoConfigController
     /**
      * Mask sensitive values in config for API response
      */
-    private static function maskConfig(array $config): array
+    public static function maskConfig(array $config): array
     {
         $masked = [];
         foreach ($config as $key => $value) {
@@ -241,7 +241,7 @@ class FigoConfigController
     /**
      * Mask a sensitive string
      */
-    private static function maskString(string $value): string
+    public static function maskString(string $value): string
     {
         $len = strlen($value);
         if ($len <= 8) {
@@ -253,7 +253,7 @@ class FigoConfigController
     /**
      * Merge existing config with updates
      */
-    private static function mergeConfig(array $current, array $updates): array
+    public static function mergeConfig(array $current, array $updates): array
     {
         $merged = $current;
 
@@ -290,7 +290,7 @@ class FigoConfigController
     /**
      * Check if endpoint points to current server (recursive)
      */
-    private static function isRecursiveEndpoint(string $endpoint): bool
+    public static function isRecursiveEndpoint(string $endpoint): bool
     {
         $endpoint = trim($endpoint);
         if ($endpoint === '') {
@@ -337,7 +337,7 @@ class FigoConfigController
     /**
      * Get error message for client (hide technical details)
      */
-    private static function errorMessageForClient(Throwable $error, int $status): string
+    public static function errorMessageForClient(Throwable $error, int $status): string
     {
         $debugEnabled = parse_bool(app_env('AURORADERM_DEBUG_EXCEPTIONS', false) ?: false);
         if ($debugEnabled) {

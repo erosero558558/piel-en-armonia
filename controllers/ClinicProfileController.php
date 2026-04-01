@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/audit.php';
 
 final class ClinicProfileController
 {
-    private static function show(array $context): void
+    public static function show(array $context): void
     {
         require_admin_auth();
 
@@ -17,7 +17,7 @@ final class ClinicProfileController
         ]);
     }
 
-    private static function update(array $context): void
+    public static function update(array $context): void
     {
         require_admin_auth();
         require_csrf();

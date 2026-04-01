@@ -9,7 +9,7 @@ class TvController
     /**
      * POST /api.php?resource=tv-heartbeat
      */
-    private static function heartbeat(array $context = []): void
+    public static function heartbeat(array $context = []): void
     {
         $payload = require_json_body();
         $deviceId = trim((string) ($payload['device_id'] ?? ''));
@@ -75,7 +75,7 @@ class TvController
     /**
      * GET /api.php?resource=tv-config
      */
-    private static function config(array $context = []): void
+    public static function config(array $context = []): void
     {
         // Esto permite gobernar dinamicamente el entorno del Turnero TV
         // Se pueden inyectar overrides leyendo una base de datos o env si se prefiere.

@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/common.php';
 
 final class StatsExportController
 {
-    private static function export(array $context): void
+    public static function export(array $context): void
     {
         self::requireAuth();
 
@@ -83,7 +83,7 @@ final class StatsExportController
         ]);
     }
 
-    private static function requireAuth(): void
+    public static function requireAuth(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();

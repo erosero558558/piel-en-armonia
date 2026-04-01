@@ -8,7 +8,7 @@ require_once __DIR__ . '/../lib/SessionTracker.php';
 
 class ActiveSessionsController
 {
-    private static function process(array $context): void
+    public static function process(array $context): void
     {
         $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
         if (!in_array($method, ['GET', 'DELETE'])) {

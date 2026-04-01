@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 final class TelemedicineAdminController
 {
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -49,7 +49,7 @@ final class TelemedicineAdminController
         ]);
     }
 
-    private static function patch(array $context): void
+    public static function patch(array $context): void
     {
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);

@@ -6,19 +6,19 @@ require_once __DIR__ . '/../lib/TurneroOperatorAccess.php';
 
 class OperatorPinController
 {
-    private static function status(array $context = []): void
+    public static function status(array $context = []): void
     {
         start_secure_session();
         json_response(turnero_operator_pin_status_payload());
     }
 
-    private static function sessionStatus(array $context = []): void
+    public static function sessionStatus(array $context = []): void
     {
         start_secure_session();
         json_response(turnero_operator_session_status_payload());
     }
 
-    private static function login(array $context = []): void
+    public static function login(array $context = []): void
     {
         start_secure_session();
         $payload = require_json_body();
@@ -39,13 +39,13 @@ class OperatorPinController
         }
     }
 
-    private static function logout(array $context = []): void
+    public static function logout(array $context = []): void
     {
         start_secure_session();
         json_response(turnero_operator_logout_payload());
     }
 
-    private static function rotate(array $context = []): void
+    public static function rotate(array $context = []): void
     {
         start_secure_session();
         if (($context['isAdmin'] ?? false) !== true) {

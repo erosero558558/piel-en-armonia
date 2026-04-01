@@ -14,7 +14,7 @@ require_once __DIR__ . '/../payment-lib.php';
 
 final class PatientPortalController
 {
-    private static function start(array $context): void
+    public static function start(array $context): void
     {
         $payload = require_json_body();
         $phone = trim((string) ($payload['phone'] ?? ($payload['whatsapp'] ?? '')));
@@ -27,7 +27,7 @@ final class PatientPortalController
         self::emit($result);
     }
 
-    private static function complete(array $context): void
+    public static function complete(array $context): void
     {
         $payload = require_json_body();
         $phone = trim((string) ($payload['phone'] ?? ($payload['whatsapp'] ?? '')));
@@ -44,7 +44,7 @@ final class PatientPortalController
         self::emit($result);
     }
 
-    private static function status(array $context): void
+    public static function status(array $context): void
     {
         $result = PatientPortalAuth::readStatus(
             is_array($context['store'] ?? null) ? $context['store'] : [],
@@ -54,7 +54,7 @@ final class PatientPortalController
         self::emit($result);
     }
 
-    private static function summary(array $context): void
+    public static function summary(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -109,7 +109,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function dashboard(array $context): void
+    public static function dashboard(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -153,7 +153,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function submitSurvey(array $context): void
+    public static function submitSurvey(array $context): void
     {
         $payload = require_json_body();
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
@@ -223,7 +223,7 @@ final class PatientPortalController
         }
     }
 
-    private static function history(array $context): void
+    public static function history(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -254,7 +254,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function historyPdf(array $context): void
+    public static function historyPdf(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -425,7 +425,7 @@ final class PatientPortalController
         exit;
     }
 
-    private static function payments(array $context): void
+    public static function payments(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -510,7 +510,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function plan(array $context): void
+    public static function plan(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -539,7 +539,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function photos(array $context): void
+    public static function photos(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -567,7 +567,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function prescription(array $context): void
+    public static function prescription(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -595,7 +595,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function consent(array $context): void
+    public static function consent(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -623,7 +623,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function signConsent(array $context): void
+    public static function signConsent(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -848,7 +848,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function document(array $context): void
+    public static function document(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $bearer = PatientPortalAuth::bearerTokenFromRequest();
@@ -951,7 +951,7 @@ final class PatientPortalController
         json_response(['ok' => false, 'error' => 'Tipo de documento no soportado'], 400);
     }
 
-    private static function photoFile(array $context): void
+    public static function photoFile(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -990,7 +990,7 @@ final class PatientPortalController
         );
     }
 
-    private static function documentVerify(array $context): void
+    public static function documentVerify(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $token = trim((string) ($_GET['token'] ?? ''));
@@ -1084,7 +1084,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function getPushPreferences(array $context): void
+    public static function getPushPreferences(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -1114,7 +1114,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function setPushPreferences(array $context): void
+    public static function setPushPreferences(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -1151,7 +1151,7 @@ final class PatientPortalController
     }
 
 
-    private static function findPendingSurvey(array $store, array $snapshot, array $patient): ?array
+    public static function findPendingSurvey(array $store, array $snapshot, array $patient): ?array
     {
         $patientId = trim((string) ($patient['documentNumber'] ?? ''));
         if ($patientId === '') {
@@ -1201,7 +1201,7 @@ final class PatientPortalController
         return null;
     }
 
-    private static function findNextAppointment(array $store, array $snapshot): array
+    public static function findNextAppointment(array $store, array $snapshot): array
     {
         $matches = [];
         $now = time();
@@ -1236,7 +1236,7 @@ final class PatientPortalController
         return is_array($matches[0]['appointment'] ?? null) ? $matches[0]['appointment'] : [];
     }
 
-    private static function buildPortalHistory(array $store, array $snapshot, array $patient): array
+    public static function buildPortalHistory(array $store, array $snapshot, array $patient): array
     {
         $caseIds = self::collectPatientCaseIds($store, $snapshot);
         $documentsByCase = self::buildDocumentsByCaseId($store, $caseIds);
@@ -1320,7 +1320,7 @@ final class PatientPortalController
         }, $consultations));
     }
 
-    private static function buildPatientRedFlags(array $store, array $snapshot): array
+    public static function buildPatientRedFlags(array $store, array $snapshot): array
     {
         $caseIds = self::collectPatientCaseIds($store, $snapshot);
         $caseMap = [];
@@ -1380,7 +1380,7 @@ final class PatientPortalController
         return $flags;
     }
 
-    private static function buildTreatmentPlanSummary(
+    public static function buildTreatmentPlanSummary(
         array $store,
         array $snapshot,
         array $patient,
@@ -1433,7 +1433,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildTreatmentPlanDetail(
+    public static function buildTreatmentPlanDetail(
         array $store,
         array $snapshot,
         array $patient,
@@ -1504,7 +1504,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function findLatestCarePlanDraft(array $store, array $caseIds): ?array
+    public static function findLatestCarePlanDraft(array $store, array $caseIds): ?array
     {
         $latestDraft = null;
         $latestTimestamp = 0;
@@ -1531,7 +1531,7 @@ final class PatientPortalController
         return is_array($latestDraft) ? $latestDraft : null;
     }
 
-    private static function carePlanHasContent(array $carePlan): bool
+    public static function carePlanHasContent(array $carePlan): bool
     {
         return trim((string) ($carePlan['diagnosis'] ?? '')) !== ''
             || trim((string) ($carePlan['treatments'] ?? '')) !== ''
@@ -1539,7 +1539,7 @@ final class PatientPortalController
             || trim((string) ($carePlan['goals'] ?? '')) !== '';
     }
 
-    private static function countTreatmentSessions(array $store, array $snapshot, int $planStartedAt): array
+    public static function countTreatmentSessions(array $store, array $snapshot, int $planStartedAt): array
     {
         $completed = 0;
         $future = 0;
@@ -1578,7 +1578,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildTreatmentPlanTimeline(
+    public static function buildTreatmentPlanTimeline(
         array $store,
         array $snapshot,
         array $patient,
@@ -1677,7 +1677,7 @@ final class PatientPortalController
         return $timeline;
     }
 
-    private static function resolvePlannedSessions(array $carePlan, array $sessionMetrics): int
+    public static function resolvePlannedSessions(array $carePlan, array $sessionMetrics): int
     {
         $parsed = self::parsePlannedSessions(
             trim((string) ($carePlan['treatments'] ?? '')) . "\n" . trim((string) ($carePlan['goals'] ?? ''))
@@ -1691,7 +1691,7 @@ final class PatientPortalController
         return $scheduled;
     }
 
-    private static function parsePlannedSessions(string $text): ?int
+    public static function parsePlannedSessions(string $text): ?int
     {
         if ($text === '') {
             return null;
@@ -1704,7 +1704,7 @@ final class PatientPortalController
         return null;
     }
 
-    private static function findLatestPrescriptionForCase(array $store, string $caseId): ?array
+    public static function findLatestPrescriptionForCase(array $store, string $caseId): ?array
     {
         $latestPrescription = null;
         $latestTimestamp = 0;
@@ -1725,7 +1725,7 @@ final class PatientPortalController
         return is_array($latestPrescription) ? $latestPrescription : null;
     }
 
-    private static function findLatestPrescriptionForCases(array $store, array $caseIds): ?array
+    public static function findLatestPrescriptionForCases(array $store, array $caseIds): ?array
     {
         $caseMap = [];
         foreach ($caseIds as $caseId) {
@@ -1759,7 +1759,7 @@ final class PatientPortalController
         return is_array($latestPrescription) ? $latestPrescription : null;
     }
 
-    private static function isIssuedPortalPrescription(array $prescription): bool
+    public static function isIssuedPortalPrescription(array $prescription): bool
     {
         $status = strtolower(trim((string) ($prescription['status'] ?? '')));
         if ($status === '') {
@@ -1769,7 +1769,7 @@ final class PatientPortalController
         return !in_array($status, ['draft', 'pending', 'not_issued', 'cancelled', 'revoked', 'voided', 'replaced'], true);
     }
 
-    private static function hasPendingPrescriptionDraftsForCases(array $store, array $caseIds): bool
+    public static function hasPendingPrescriptionDraftsForCases(array $store, array $caseIds): bool
     {
         foreach ($caseIds as $caseId) {
             foreach (ClinicalHistorySessionRepository::findAllDraftsByCaseId($store, (string) $caseId) as $draft) {
@@ -1793,7 +1793,7 @@ final class PatientPortalController
         return false;
     }
 
-    private static function buildActivePrescriptionSummary(array $store, array $snapshot): array
+    public static function buildActivePrescriptionSummary(array $store, array $snapshot): array
     {
         $caseIds = self::collectPatientCaseIds($store, $snapshot);
         $prescription = self::findLatestPrescriptionForCases($store, $caseIds);
@@ -1871,7 +1871,7 @@ final class PatientPortalController
         ]);
     }
 
-    private static function normalizePortalPrescriptionItems(array $prescription): array
+    public static function normalizePortalPrescriptionItems(array $prescription): array
     {
         $rawItems = [];
         if (is_array($prescription['medications'] ?? null)) {
@@ -1958,7 +1958,7 @@ final class PatientPortalController
         return $items;
     }
 
-    private static function buildPortalConsentSummary(array $store, array $snapshot): ?array
+    public static function buildPortalConsentSummary(array $store, array $snapshot): ?array
     {
         $context = self::resolvePortalConsentContext($store, $snapshot);
         if ($context === null) {
@@ -1968,7 +1968,7 @@ final class PatientPortalController
         return self::buildPortalConsentPayloadFromContext($store, $context);
     }
 
-    private static function buildPortalConsentPayloadFromContext(array $store, array $context): array
+    public static function buildPortalConsentPayloadFromContext(array $store, array $context): array
     {
         $packet = is_array($context['packet'] ?? null) ? $context['packet'] : [];
         $state = trim((string) ($context['state'] ?? 'pending'));
@@ -2035,7 +2035,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function resolvePortalConsentContext(array $store, array $snapshot): ?array
+    public static function resolvePortalConsentContext(array $store, array $snapshot): ?array
     {
         $caseIds = self::collectPatientCaseIds($store, $snapshot);
         $draftContexts = [];
@@ -2115,7 +2115,7 @@ final class PatientPortalController
         return $signedFallback;
     }
 
-    private static function resolvePortalConsentSession(array $store, array $draft): array
+    public static function resolvePortalConsentSession(array $store, array $draft): array
     {
         $sessionId = trim((string) ($draft['sessionId'] ?? ''));
         if ($sessionId !== '') {
@@ -2138,7 +2138,7 @@ final class PatientPortalController
         return ClinicalHistorySessionRepository::defaultSession($seed);
     }
 
-    private static function findPortalActiveConsentPacket(array $draft): ?array
+    public static function findPortalActiveConsentPacket(array $draft): ?array
     {
         $packets = ClinicalHistorySessionRepository::normalizeConsentPackets($draft['consentPackets'] ?? []);
         if ($packets === []) {
@@ -2155,7 +2155,7 @@ final class PatientPortalController
         return is_array($packets[0] ?? null) ? $packets[0] : null;
     }
 
-    private static function findLatestAcceptedConsentSnapshot(array $draft): ?array
+    public static function findLatestAcceptedConsentSnapshot(array $draft): ?array
     {
         $documents = ClinicalHistorySessionRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
@@ -2174,7 +2174,7 @@ final class PatientPortalController
         return null;
     }
 
-    private static function preparePortalConsentPacketForSignature(
+    public static function preparePortalConsentPacketForSignature(
         array $packet,
         array $draft,
         string $patientName,
@@ -2209,7 +2209,7 @@ final class PatientPortalController
         return $prepared;
     }
 
-    private static function attachPortalConsentPdfArtifacts(
+    public static function attachPortalConsentPdfArtifacts(
         array $draft,
         string $packetId,
         string $snapshotId,
@@ -2258,7 +2258,7 @@ final class PatientPortalController
         return ClinicalHistorySessionRepository::syncConsentArtifacts($draft);
     }
 
-    private static function findSignedConsentSnapshotForPacket(array $draft, string $packetId): ?array
+    public static function findSignedConsentSnapshotForPacket(array $draft, string $packetId): ?array
     {
         $documents = ClinicalHistorySessionRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
@@ -2283,7 +2283,7 @@ final class PatientPortalController
         return null;
     }
 
-    private static function findPortalConsentSnapshotById(array $store, array $caseIds, string $snapshotId): ?array
+    public static function findPortalConsentSnapshotById(array $store, array $caseIds, string $snapshotId): ?array
     {
         $caseMap = [];
         foreach ($caseIds as $caseId) {
@@ -2321,7 +2321,7 @@ final class PatientPortalController
         return null;
     }
 
-    private static function isPortalSignatureDataUrl(string $signatureDataUrl): bool
+    public static function isPortalSignatureDataUrl(string $signatureDataUrl): bool
     {
         if ($signatureDataUrl === '') {
             return false;
@@ -2335,7 +2335,7 @@ final class PatientPortalController
         return is_string($binary) && $binary !== '';
     }
 
-    private static function buildDocumentVerificationPayload(string $type, array $document, array $patient): array
+    public static function buildDocumentVerificationPayload(string $type, array $document, array $patient): array
     {
         $documentId = trim((string) ($document['id'] ?? ''));
         $doctor = self::resolveDocumentDoctor($document);
@@ -2381,7 +2381,7 @@ final class PatientPortalController
         return $payload;
     }
 
-    private static function resolveDocumentDoctor(array $document): array
+    public static function resolveDocumentDoctor(array $document): array
     {
         return function_exists('doctor_profile_document_fields')
             ? doctor_profile_document_fields(
@@ -2392,7 +2392,7 @@ final class PatientPortalController
             : (is_array($document['doctor'] ?? null) ? $document['doctor'] : []);
     }
 
-    private static function buildPatientDisplayName(array $patient): string
+    public static function buildPatientDisplayName(array $patient): string
     {
         return self::firstNonEmptyString(
             trim((string) (($patient['firstName'] ?? '') . ' ' . ($patient['lastName'] ?? ''))),
@@ -2401,7 +2401,7 @@ final class PatientPortalController
         );
     }
 
-    private static function buildHistoryExportSummary(array $snapshot, array $patient, array $consultations): array
+    public static function buildHistoryExportSummary(array $snapshot, array $patient, array $consultations): array
     {
         $exportId = self::buildHistoryExportId($snapshot, $patient);
         $consultationCount = count($consultations);
@@ -2418,7 +2418,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildHistoryExportId(array $snapshot, array $patient): string
+    public static function buildHistoryExportId(array $snapshot, array $patient): string
     {
         $raw = self::firstNonEmptyString(
             (string) ($snapshot['patientId'] ?? ''),
@@ -2430,7 +2430,7 @@ final class PatientPortalController
         return self::slugifyPortalFileToken($raw, 'portal-history');
     }
 
-    private static function buildHistoryExportFileName(array $patient, array $snapshot): string
+    public static function buildHistoryExportFileName(array $patient, array $snapshot): string
     {
         $suffix = self::slugifyPortalFileToken(
             self::firstNonEmptyString(
@@ -2445,7 +2445,7 @@ final class PatientPortalController
         return 'historia-clinica-' . $suffix . '.pdf';
     }
 
-    private static function slugifyPortalFileToken(string $value, string $fallback): string
+    public static function slugifyPortalFileToken(string $value, string $fallback): string
     {
         $value = strtolower(trim($value));
         $slug = preg_replace('/[^a-z0-9_-]+/', '-', $value);
@@ -2454,7 +2454,7 @@ final class PatientPortalController
         return $slug !== '' ? $slug : $fallback;
     }
 
-    private static function resolvePortalPatientProfile(array $store, array $snapshot, array $patient): array
+    public static function resolvePortalPatientProfile(array $store, array $snapshot, array $patient): array
     {
         $resolved = [];
         $caseIds = self::collectPatientCaseIds($store, $snapshot);
@@ -2472,7 +2472,7 @@ final class PatientPortalController
         return $merged;
     }
 
-    private static function buildTreatmentPlanTasks(
+    public static function buildTreatmentPlanTasks(
         array $carePlan,
         ?array $prescription,
         array $nextAppointment
@@ -2512,7 +2512,7 @@ final class PatientPortalController
         return array_values(array_slice($tasks, 0, 4));
     }
 
-    private static function splitPlanTasks(string $text): array
+    public static function splitPlanTasks(string $text): array
     {
         $text = trim($text);
         if ($text === '') {
@@ -2536,7 +2536,7 @@ final class PatientPortalController
         return $tasks;
     }
 
-    private static function rememberTask(array &$tasks, string $label): void
+    public static function rememberTask(array &$tasks, string $label): void
     {
         $label = trim($label);
         if ($label === '') {
@@ -2551,7 +2551,7 @@ final class PatientPortalController
         }
     }
 
-    private static function buildBillingSummary(array $store, array $snapshot): array
+    public static function buildBillingSummary(array $store, array $snapshot): array
     {
         $orders = self::collectPortalBillingOrders($store, $snapshot);
         $currency = self::portalPaymentCurrency();
@@ -2617,7 +2617,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildEvolutionSummary(array $store, array $snapshot): ?array
+    public static function buildEvolutionSummary(array $store, array $snapshot): ?array
     {
         $caseIds = self::collectPatientCaseIds($store, $snapshot);
         $caseMap = [];
@@ -2701,7 +2701,7 @@ final class PatientPortalController
         return $bestEvolution;
     }
 
-    private static function buildPortalPhotoGallery(array $store, array $snapshot): array
+    public static function buildPortalPhotoGallery(array $store, array $snapshot): array
     {
         $caseIds = self::collectPatientCaseIds($store, $snapshot);
         $caseMap = [];
@@ -2790,7 +2790,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function collectPortalBillingOrders(array $store, array $snapshot): array
+    public static function collectPortalBillingOrders(array $store, array $snapshot): array
     {
         $orders = [];
         $portalPhone = trim((string) ($snapshot['phone'] ?? ''));
@@ -2836,7 +2836,7 @@ final class PatientPortalController
         return $orders;
     }
 
-    private static function checkoutOrderMatchesPortalPatient(array $order, string $portalPhone, string $portalEmail): bool
+    public static function checkoutOrderMatchesPortalPatient(array $order, string $portalPhone, string $portalEmail): bool
     {
         $payerEmail = self::normalizePortalEmail((string) ($order['payerEmail'] ?? ''));
         if ($portalEmail !== '' && $payerEmail !== '' && $portalEmail === $payerEmail) {
@@ -2851,12 +2851,12 @@ final class PatientPortalController
         return false;
     }
 
-    private static function normalizePortalEmail(string $value): string
+    public static function normalizePortalEmail(string $value): string
     {
         return strtolower(trim($value));
     }
 
-    private static function resolvePortalBillingBucket(string $status): string
+    public static function resolvePortalBillingBucket(string $status): string
     {
         return match ($status) {
             'paid', 'applied' => 'settled',
@@ -2865,7 +2865,7 @@ final class PatientPortalController
         };
     }
 
-    private static function resolvePortalBillingDueAt(array $order): string
+    public static function resolvePortalBillingDueAt(array $order): string
     {
         $dueAt = self::normalizePortalIsoDateTime((string) ($order['dueAt'] ?? ''));
         if ($dueAt !== '') {
@@ -2888,7 +2888,7 @@ final class PatientPortalController
         }
     }
 
-    private static function resolvePortalBillingActivityAt(array $order): string
+    public static function resolvePortalBillingActivityAt(array $order): string
     {
         return self::firstNonEmptyString(
             self::normalizePortalIsoDateTime((string) ($order['transferAppliedAt'] ?? '')),
@@ -2899,7 +2899,7 @@ final class PatientPortalController
         );
     }
 
-    private static function resolvePortalBillingDueState(string $bucket, string $dueAt): string
+    public static function resolvePortalBillingDueState(string $bucket, string $dueAt): string
     {
         if ($bucket !== 'outstanding' || $dueAt === '') {
             return 'none';
@@ -2913,7 +2913,7 @@ final class PatientPortalController
         return $dueTs <= time() ? 'overdue' : 'scheduled';
     }
 
-    private static function findLatestPortalBillingOrder(array $orders, string $bucket): ?array
+    public static function findLatestPortalBillingOrder(array $orders, string $bucket): ?array
     {
         $match = null;
         $matchTs = 0;
@@ -2943,7 +2943,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function findNextPortalBillingOrder(array $orders): ?array
+    public static function findNextPortalBillingOrder(array $orders): ?array
     {
         $match = null;
         $matchTs = 0;
@@ -2981,7 +2981,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function resolveBillingStatus(
+    public static function resolveBillingStatus(
         int $outstandingBalanceCents,
         int $reviewBalanceCents,
         int $outstandingCount,
@@ -3026,7 +3026,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function portalPaymentCurrency(): string
+    public static function portalPaymentCurrency(): string
     {
         if (function_exists('payment_currency')) {
             $currency = strtoupper(trim((string) payment_currency()));
@@ -3038,7 +3038,7 @@ final class PatientPortalController
         return 'USD';
     }
 
-    private static function formatPortalCurrency(int $amountCents, string $currency): string
+    public static function formatPortalCurrency(int $amountCents, string $currency): string
     {
         $safeCurrency = strtoupper(trim($currency));
         if ($safeCurrency === '') {
@@ -3049,7 +3049,7 @@ final class PatientPortalController
         return $prefix . number_format($amountCents / 100, 2, '.', ',');
     }
 
-    private static function portalPaymentMethodLabel(string $method): string
+    public static function portalPaymentMethodLabel(string $method): string
     {
         return match ($method) {
             'card' => 'Tarjeta',
@@ -3059,7 +3059,7 @@ final class PatientPortalController
         };
     }
 
-    private static function portalPaymentStatusLabel(string $status, array $order): string
+    public static function portalPaymentStatusLabel(string $status, array $order): string
     {
         if (
             $status === 'pending_transfer' &&
@@ -3080,7 +3080,7 @@ final class PatientPortalController
         };
     }
 
-    private static function normalizePortalIsoDateTime(string $value): string
+    public static function normalizePortalIsoDateTime(string $value): string
     {
         $value = trim($value);
         if ($value === '') {
@@ -3094,7 +3094,7 @@ final class PatientPortalController
         }
     }
 
-    private static function buildPortalDateTimeLabel(string $value, string $fallback): string
+    public static function buildPortalDateTimeLabel(string $value, string $fallback): string
     {
         $normalized = self::normalizePortalIsoDateTime($value);
         if ($normalized === '') {
@@ -3109,7 +3109,7 @@ final class PatientPortalController
         }
     }
 
-    private static function collectPatientCaseIds(array $store, array $snapshot): array
+    public static function collectPatientCaseIds(array $store, array $snapshot): array
     {
         $caseIds = [];
         $remember = static function (string $caseId) use (&$caseIds): void {
@@ -3142,7 +3142,7 @@ final class PatientPortalController
         return array_keys($caseIds);
     }
 
-    private static function patientCaseMatchesSnapshot(array $caseRecord, array $snapshot): bool
+    public static function patientCaseMatchesSnapshot(array $caseRecord, array $snapshot): bool
     {
         $caseId = trim((string) ($snapshot['patientCaseId'] ?? ''));
         if ($caseId !== '' && $caseId === trim((string) ($caseRecord['id'] ?? ''))) {
@@ -3171,7 +3171,7 @@ final class PatientPortalController
         return false;
     }
 
-    private static function resolveAppointmentCaseId(array $appointment, array $snapshot): string
+    public static function resolveAppointmentCaseId(array $appointment, array $snapshot): string
     {
         $caseId = trim((string) ($appointment['patientCaseId'] ?? ''));
         if ($caseId !== '') {
@@ -3181,7 +3181,7 @@ final class PatientPortalController
         return trim((string) ($snapshot['patientCaseId'] ?? ''));
     }
 
-    private static function shouldIncludeConsultationInHistory(string $status, ?int $timestamp, array $documents): bool
+    public static function shouldIncludeConsultationInHistory(string $status, ?int $timestamp, array $documents): bool
     {
         if ($status === 'completed') {
             return true;
@@ -3194,7 +3194,7 @@ final class PatientPortalController
         return self::documentsHavePortalSignal($documents);
     }
 
-    private static function documentsHavePortalSignal(array $documents): bool
+    public static function documentsHavePortalSignal(array $documents): bool
     {
         foreach (['prescription', 'certificate'] as $type) {
             $status = (string) ($documents[$type]['status'] ?? '');
@@ -3206,7 +3206,7 @@ final class PatientPortalController
         return false;
     }
 
-    private static function buildDocumentsByCaseId(array $store, array $caseIds): array
+    public static function buildDocumentsByCaseId(array $store, array $caseIds): array
     {
         $caseMap = [];
         foreach ($caseIds as $caseId) {
@@ -3280,7 +3280,7 @@ final class PatientPortalController
         return $documentsByCase;
     }
 
-    private static function hasPendingPrescriptionDraft(array $drafts): bool
+    public static function hasPendingPrescriptionDraft(array $drafts): bool
     {
         foreach ($drafts as $draft) {
             $documents = is_array($draft['documents'] ?? null) ? $draft['documents'] : [];
@@ -3302,7 +3302,7 @@ final class PatientPortalController
         return false;
     }
 
-    private static function hasPendingCertificateDraft(array $drafts): bool
+    public static function hasPendingCertificateDraft(array $drafts): bool
     {
         foreach ($drafts as $draft) {
             $documents = is_array($draft['documents'] ?? null) ? $draft['documents'] : [];
@@ -3323,7 +3323,7 @@ final class PatientPortalController
         return false;
     }
 
-    private static function buildPortalDocumentPayload(string $type, ?array $document, bool $pending, string $downloadToken = ''): array
+    public static function buildPortalDocumentPayload(string $type, ?array $document, bool $pending, string $downloadToken = ''): array
     {
         $title = $type === 'prescription' ? 'Receta médica' : 'Certificado médico';
 
@@ -3380,7 +3380,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function defaultDocumentState(string $caseId): array
+    public static function defaultDocumentState(string $caseId): array
     {
         return [
             'prescription' => self::buildPortalDocumentPayload('prescription', null, false),
@@ -3388,7 +3388,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildHistoryConsultationFromAppointment(
+    public static function buildHistoryConsultationFromAppointment(
         array $store,
         array $appointment,
         array $patient,
@@ -3432,7 +3432,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildHistoryConsultationFromCase(
+    public static function buildHistoryConsultationFromCase(
         array $caseRecord,
         array $patient,
         string $caseId,
@@ -3476,7 +3476,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildCasePhotoSummaryByCaseId(array $store, array $caseIds): array
+    public static function buildCasePhotoSummaryByCaseId(array $store, array $caseIds): array
     {
         $caseMap = [];
         foreach ($caseIds as $caseId) {
@@ -3524,7 +3524,7 @@ final class PatientPortalController
         return $summaryByCase;
     }
 
-    private static function buildPortalTimelineEvents(
+    public static function buildPortalTimelineEvents(
         array $consultation,
         array $documents,
         array $photoSummary
@@ -3562,7 +3562,7 @@ final class PatientPortalController
         return $events;
     }
 
-    private static function buildPortalConsultationEventLabel(string $serviceName): string
+    public static function buildPortalConsultationEventLabel(string $serviceName): string
     {
         $serviceName = trim($serviceName);
         if ($serviceName === '') {
@@ -3580,7 +3580,7 @@ final class PatientPortalController
         return 'Consulta por ' . $lower;
     }
 
-    private static function buildPortalDocumentTimelineEvent(array $document): ?array
+    public static function buildPortalDocumentTimelineEvent(array $document): ?array
     {
         $status = strtolower(trim((string) ($document['status'] ?? '')));
         $type = strtolower(trim((string) ($document['type'] ?? 'document')));
@@ -3602,7 +3602,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildPortalPhotoTimelineEvent(array $photoSummary): ?array
+    public static function buildPortalPhotoTimelineEvent(array $photoSummary): ?array
     {
         $count = (int) ($photoSummary['count'] ?? 0);
         if ($count <= 0) {
@@ -3629,7 +3629,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildPortalNextControlEvent(array $appointmentSummary): array
+    public static function buildPortalNextControlEvent(array $appointmentSummary): array
     {
         $dateLabel = trim((string) ($appointmentSummary['dateLabel'] ?? ''));
         $timeLabel = trim((string) ($appointmentSummary['timeLabel'] ?? ''));
@@ -3645,7 +3645,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function historyStatusLabel(string $status): string
+    public static function historyStatusLabel(string $status): string
     {
         if ($status === 'completed') {
             return 'Atención finalizada';
@@ -3658,7 +3658,7 @@ final class PatientPortalController
         return 'Consulta registrada';
     }
 
-    private static function buildCaseDateLabel(string $value): string
+    public static function buildCaseDateLabel(string $value): string
     {
         $value = trim($value);
         if ($value === '') {
@@ -3673,7 +3673,7 @@ final class PatientPortalController
         return self::buildDateLabel(date('Y-m-d', $timestamp));
     }
 
-    private static function findPatientCaseRecord(array $store, string $caseId): array
+    public static function findPatientCaseRecord(array $store, string $caseId): array
     {
         foreach (($store['patient_cases'] ?? []) as $caseRecord) {
             if (!is_array($caseRecord)) {
@@ -3688,7 +3688,7 @@ final class PatientPortalController
         return [];
     }
 
-    private static function findPrescriptionById(array $store, string $documentId): ?array
+    public static function findPrescriptionById(array $store, string $documentId): ?array
     {
         $prescription = $store['prescriptions'][$documentId] ?? null;
         if (!is_array($prescription)) {
@@ -3699,7 +3699,7 @@ final class PatientPortalController
         return $prescription;
     }
 
-    private static function findCertificateById(array $store, string $documentId): ?array
+    public static function findCertificateById(array $store, string $documentId): ?array
     {
         $certificate = $store['certificates'][$documentId] ?? null;
         if (!is_array($certificate)) {
@@ -3710,7 +3710,7 @@ final class PatientPortalController
         return $certificate;
     }
 
-    private static function caseBelongsToPortalPatient(string $caseId, array $caseIds, array $snapshot): bool
+    public static function caseBelongsToPortalPatient(string $caseId, array $caseIds, array $snapshot): bool
     {
         $caseId = trim($caseId);
         if ($caseId === '') {
@@ -3724,7 +3724,7 @@ final class PatientPortalController
         return $caseId === trim((string) ($snapshot['patientCaseId'] ?? ''));
     }
 
-    private static function resolveCasePatient(array $store, string $caseId): array
+    public static function resolveCasePatient(array $store, string $caseId): array
     {
         if (
             $caseId !== ''
@@ -3745,13 +3745,13 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildPrescriptionFileName(string $documentId): string
+    public static function buildPrescriptionFileName(string $documentId): string
     {
         $suffix = preg_replace('/[^a-zA-Z0-9_-]/', '-', $documentId);
         return 'receta-' . ($suffix !== '' ? $suffix : 'portal') . '.pdf';
     }
 
-    private static function buildConsentFileName(array $consentSnapshot, string $documentId): string
+    public static function buildConsentFileName(array $consentSnapshot, string $documentId): string
     {
         $suffix = self::firstNonEmptyString(
             (string) ($consentSnapshot['procedureName'] ?? ''),
@@ -3763,7 +3763,7 @@ final class PatientPortalController
         return 'consentimiento-' . ($suffix !== '' ? $suffix : 'portal') . '.pdf';
     }
 
-    private static function buildCertificateFileName(array $certificate, string $documentId): string
+    public static function buildCertificateFileName(array $certificate, string $documentId): string
     {
         $suffix = self::firstNonEmptyString(
             (string) ($certificate['folio'] ?? ''),
@@ -3774,7 +3774,7 @@ final class PatientPortalController
         return 'certificado-' . ($suffix !== '' ? $suffix : 'portal') . '.pdf';
     }
 
-    private static function buildDocumentIssuedLabel(string $issuedAt): string
+    public static function buildDocumentIssuedLabel(string $issuedAt): string
     {
         $issuedAt = trim($issuedAt);
         if ($issuedAt === '') {
@@ -3789,7 +3789,7 @@ final class PatientPortalController
         return 'Emitido el ' . self::buildDateLabel(date('Y-m-d', $timestamp));
     }
 
-    private static function documentTimestamp(array $document, array $keys): int
+    public static function documentTimestamp(array $document, array $keys): int
     {
         foreach ($keys as $key) {
             $value = trim((string) ($document[$key] ?? ''));
@@ -3806,7 +3806,7 @@ final class PatientPortalController
         return 0;
     }
 
-    private static function recordTimestamp(array $record): int
+    public static function recordTimestamp(array $record): int
     {
         $candidates = [
             (string) ($record['latestActivityAt'] ?? ''),
@@ -3831,7 +3831,7 @@ final class PatientPortalController
         return 0;
     }
 
-    private static function generateConsentPdfBytes(array $consentSnapshot, array $patient): string
+    public static function generateConsentPdfBytes(array $consentSnapshot, array $patient): string
     {
         $html = self::buildConsentHtml($consentSnapshot, $patient);
 
@@ -3863,7 +3863,7 @@ final class PatientPortalController
         return self::buildFallbackPdf($html);
     }
 
-    private static function generateHistoryExportPdfBytes(array $store, array $snapshot, array $patient): string
+    public static function generateHistoryExportPdfBytes(array $store, array $snapshot, array $patient): string
     {
         $resolvedPatient = self::resolvePortalPatientProfile($store, $snapshot, $patient);
         $consultations = self::buildPortalHistory($store, $snapshot, $resolvedPatient);
@@ -3897,7 +3897,7 @@ final class PatientPortalController
         return self::buildFallbackPdf($html);
     }
 
-    private static function buildHistoryExportHtml(array $patient, array $snapshot, array $consultations): string
+    public static function buildHistoryExportHtml(array $patient, array $snapshot, array $consultations): string
     {
         $clinicProfile = read_clinic_profile();
         $clinicName = self::escapeHtml(self::firstNonEmptyString(
@@ -4010,7 +4010,7 @@ final class PatientPortalController
         </html>';
     }
 
-    private static function buildHistoryExportConsultationHtml(array $consultation): string
+    public static function buildHistoryExportConsultationHtml(array $consultation): string
     {
         $serviceName = self::escapeHtml(self::firstNonEmptyString(
             (string) ($consultation['serviceName'] ?? ''),
@@ -4104,7 +4104,7 @@ final class PatientPortalController
         </div>';
     }
 
-    private static function buildConsentHtml(array $consentSnapshot, array $patient): string
+    public static function buildConsentHtml(array $consentSnapshot, array $patient): string
     {
         $clinicProfile = read_clinic_profile();
         $patientName = self::escapeHtml(self::firstNonEmptyString(
@@ -4263,7 +4263,7 @@ final class PatientPortalController
         </html>';
     }
 
-    private static function firstNonEmptyString(string ...$values): string
+    public static function firstNonEmptyString(string ...$values): string
     {
         foreach ($values as $value) {
             $value = trim($value);
@@ -4275,7 +4275,7 @@ final class PatientPortalController
         return '';
     }
 
-    private static function emitPdfResponse(string $pdfBytes, string $fileName): void
+    public static function emitPdfResponse(string $pdfBytes, string $fileName): void
     {
         if (defined('TESTING_ENV')) {
             $payload = [
@@ -4300,7 +4300,7 @@ final class PatientPortalController
         exit;
     }
 
-    private static function generateCertificatePdfBytes(array $certificate, array $patient): string
+    public static function generateCertificatePdfBytes(array $certificate, array $patient): string
     {
         $html = self::buildCertificateHtml($certificate, $patient);
 
@@ -4332,7 +4332,7 @@ final class PatientPortalController
         return self::buildFallbackPdf($html);
     }
 
-    private static function buildCertificateHtml(array $certificate, array $patient): string
+    public static function buildCertificateHtml(array $certificate, array $patient): string
     {
         $clinicProfile = read_clinic_profile();
         $doctor = function_exists('doctor_profile_document_fields')
@@ -4470,7 +4470,7 @@ final class PatientPortalController
         </html>';
     }
 
-    private static function buildFallbackPdf(string $html): string
+    public static function buildFallbackPdf(string $html): string
     {
         $text = strip_tags(str_replace(['<br>', '</div>', '</p>', '</h1>', '</h2>', '</strong>'], "\n", $html));
         if (function_exists('mb_convert_encoding')) {
@@ -4508,12 +4508,12 @@ final class PatientPortalController
         return $pdf;
     }
 
-    private static function escapeHtml(string $value): string
+    public static function escapeHtml(string $value): string
     {
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
 
-    private static function appointmentMatchesPatient(array $appointment, array $snapshot): bool
+    public static function appointmentMatchesPatient(array $appointment, array $snapshot): bool
     {
         $patientId = trim((string) ($snapshot['patientId'] ?? ''));
         if ($patientId !== '' && $patientId === trim((string) ($appointment['patientId'] ?? ''))) {
@@ -4538,7 +4538,7 @@ final class PatientPortalController
         return false;
     }
 
-    private static function appointmentTimestamp(array $appointment): ?int
+    public static function appointmentTimestamp(array $appointment): ?int
     {
         $date = trim((string) ($appointment['date'] ?? ''));
         $time = trim((string) ($appointment['time'] ?? ''));
@@ -4550,7 +4550,7 @@ final class PatientPortalController
         return $timestamp === false ? null : $timestamp;
     }
 
-    private static function buildAppointmentSummary(array $appointment, array $patient): array
+    public static function buildAppointmentSummary(array $appointment, array $patient): array
     {
         $serviceId = trim((string) ($appointment['service'] ?? ''));
         $tenantId = trim((string) ($appointment['tenantId'] ?? ''));
@@ -4602,13 +4602,13 @@ final class PatientPortalController
         ];
     }
 
-    private static function buildRescheduleUrl(string $token): string
+    public static function buildRescheduleUrl(string $token): string
     {
         $token = trim($token);
         return $token !== '' ? '/?reschedule=' . rawurlencode($token) : '';
     }
 
-    private static function buildSupportWhatsappUrl(array $patient, array $appointment): string
+    public static function buildSupportWhatsappUrl(array $patient, array $appointment): string
     {
         $digits = preg_replace('/\D+/', '', AppConfig::WHATSAPP_NUMBER);
         if (!is_string($digits) || $digits === '') {
@@ -4631,7 +4631,7 @@ final class PatientPortalController
         return 'https://wa.me/' . $digits . '?text=' . rawurlencode(implode(' ', $parts));
     }
 
-    private static function buildTelemedicineRoomUrl(int $appointmentId, string $token): string
+    public static function buildTelemedicineRoomUrl(int $appointmentId, string $token): string
     {
         if ($token !== '') {
             return '/es/telemedicina/sala/index.html?token=' . rawurlencode($token);
@@ -4643,7 +4643,7 @@ final class PatientPortalController
         return '/es/telemedicina/sala/index.html';
     }
 
-    private static function buildTelemedicinePreConsultationUrl(int $appointmentId, string $token): string
+    public static function buildTelemedicinePreConsultationUrl(int $appointmentId, string $token): string
     {
         if ($token !== '') {
             return '/es/telemedicina/pre-consulta/?token=' . rawurlencode($token);
@@ -4655,7 +4655,7 @@ final class PatientPortalController
         return '/es/telemedicina/pre-consulta/';
     }
 
-    private static function resolveAppointmentTypeKey(array $appointment, ?array $serviceConfig): string
+    public static function resolveAppointmentTypeKey(array $appointment, ?array $serviceConfig): string
     {
         $visitMode = strtolower(trim((string) ($appointment['visitMode'] ?? '')));
         $telemedicineChannel = strtolower(trim((string) ($appointment['telemedicineChannel'] ?? '')));
@@ -4676,7 +4676,7 @@ final class PatientPortalController
         return 'in_person';
     }
 
-    private static function resolveAppointmentTypeLabel(array $appointment, ?array $serviceConfig): string
+    public static function resolveAppointmentTypeLabel(array $appointment, ?array $serviceConfig): string
     {
         if (self::resolveAppointmentTypeKey($appointment, $serviceConfig) === 'telemedicine') {
             return 'Teleconsulta';
@@ -4690,7 +4690,7 @@ final class PatientPortalController
         return 'Consulta presencial';
     }
 
-    private static function resolveLocationLabel(array $appointment, ?array $serviceConfig): string
+    public static function resolveLocationLabel(array $appointment, ?array $serviceConfig): string
     {
         if (self::resolveAppointmentTypeKey($appointment, $serviceConfig) === 'telemedicine') {
             return 'Atencion virtual por enlace seguro';
@@ -4699,7 +4699,7 @@ final class PatientPortalController
         return 'Consultorio Aurora Derm';
     }
 
-    private static function resolvePreparationRequired(array $appointment, ?array $serviceConfig): string
+    public static function resolvePreparationRequired(array $appointment, ?array $serviceConfig): string
     {
         $serviceId = strtolower(trim((string) ($appointment['service'] ?? '')));
         $catalogPreparation = service_catalog_preparation_for($serviceId);
@@ -4732,7 +4732,7 @@ final class PatientPortalController
         return 'Llega 10 minutos antes y trae tus medicamentos, examenes o fotos previas si ayudan a explicar la evolucion.';
     }
 
-    private static function formatDoctorName(string ...$candidates): string
+    public static function formatDoctorName(string ...$candidates): string
     {
         foreach ($candidates as $candidate) {
             $candidate = trim($candidate);
@@ -4751,7 +4751,7 @@ final class PatientPortalController
         return 'Especialista Aurora Derm';
     }
 
-    private static function buildDateLabel(string $date): string
+    public static function buildDateLabel(string $date): string
     {
         $timestamp = strtotime(trim($date) . ' 00:00:00');
         if ($timestamp === false) {
@@ -4786,7 +4786,7 @@ final class PatientPortalController
         ));
     }
 
-    private static function buildTimeLabel(string $time): string
+    public static function buildTimeLabel(string $time): string
     {
         $time = trim($time);
         if ($time === '') {
@@ -4800,7 +4800,7 @@ final class PatientPortalController
         return $time;
     }
 
-    private static function humanizeValue(string $value, string $fallback): string
+    public static function humanizeValue(string $value, string $fallback): string
     {
         $value = trim($value);
         if ($value === '') {
@@ -4815,7 +4815,7 @@ final class PatientPortalController
         return ucwords(strtolower($value));
     }
 
-    private static function portalPhotoBelongsToCaseMap(array $upload, array $caseMap): bool
+    public static function portalPhotoBelongsToCaseMap(array $upload, array $caseMap): bool
     {
         $caseId = self::firstNonEmptyString(
             (string) ($upload['patientCaseId'] ?? ''),
@@ -4830,7 +4830,7 @@ final class PatientPortalController
         return strtolower(trim((string) ($upload['kind'] ?? ''))) === 'case_photo';
     }
 
-    private static function isPortalVisiblePhoto(array $upload): bool
+    public static function isPortalVisiblePhoto(array $upload): bool
     {
         $directFlags = [
             $upload['visibleToPatient'] ?? null,
@@ -4863,7 +4863,7 @@ final class PatientPortalController
         return false;
     }
 
-    private static function normalizePortalVisibilityFlag($value): ?bool
+    public static function normalizePortalVisibilityFlag($value): ?bool
     {
         if (is_bool($value)) {
             return $value;
@@ -4893,7 +4893,7 @@ final class PatientPortalController
         return null;
     }
 
-    private static function normalizePortalPhotoItem(array $upload): ?array
+    public static function normalizePortalPhotoItem(array $upload): ?array
     {
         $id = trim((string) ($upload['id'] ?? ''));
         if ($id === '') {
@@ -4931,7 +4931,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function findPortalVisiblePhotoUpload(array $store, array $caseIds, string $photoId): ?array
+    public static function findPortalVisiblePhotoUpload(array $store, array $caseIds, string $photoId): ?array
     {
         $caseMap = [];
         foreach ($caseIds as $caseId) {
@@ -4964,7 +4964,7 @@ final class PatientPortalController
         return null;
     }
 
-    private static function resolvePortalPhotoAsset(array $upload): array
+    public static function resolvePortalPhotoAsset(array $upload): array
     {
         $path = self::resolvePortalPhotoDiskPath($upload);
         if ($path === '' || !is_file($path)) {
@@ -4985,7 +4985,7 @@ final class PatientPortalController
         ];
     }
 
-    private static function resolvePortalPhotoDiskPath(array $upload): string
+    public static function resolvePortalPhotoDiskPath(array $upload): string
     {
         $privatePath = ltrim(str_replace(['\\', '//'], '/', trim((string) ($upload['privatePath'] ?? ''))), '/');
         if ($privatePath !== '') {
@@ -5009,7 +5009,7 @@ final class PatientPortalController
         return '';
     }
 
-    private static function safePortalMime(string $mime, string $path): string
+    public static function safePortalMime(string $mime, string $path): string
     {
         $mime = trim($mime);
         if ($mime !== '') {
@@ -5026,7 +5026,7 @@ final class PatientPortalController
         return 'application/octet-stream';
     }
 
-    private static function selfVitals(array $context): void
+    public static function selfVitals(array $context): void
     {
         $payload = require_json_body();
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
@@ -5108,7 +5108,7 @@ final class PatientPortalController
         self::emit(['ok' => true]);
     }
 
-    private static function uploadPhoto(array $context): void
+    public static function uploadPhoto(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $session = PatientPortalAuth::authenticateSession(
@@ -5204,7 +5204,7 @@ final class PatientPortalController
         self::emit(['ok' => true]);
     }
 
-    private static function emitBinaryResponse(
+    public static function emitBinaryResponse(
         string $bytes,
         string $contentType,
         string $fileName,
@@ -5233,7 +5233,7 @@ final class PatientPortalController
         exit;
     }
 
-    private static function emit(array $result): void
+    public static function emit(array $result): void
     {
         if (($result['ok'] ?? false) !== true) {
             json_response([

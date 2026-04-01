@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/PatientCaseService.php';
 
 class FlowOsController
 {
-    private static function manifest(array $context): void
+    public static function manifest(array $context): void
     {
         json_response([
             'ok' => true,
@@ -15,7 +15,7 @@ class FlowOsController
         ]);
     }
 
-    private static function journeyPreview(array $context): void
+    public static function journeyPreview(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : [];
         $store = (new PatientCaseService())->hydrateStore($store);
@@ -40,7 +40,7 @@ class FlowOsController
         ]);
     }
 
-    private static function toBool($value): bool
+    public static function toBool($value): bool
     {
         if (is_bool($value)) {
             return $value;

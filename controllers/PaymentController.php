@@ -16,7 +16,7 @@ if (is_file($whatsappOpenclawBootstrap)) {
 
 class PaymentController
 {
-    private static function config(array $context): void
+    public static function config(array $context): void
     {
         json_response([
             'ok' => true,
@@ -27,7 +27,7 @@ class PaymentController
         ]);
     }
 
-    private static function checkoutConfig(array $context): void
+    public static function checkoutConfig(array $context): void
     {
         json_response([
             'ok' => true,
@@ -35,7 +35,7 @@ class PaymentController
         ]);
     }
 
-    private static function checkoutIntent(array $context): void
+    public static function checkoutIntent(array $context): void
     {
         if (!payment_gateway_enabled()) {
             json_response([
@@ -105,7 +105,7 @@ class PaymentController
         ], 201);
     }
 
-    private static function checkoutConfirm(array $context): void
+    public static function checkoutConfirm(array $context): void
     {
         $payload = require_json_body();
         $orderId = trim((string) ($payload['orderId'] ?? ''));
@@ -202,7 +202,7 @@ class PaymentController
         ]);
     }
 
-    private static function checkoutSubmit(array $context): void
+    public static function checkoutSubmit(array $context): void
     {
         $payload = require_json_body();
         $method = strtolower(trim((string) ($payload['paymentMethod'] ?? '')));
@@ -256,7 +256,7 @@ class PaymentController
         ], 201);
     }
 
-    private static function checkoutTransferProof(array $context): void
+    public static function checkoutTransferProof(array $context): void
     {
         $orderId = trim((string) ($_POST['orderId'] ?? ''));
         if ($orderId === '') {
@@ -353,7 +353,7 @@ class PaymentController
         ], 201);
     }
 
-    private static function checkoutOrderReview(array $context): void
+    public static function checkoutOrderReview(array $context): void
     {
         $payload = require_json_body();
         $orderId = trim((string) ($payload['id'] ?? $payload['orderId'] ?? ''));
@@ -435,7 +435,7 @@ class PaymentController
         ]);
     }
 
-    private static function softwareSubscriptionCheckout(array $context): void
+    public static function softwareSubscriptionCheckout(array $context): void
     {
         if (function_exists('start_secure_session')) {
             start_secure_session();
@@ -512,7 +512,7 @@ class PaymentController
         ], 201);
     }
 
-    private static function createIntent(array $context): void
+    public static function createIntent(array $context): void
     {
         $store = $context['store'];
         require_rate_limit('payment-intent', 8, 60);
@@ -743,7 +743,7 @@ class PaymentController
         ]);
     }
 
-    private static function verify(array $context): void
+    public static function verify(array $context): void
     {
         require_rate_limit('payment-verify', 12, 60);
 
@@ -786,7 +786,7 @@ class PaymentController
         ]);
     }
 
-    private static function transferProof(array $context): void
+    public static function transferProof(array $context): void
     {
         require_rate_limit('transfer-proof', 6, 60);
 
@@ -860,7 +860,7 @@ class PaymentController
         ], 201);
     }
 
-    private static function webhook(array $context): void
+    public static function webhook(array $context): void
     {
         $webhookSecret = payment_stripe_webhook_secret();
         if ($webhookSecret === '') {
@@ -967,7 +967,7 @@ class PaymentController
         json_response(['ok' => true, 'received' => true]);
     }
 
-    private static function readWebhookRawBody(): string
+    public static function readWebhookRawBody(): string
     {
         if (defined('TESTING_ENV') && isset($GLOBALS['__TEST_RAW_BODY']) && is_string($GLOBALS['__TEST_RAW_BODY'])) {
             return $GLOBALS['__TEST_RAW_BODY'];
@@ -977,7 +977,7 @@ class PaymentController
         return is_string($rawBody) ? $rawBody : '';
     }
 
-    private static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
+    public static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
     {
         $readiness = internal_console_readiness_snapshot();
         if (internal_console_clinical_data_ready($readiness)) {
@@ -995,7 +995,7 @@ class PaymentController
         json_response($payload, 409);
     }
 
-    private static function handleWhatsappCheckoutCompleted(array $session): void
+    public static function handleWhatsappCheckoutCompleted(array $session): void
     {
         if (!self::isWhatsappOpenclawSession($session) || !function_exists('whatsapp_openclaw_orchestrator')) {
             return;
@@ -1031,7 +1031,7 @@ class PaymentController
         ]);
     }
 
-    private static function handleWhatsappCheckoutExpired(array $session): void
+    public static function handleWhatsappCheckoutExpired(array $session): void
     {
         if (!self::isWhatsappOpenclawSession($session) || !function_exists('whatsapp_openclaw_orchestrator')) {
             return;
@@ -1054,7 +1054,7 @@ class PaymentController
         ]);
     }
 
-    private static function handleSoftwareSubscriptionCheckoutCompleted(array $session): void
+    public static function handleSoftwareSubscriptionCheckoutCompleted(array $session): void
     {
         if (!self::isSoftwareSubscriptionSession($session)) {
             return;
@@ -1077,7 +1077,7 @@ class PaymentController
         ]);
     }
 
-    private static function handleSoftwareSubscriptionInvoicePaid(array $invoice): void
+    public static function handleSoftwareSubscriptionInvoicePaid(array $invoice): void
     {
         if (!self::isSoftwareSubscriptionInvoice($invoice)) {
             return;
@@ -1099,7 +1099,7 @@ class PaymentController
         ]);
     }
 
-    private static function handleSoftwareSubscriptionInvoiceFailed(array $invoice): void
+    public static function handleSoftwareSubscriptionInvoiceFailed(array $invoice): void
     {
         if (!self::isSoftwareSubscriptionInvoice($invoice)) {
             return;
@@ -1121,7 +1121,7 @@ class PaymentController
         ]);
     }
 
-    private static function handleSoftwareSubscriptionCanceled(array $subscription): void
+    public static function handleSoftwareSubscriptionCanceled(array $subscription): void
     {
         if (!self::isSoftwareSubscriptionEvent($subscription)) {
             return;
@@ -1142,19 +1142,19 @@ class PaymentController
         ]);
     }
 
-    private static function isWhatsappOpenclawSession(array $session): bool
+    public static function isWhatsappOpenclawSession(array $session): bool
     {
         $metadata = isset($session['metadata']) && is_array($session['metadata']) ? $session['metadata'] : [];
         return strtolower(trim((string) ($metadata['source'] ?? ''))) === 'whatsapp_openclaw';
     }
 
-    private static function isSoftwareSubscriptionSession(array $session): bool
+    public static function isSoftwareSubscriptionSession(array $session): bool
     {
         $metadata = isset($session['metadata']) && is_array($session['metadata']) ? $session['metadata'] : [];
         return strtolower(trim((string) ($metadata['surface'] ?? ''))) === 'software_subscription';
     }
 
-    private static function isSoftwareSubscriptionInvoice(array $invoice): bool
+    public static function isSoftwareSubscriptionInvoice(array $invoice): bool
     {
         $metadata = isset($invoice['metadata']) && is_array($invoice['metadata']) ? $invoice['metadata'] : [];
         if (strtolower(trim((string) ($metadata['surface'] ?? ''))) === 'software_subscription') {
@@ -1172,7 +1172,7 @@ class PaymentController
             || ($currentCustomerId !== '' && hash_equals($currentCustomerId, trim((string) ($invoice['customer'] ?? ''))));
     }
 
-    private static function isSoftwareSubscriptionEvent(array $subscription): bool
+    public static function isSoftwareSubscriptionEvent(array $subscription): bool
     {
         $metadata = isset($subscription['metadata']) && is_array($subscription['metadata']) ? $subscription['metadata'] : [];
         if (strtolower(trim((string) ($metadata['surface'] ?? ''))) === 'software_subscription') {
@@ -1188,7 +1188,7 @@ class PaymentController
         return $currentSubscriptionId !== '' && hash_equals($currentSubscriptionId, trim((string) ($subscription['id'] ?? '')));
     }
 
-    private static function getConfiguredSlotsForDate(array $store, string $date): array
+    public static function getConfiguredSlotsForDate(array $store, string $date): array
     {
         $slots = [];
 

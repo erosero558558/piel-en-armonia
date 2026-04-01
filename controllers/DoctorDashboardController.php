@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/clinical_history/ClinicalHistorySessionRepositor
 
 final class DoctorDashboardController
 {
-    private static function checkAuth(): void
+    public static function checkAuth(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -19,7 +19,7 @@ final class DoctorDashboardController
         }
     }
 
-    private static function dashboard(array $context): void
+    public static function dashboard(array $context): void
     {
         self::checkAuth();
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
@@ -177,7 +177,7 @@ final class DoctorDashboardController
         ]);
     }
 
-    private static function searchPatients(array $context): void
+    public static function searchPatients(array $context): void
     {
         self::checkAuth();
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
@@ -262,7 +262,7 @@ final class DoctorDashboardController
         json_response(['ok' => true, 'results' => $results]);
     }
 
-    private static function stats(array $context): void
+    public static function stats(array $context): void
     {
         self::checkAuth();
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();

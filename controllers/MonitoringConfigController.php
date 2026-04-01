@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 class MonitoringConfigController
 {
-    private static function monitoringConfig(array $context): void
+    public static function monitoringConfig(array $context): void
     {
         // Safe explicit allowlist of values public to the frontend
         $dsn = getenv('PIELARMONIA_SENTRY_DSN_PUBLIC');

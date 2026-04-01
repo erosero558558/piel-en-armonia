@@ -26,7 +26,7 @@ final class OpenclawController
      * Carga el contexto completo del paciente para alimentar la IA.
      * Este es el dato que diferencia a OpenClaw de ChatGPT solo.
      */
-    private static function patient(array $context): void
+    public static function patient(array $context): void
     {
         self::requireAuth();
 
@@ -234,7 +234,7 @@ final class OpenclawController
      * Búsqueda rápida en el catálogo CIE-10 local.
      * Latencia objetivo: <50ms (es solo búsqueda en JSON).
      */
-    private static function cie10Suggest(array $context): void
+    public static function cie10Suggest(array $context): void
     {
         self::requireAuth();
 
@@ -314,7 +314,7 @@ final class OpenclawController
      * Devuelve el protocolo de tratamiento estándar para un diagnóstico CIE-10.
      * Los protocolos se pueden extender en data/protocols/{code}.json
      */
-    private static function protocol(array $context): void
+    public static function protocol(array $context): void
     {
         self::requireAuth();
 
@@ -342,7 +342,7 @@ final class OpenclawController
      * Proxy al AI Router — Tier 1 (Codex OAuth) → Tier 2 (OpenRouter free) → Tier 3 (local)
      * Streaming support: si ?stream=1, devuelve SSE.
      */
-    private static function chat(array $context): void
+    public static function chat(array $context): void
     {
         self::requireAuth();
 
@@ -379,7 +379,7 @@ final class OpenclawController
 
     // ── saveDiagnosis ─────────────────────────────────────────────────────────
 
-    private static function saveDiagnosis(array $context): void
+    public static function saveDiagnosis(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -439,7 +439,7 @@ final class OpenclawController
         json_response($response);
     }
 
-    private static function saveChronicCondition(array $context): void
+    public static function saveChronicCondition(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -498,7 +498,7 @@ final class OpenclawController
 
     // ── saveEvolution ─────────────────────────────────────────────────────────
 
-    private static function saveEvolution(array $context): void
+    public static function saveEvolution(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -534,7 +534,7 @@ final class OpenclawController
 
     // ── savePrescription ─────────────────────────────────────────────────────
 
-    private static function savePrescription(array $context): void
+    public static function savePrescription(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -805,7 +805,7 @@ final class OpenclawController
 
     // ── getPrescriptionPdf ────────────────────────────────────────────────────
 
-    private static function getPrescriptionPdf(array $context): void
+    public static function getPrescriptionPdf(array $context): void
     {
         $rxId = trim((string) ($_GET['id'] ?? ''));
         if ($rxId === '') {
@@ -833,7 +833,7 @@ final class OpenclawController
 
     // ── generateCertificate ───────────────────────────────────────────────────
 
-    private static function generateCertificate(array $context): void
+    public static function generateCertificate(array $context): void
     {
         self::requireDoctorAuth();
         $payload = require_json_body();
@@ -890,7 +890,7 @@ final class OpenclawController
         ]);
     }
 
-    private static function getCertificatePdf(array $context): void
+    public static function getCertificatePdf(array $context): void
     {
         self::requireAuth();
 
@@ -933,7 +933,7 @@ final class OpenclawController
 
     // ── checkInteractions ────────────────────────────────────────────────────
 
-    private static function checkInteractions(array $context): void
+    public static function checkInteractions(array $context): void
     {
         self::requireAuth();
         $payload = require_json_body();
@@ -1275,7 +1275,7 @@ final class OpenclawController
 
     // ── summarizeSession ─────────────────────────────────────────────────────
 
-    private static function summarizeSession(array $context): void
+    public static function summarizeSession(array $context): void
     {
         self::requireAuth();
         $payload     = require_json_body();
@@ -1344,7 +1344,7 @@ final class OpenclawController
         ]);
     }
 
-    private static function closeTelemedicine(array $context): void
+    public static function closeTelemedicine(array $context): void
     {
         self::requireDoctorAuth();
         $payload     = require_json_body();
@@ -1487,7 +1487,7 @@ final class OpenclawController
 
     // ── routerStatus ─────────────────────────────────────────────────────────
 
-    private static function routerStatus(array $context): void
+    public static function routerStatus(array $context): void
     {
         self::requireAuth();
         $router = new OpenclawAIRouter();
@@ -1579,12 +1579,12 @@ final class OpenclawController
 
     // ── Utilities ─────────────────────────────────────────────────────────────
 
-    private static function requireAuth(): void
+    public static function requireAuth(): void
     {
         require_admin_auth();
     }
 
-    private static function requireDoctorAuth(): void
+    public static function requireDoctorAuth(): void
     {
         require_doctor_auth();
     }
@@ -1594,7 +1594,7 @@ final class OpenclawController
      * Produces a minimal valid PDF wrapping the HTML content as plain text.
      * NOT a substitute for dompdf — install vendor/dompdf for production.
      */
-    private static function buildFallbackPdf(string $html): string
+    public static function buildFallbackPdf(string $html): string
     {
         // Strip HTML tags to extract readable text
         $text = html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>', '</div>', '</tr>'], "\n", $html)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1626,7 +1626,7 @@ final class OpenclawController
         return $output;
     }
 
-    private static function buildCertificatePdfHtml(array $certificate, array $patient): string
+    public static function buildCertificatePdfHtml(array $certificate, array $patient): string
     {
         $issuedDate = (new DateTimeImmutable('now', new DateTimeZone('America/Guayaquil')))->format('d/m/Y H:i');
         $issuedAt = trim((string) ($certificate['issued_at'] ?? ''));
@@ -1735,17 +1735,17 @@ final class OpenclawController
 </html>";
     }
 
-    private static function readStore(): array
+    public static function readStore(): array
     {
         return read_store();
     }
 
-    private static function mutateStore(callable $fn): array
+    public static function mutateStore(callable $fn): array
     {
         return mutate_store($fn);
     }
 
-    private static function calculateAge(string $birthDate): ?int
+    public static function calculateAge(string $birthDate): ?int
     {
         if ($birthDate === '') return null;
         try {
@@ -1757,7 +1757,7 @@ final class OpenclawController
         }
     }
 
-    private static function normalizePrescriptionItemsPayload(array $medications): array
+    public static function normalizePrescriptionItemsPayload(array $medications): array
     {
         require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryRepository.php';
 
@@ -1785,7 +1785,7 @@ final class OpenclawController
         return ClinicalHistoryRepository::normalizePrescriptionItems($items);
     }
 
-    private static function normalizeMedicationNameList($medications): array
+    public static function normalizeMedicationNameList($medications): array
     {
         if (!is_array($medications)) {
             return [];
@@ -1811,7 +1811,7 @@ final class OpenclawController
         return array_values(array_unique($normalized));
     }
 
-    private static function resolveActiveMedicationsForCase(string $caseId): array
+    public static function resolveActiveMedicationsForCase(string $caseId): array
     {
         try {
             require_once __DIR__ . '/../lib/PatientCaseService.php';
@@ -1855,14 +1855,14 @@ final class OpenclawController
         return [];
     }
 
-    private static function normalizeMedicationKey(string $value): string
+    public static function normalizeMedicationKey(string $value): string
     {
         $normalized = strtolower(trim($value));
         $normalized = preg_replace('/[^a-z0-9]+/i', ' ', $normalized) ?? '';
         return trim((string) $normalized);
     }
 
-    private static function medicationMatchesInteraction(string $medication, string $interactionDrug): bool
+    public static function medicationMatchesInteraction(string $medication, string $interactionDrug): bool
     {
         if ($medication === '' || $interactionDrug === '') {
             return false;
@@ -1886,7 +1886,7 @@ final class OpenclawController
             || in_array($medicationTokens[0], $interactionTokens, true);
     }
 
-    private static function genericProtocol(string $code): array
+    public static function genericProtocol(string $code): array
     {
         $prefix = substr($code, 0, 1);
 
@@ -1953,7 +1953,7 @@ final class OpenclawController
      *
      * Respuesta: { ok, closed_at, diagnosis_saved, evolution_id, stage }
      */
-    private static function fastClose(array $context): void
+    public static function fastClose(array $context): void
     {
         self::requireAuth();
         $payload = require_json_body();
@@ -2058,7 +2058,7 @@ final class OpenclawController
      *
      * outcome: 'accepted_as_is' | 'edited' | 'rejected' | 'manual'
      */
-    private static function logClinicalAiAction(array $event): void
+    public static function logClinicalAiAction(array $event): void
     {
         try {
             $logPath = __DIR__ . '/../data/clinical_ai_actions.jsonl';

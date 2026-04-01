@@ -11,7 +11,7 @@ class ReferralController
      * Endpoint: GET /api.php?resource=referral-link&patient_id=X
      * Devuelve el código único asignado al paciente.
      */
-    private static function getLink(): void
+    public static function getLink(): void
     {
         // En un escenario productivo esto probablemente requiera sesión,
         // pero por ahora dependemos del parámetro crudo `patient_id`.
@@ -46,7 +46,7 @@ class ReferralController
      * Payload: { "code": "REF-XXXX" }
      * Invocado de manera transparente por el frontend público al detectar el ID.
      */
-    private static function trackClick(): void
+    public static function trackClick(): void
     {
         $inputData = file_get_contents('php://input');
         $payload = json_decode($inputData, true);
@@ -71,7 +71,7 @@ class ReferralController
      * Endpoint: GET /api.php?resource=referral-stats&patient_id=X
      * Devuelve los contadores de referidos (clics, conversiones, beneficio ganado y util).
      */
-    private static function getStats(): void
+    public static function getStats(): void
     {
         $patientId = $_GET['patient_id'] ?? null;
         if (!$patientId) {

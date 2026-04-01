@@ -11,7 +11,7 @@ class GiftCardController
     /**
      * POST /api.php?resource=gift-card-issue
      */
-    private static function issue(): void
+    public static function issue(): void
     {
         // Enforce administrative authentication for issuance
         requireAuth();
@@ -56,7 +56,7 @@ class GiftCardController
     /**
      * POST /api.php?resource=gift-card-redeem
      */
-    private static function redeem(): void
+    public static function redeem(): void
     {
         requireAuth();
 
@@ -90,7 +90,7 @@ class GiftCardController
     /**
      * GET /api.php?resource=gift-card-validate&code=XXX
      */
-    private static function validate(): void
+    public static function validate(): void
     {
         $code = $_GET['code'] ?? null;
         if (!$code) {
@@ -118,7 +118,7 @@ class GiftCardController
     /**
      * GET /api.php?resource=gift-cards-expiring
      */
-    private static function expiring(): void
+    public static function expiring(): void
     {
         requireAuth();
         

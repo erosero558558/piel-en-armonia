@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/DataAccessAudit.php';
 
 class PatientDataExportController
 {
-    private static function process(array $request): array
+    public static function process(array $request): array
     {
         $method = strtoupper((string)($request['method'] ?? 'GET'));
         if ($method !== 'GET') {

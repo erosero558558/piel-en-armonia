@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 final class CaseMediaFlowController
 {
-    private static function queue(array $context): void
+    public static function queue(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -30,7 +30,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    private static function caseGet(array $context): void
+    public static function caseGet(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -46,7 +46,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    private static function proposalGenerate(array $context): void
+    public static function proposalGenerate(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -65,7 +65,7 @@ final class CaseMediaFlowController
         ], 201);
     }
 
-    private static function proposalReview(array $context): void
+    public static function proposalReview(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -85,7 +85,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    private static function publicationState(array $context): void
+    public static function publicationState(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -104,7 +104,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    private static function privateAsset(array $context): void
+    public static function privateAsset(array $context): void
     {
         self::requireAdmin($context);
         self::requireClinicalStorageReady([
@@ -117,7 +117,7 @@ final class CaseMediaFlowController
         self::streamFile($asset);
     }
 
-    private static function publicStories(array $context): void
+    public static function publicStories(array $context): void
     {
         $locale = trim((string) ($_GET['locale'] ?? 'es'));
         json_response([
@@ -129,7 +129,7 @@ final class CaseMediaFlowController
         ]);
     }
 
-    private static function publicMediaFile(array $context): void
+    public static function publicMediaFile(array $context): void
     {
         $asset = CaseMediaFlowService::resolvePublicMediaFile($_GET);
         self::streamFile($asset);
@@ -138,7 +138,7 @@ final class CaseMediaFlowController
     /**
      * @param array<string,mixed> $asset
      */
-    private static function streamFile(array $asset): void
+    public static function streamFile(array $asset): void
     {
         $path = (string) ($asset['path'] ?? '');
         if ($path === '' || !is_file($path)) {
@@ -155,7 +155,7 @@ final class CaseMediaFlowController
         readfile($path);
     }
 
-    private static function requireAdmin(array $context): void
+    public static function requireAdmin(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
@@ -165,7 +165,7 @@ final class CaseMediaFlowController
     /**
      * @param array<string,mixed> $data
      */
-    private static function requireClinicalStorageReady(array $data): void
+    public static function requireClinicalStorageReady(array $data): void
     {
         $readiness = function_exists('internal_console_readiness_snapshot')
             ? internal_console_readiness_snapshot()

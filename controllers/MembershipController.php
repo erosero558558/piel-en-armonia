@@ -20,7 +20,7 @@ final class MembershipController
 {
     // ── S17-07: Membership status ─────────────────────────────────
 
-    private static function status(array $context): void
+    public static function status(array $context): void
     {
         $store     = is_array($context['store'] ?? null) ? $context['store'] : [];
         $patientId = trim((string) ($_GET['patient_id'] ?? ''));
@@ -73,7 +73,7 @@ final class MembershipController
 
     // ── S17-06: Issue / renew membership ─────────────────────────
 
-    private static function issue(array $context): void
+    public static function issue(array $context): void
     {
         require_admin_auth();
 
@@ -106,7 +106,7 @@ final class MembershipController
 
     // ── S17-08: Package balance ────────────────────────────────────
 
-    private static function packageBalance(array $context): void
+    public static function packageBalance(array $context): void
     {
         $store     = is_array($context['store'] ?? null) ? $context['store'] : [];
         $patientId = trim((string) ($_GET['patient_id'] ?? ''));
@@ -130,7 +130,7 @@ final class MembershipController
 
     // ── S17-08: Activate package ──────────────────────────────────
 
-    private static function activatePackage(array $context): void
+    public static function activatePackage(array $context): void
     {
         require_admin_auth();
 
@@ -167,7 +167,7 @@ final class MembershipController
 
     // ── S17-08: Consume session ────────────────────────────────────
 
-    private static function consumeSession(array $context): void
+    public static function consumeSession(array $context): void
     {
         require_admin_auth();
 
@@ -202,7 +202,7 @@ final class MembershipController
 
     // ── Helper: enforce admin auth ────────────────────────────────
 
-    private static function requireAdminAuth(): void
+    public static function requireAdminAuth(): void
     {
         if (function_exists('require_admin_auth')) {
             require_admin_auth();

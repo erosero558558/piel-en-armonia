@@ -8,7 +8,7 @@ require_once __DIR__ . '/../lib/TicketPrinter.php';
 
 class QueueController
 {
-    private static function state(array $context): void
+    public static function state(array $context): void
     {
         $service = new QueueService();
         $state = $service->getQueueState($context['store'] ?? []);
@@ -18,7 +18,7 @@ class QueueController
         ]);
     }
 
-    private static function publicTicket(array $context): void
+    public static function publicTicket(array $context): void
     {
         $ticketCode = trim((string) (
             $_GET['ticket']
@@ -38,7 +38,7 @@ class QueueController
         ]);
     }
 
-    private static function checkin(array $context): void
+    public static function checkin(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -69,7 +69,7 @@ class QueueController
         ], (bool) ($result['replay'] ?? false) ? 200 : 201);
     }
 
-    private static function ticket(array $context): void
+    public static function ticket(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -97,7 +97,7 @@ class QueueController
         ], 201);
     }
 
-    private static function helpRequest(array $context): void
+    public static function helpRequest(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -121,7 +121,7 @@ class QueueController
         ], (bool) ($result['replay'] ?? false) ? 200 : 201);
     }
 
-    private static function callNext(array $context): void
+    public static function callNext(array $context): void
     {
         $payload = require_json_body();
         $consultorio = isset($payload['consultorio']) ? (int) $payload['consultorio'] : (isset($payload['room']) ? (int) $payload['room'] : 0);
@@ -145,7 +145,7 @@ class QueueController
         ]);
     }
 
-    private static function patchTicket(array $context): void
+    public static function patchTicket(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -168,7 +168,7 @@ class QueueController
         ]);
     }
 
-    private static function patchHelpRequest(array $context): void
+    public static function patchHelpRequest(array $context): void
     {
         $payload = require_json_body();
         $service = new QueueService();
@@ -191,7 +191,7 @@ class QueueController
         ]);
     }
 
-    private static function reprint(array $context): void
+    public static function reprint(array $context): void
     {
         $payload = require_json_body();
         $ticketId = isset($payload['id']) ? (int) $payload['id'] : 0;
@@ -230,7 +230,7 @@ class QueueController
         ], $statusCode);
     }
 
-    private static function surfaceHeartbeat(array $context): void
+    public static function surfaceHeartbeat(array $context): void
     {
         $payload = require_json_body();
         $record = QueueSurfaceStatusStore::writeHeartbeat(
@@ -246,7 +246,7 @@ class QueueController
     /**
      * @return array
      */
-    private static function mutateStore(callable $mutation): array
+    public static function mutateStore(callable $mutation): array
     {
         $lockResult = with_store_lock(static function () use ($mutation): array {
             $store = read_store();
@@ -291,7 +291,7 @@ class QueueController
         return $result;
     }
 
-    private static function emitError(array $result): void
+    public static function emitError(array $result): void
     {
         json_response([
             'ok' => false,

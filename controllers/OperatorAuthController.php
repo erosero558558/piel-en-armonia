@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/calendar/CalendarOAuthReauth.php';
 
 class OperatorAuthController
 {
-    private static function redirectOperatorAuthResult(array $result): void
+    public static function redirectOperatorAuthResult(array $result): void
     {
         $location = operator_auth_sanitize_return_to(
             (string) ($result['redirectTo'] ?? '/admin.html'),
@@ -26,7 +26,7 @@ class OperatorAuthController
         exit();
     }
 
-    private static function start(array $context = []): void
+    public static function start(array $context = []): void
     {
         start_secure_session();
         require_csrf();
@@ -46,7 +46,7 @@ class OperatorAuthController
         json_response($payload, $status);
     }
 
-    private static function status(array $context = []): void
+    public static function status(array $context = []): void
     {
         start_secure_session();
 
@@ -54,7 +54,7 @@ class OperatorAuthController
         json_response($payload);
     }
 
-    private static function complete(array $context = []): void
+    public static function complete(array $context = []): void
     {
         operator_auth_require_bridge_token();
         $result = operator_auth_complete_from_bridge(require_json_body());
@@ -63,7 +63,7 @@ class OperatorAuthController
         json_response($payload, $status);
     }
 
-    private static function logout(array $context = []): void
+    public static function logout(array $context = []): void
     {
         start_secure_session();
         require_csrf();

@@ -49,7 +49,7 @@ class MetricsController
     /**
      * Calculate revenue by date from appointments
      */
-    private static function calculateRevenueByDate(array $store): array
+    public static function calculateRevenueByDate(array $store): array
     {
         $revenueByDate = [];
         foreach ($store['appointments'] as $appt) {
@@ -71,7 +71,7 @@ class MetricsController
     /**
      * Calculate appointment statistics
      */
-    private static function calculateAppointmentStats(array $store): array
+    public static function calculateAppointmentStats(array $store): array
     {
         $stats = ['confirmed' => 0, 'no_show' => 0, 'completed' => 0, 'cancelled' => 0];
         foreach ($store['appointments'] as $appt) {
@@ -89,7 +89,7 @@ class MetricsController
     /**
      * Calculate service popularity
      */
-    private static function calculateServicePopularity(array $store): array
+    public static function calculateServicePopularity(array $store): array
     {
         $serviceCounts = [];
         foreach ($store['appointments'] as $appt) {
@@ -108,7 +108,7 @@ class MetricsController
     /**
      * Calculate average lead time (booking to appointment)
      */
-    private static function calculateAverageLeadTime(array $store): ?float
+    public static function calculateAverageLeadTime(array $store): ?float
     {
         $leadTimes = [];
         $now = time();
@@ -140,7 +140,7 @@ class MetricsController
     /**
      * Output revenue metrics
      */
-    private static function outputRevenueMetrics(array $revenueByDate): void
+    public static function outputRevenueMetrics(array $revenueByDate): void
     {
         foreach ($revenueByDate as $date => $amount) {
             echo app_prometheus_render_metric('gauge', 'auroraderm_revenue_daily_total{date="' . $date . '"}', (string) $amount);
@@ -150,7 +150,7 @@ class MetricsController
     /**
      * Output appointment metrics
      */
-    private static function outputAppointmentMetrics(array $stats): void
+    public static function outputAppointmentMetrics(array $stats): void
     {
         foreach ($stats as $st => $count) {
             echo app_prometheus_render_metric('gauge', 'auroraderm_appointments_total{status="' . $st . '"}', (string) $count);
@@ -160,7 +160,7 @@ class MetricsController
     /**
      * Output service popularity metrics
      */
-    private static function outputServiceMetrics(array $serviceCounts): void
+    public static function outputServiceMetrics(array $serviceCounts): void
     {
         foreach ($serviceCounts as $svc => $count) {
             echo app_prometheus_render_metric('gauge', 'auroraderm_service_popularity_total{service="' . $svc . '"}', (string) $count);
@@ -170,7 +170,7 @@ class MetricsController
     /**
      * Output no-show rate
      */
-    private static function outputNoShowRate(array $stats): void
+    public static function outputNoShowRate(array $stats): void
     {
         $totalValid = $stats['confirmed'] + $stats['no_show'] + $stats['completed'];
         $rate = $totalValid > 0 ? ($stats['no_show'] / $totalValid) : 0;
@@ -180,7 +180,7 @@ class MetricsController
     /**
      * Output store file size
      */
-    private static function outputStoreSize(): void
+    public static function outputStoreSize(): void
     {
         $storeSize = @filesize(data_file_path());
         if ($storeSize !== false) {
@@ -191,7 +191,7 @@ class MetricsController
     /**
      * Output lead time metric
      */
-    private static function outputLeadTime(?float $avgLead): void
+    public static function outputLeadTime(?float $avgLead): void
     {
         if ($avgLead !== null) {
             echo app_prometheus_render_metric('gauge', 'auroraderm_lead_time_seconds_avg', (string) $avgLead) . "\n";

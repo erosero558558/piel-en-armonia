@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 6:33:42 p. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 6:34:37 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████████████████░░` **88%** completado (615/696)
+`██████████████████░░` **89%** completado (616/696)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -18,7 +18,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 4 | 26 | 0 | 100% |
 | ✅ Sprint 5 | 22 | 0 | 100% |
 | ✅ Sprint 6 | 25 | 0 | 100% |
-| ⏸ Sprint 7 | 15 | 22 | 41% |
+| ⏸ Sprint 7 | 16 | 21 | 43% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ⏸ Sprint UI | 0 | 0 | 0% |
@@ -63,18 +63,22 @@ _Sprint completado. 22/22 tareas._
 _Sprint completado. 25/25 tareas._
 
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
-_Esperando que Sprint anterior esté completo. 22 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 21 tareas pendientes._
 
-### 🟢 Disponibles (22)
+### 🟢 Disponibles (20)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S7-07** | `[S7]` | M |
-| **S7-09** | `[S7]` | S |
 | **S7-11** | `[S7]` | L |
 | **S7-12** | `[S7]` | M |
 | **S7-13** | `[S7]` | S |
-| ... | | _+17 más_ |
+| **S7-14** | `[S7]` | M |
+| **S7-15** | `[S7]` | M |
+| ... | | _+15 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S7-07** `[S7]` → _codex_ (expira en 239min)
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._
@@ -184,7 +188,7 @@ _Esperando que Sprint anterior esté completo. 8 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S35-07** `[S35]` → _Antigravity_ (expira en 120min)
+- **S35-07** `[S35]` → _Antigravity_ (expira en 119min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

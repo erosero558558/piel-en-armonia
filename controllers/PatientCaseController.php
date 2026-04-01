@@ -12,7 +12,7 @@ require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
 
 class PatientCaseController
 {
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         $service = new PatientCaseService();
         $caseId = trim((string) ($_GET['caseId'] ?? ($_GET['case_id'] ?? '')));
@@ -93,7 +93,7 @@ class PatientCaseController
         json_response(['ok' => true, 'data' => $filtered]);
     }
 
-    private static function store(array $context): void
+    public static function store(array $context): void
     {
         require_rate_limit('public-preconsultation', 4, 60);
 
@@ -359,7 +359,7 @@ class PatientCaseController
         ], 201);
     }
 
-    private static function resolveTenantId(array $store): string
+    public static function resolveTenantId(array $store): string
     {
         foreach (['patient_cases', 'callbacks', 'appointments'] as $key) {
             $records = isset($store[$key]) && is_array($store[$key]) ? $store[$key] : [];
@@ -377,7 +377,7 @@ class PatientCaseController
         return get_current_tenant_id();
     }
 
-    private static function findReusableOpenCaseIndex(array $store, string $tenantId, string $patientId): ?int
+    public static function findReusableOpenCaseIndex(array $store, string $tenantId, string $patientId): ?int
     {
         $cases = isset($store['patient_cases']) && is_array($store['patient_cases']) ? array_values($store['patient_cases']) : [];
         foreach ($cases as $index => $case) {
@@ -402,7 +402,7 @@ class PatientCaseController
         return null;
     }
 
-    private static function findCaseIndexById(array $store, string $caseId): ?int
+    public static function findCaseIndexById(array $store, string $caseId): ?int
     {
         $cases = isset($store['patient_cases']) && is_array($store['patient_cases']) ? array_values($store['patient_cases']) : [];
         foreach ($cases as $index => $case) {
@@ -414,7 +414,7 @@ class PatientCaseController
         return null;
     }
 
-    private static function buildPatientId(string $tenantId, string $whatsapp): string
+    public static function buildPatientId(string $tenantId, string $whatsapp): string
     {
         $digits = preg_replace('/\D+/', '', $whatsapp);
         $identity = is_string($digits) && $digits !== ''
@@ -424,14 +424,14 @@ class PatientCaseController
         return self::buildEntityId('pt', [$tenantId, 'callback-patient', $identity]);
     }
 
-    private static function buildEntityId(string $prefix, array $parts): string
+    public static function buildEntityId(string $prefix, array $parts): string
     {
         return strtolower($prefix) . '-' . substr(hash('sha256', implode('|', array_map(static function ($value): string {
             return trim((string) $value);
         }, $parts))), 0, 16);
     }
 
-    private static function normalizeSkinType(string $value): string
+    public static function normalizeSkinType(string $value): string
     {
         $normalized = strtolower(trim($value));
         $allowed = [
@@ -451,7 +451,7 @@ class PatientCaseController
         return truncate_field(sanitize_xss($normalized), 40);
     }
 
-    private static function buildCallbackPreference(string $name, string $skinType, string $condition, int $photoCount): string
+    public static function buildCallbackPreference(string $name, string $skinType, string $condition, int $photoCount): string
     {
         $photoLabel = $photoCount > 0
             ? sprintf('%d foto%s adjunta%s', $photoCount, $photoCount === 1 ? '' : 's', $photoCount === 1 ? '' : 's')
@@ -469,7 +469,7 @@ class PatientCaseController
         );
     }
 
-    private static function requireClinicalStorageReady(array $data): void
+    public static function requireClinicalStorageReady(array $data): void
     {
         $readiness = function_exists('internal_console_readiness_snapshot')
             ? internal_console_readiness_snapshot()

@@ -12,7 +12,7 @@ require_once __DIR__ . '/../lib/analytics/RetentionReportService.php';
 
 class AnalyticsController
 {
-    private static function recordEvent(array $context): void
+    public static function recordEvent(array $context): void
     {
         require_rate_limit('funnel-event', 120, 60);
 
@@ -37,7 +37,7 @@ class AnalyticsController
         ], 202);
     }
 
-    private static function getFunnelMetrics(array $context): void
+    public static function getFunnelMetrics(array $context): void
     {
         json_response([
             'ok' => true,
@@ -45,7 +45,7 @@ class AnalyticsController
         ]);
     }
 
-    private static function getBookingFunnelReport(array $context): void
+    public static function getBookingFunnelReport(array $context): void
     {
         json_response([
             'ok' => true,
@@ -53,7 +53,7 @@ class AnalyticsController
         ]);
     }
 
-    private static function getRetentionReport(array $context): void
+    public static function getRetentionReport(array $context): void
     {
         try {
             $params = RetentionReportService::resolveParamsFromQuery($_GET);
@@ -93,7 +93,7 @@ class AnalyticsController
         return FunnelMetricsService::buildBookingFunnelReport($context);
     }
 
-    private static function respondRetentionCsv(array $data): void
+    public static function respondRetentionCsv(array $data): void
     {
         $csv = RetentionCsvExporter::build($data);
 

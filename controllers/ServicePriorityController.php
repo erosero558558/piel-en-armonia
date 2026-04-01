@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/ServiceCatalog.php';
 
 class ServicePriorityController
 {
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         $catalog = self::loadCatalog();
         $params = self::resolveParams();
@@ -90,7 +90,7 @@ class ServicePriorityController
     /**
      * @return array{source:string,version:string,timezone:string,services:array<int,mixed>}
      */
-    private static function loadCatalog(): array
+    public static function loadCatalog(): array
     {
         $catalog = load_service_catalog_payload();
 
@@ -106,7 +106,7 @@ class ServicePriorityController
      * @param array<int,mixed> $services
      * @return array<int,array<string,mixed>>
      */
-    private static function normalizeServices(array $services): array
+    public static function normalizeServices(array $services): array
     {
         $normalized = [];
         foreach ($services as $item) {
@@ -142,7 +142,7 @@ class ServicePriorityController
     /**
      * @return array{map:array<string,array<string,int|float>>,hasSignals:bool}
      */
-    private static function loadFunnelSignals(array $context): array
+    public static function loadFunnelSignals(array $context): array
     {
         $map = [];
         $hasSignals = false;
@@ -193,7 +193,7 @@ class ServicePriorityController
      * @param array<string,int|float> $signal
      * @return array<string,mixed>
      */
-    private static function buildServiceRankRow(array $service, array $signal, string $sortMode, string $audienceFilter): array
+    public static function buildServiceRankRow(array $service, array $signal, string $sortMode, string $audienceFilter): array
     {
         $baseWeight = self::resolveCategoryBaseWeight((string) ($service['category'] ?? ''));
         $audienceBoost = self::resolveAudienceBoost((array) ($service['audience'] ?? []), $audienceFilter);
@@ -244,7 +244,7 @@ class ServicePriorityController
      * @param array<int,array<string,mixed>> $rankedServices
      * @return array<int,array<string,mixed>>
      */
-    private static function buildCategoryRows(array $rankedServices, int $categoryLimit): array
+    public static function buildCategoryRows(array $rankedServices, int $categoryLimit): array
     {
         $grouped = [];
         foreach ($rankedServices as $service) {
@@ -307,7 +307,7 @@ class ServicePriorityController
     /**
      * @return array{category:string,audience:string,sort:string,limit:int,categoryLimit:int,featuredLimit:int}
      */
-    private static function resolveParams(): array
+    public static function resolveParams(): array
     {
         $category = self::normalizeToken($_GET['category'] ?? '');
         $audience = self::normalizeAudienceToken($_GET['audience'] ?? '');
@@ -350,7 +350,7 @@ class ServicePriorityController
         ];
     }
 
-    private static function resolvePrioritySource(string $catalogSource, bool $hasSignals): string
+    public static function resolvePrioritySource(string $catalogSource, bool $hasSignals): string
     {
         if ($catalogSource !== 'file') {
             return $catalogSource;
@@ -358,7 +358,7 @@ class ServicePriorityController
         return $hasSignals ? 'catalog+funnel' : 'catalog_only';
     }
 
-    private static function resolveCategoryBaseWeight(string $category): float
+    public static function resolveCategoryBaseWeight(string $category): float
     {
         if (str_contains($category, 'pediatric') || str_contains($category, 'ninos') || str_contains($category, 'children')) {
             return 40.0;
@@ -378,7 +378,7 @@ class ServicePriorityController
     /**
      * @param array<int,string> $audience
      */
-    private static function resolveAudienceBoost(array $audience, string $audienceFilter): float
+    public static function resolveAudienceBoost(array $audience, string $audienceFilter): float
     {
         $boost = 0.0;
         if ($audienceFilter !== '' && in_array($audienceFilter, $audience, true)) {
@@ -399,7 +399,7 @@ class ServicePriorityController
     /**
      * @param array<string,int|float> $signal
      */
-    private static function resolveVolumeScore(array $signal): float
+    public static function resolveVolumeScore(array $signal): float
     {
         return
             ((float) ($signal['detailViews'] ?? 0) * 0.15) +
@@ -411,7 +411,7 @@ class ServicePriorityController
     /**
      * @param array<string,int|float> $signal
      */
-    private static function resolveConversionScore(array $signal): float
+    public static function resolveConversionScore(array $signal): float
     {
         return
             ((float) ($signal['intentToCheckoutPct'] ?? 0.0) * 1.0) +
@@ -422,7 +422,7 @@ class ServicePriorityController
     /**
      * @return array{detailViews:int,bookingIntent:int,checkoutStarts:int,bookingConfirmed:int,intentToCheckoutPct:float,checkoutToConfirmedPct:float,detailToConfirmedPct:float}
      */
-    private static function emptySignal(): array
+    public static function emptySignal(): array
     {
         return [
             'detailViews' => 0,
@@ -435,7 +435,7 @@ class ServicePriorityController
         ];
     }
 
-    private static function normalizeToken(mixed $value): string
+    public static function normalizeToken(mixed $value): string
     {
         if (!is_string($value)) {
             return '';
@@ -447,7 +447,7 @@ class ServicePriorityController
         return preg_replace('/\s+/', '-', $normalized) ?? '';
     }
 
-    private static function normalizeMetricToken(mixed $value): string
+    public static function normalizeMetricToken(mixed $value): string
     {
         if (!is_string($value)) {
             return '';
@@ -464,7 +464,7 @@ class ServicePriorityController
      * @param mixed $values
      * @return array<int,string>
      */
-    private static function normalizeTokenList(mixed $values): array
+    public static function normalizeTokenList(mixed $values): array
     {
         if (!is_array($values)) {
             return [];
@@ -484,7 +484,7 @@ class ServicePriorityController
      * @param mixed $values
      * @return array<int,string>
      */
-    private static function normalizeAudienceList(mixed $values): array
+    public static function normalizeAudienceList(mixed $values): array
     {
         if (!is_array($values)) {
             return [];
@@ -500,7 +500,7 @@ class ServicePriorityController
         return array_keys($normalized);
     }
 
-    private static function normalizeAudienceToken(mixed $value): string
+    public static function normalizeAudienceToken(mixed $value): string
     {
         $token = self::normalizeToken($value);
         if ($token === '') {
@@ -523,7 +523,7 @@ class ServicePriorityController
         return $token;
     }
 
-    private static function toLower(string $value): string
+    public static function toLower(string $value): string
     {
         if (function_exists('mb_strtolower')) {
             return mb_strtolower($value, 'UTF-8');

@@ -18,7 +18,7 @@ final class TelemedicinePublicController
     private const PHOTO_MAX_COUNT = 3;
     private const PHOTO_MAX_BYTES = 5242880;
 
-    private static function preConsultation(array $context): void
+    public static function preConsultation(array $context): void
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
         $access = self::resolveAccess($store);
@@ -34,7 +34,7 @@ final class TelemedicinePublicController
         ]);
     }
 
-    private static function submitPreConsultation(array $context): void
+    public static function submitPreConsultation(array $context): void
     {
         self::requireClinicalStorageReady(
             'telemedicine_preconsultation',
@@ -203,7 +203,7 @@ final class TelemedicinePublicController
         ]);
     }
 
-    private static function resolveAccess(array $store, bool $allowPostBody = false): array
+    public static function resolveAccess(array $store, bool $allowPostBody = false): array
     {
         $token = trim((string) ($_GET['token'] ?? ($allowPostBody ? ($_POST['token'] ?? '') : '')));
         if ($token !== '') {
@@ -267,7 +267,7 @@ final class TelemedicinePublicController
         ];
     }
 
-    private static function buildResponsePayload(
+    public static function buildResponsePayload(
         array $appointment,
         array $store,
         string $token = '',
@@ -296,7 +296,7 @@ final class TelemedicinePublicController
         ];
     }
 
-    private static function buildAppointmentViewModel(array $appointment): array
+    public static function buildAppointmentViewModel(array $appointment): array
     {
         $doctorName = self::formatDoctorName(
             (string) ($appointment['doctorAssigned'] ?? ''),
@@ -329,7 +329,7 @@ final class TelemedicinePublicController
         ];
     }
 
-    private static function buildRoomUrl(int $appointmentId, string $token): string
+    public static function buildRoomUrl(int $appointmentId, string $token): string
     {
         if ($token !== '') {
             return '/es/telemedicina/sala/index.html?token=' . rawurlencode($token);
@@ -341,7 +341,7 @@ final class TelemedicinePublicController
         return '/es/telemedicina/sala/index.html';
     }
 
-    private static function buildPreConsultationUrl(int $appointmentId, string $token): string
+    public static function buildPreConsultationUrl(int $appointmentId, string $token): string
     {
         if ($token !== '') {
             return '/es/telemedicina/pre-consulta/?token=' . rawurlencode($token);
@@ -353,7 +353,7 @@ final class TelemedicinePublicController
         return '/es/telemedicina/pre-consulta/';
     }
 
-    private static function buildSupportWhatsappUrl(array $appointment): string
+    public static function buildSupportWhatsappUrl(array $appointment): string
     {
         $digits = preg_replace('/\D+/', '', AppConfig::WHATSAPP_NUMBER);
         if (!is_string($digits) || $digits === '') {
@@ -375,7 +375,7 @@ final class TelemedicinePublicController
         return 'https://wa.me/' . $digits . '?text=' . rawurlencode(implode(' ', $parts));
     }
 
-    private static function requirePortalSession(array $store): array
+    public static function requirePortalSession(array $store): array
     {
         $token = PatientPortalAuth::bearerTokenFromRequest();
         $auth = PatientPortalAuth::authenticateSession($store, $token);
@@ -390,7 +390,7 @@ final class TelemedicinePublicController
         ], (int) ($auth['status'] ?? 401));
     }
 
-    private static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
+    public static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
     {
         $readiness = internal_console_readiness_snapshot();
         if (internal_console_clinical_data_ready($readiness)) {
@@ -408,7 +408,7 @@ final class TelemedicinePublicController
         json_response($payload, 409);
     }
 
-    private static function normalizePhotoUploads($rawFiles): array
+    public static function normalizePhotoUploads($rawFiles): array
     {
         if (!is_array($rawFiles) || !isset($rawFiles['tmp_name'])) {
             return [];
@@ -435,7 +435,7 @@ final class TelemedicinePublicController
         }));
     }
 
-    private static function storeClinicalPhoto(
+    public static function storeClinicalPhoto(
         array $file,
         array $appointment,
         string $tenantId,
@@ -519,7 +519,7 @@ final class TelemedicinePublicController
         ];
     }
 
-    private static function cleanupStoredPhotos(array $uploads): void
+    public static function cleanupStoredPhotos(array $uploads): void
     {
         foreach ($uploads as $upload) {
             $privatePath = trim((string) ($upload['privatePath'] ?? ''));
@@ -534,7 +534,7 @@ final class TelemedicinePublicController
         }
     }
 
-    private static function moveUploadedFile(string $tmpName, string $targetPath): bool
+    public static function moveUploadedFile(string $tmpName, string $targetPath): bool
     {
         if (@move_uploaded_file($tmpName, $targetPath)) {
             return true;
@@ -547,7 +547,7 @@ final class TelemedicinePublicController
         return false;
     }
 
-    private static function nextClinicalUploadId(array $store): int
+    public static function nextClinicalUploadId(array $store): int
     {
         $max = 0;
         foreach (($store['clinical_uploads'] ?? []) as $upload) {
@@ -557,7 +557,7 @@ final class TelemedicinePublicController
         return $max + 1;
     }
 
-    private static function findAppointmentById(array $store, int $appointmentId): ?array
+    public static function findAppointmentById(array $store, int $appointmentId): ?array
     {
         foreach (($store['appointments'] ?? []) as $appointment) {
             if (is_array($appointment) && (int) ($appointment['id'] ?? 0) === $appointmentId) {
@@ -568,7 +568,7 @@ final class TelemedicinePublicController
         return null;
     }
 
-    private static function findAppointmentByRescheduleToken(array $store, string $token): ?array
+    public static function findAppointmentByRescheduleToken(array $store, string $token): ?array
     {
         $needle = trim($token);
         if ($needle === '') {
@@ -587,7 +587,7 @@ final class TelemedicinePublicController
         return null;
     }
 
-    private static function appointmentMatchesPatient(array $appointment, array $snapshot): bool
+    public static function appointmentMatchesPatient(array $appointment, array $snapshot): bool
     {
         $patientPhone = trim((string) ($snapshot['phone'] ?? ''));
         $appointmentPhone = trim((string) ($appointment['whatsapp'] ?? $appointment['phone'] ?? ''));
@@ -597,7 +597,7 @@ final class TelemedicinePublicController
             && PatientPortalAuth::matchesPatientPhone($appointmentPhone, $patientPhone);
     }
 
-    private static function formatDoctorName(string ...$candidates): string
+    public static function formatDoctorName(string ...$candidates): string
     {
         foreach ($candidates as $candidate) {
             $candidate = trim($candidate);

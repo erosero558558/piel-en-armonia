@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/DoctorProfileStore.php';
 
 final class DoctorProfileController
 {
-    private static function show(array $context): void
+    public static function show(array $context): void
     {
         require_admin_auth();
 
@@ -16,7 +16,7 @@ final class DoctorProfileController
         ]);
     }
 
-    private static function update(array $context): void
+    public static function update(array $context): void
     {
         require_admin_auth();
         require_csrf();

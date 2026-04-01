@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/PatientCaseService.php';
 
 class CallbackController
 {
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         // GET /callbacks (Admin)
         $patientCaseService = new PatientCaseService();
@@ -17,7 +17,7 @@ class CallbackController
         ]);
     }
 
-    private static function store(array $context): void
+    public static function store(array $context): void
     {
         // POST /callbacks
         $store = $context['store'];
@@ -54,7 +54,7 @@ class CallbackController
         ], 201);
     }
 
-    private static function update(array $context): void
+    public static function update(array $context): void
     {
         // PATCH /callbacks (Admin)
         $store = $context['store'];
@@ -111,7 +111,7 @@ class CallbackController
         ]);
     }
 
-    private static function findCallbackById(array $store, int $callbackId): ?array
+    public static function findCallbackById(array $store, int $callbackId): ?array
     {
         if ($callbackId <= 0) {
             return null;

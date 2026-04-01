@@ -7,7 +7,7 @@ class AvailabilityController
     private const ALLOWED_DOCTORS = ['rosero', 'narvaez', 'indiferente'];
     private const ALLOWED_SERVICES = ['consulta', 'telefono', 'video', 'acne', 'cancer', 'laser', 'rejuvenecimiento'];
 
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         // GET /availability
         $store = $context['store'];
@@ -85,7 +85,7 @@ class AvailabilityController
         ]);
     }
 
-    private static function update(array $context): void
+    public static function update(array $context): void
     {
         // POST /availability
         $availabilityService = CalendarAvailabilityService::fromEnv();
@@ -112,7 +112,7 @@ class AvailabilityController
         ]);
     }
 
-    private static function sanitizeAvailability(array $raw): array
+    public static function sanitizeAvailability(array $raw): array
     {
         $today = local_date('Y-m-d');
         $normalized = [];
@@ -151,7 +151,7 @@ class AvailabilityController
         return $normalized;
     }
 
-    private static function parseDoctorQuery($raw): array
+    public static function parseDoctorQuery($raw): array
     {
         if ($raw === null || trim((string) $raw) === '') {
             return ['ok' => true, 'value' => 'indiferente'];
@@ -163,7 +163,7 @@ class AvailabilityController
         return ['ok' => true, 'value' => $doctor];
     }
 
-    private static function parseServiceQuery($raw): array
+    public static function parseServiceQuery($raw): array
     {
         if ($raw === null || trim((string) $raw) === '') {
             return ['ok' => true, 'value' => 'consulta'];
@@ -175,7 +175,7 @@ class AvailabilityController
         return ['ok' => true, 'value' => $service];
     }
 
-    private static function parseDateFromQuery($raw): array
+    public static function parseDateFromQuery($raw): array
     {
         if ($raw === null || trim((string) $raw) === '') {
             return ['ok' => true, 'value' => local_date('Y-m-d')];
@@ -187,7 +187,7 @@ class AvailabilityController
         return ['ok' => true, 'value' => $dateFrom];
     }
 
-    private static function parseDaysQuery($raw): array
+    public static function parseDaysQuery($raw): array
     {
         if ($raw === null || trim((string) $raw) === '') {
             return ['ok' => true, 'value' => 21];

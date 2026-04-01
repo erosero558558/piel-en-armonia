@@ -10,7 +10,7 @@ class AppointmentController
     private const ALLOWED_DOCTORS = ['rosero', 'narvaez', 'indiferente'];
     private const ALLOWED_SERVICES = ['consulta', 'telefono', 'video', 'acne', 'cancer', 'laser', 'rejuvenecimiento'];
 
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         // GET /appointments (Admin)
         $store = $context['store'];
@@ -47,7 +47,7 @@ class AppointmentController
         ]);
     }
 
-    private static function checkin(array $context): void
+    public static function checkin(array $context): void
     {
         $payload = require_json_body();
         $token = trim((string) ($payload['token'] ?? ''));
@@ -112,7 +112,7 @@ class AppointmentController
         ]);
     }
 
-    private static function bookedSlots(array $context): void
+    public static function bookedSlots(array $context): void
     {
         // GET /booked-slots
         $store = $context['store'];
@@ -174,7 +174,7 @@ class AppointmentController
         ]);
     }
 
-    private static function store(array $context): void
+    public static function store(array $context): void
     {
         // POST /appointments
         // Ignoring $context['store'] to use fresh read inside lock
@@ -343,7 +343,7 @@ class AppointmentController
         ], $idempotentReplay ? 200 : 201);
     }
 
-    private static function update(array $context): void
+    public static function update(array $context): void
     {
         // PATCH /appointments (Admin)
         $payload = require_json_body();
@@ -478,7 +478,7 @@ class AppointmentController
         ]);
     }
 
-    private static function checkReschedule(array $context): void
+    public static function checkReschedule(array $context): void
     {
         // GET /reschedule
         $store = $context['store'];
@@ -532,7 +532,7 @@ class AppointmentController
         ]);
     }
 
-    private static function processReschedule(array $context): void
+    public static function processReschedule(array $context): void
     {
         // PATCH /reschedule
         require_rate_limit('reschedule', 5, 60);
@@ -663,7 +663,7 @@ class AppointmentController
         ]);
     }
 
-    private static function dispatchEventSafely(string $eventClass, array $appointment): ?object
+    public static function dispatchEventSafely(string $eventClass, array $appointment): ?object
     {
         if (!class_exists($eventClass) || !function_exists('get_event_dispatcher')) {
             return null;
@@ -684,7 +684,7 @@ class AppointmentController
         }
     }
 
-    private static function resolveIdempotencyKey(array $payload): string
+    public static function resolveIdempotencyKey(array $payload): string
     {
         $candidate = '';
         if (isset($_SERVER['HTTP_IDEMPOTENCY_KEY'])) {
@@ -698,7 +698,7 @@ class AppointmentController
         return self::normalizeIdempotencyKey($candidate);
     }
 
-    private static function normalizeIdempotencyKey(string $raw): string
+    public static function normalizeIdempotencyKey(string $raw): string
     {
         $raw = trim($raw);
         if ($raw === '') {
@@ -722,7 +722,7 @@ class AppointmentController
         return $safe;
     }
 
-    private static function buildIdempotencyFingerprint(array $payload): string
+    public static function buildIdempotencyFingerprint(array $payload): string
     {
         $normalized = [
             strtolower(trim((string) ($payload['service'] ?? ''))),
@@ -740,7 +740,7 @@ class AppointmentController
         return hash('sha256', implode('|', $normalized));
     }
 
-    private static function findAppointmentByIdempotencyKey(array $store, string $idempotencyKey): ?array
+    public static function findAppointmentByIdempotencyKey(array $store, string $idempotencyKey): ?array
     {
         $appointments = isset($store['appointments']) && is_array($store['appointments'])
             ? $store['appointments']
@@ -762,7 +762,7 @@ class AppointmentController
         return null;
     }
 
-    private static function emitIdempotencyObservability(
+    public static function emitIdempotencyObservability(
         string $outcome,
         string $idempotencyKey,
         string $fingerprint,
@@ -794,7 +794,7 @@ class AppointmentController
         }
     }
 
-    private static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
+    public static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
     {
         $readiness = internal_console_readiness_snapshot();
         if (internal_console_clinical_data_ready($readiness)) {
@@ -812,7 +812,7 @@ class AppointmentController
         json_response($payload, 409);
     }
 
-    private static function inferErrorCode(int $statusCode, string $errorMessage): string
+    public static function inferErrorCode(int $statusCode, string $errorMessage): string
     {
         $message = strtolower(trim($errorMessage));
         if ($statusCode === 400) {
@@ -836,7 +836,7 @@ class AppointmentController
         return 'internal_error';
     }
 
-    private static function normalizeConflictErrorCode(int $statusCode, string $errorCode): string
+    public static function normalizeConflictErrorCode(int $statusCode, string $errorCode): string
     {
         if ($statusCode !== 409) {
             return $errorCode;
@@ -849,7 +849,7 @@ class AppointmentController
         return $normalized;
     }
 
-    private static function findAppointmentById(array $store, int $appointmentId): ?array
+    public static function findAppointmentById(array $store, int $appointmentId): ?array
     {
         if ($appointmentId <= 0) {
             return null;

@@ -20,7 +20,7 @@ require_once __DIR__ . '/../lib/MultiClinicDashboardService.php';
 
 class AdminDataController
 {
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         // GET /data (Admin)
         $patientCaseService = new PatientCaseService();
@@ -155,7 +155,7 @@ class AdminDataController
         ]);
     }
 
-    private static function redactClinicalReadModelsIfBlocked(array $store): array
+    public static function redactClinicalReadModelsIfBlocked(array $store): array
     {
         $internalConsoleMeta = isset($store['internalConsoleMeta']) && is_array($store['internalConsoleMeta'])
             ? $store['internalConsoleMeta']
@@ -215,7 +215,7 @@ class AdminDataController
         return $store;
     }
 
-    private static function import(array $context): void
+    public static function import(array $context): void
     {
         // POST /import (Admin)
         $store = $context['store'];
@@ -268,7 +268,7 @@ class AdminDataController
         ]);
     }
 
-    private static function resolveCalendarReachable(
+    public static function resolveCalendarReachable(
         bool $calendarActive,
         bool $calendarRequired,
         bool $calendarConfigured,
@@ -293,7 +293,7 @@ class AdminDataController
         return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
     }
 
-    private static function resolveCalendarMode(
+    public static function resolveCalendarMode(
         bool $calendarActive,
         bool $calendarRequired,
         bool $blockOnFailure,
@@ -308,7 +308,7 @@ class AdminDataController
         return 'live';
     }
 
-    private static function resolveCalendarTokenHealthy(
+    public static function resolveCalendarTokenHealthy(
         bool $calendarActive,
         bool $calendarRequired,
         bool $calendarConfigured,
@@ -344,7 +344,7 @@ class AdminDataController
         return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
     }
 
-    private static function timestampGreater(string $leftIso, string $rightIso): bool
+    public static function timestampGreater(string $leftIso, string $rightIso): bool
     {
         $left = strtotime($leftIso);
         $right = strtotime($rightIso);
@@ -354,12 +354,12 @@ class AdminDataController
         return $left > $right;
     }
 
-    private static function buildAppDownloads(): array
+    public static function buildAppDownloads(): array
     {
         return build_app_downloads_runtime_payload();
     }
 
-    private static function buildQueueOperatorStore(array $store, array $context): array
+    public static function buildQueueOperatorStore(array $store, array $context): array
     {
         $queueOperatorSession = isset($context['queueOperatorSession']) && is_array($context['queueOperatorSession'])
             ? $context['queueOperatorSession']
@@ -411,7 +411,7 @@ class AdminDataController
         ];
     }
 
-    private static function buildTurneroV2Readiness(array $store): array
+    public static function buildTurneroV2Readiness(array $store): array
     {
         $profile = isset($store['turneroClinicProfile']) && is_array($store['turneroClinicProfile'])
             ? $store['turneroClinicProfile']
@@ -580,7 +580,7 @@ class AdminDataController
         ];
     }
 
-    private static function buildTurneroSurfaceReadiness(
+    public static function buildTurneroSurfaceReadiness(
         string $surfaceKey,
         string $expectedAppMode,
         $surfaceGroup,
@@ -620,7 +620,7 @@ class AdminDataController
      * @param mixed $surfaceGroup
      * @return array<string,mixed>
      */
-    private static function surfaceLatestDetails($surfaceGroup): array
+    public static function surfaceLatestDetails($surfaceGroup): array
     {
         $group = is_array($surfaceGroup) ? $surfaceGroup : [];
         $latest = isset($group['latest']) && is_array($group['latest']) ? $group['latest'] : [];
@@ -630,7 +630,7 @@ class AdminDataController
     /**
      * @return array<string,mixed>
      */
-    private static function buildTurneroHardwareReadiness(bool $ready, string $label, string $detail): array
+    public static function buildTurneroHardwareReadiness(bool $ready, string $label, string $detail): array
     {
         return [
             'label' => $label,
@@ -640,7 +640,7 @@ class AdminDataController
         ];
     }
 
-    private static function buildReviewsMeta(array $store): array
+    public static function buildReviewsMeta(array $store): array
     {
         $surveys = is_array($store['nps_surveys'] ?? null) ? $store['nps_surveys'] : [];
         if (count($surveys) === 0) {
@@ -681,7 +681,7 @@ class AdminDataController
         ];
     }
 
-    private static function businessMetrics(array $context): void
+    public static function businessMetrics(array $context): void
     {
         $store = $context['store'];
         if (!($context['isAdmin'] ?? false)) {
@@ -754,7 +754,7 @@ class AdminDataController
         ]);
     }
 
-    private static function estimateServiceRevenue(string $service): float
+    public static function estimateServiceRevenue(string $service): float
     {
         $prices = [
             'consulta' => 35.0,
@@ -768,7 +768,7 @@ class AdminDataController
         return $prices[$service] ?? 35.0;
     }
 
-    private static function chronicPanel(array $context): void
+    public static function chronicPanel(array $context): void
     {
         self::requireAuth($context);
         $store = $context['store'];
@@ -835,7 +835,7 @@ class AdminDataController
         ]);
     }
 
-    private static function patientLtv(array $context): void
+    public static function patientLtv(array $context): void
     {
         self::requireAuth($context);
         $store = $context['store'];
@@ -967,7 +967,7 @@ class AdminDataController
         ]);
     }
 
-    private static function requireAuth(array $context): void
+    public static function requireAuth(array $context): void
     {
         if (!($context['isDoctor'] ?? false) && !($context['isAdmin'] ?? false)) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);

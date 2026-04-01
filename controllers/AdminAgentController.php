@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 class AdminAgentController
 {
-    private static function start(array $context): void
+    public static function start(array $context): void
     {
         self::requireAgentAccess($context);
         $payload = require_json_body();
@@ -22,7 +22,7 @@ class AdminAgentController
         ], 201);
     }
 
-    private static function turn(array $context): void
+    public static function turn(array $context): void
     {
         self::requireAgentAccess($context);
         $payload = require_json_body();
@@ -37,7 +37,7 @@ class AdminAgentController
         ]);
     }
 
-    private static function status(array $context): void
+    public static function status(array $context): void
     {
         self::requireAgentAccess($context);
         self::requireClinicalStorageReadyForPayload($_GET);
@@ -48,7 +48,7 @@ class AdminAgentController
         ]);
     }
 
-    private static function events(array $context): void
+    public static function events(array $context): void
     {
         self::requireAgentAccess($context);
         self::requireClinicalStorageReadyForPayload($_GET);
@@ -59,7 +59,7 @@ class AdminAgentController
         ]);
     }
 
-    private static function approve(array $context): void
+    public static function approve(array $context): void
     {
         self::requireAgentAccess($context);
         $payload = require_json_body();
@@ -74,7 +74,7 @@ class AdminAgentController
         ]);
     }
 
-    private static function cancel(array $context): void
+    public static function cancel(array $context): void
     {
         self::requireAgentAccess($context);
         $payload = require_json_body();
@@ -86,7 +86,7 @@ class AdminAgentController
         ]);
     }
 
-    private static function requireAgentAccess(array $context): void
+    public static function requireAgentAccess(array $context): void
     {
         if (!($context['isAdmin'] ?? false)) {
             json_response([
@@ -112,7 +112,7 @@ class AdminAgentController
     /**
      * @param array<string,mixed> $payload
      */
-    private static function requireClinicalStorageReadyForPayload(array $payload): void
+    public static function requireClinicalStorageReadyForPayload(array $payload): void
     {
         if (!AdminAgentService::requiresClinicalStorage($payload)) {
             return;

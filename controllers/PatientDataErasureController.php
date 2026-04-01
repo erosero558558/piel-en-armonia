@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/DataAccessAudit.php';
 
 class PatientDataErasureController
 {
-    private static function process(array $request): array
+    public static function process(array $request): array
     {
         $method = strtoupper((string)($request['method'] ?? 'DELETE'));
         if ($method !== 'DELETE') {

@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/storage.php';
 
 final class ConfigAuditLogController
 {
-    private static function index(array $context): void
+    public static function index(array $context): void
     {
         require_admin_auth();
 

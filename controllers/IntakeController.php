@@ -15,7 +15,7 @@ class IntakeController
     private const PHOTO_MAX_COUNT = 3;
     private const PHOTO_MAX_BYTES = 5242880;
 
-    private static function store(array $context): void
+    public static function store(array $context): void
     {
         require_rate_limit('public_intakes', 5, 60);
         self::requireClinicalStorageReady(
@@ -220,7 +220,7 @@ class IntakeController
         ], 201);
     }
 
-    private static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
+    public static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
     {
         $readiness = internal_console_readiness_snapshot();
         if (internal_console_clinical_data_ready($readiness)) {
@@ -238,7 +238,7 @@ class IntakeController
         json_response($payload, 409);
     }
 
-    private static function normalizePhotoUploads($rawFiles): array
+    public static function normalizePhotoUploads($rawFiles): array
     {
         if (!is_array($rawFiles) || !isset($rawFiles['tmp_name'])) {
             return [];
@@ -265,7 +265,7 @@ class IntakeController
         }));
     }
 
-    private static function storeCasePhoto(array $file, string $caseId, string $tenantId, int $uploadId): array
+    public static function storeCasePhoto(array $file, string $caseId, string $tenantId, int $uploadId): array
     {
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($error !== UPLOAD_ERR_OK) {
@@ -338,7 +338,7 @@ class IntakeController
         ];
     }
 
-    private static function moveUploadedFile(string $tmpName, string $targetPath): bool
+    public static function moveUploadedFile(string $tmpName, string $targetPath): bool
     {
         if (is_uploaded_file($tmpName)) {
             return @move_uploaded_file($tmpName, $targetPath);
@@ -360,7 +360,7 @@ class IntakeController
         return true;
     }
 
-    private static function cleanupStoredPhotos(array $photos): void
+    public static function cleanupStoredPhotos(array $photos): void
     {
         foreach ($photos as $photo) {
             if (!is_array($photo)) {
@@ -384,7 +384,7 @@ class IntakeController
         }
     }
 
-    private static function nextClinicalUploadId(array $store): int
+    public static function nextClinicalUploadId(array $store): int
     {
         $maxId = 0;
         foreach (($store['clinical_uploads'] ?? []) as $upload) {
@@ -397,7 +397,7 @@ class IntakeController
         return $maxId + 1;
     }
 
-    private static function resolveTenantId(array $store, array $context): string
+    public static function resolveTenantId(array $store, array $context): string
     {
         foreach (['patient_cases', 'appointments', 'callbacks'] as $key) {
             $records = isset($store[$key]) && is_array($store[$key]) ? $store[$key] : [];
@@ -419,7 +419,7 @@ class IntakeController
         return get_current_tenant_id();
     }
 
-    private static function buildPrefixedId(string $prefix): string
+    public static function buildPrefixedId(string $prefix): string
     {
         return $prefix . '_' . substr(hash('sha1', $prefix . '|' . microtime(true) . '|' . bin2hex(random_bytes(8))), 0, 16);
     }

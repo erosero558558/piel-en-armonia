@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/PatientPortalAuth.php';
 
 final class NotificationController
 {
-    private static function config(array $context): void
+    public static function config(array $context): void
     {
         $session = self::requirePortalSession($context);
         $snapshot = is_array($session['snapshot'] ?? null) ? $session['snapshot'] : [];
@@ -27,7 +27,7 @@ final class NotificationController
         ], $publicKey !== '' ? 200 : 503);
     }
 
-    private static function subscribe(array $context): void
+    public static function subscribe(array $context): void
     {
         $session = self::requirePortalSession($context);
         $payload = require_json_body();
@@ -57,7 +57,7 @@ final class NotificationController
         ]);
     }
 
-    private static function unsubscribe(array $context): void
+    public static function unsubscribe(array $context): void
     {
         $session = self::requirePortalSession($context);
         $payload = require_json_body();
@@ -90,7 +90,7 @@ final class NotificationController
         ]);
     }
 
-    private static function requirePortalSession(array $context): array
+    public static function requirePortalSession(array $context): array
     {
         $store = is_array($context['store'] ?? null) ? $context['store'] : read_store();
         $token = PatientPortalAuth::bearerTokenFromRequest();

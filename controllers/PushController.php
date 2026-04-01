@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/PushService.php';
 
 class PushController
 {
-    private static function diagnostics(array $context): void
+    public static function diagnostics(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -16,7 +16,7 @@ class PushController
         ], $service->getDiagnostics()));
     }
 
-    private static function config(array $context): void
+    public static function config(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -31,7 +31,7 @@ class PushController
         ], $publicKey !== '' ? 200 : 503);
     }
 
-    private static function subscribe(array $context): void
+    public static function subscribe(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -53,7 +53,7 @@ class PushController
         ]);
     }
 
-    private static function unsubscribe(array $context): void
+    public static function unsubscribe(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -80,7 +80,7 @@ class PushController
         ]);
     }
 
-    private static function test(array $context): void
+    public static function test(array $context): void
     {
         self::ensureAdmin($context);
 
@@ -101,7 +101,7 @@ class PushController
         ]);
     }
 
-    private static function ensureAdmin(array $context): void
+    public static function ensureAdmin(array $context): void
     {
         if (($context['isAdmin'] ?? false) === true) {
             return;

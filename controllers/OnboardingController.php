@@ -16,7 +16,7 @@ final class OnboardingController
 {
     // ── S18-02: Onboarding progress ───────────────────────────────
 
-    private static function progress(array $context): void
+    public static function progress(array $context): void
     {
         require_admin_auth();
 
@@ -28,7 +28,7 @@ final class OnboardingController
         json_response(['ok' => true, 'data' => $progress]);
     }
 
-    private static function updateStep(array $context): void
+    public static function updateStep(array $context): void
     {
         require_admin_auth();
 
@@ -72,7 +72,7 @@ final class OnboardingController
      * Returns the contextual walkthrough steps for a given surface (admin/operator/kiosk).
      * The frontend stores completion in localStorage and calls this to get steps.
      */
-    private static function walkthroughConfig(array $context): void
+    public static function walkthroughConfig(array $context): void
     {
         $surface = strtolower(trim((string) ($_GET['surface'] ?? 'admin')));
 
@@ -97,7 +97,7 @@ final class OnboardingController
 
     // ── Walkthrough step definitions ──────────────────────────────
 
-    private static function adminWalkthroughSteps(): array
+    public static function adminWalkthroughSteps(): array
     {
         return [
             [
@@ -153,7 +153,7 @@ final class OnboardingController
         ];
     }
 
-    private static function operatorWalkthroughSteps(): array
+    public static function operatorWalkthroughSteps(): array
     {
         return [
             [
@@ -199,7 +199,7 @@ final class OnboardingController
         ];
     }
 
-    private static function kioskWalkthroughSteps(): array
+    public static function kioskWalkthroughSteps(): array
     {
         return [
             [

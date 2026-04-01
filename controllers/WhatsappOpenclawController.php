@@ -6,7 +6,7 @@ require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
 
 class WhatsappOpenclawController
 {
-    private static function inbound(array $context): void
+    public static function inbound(array $context): void
     {
         self::ensureEnabled();
         WhatsappOpenclawConfig::assertMachineToken();
@@ -70,7 +70,7 @@ class WhatsappOpenclawController
         ], $status === 'duplicate' ? 200 : 202);
     }
 
-    private static function outbox(array $context): void
+    public static function outbox(array $context): void
     {
         self::ensureEnabled();
         WhatsappOpenclawConfig::assertMachineToken();
@@ -96,7 +96,7 @@ class WhatsappOpenclawController
         ]);
     }
 
-    private static function ack(array $context): void
+    public static function ack(array $context): void
     {
         self::ensureEnabled();
         WhatsappOpenclawConfig::assertMachineToken();
@@ -126,7 +126,7 @@ class WhatsappOpenclawController
         ]);
     }
 
-    private static function ops(array $context): void
+    public static function ops(array $context): void
     {
         self::ensureEnabled();
         if (($context['isAdmin'] ?? false) !== true) {
@@ -211,7 +211,7 @@ class WhatsappOpenclawController
         ]);
     }
 
-    private static function buildOpsPayload(array $store): array
+    public static function buildOpsPayload(array $store): array
     {
         $snapshot = whatsapp_openclaw_repository()->buildOpsSnapshot($store);
         $snapshot['conversations'] = array_map(
@@ -241,7 +241,7 @@ class WhatsappOpenclawController
         return $snapshot;
     }
 
-    private static function handleOpsAction(array $store, array $payload): array
+    public static function handleOpsAction(array $store, array $payload): array
     {
         $action = strtolower(trim((string) ($payload['action'] ?? '')));
         if ($action === 'requeue_outbox') {
@@ -267,7 +267,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function handleRequeueOutboxAction(array $store, array $payload): array
+    public static function handleRequeueOutboxAction(array $store, array $payload): array
     {
         $id = trim((string) ($payload['id'] ?? ''));
         if ($id === '') {
@@ -288,7 +288,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function handleExpireCheckoutAction(array $store, array $payload): array
+    public static function handleExpireCheckoutAction(array $store, array $payload): array
     {
         $draft = self::resolveOpsDraft($payload);
         if ($draft === []) {
@@ -298,7 +298,7 @@ class WhatsappOpenclawController
         return whatsapp_openclaw_orchestrator()->expireCheckoutForOps($store, $draft);
     }
 
-    private static function handleResolveHandoffAction(array $store, array $payload): array
+    public static function handleResolveHandoffAction(array $store, array $payload): array
     {
         $conversationId = trim((string) ($payload['conversationId'] ?? ''));
         if ($conversationId === '') {
@@ -325,7 +325,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function handleReleaseHoldAction(array $store, array $payload): array
+    public static function handleReleaseHoldAction(array $store, array $payload): array
     {
         $holdId = trim((string) ($payload['holdId'] ?? ''));
         if ($holdId === '') {
@@ -345,7 +345,7 @@ class WhatsappOpenclawController
         );
     }
 
-    private static function handleSweepStaleAction(array $store, array $payload): array
+    public static function handleSweepStaleAction(array $store, array $payload): array
     {
         $limit = isset($payload['limit']) ? (int) $payload['limit'] : 25;
         $limit = max(1, min(100, $limit));
@@ -360,7 +360,7 @@ class WhatsappOpenclawController
         return $result;
     }
 
-    private static function resolveOpsDraft(array $payload): array
+    public static function resolveOpsDraft(array $payload): array
     {
         $repository = whatsapp_openclaw_repository();
 
@@ -404,7 +404,7 @@ class WhatsappOpenclawController
         return [];
     }
 
-    private static function sanitizeOpsActionResult(array $result): array
+    public static function sanitizeOpsActionResult(array $result): array
     {
         return [
             'status' => (string) ($result['status'] ?? ''),
@@ -425,7 +425,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function sanitizeOpsSweepItem(array $item): array
+    public static function sanitizeOpsSweepItem(array $item): array
     {
         return [
             'status' => (string) ($item['status'] ?? ''),
@@ -439,7 +439,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function parseBoolish($value): bool
+    public static function parseBoolish($value): bool
     {
         if (is_bool($value)) {
             return $value;
@@ -453,7 +453,7 @@ class WhatsappOpenclawController
         return false;
     }
 
-    private static function ensureEnabled(): void
+    public static function ensureEnabled(): void
     {
         if (!WhatsappOpenclawConfig::isEnabled()) {
             json_response([
@@ -467,7 +467,7 @@ class WhatsappOpenclawController
      * @param array<string,mixed> $payload
      * @return array{ok:bool,data?:array<string,mixed>,error?:string,status?:int}
      */
-    private static function normalizeInboundPayload(array $payload): array
+    public static function normalizeInboundPayload(array $payload): array
     {
         $phoneCandidates = [
             $payload['phone'] ?? null,
@@ -543,7 +543,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function syncConversationAfterAck(array $record): void
+    public static function syncConversationAfterAck(array $record): void
     {
         $conversationId = trim((string) ($record['conversationId'] ?? ''));
         $phone = whatsapp_openclaw_normalize_phone((string) ($record['phone'] ?? ''));
@@ -561,7 +561,7 @@ class WhatsappOpenclawController
         $repository->saveConversation($conversation);
     }
 
-    private static function sanitizeConversation(array $conversation): array
+    public static function sanitizeConversation(array $conversation): array
     {
         return [
             'id' => (string) ($conversation['id'] ?? ''),
@@ -574,7 +574,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function sanitizeDraft(array $draft): array
+    public static function sanitizeDraft(array $draft): array
     {
         return [
             'id' => (string) ($draft['id'] ?? ''),
@@ -601,7 +601,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function sanitizeHold(array $hold): array
+    public static function sanitizeHold(array $hold): array
     {
         return [
             'id' => (string) ($hold['id'] ?? ''),
@@ -626,7 +626,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function sanitizePlan(array $plan): array
+    public static function sanitizePlan(array $plan): array
     {
         return [
             'intent' => (string) ($plan['intent'] ?? ''),
@@ -635,7 +635,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function sanitizeOutboxRecord(array $record): array
+    public static function sanitizeOutboxRecord(array $record): array
     {
         return [
             'id' => (string) ($record['id'] ?? ''),
@@ -654,7 +654,7 @@ class WhatsappOpenclawController
         ];
     }
 
-    private static function metrics(array $context): void
+    public static function metrics(array $context): void
     {
         self::ensureEnabled();
         if (($context['isAdmin'] ?? false) !== true) {

@@ -184,6 +184,31 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'openclaw-router-status', [OpenclawController::class, 'routerStatus']);
     $router->add('GET', 'openclaw-next-patient', [OpenclawController::class, 'nextPatient']);
 
+    // ── Patient Portal — authenticated data endpoints ──────────────────────
+    $router->add('GET',  'patient-portal-dashboard',      [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-history',        [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-history-pdf',    [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-record-pdf',            [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-payments',       [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-plan',           [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-photos',         [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-prescription',   [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-consent',        [PatientPortalController::class, 'handle']);
+    $router->add('POST', 'patient-portal-consent',        [PatientPortalController::class, 'handle']);
+    $router->add('POST', 'patient-self-vitals',           [PatientPortalController::class, 'handle']);
+    $router->add('POST', 'patient-portal-photo-upload',   [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-photo-file',     [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-document',       [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'document-verify',               [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'push-preferences',              [PatientPortalController::class, 'handle']);
+    $router->add('POST', 'push-preferences',              [PatientPortalController::class, 'handle']);
+    $router->add('POST', 'patient-portal-submit-survey',  [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-portal-referrals',      [PatientPortalController::class, 'handle']);
+    $router->add('GET',  'patient-summary',               [PatientPortalController::class, 'handle']);
+
+    // ── Queue ticket status — public, no auth ──────────────────────────────
+    $router->add('GET',  'queue-status', [QueueController::class, 'handle']);
+
     // v2 Routes
     $router->add('GET', 'health', [HealthController::class, 'check'], 'v2');
 }

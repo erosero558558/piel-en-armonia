@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 class LeadAiController
 {
-    private static function request(array $context): void
+    public static function request(array $context): void
     {
         $store = $context['store'];
         $payload = require_json_body();
@@ -38,7 +38,7 @@ class LeadAiController
         json_response(['ok' => true, 'data' => $updated], 202);
     }
 
-    private static function queue(array $context): void
+    public static function queue(array $context): void
     {
         self::requireMachineToken();
         $store = $context['store'];
@@ -49,7 +49,7 @@ class LeadAiController
         ]);
     }
 
-    private static function result(array $context): void
+    public static function result(array $context): void
     {
         self::requireMachineToken();
         $store = $context['store'];
@@ -99,7 +99,7 @@ class LeadAiController
         ]);
     }
 
-    private static function requireMachineToken(): void
+    public static function requireMachineToken(): void
     {
         $expected = trim((string) app_env('AURORADERM_LEADOPS_MACHINE_TOKEN', ''));
         if ($expected === '') {
@@ -130,7 +130,7 @@ class LeadAiController
         }
     }
 
-    private static function resolveHeaderValue(string $headerName): string
+    public static function resolveHeaderValue(string $headerName): string
     {
         $normalized = strtoupper(str_replace('-', '_', $headerName));
         if ($normalized === 'AUTHORIZATION') {
