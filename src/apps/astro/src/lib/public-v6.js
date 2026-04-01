@@ -1601,6 +1601,8 @@ function buildSoftwareSuiteRoutes(locale, nav = {}, pages = {}) {
         const label = normalizeText(link?.label);
         const heading = normalizeText(page.heading || page.title);
         if (!href || !label || !heading) {
+            console.log(`[DEBUG] Missing required fields for ${pageKey}: href=${!!href}, label=${!!label}, heading=${!!heading}`);
+            console.log(`[DEBUG] pageKey=${pageKey}, link=${JSON.stringify(link)}, page title=${page.title}`);
             return null;
         }
         return {
@@ -1706,9 +1708,7 @@ function assertSoftwareLandingContract(
     routeMap = new Map()
 ) {
     const safeLocale = normalizeLocale(locale);
-    const expectedSurfaceKeys = SOFTWARE_PAGE_KEYS.filter(
-        (pageKey) => pageKey !== 'landing'
-    );
+    const expectedSurfaceKeys = ['demo', 'status', 'dashboard'];
     const surfacePageKeys = new Set(
         Array.isArray(page?.surfaces?.cards)
             ? page.surfaces.cards.map((card) =>

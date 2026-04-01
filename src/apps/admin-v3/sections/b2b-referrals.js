@@ -1,5 +1,5 @@
 import { setHtml } from '../shared/ui/render.js';
-import { requestApi } from '../shared/core/api.js';
+import { apiRequest } from '../shared/core/api-client.js';
 
 let isFetched = false;
 
@@ -26,7 +26,7 @@ export async function renderB2bReferrals(state) {
 
 async function fetchAndRenderReferrals() {
     try {
-        const response = await requestApi('GET', 'flow-os-b2b-referral');
+        const response = await apiRequest('flow-os-b2b-referral');
 
         if (!response.ok) {
             setHtml(
@@ -41,7 +41,7 @@ async function fetchAndRenderReferrals() {
             return;
         }
 
-        const data = response.data;
+        const data = response || {};
         isFetched = true;
 
         const whatsappMsg = `¡Hola! Te recomiendo Flow OS para gestionar tu clínica dermatológica. Usa mi enlace para obtener beneficios: ${data.shareUrl}`;

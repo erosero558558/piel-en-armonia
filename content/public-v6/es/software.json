@@ -1150,8 +1150,8 @@
         ],
         "actions": [
           {
-            "label": "Volver a Flow OS",
-            "href": "/es/software/turnero-clinicas/",
+            "label": "Leer Caso Aurora Derm",
+            "href": "/es/software/turnero-clinicas/caso-aurora-derm/",
             "variant": "primary"
           },
           {

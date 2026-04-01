@@ -147,10 +147,11 @@ export async function runWhatsappOpenclawOpsAction(action, payload = {}) {
 export async function refreshAdminData() {
     const queueRuntimeRevision = Number(getState().queue?.runtimeRevision || 0);
     try {
-        const [dataPayload, healthPayload, whatsappOpenclawOps] = await Promise.all([
+        const [dataPayload, healthPayload, whatsappOpenclawOps, callbacksPayload] = await Promise.all([
             apiRequest('data'),
             apiRequest('health').catch(() => null),
             fetchWhatsappOpenclawOpsSnapshot(),
+            apiRequest('callbacks').catch(() => null),
         ]);
 
         const data = dataPayload.data || {};
@@ -165,6 +166,7 @@ export async function refreshAdminData() {
         const normalized = normalizeAdminDataPayload(
             {
                 ...data,
+                callbacks: Array.isArray(callbacksPayload?.data) ? callbacksPayload.data : (data.callbacks || []),
                 funnelMetrics: mergeFunnelMetrics(
                     funnelMetrics,
                     bookingFunnelReport

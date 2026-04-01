@@ -1147,8 +1147,8 @@
         ],
         "actions": [
           {
-            "label": "Back to Flow OS",
-            "href": "/en/software/clinic-flow-suite/",
+            "label": "Read Aurora Derm Case",
+            "href": "/en/software/clinic-flow-suite/aurora-derm-case-study/",
             "variant": "primary"
           },
           {
