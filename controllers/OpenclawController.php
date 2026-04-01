@@ -37,16 +37,28 @@ final class OpenclawController
             json_response(['ok' => false, 'error' => 'patient_id requerido'], 400);
         }
 
-        require_once __DIR__ . '/../lib/PatientCaseService.php';
-        $service = new PatientCaseService();
         $store   = self::readStore();
 
-        // Obtener caso activo o por ID
+        // Obtener caso: buscar por caseId directo, o por patientId (caso activo)
         $case = null;
         if ($caseId !== '') {
-            $case = $service->getCaseById($store, $caseId);
+            $case = $store['cases'][$caseId]
+                ?? $store['patient_cases'][$caseId]
+                ?? null;
+            // Fallback: buscar en array plano
+            if ($case === null) {
+                foreach (array_merge($store['cases'] ?? [], $store['patient_cases'] ?? []) as $c) {
+                    if (($c['id'] ?? '') === $caseId) { $case = $c; break; }
+                }
+            }
         } else {
-            $case = $service->getActiveCaseByPatient($store, $patientId);
+            foreach (array_merge($store['cases'] ?? [], $store['patient_cases'] ?? []) as $c) {
+                if (($c['patientId'] ?? '') === $patientId
+                    && in_array($c['status'] ?? $c['stage'] ?? '', ['active', 'open', 'in_consultation'], true)) {
+                    $case = $c;
+                    break;
+                }
+            }
         }
 
         if ($case === null) {
@@ -1166,14 +1178,14 @@ final class OpenclawController
                     'caseId'         => $caseId,
                     'patientId'      => $patientId,
                     'reason'         => 'Control clínico diferido por teleconsulta',
-                    'due_date'       => local_date('Y-m-d', time() + ($followupDays * 86400)),
+                    'due_date'       => date('Y-m-d', time() + ($followupDays * 86400)),
                     'contact_method' => 'whatsapp',
                     'status'         => 'pending',
                     'createdAt'      => local_date('c'),
                 ];
             }
 
-            return $store;
+            return ['ok' => true, 'store' => $store, 'storeDirty' => true];
         });
 
         $waUrl = '';
@@ -1406,8 +1418,14 @@ final class OpenclawController
             require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
 
             $store = self::readStore();
-            $caseService = new PatientCaseService();
-            $case = $caseService->getCaseById($store, $caseId);
+            $case = $store['cases'][$caseId]
+                ?? $store['patient_cases'][$caseId]
+                ?? null;
+            if ($case === null) {
+                foreach (array_merge($store['cases'] ?? [], $store['patient_cases'] ?? []) as $c) {
+                    if (($c['id'] ?? '') === $caseId) { $case = $c; break; }
+                }
+            }
             if (!is_array($case)) {
                 return [];
             }

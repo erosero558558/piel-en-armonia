@@ -374,6 +374,57 @@ class HealthController
         self::check($context);
     }
 
+    public static function systemStatus(array $context): void
+    {
+        $uptimeMinutes = 0;
+        if (is_file('/proc/uptime')) {
+             $uptime = @file_get_contents('/proc/uptime');
+             if ($uptime) {
+                 $parts = explode(' ', $uptime);
+                 $uptimeMinutes = round(((float)$parts[0]) / 60);
+             }
+        }
+        
+        $store = read_store();
+        $active_count = 0;
+        foreach (($store['queue'] ?? []) as $ticket) {
+            $s = $ticket['status'] ?? 'pending';
+            if ($s === 'pending' || $s === 'called' || $s === 'in_progress') {
+                $active_count++;
+            }
+        }
+
+        $tierUsed = 'local_heuristic';
+        if (class_exists('OpenclawAIRouter')) {
+            $routerStatus = (new \OpenclawAIRouter())->getStatus();
+            $tierUsed = $routerStatus['active_provider'] ?? 'local_heuristic';
+        }
+
+        $cronLastRun = null;
+        $cronPath = dirname(__DIR__) . '/data/health/cron_pulse.json';
+        if (is_file($cronPath)) {
+            $c = @json_decode(file_get_contents($cronPath), true);
+            $cronLastRun = $c['last_run'] ?? null;
+        }
+
+        $payload = [
+            'store' => data_dir_writable() ? 'ok' : 'unavailable',
+            'queue' => [
+               'active_count' => $active_count
+            ],
+            'ai' => [
+               'tier_used' => $tierUsed
+            ],
+            'email' => [
+               'last_success' => null // Placeholder para historial extendido en S7-36
+            ],
+            'cron_last_job' => $cronLastRun,
+            'uptime_minutes' => $uptimeMinutes
+        ];
+
+        json_response($payload);
+    }
+
     /**
      * @return array{source:string,version:string,timezone:string,servicesCount:int,configured:bool}
      */

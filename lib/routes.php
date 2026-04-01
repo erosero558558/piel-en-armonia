@@ -28,6 +28,7 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'health', [HealthController::class, 'check']);
     $router->add('GET', 'health-diagnostics', [HealthController::class, 'diagnostics']);
+    $router->add('GET', 'system-status', [HealthController::class, 'systemStatus']);
     $router->add('GET', 'security-report', [SecurityReportController::class, 'get']);
 
     $router->add('GET', 'payment-config', [PaymentController::class, 'config']);
