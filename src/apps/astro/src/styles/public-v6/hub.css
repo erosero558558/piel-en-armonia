@@ -3,7 +3,7 @@
     .v6-catalog-stream,
     .v6-hub-initiatives {
         content-visibility: auto;
-        contain-intrinsic-size: 720px;
+        contain-intrinsic-size: auto 720px;
     }
 }
 

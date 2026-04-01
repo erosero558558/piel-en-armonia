@@ -4,7 +4,7 @@
     .v6-pre-response,
     .v6-pre-form-section {
         content-visibility: auto;
-        contain-intrinsic-size: 760px;
+        contain-intrinsic-size: auto 760px;
     }
 }
 

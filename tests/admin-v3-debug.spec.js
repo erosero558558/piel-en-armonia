@@ -1,9 +1,20 @@
 const { test, expect } = require('@playwright/test');
-test('Dump console', async ({ page }) => {
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-    page.on('pageerror', error => console.log('PAGE ERROR:', error.message));
+const { installBasicAdminApiMocks } = require('./helpers/admin-api-mocks.js');
+
+test('debug settings boot', async ({ page }) => {
+    page.on('console', msg => console.log('PAGE LOG:', msg.type(), msg.text()));
+    page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
+    
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            doctorProfile: { fullName: 'Dra. Aurora Demo' }
+        }
+    });
+
     await page.goto('/admin.html');
-    await page.waitForTimeout(2000);
-    const ready = await page.evaluate(() => document.documentElement.getAttribute('data-admin-ready'));
-    console.log('Final data-admin-ready:', ready);
+    const readyState = await page.locator('html').getAttribute('data-admin-ready');
+    console.log('READY STATE AFTER GOTO:', readyState);
+    await page.waitForTimeout(4000);
+    const readyStateAfter = await page.locator('html').getAttribute('data-admin-ready');
+    console.log('READY STATE AFTER 4S:', readyStateAfter);
 });

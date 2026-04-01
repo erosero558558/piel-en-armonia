@@ -2,7 +2,7 @@
 .v6-tele-pre-summary,
 .v6-tele-pre-form-section {
     content-visibility: auto;
-    contain-intrinsic-size: 720px;
+    contain-intrinsic-size: auto 720px;
 }
 
 #v6-tele-pre-summary,

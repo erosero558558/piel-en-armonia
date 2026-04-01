@@ -6,7 +6,7 @@
     .v6-tele-grid--shell,
     .v6-tele-initiatives--shell {
         content-visibility: auto;
-        contain-intrinsic-size: 720px;
+        contain-intrinsic-size: auto 720px;
     }
 }
 

@@ -3,7 +3,7 @@
     .v6-trust-signals,
     .v6-corporate-matrix {
         content-visibility: auto;
-        contain-intrinsic-size: 720px;
+        contain-intrinsic-size: auto 720px;
     }
 }
 
