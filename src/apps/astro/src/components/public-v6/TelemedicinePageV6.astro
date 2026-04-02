@@ -340,6 +340,7 @@ const teleBlockVariants = ['fit', 'limit', 'handoff'];
 <BookingStatusV6 status={page.bookingStatus} sectionId="v6-booking-status" />
 
 <style>
+    * { box-sizing: border-box; } img, video, iframe { max-width: 100%; }
     .v6-page-hero-media--tele {
         background:
             radial-gradient(circle at top left, rgba(199, 163, 109, 0.2), transparent 28%),
@@ -352,7 +353,7 @@ const teleBlockVariants = ['fit', 'limit', 'handoff'];
         max-width: 1320px;
         margin: 0 auto;
         display: grid;
-        grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+        grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
         gap: clamp(18px, 2vw, 26px);
         align-items: center;
     }
