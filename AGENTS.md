@@ -1316,7 +1316,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [ ] **S7-18** `[M]` Paridad EN/ES — hay 39 páginas `index.html` en `es/` y 30 en `en/`. Identificar las 9 páginas ES sin equivalente EN. Crear lista en `docs/EN_ES_GAP.md`: página ES → existe EN? → prioridad de traducción. Alta prioridad para: servicios, booking, blog principal, pre-consulta. Verificable: echo "OK" -> match.
 - [x] **S7-19** `[S]` `manifest.json` apunta a Aurora Derm — verificar que `manifest.json` dice `"name": "Aurora Derm"` y no "Flow OS" o "Pielarmonia". `cat manifest.json | grep '"name"'`. Si dice algo distinto, corregir también: `short_name`, `description`, `start_url`, `scope`. Verificar en Chrome DevTools → Application → Manifest que no hay errores.
-- [ ] **S7-20** `[S]` `sitemap.xml` incluye `/es/agendar/` — S3-24 ya hizo el booking público. Verificar que `sitemap.xml` incluye la nueva URL. Si no, agregar. Verificar también que todas las URLs de `sitemap.xml` devuelven 200 (no 404): `while read url; do code=$(curl -s -o /dev/null -w "%{http_code}" "$url"); if [ "$code" != "200" ]; then echo "BROKEN: $url → $code"; fi; done < <(grep '<loc>' sitemap.xml | sed 's/<[^>]*>//g')`.
+- [x] **S7-20** `[S]` `sitemap.xml` incluye `/es/agendar/` — S3-24 ya hizo el booking público. Verificar que `sitemap.xml` incluye la nueva URL. Si no, agregar. Verificar también que todas las URLs de `sitemap.xml` devuelven 200 (no 404): `while read url; do code=$(curl -s -o /dev/null -w "%{http_code}" "$url"); if [ "$code" != "200" ]; then echo "BROKEN: $url → $code"; fi; done < <(grep '<loc>' sitemap.xml | sed 's/<[^>]*>//g')`.
 
 #### 7.6 Observabilidad y reporting
 
@@ -1614,7 +1614,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 10.4 Fotografía clínica
 
-- [ ] **S10-16** `[M]` `[UI]` Photo quality scoring — al subir foto clínica, evaluar con `CaseMediaFlowService`: si la resolución es < 800px o el archivo < 50KB, mostrar advertencia "Foto de baja calidad — suba una más nítida". Guía visual inline: ángulo correcto, distancia, luz. No bloquear — orientar. Verificable: echo "OK" -> match.
+- [x] **S10-16** `[M]` `[UI]` Photo quality scoring — al subir foto clínica, evaluar con `CaseMediaFlowService`: si la resolución es < 800px o el archivo < 50KB, mostrar advertencia "Foto de baja calidad — suba una más nítida". Guía visual inline: ángulo correcto, distancia, luz. No bloquear — orientar. Verificable: echo "OK" -> match.
 - [ ] **S10-17** `[M]` Standardized body-zone tagging — normalizar zonas anatómicas en `data/body-zones.json`: frente, mejilla izquierda/derecha, nariz, mentón, escote, espalda, etc. Usar en: before/after, evolución, búsqueda clínica, estadísticas. Dropdown consistente en todo el admin. Verificable: echo "OK" -> match.
 - [ ] **S10-18** `[M]` Clinical media review workflow — flujo en admin para aprobar, rechazar o reclasificar fotos clínicas antes de usarlas en comparativas o publicaciones. Estados: `uploaded → reviewed → approved/rejected`. El médico aprueba — el operador no puede publicar fotos sin aprobación. Verificable: echo "OK" -> match.
 - [ ] **S10-19** `[S]` `[UI]` Before/after protocol guide — checklist inline al subir foto de "after": ¿mismo ángulo? ¿misma distancia? ¿misma iluminación? ¿misma zona marcada? Si el médico marca "sí" a todo → foto apta para comparación. CSS inline guide en `aurora-clinical.css`.
