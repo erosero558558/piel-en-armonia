@@ -4,7 +4,10 @@
     const portalShell = window.AuroraPatientPortalShell || null;
 
     function getSessionToken() {
-        const session = portalShell && typeof portalShell.getSession === 'function' ? portalShell.getSession() : null;
+        const session =
+            portalShell && typeof portalShell.getSession === 'function'
+                ? portalShell.getSession()
+                : null;
         return session ? session.token : null;
     }
 
@@ -31,13 +34,16 @@
         if (!container) return;
 
         try {
-            const response = await fetch('/api.php?resource=patient-portal-payments', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+            const response = await fetch(
+                '/api.php?resource=patient-portal-payments',
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
-            });
+            );
 
             if (!response.ok) {
                 if (response.status === 401 || response.status === 403) {
@@ -52,8 +58,21 @@
                 throw new Error('Invalid payload');
             }
 
-            renderPayments(payload.data.payments, container);
+            const paymentData = payload.data;
+            const summary = paymentData.summary || {};
 
+            // GA4 — telemetría de pagos (Q43-10)
+            if (typeof gtag === 'function') {
+                gtag('event', 'portal_payments_viewed', {
+                    has_pending_balance: (summary.totalDue || 0) > 0,
+                    payment_count: Array.isArray(paymentData.payments)
+                        ? paymentData.payments.length
+                        : 0,
+                    pending_count: summary.pendingCount || 0,
+                });
+            }
+
+            renderPayments(paymentData.payments, summary, container);
         } catch (err) {
             console.error('Failed to load payments:', err);
             container.innerHTML = `
@@ -65,9 +84,33 @@
         }
     }
 
-    function renderPayments(payments, container) {
+    function renderPayments(payments, summary, container) {
+        // Banner de saldo total pendiente (Q43-10 / S42-10)
+        let summaryHtml = '';
+        const totalDue = parseFloat(summary?.totalDue || 0);
+        if (totalDue > 0) {
+            const dueFormatted = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+            }).format(totalDue);
+            const wtext = encodeURIComponent(
+                `Hola Aurora Derm, tengo un saldo pendiente de ${dueFormatted} y deseo liquidarlo.`
+            );
+            summaryHtml = `
+                <div role="alert" style="margin-bottom:20px;padding:16px 18px;background:rgba(239,68,68,0.13);border:1px solid rgba(239,68,68,0.35);border-radius:14px;display:flex;align-items:center;gap:14px;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div style="flex:1;">
+                        <strong style="color:#fca5a5;font-size:0.95rem;">Tienes un saldo pendiente de ${dueFormatted}</strong>
+                        <p style="margin:4px 0 0;font-size:0.82rem;color:rgba(255,255,255,0.5);">Puedes coordinarlo directamente con nuestra clínica.</p>
+                    </div>
+                    <a href="https://wa.me/593987866885?text=${wtext}" target="_blank" rel="noopener" style="padding:8px 14px;background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#fca5a5;font-size:0.82rem;white-space:nowrap;text-decoration:none;">Pagar ahora</a>
+                </div>`;
+        }
+
         if (!Array.isArray(payments) || payments.length === 0) {
-            container.innerHTML = `
+            container.innerHTML =
+                summaryHtml +
+                `
                 <div style="padding: 32px 16px; text-align: center;">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" style="margin-bottom:16px;">
                         <rect x="2" y="5" width="20" height="14" rx="2"></rect>
@@ -81,22 +124,31 @@
         }
 
         // Sort basically handles by backend, we just map
-        const html = payments.map(payment => {
-            const isPending = payment.status === 'pending' || payment.amountDue > 0;
-            
-            // Formatear montos localmente por si acaso, aunque el backend manda el label
-            const dueFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-            const dueLabel = isPending ? dueFormatter.format(payment.amountDue) : '$0.00';
-            
-            let ctaHtml = '';
-            if (isPending) {
-                const wtext = encodeURIComponent(`Hola Aurora Derm, tengo un saldo pendiente de ${dueLabel} en mi cuenta y deseo liquidarlo.`);
-                ctaHtml = `<a href="https://wa.me/593987866885?text=${wtext}" target="_blank" class="rb-btn-action rb-btn-action--primary">Pagar ahora</a>`;
-            } else if (payment.receipt_url) {
-                ctaHtml = `<a href="${payment.receipt_url}" target="_blank" class="rb-btn-action rb-btn-action--secondary">Ver Factura PDF</a>`;
-            }
+        const html = payments
+            .map((payment) => {
+                const isPending =
+                    payment.status === 'pending' || payment.amountDue > 0;
 
-            return `
+                // Formatear montos localmente por si acaso, aunque el backend manda el label
+                const dueFormatter = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                });
+                const dueLabel = isPending
+                    ? dueFormatter.format(payment.amountDue)
+                    : '$0.00';
+
+                let ctaHtml = '';
+                if (isPending) {
+                    const wtext = encodeURIComponent(
+                        `Hola Aurora Derm, tengo un saldo pendiente de ${dueLabel} en mi cuenta y deseo liquidarlo.`
+                    );
+                    ctaHtml = `<a href="https://wa.me/593987866885?text=${wtext}" target="_blank" class="rb-btn-action rb-btn-action--primary">Pagar ahora</a>`;
+                } else if (payment.receipt_url) {
+                    ctaHtml = `<a href="${payment.receipt_url}" target="_blank" class="rb-btn-action rb-btn-action--secondary">Ver Factura PDF</a>`;
+                }
+
+                return `
                 <article class="rb-payment-card ${isPending ? 'is-pending' : ''}">
                     <div class="rb-payment-card__header">
                         <span class="rb-payment-card__date">${payment.dateLabel || 'Fecha no disponible'}</span>
@@ -124,19 +176,19 @@
                     </div>
                 </article>
             `;
-        }).join('');
+            })
+            .join('');
 
-        container.innerHTML = html;
+        container.innerHTML = summaryHtml + html;
     }
 
     function escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
-
 })(window, document);
