@@ -461,14 +461,33 @@ final class CaseMediaFlowService
     }
 
     /**
+     * @param array<string,mixed> $store
      * @param array<string,mixed> $payload
      * @return array<string,mixed>
      */
-    public static function resolvePublicMediaFile(array $payload): array
+    public static function resolvePublicMediaFile(array $store, array $payload): array
     {
         $name = basename(trim((string) ($payload['name'] ?? ($_GET['name'] ?? ''))));
         if ($name === '' || $name === '.' || $name === '..') {
             throw new RuntimeException('name requerido', 400);
+        }
+
+        // S7-17: Confirm visibility and publication state
+        $isPublicAndPublished = false;
+        foreach (self::publicationRecords($store) as $publication) {
+            if ((string) ($publication['status'] ?? '') !== 'published') {
+                continue;
+            }
+            foreach ((array) ($publication['publicAssets'] ?? []) as $publicAsset) {
+                if ((string) ($publicAsset['filename'] ?? '') === $name) {
+                    $isPublicAndPublished = true;
+                    break 2;
+                }
+            }
+        }
+
+        if (!$isPublicAndPublished) {
+            throw new RuntimeException('Media file no se encuentra disponible (visibility check failed)', 403);
         }
 
         // S7-17: Extension whitelist — solo imágenes y video públicamente aceptables

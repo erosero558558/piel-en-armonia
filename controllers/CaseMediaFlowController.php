@@ -131,7 +131,8 @@ final class CaseMediaFlowController
 
     public static function publicMediaFile(array $context): void
     {
-        $asset = CaseMediaFlowService::resolvePublicMediaFile($_GET);
+        $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : read_store();
+        $asset = CaseMediaFlowService::resolvePublicMediaFile($store, $_GET);
         self::streamFile($asset);
     }
 
