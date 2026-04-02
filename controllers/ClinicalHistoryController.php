@@ -162,55 +162,44 @@ final class ClinicalHistoryController
 
         // Emit an event to timeline and potentially create a pending_followup (S37-08)
         $now = local_date('c');
-        $autoFollowupDays = 0;
-        if (preg_match('/control en (\d+) d[ií]as/i', $soapPlan, $matches)) {
-            $autoFollowupDays = (int) $matches[1];
-        }
-
-        $lockResult = with_store_lock(static function () use ($caseId, $tenantId, $now, $evolutionRecord, $autoFollowupDays): array {
+        $lockResult = with_store_lock(static function () use ($caseId, $tenantId, $now, $evolutionRecord): array {
             $store = read_store();
-            $skippedFollowup = null;
-            $newFollowupScheduled = false;
-
-            if ($autoFollowupDays > 0) {
-                if (!isset($store['pending_followups']) || !is_array($store['pending_followups'])) {
-                    $store['pending_followups'] = [];
-                }
-                $thirtyDaysFromNow = strtotime('+30 days');
-                $nowTs = time();
-                $alreadyExists = false;
-
-                foreach ($store['pending_followups'] as $pf) {
-                    if (($pf['caseId'] ?? '') === $caseId && ($pf['status'] ?? 'pending') !== 'completed') {
-                        $targetDate = $pf['targetDate'] ?? $pf['createdAt'] ?? 'now';
-                        $pfTs = strtotime($targetDate);
-                        if ($pfTs >= $nowTs && $pfTs <= $thirtyDaysFromNow) {
-                            $alreadyExists = true;
-                            $skippedFollowup = [
-                                'id' => $pf['id'] ?? '',
-                                'date' => $targetDate
-                            ];
-                            break;
-                        }
+            
+            $followupCreated = false;
+            $newFollowupId = null;
+            $followupTargetDate = null;
+            
+            // S37-08: Extracción de follow-up del plan SOAP
+            $planText = $evolutionRecord['soap']['plan'] ?? $evolutionRecord['note'] ?? '';
+            if ($planText !== '' && preg_match('/control\s+en\s+(\d+)\s+d[íi]as?/iu', $planText, $match)) {
+                $daysFromNow = (int) $match[1];
+                $targetDate  = date('Y-m-d', strtotime("+{$daysFromNow} days"));
+                // Check for existing followup in next 30 days
+                $existingFollowup = null;
+                foreach ($store['pending_followups'] ?? [] as $fup) {
+                    if (($fup['caseId'] ?? '') !== $caseId) continue;
+                    $fupDate = $fup['target_date'] ?? $fup['targetDate'] ?? '';
+                    if ($fupDate >= date('Y-m-d') && $fupDate <= date('Y-m-d', strtotime('+30 days'))) {
+                        $existingFollowup = $fup;
+                        break;
                     }
                 }
-
-                if (!$alreadyExists) {
-                    $pfId = 'pf_' . substr(hash('sha256', random_bytes(16)), 0, 16);
-                    $targetDateVal = gmdate('Y-m-d', strtotime('+' . $autoFollowupDays . ' days'));
+                if ($existingFollowup === null) {
+                    if (!isset($store['pending_followups'])) $store['pending_followups'] = [];
+                    $newFollowupId = 'followup-' . bin2hex(random_bytes(6));
                     $store['pending_followups'][] = [
-                        'id' => $pfId,
-                        'caseId' => $caseId,
-                        'evolutionId' => $evolutionRecord['id'],
-                        'days_from_now' => $autoFollowupDays,
-                        'targetDate' => $targetDateVal,
-                        'reason' => 'Control automático (' . $autoFollowupDays . ' días)',
+                        'id'               => $newFollowupId,
+                        'caseId'           => $caseId,
+                        'evolutionId'      => $evolutionRecord['id'],
+                        'days_from_now'    => $daysFromNow,
+                        'target_date'      => $targetDate,
+                        'reason'           => 'Control programado por plan SOAP',
                         'appointment_type' => 'control',
-                        'source' => 'soap_plan',
-                        'status' => 'pending',
-                        'createdAt' => $now
+                        'source'           => 'soap_plan',
+                        'created_at'       => gmdate('c'),
                     ];
-                    $newFollowupScheduled = true;
+                    $followupCreated = true;
+                    $followupTargetDate = $targetDate;
                 }
             }
 
@@ -243,8 +232,9 @@ final class ClinicalHistoryController
             }
             return [
                 'ok' => true,
-                'skippedFollowup' => $skippedFollowup,
-                'newFollowupScheduled' => $newFollowupScheduled
+                'followupCreated' => $followupCreated,
+                'newFollowupId' => $newFollowupId,
+                'followupTargetDate' => $followupTargetDate,
             ];
         });
 
@@ -256,12 +246,13 @@ final class ClinicalHistoryController
         ];
 
         $resPayload = $lockResult['result'] ?? [];
-        if (!empty($resPayload['skippedFollowup'])) {
-            $resp['existing_followup'] = $resPayload['skippedFollowup'];
-            $resp['new_followup_skipped'] = true;
-        } elseif (!empty($resPayload['newFollowupScheduled'])) {
-            $resp['new_followup_scheduled'] = true;
-        }
+        $followupCreated = $resPayload['followupCreated'] ?? false;
+        
+        $resp['followup_created'] = $followupCreated;
+        $resp['followup'] = $followupCreated ? [
+            'id' => $resPayload['newFollowupId'] ?? null, 
+            'target_date' => $resPayload['followupTargetDate'] ?? null
+        ] : null;
 
         json_response($resp, 201);
     }
