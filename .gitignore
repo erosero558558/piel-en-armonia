@@ -23,6 +23,8 @@ admin.js
 js/chunks/
 js/engines/
 js/admin-chunks/
+!js/admin-chunks/
+!js/admin-chunks/*.js
 js/booking-calendar.js
 js/queue-kiosk.js
 js/queue-display.js
