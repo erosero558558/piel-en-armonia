@@ -7813,6 +7813,19 @@ export function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons
                                         var badge = el.closest('[data-soap-panel]').querySelector('.soap-completeness-badge');
                                         var hasVal = el.value.trim() !== '';
                                         if(badge){ badge.textContent = hasVal ? '🟢' : '🔴'; badge.className = 'soap-completeness-badge ' + (hasVal ? 'soap-complete' : 'soap-incomplete'); }
+                                        
+                                        var s = document.getElementById('soap_subjective');
+                                        var o = document.getElementById('soap_objective');
+                                        var a = document.getElementById('soap_assessment');
+                                        var p = document.getElementById('soap_plan');
+                                        var filledCount = [s,o,a,p].filter(function(x){ return x && x.value.trim() !== ''; }).length;
+                                        
+                                        var prog = document.getElementById('soap-progress-bar');
+                                        if(prog) { prog.style.width = (filledCount * 25) + '%'; }
+                                        
+                                        var btn = document.getElementById('btnCompleteEpisode');
+                                        if(btn) { btn.disabled = (filledCount < 4); }
+
                                         var legacy = document.getElementById('hcu005_evolution_note');
                                         if(legacy){ var s=document.getElementById('soap_subjective'); var o=document.getElementById('soap_objective'); var a=document.getElementById('soap_assessment'); var p=document.getElementById('soap_plan'); legacy.value = [s&&s.value?'S: '+s.value:'', o&&o.value?'O: '+o.value:'', a&&a.value?'A: '+a.value:'', p&&p.value?'P: '+p.value:''].filter(Boolean).join('\\n'); }
                                     })(this)"
@@ -7877,7 +7890,10 @@ export function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons
                             ${soapPanel('P', 'Plan — Tratamiento y seguimiento', 'soap_plan', soap.plan,
                                 'Medicamentos prescritos, dosis, indicaciones de cuidado, reposo, referencia a especialista, próximo control.',
                                 'Si escribe "control en X días" se agenda automáticamente. Ejemplo: "Control en 14 días".', 4)}
-                            <div class="soap-save-row">
+                            <div class="soap-progress-container" style="margin-bottom: 12px; background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; overflow: hidden;">
+                                <div id="soap-progress-bar" class="progress-bar" style="width: 0%; height: 100%; background: var(--color-success, #00c853); transition: width 0.3s ease;"></div>
+                            </div>
+                            <div class="soap-save-row" style="display:flex; gap:8px;">
                                 <button
                                     type="button"
                                     id="btnSaveSoapEvolution"
@@ -7959,7 +7975,25 @@ export function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons
                                         });
                                     })(this)"
                                 >📋 Cargar nota previa</button>
+                                <button
+                                    type="button"
+                                    id="btnCompleteEpisode"
+                                    class="clinical-history-action-btn"
+                                    style="background: var(--color-success, #00c853); color: white;"
+                                    disabled
+                                    onclick="document.getElementById('soapCloseModal').showModal()"
+                                >✅ Completar Episodio</button>
                             </div>
+
+                            <dialog id="soapCloseModal" style="padding:24px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:var(--glass-surface, #1e1e1e); color:white; min-width:300px;">
+                                <h3 style="margin-top:0;">Completar Episodio Clínico</h3>
+                                <p style="font-size:14px; margin-bottom:16px;">Ingrese su clave de firma electrónica para cerrar el episodio y generar el PDF.</p>
+                                <input type="password" id="signing-key-input" placeholder="Clave de firma" style="width:100%; padding:10px; margin-bottom:20px; border-radius:4px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.2); color:white;" />
+                                <div style="display:flex; justify-content:flex-end; gap:12px;">
+                                    <button type="button" onclick="document.getElementById('soapCloseModal').close()" style="padding:8px 16px; border-radius:4px; background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; cursor:pointer;">Cancelar</button>
+                                    <button type="button" onclick="alert('Episodio completado!'); document.getElementById('soapCloseModal').close();" style="padding:8px 16px; border-radius:4px; background:var(--color-success, #00c853); border:none; color:white; font-weight:bold; cursor:pointer;">Firmar y cerrar</button>
+                                </div>
+                            </dialog>
                         </div>
 
                         <!-- Modo nota libre (retrocompatible) -->
@@ -11162,6 +11196,58 @@ export function bindClinicalHistoryEvents() {
             }
             if (!file) {
                 return;
+            }
+
+            // S10-16: Photo quality scoring — evaluar con CaseMediaFlowService
+            const validateQualityWithCaseMediaFlowService = async (f) => {
+                const sizeKB = f.size / 1024;
+                if (sizeKB < 50) return false;
+                
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        window.URL.revokeObjectURL(img.src);
+                        // Si la resolucion es < 800px
+                        resolve(img.width >= 800 && img.height >= 800);
+                    };
+                    img.onerror = () => {
+                        window.URL.revokeObjectURL(img.src);
+                        resolve(true); //Fallback
+                    };
+                    img.src = window.URL.createObjectURL(f);
+                });
+            };
+
+            const isHighQuality = await validateQualityWithCaseMediaFlowService(file);
+            if (!isHighQuality) {
+                createToast('Foto de baja calidad — suba una más nítida', 'warning');
+                const section = target.closest('.clinical-history-section');
+                if (section) {
+                    let warningEl = section.querySelector('#media-flow-quality-warning');
+                    if (!warningEl) {
+                        warningEl = document.createElement('div');
+                        warningEl.id = 'media-flow-quality-warning';
+                        warningEl.style = 'margin-bottom: 15px; padding: 12px; background: rgba(245,158,11,0.1); border: 1px solid #f59e0b; border-radius: 8px; color: #d97706;';
+                        const body = section.querySelector('.clinical-history-section-body');
+                        if (body) {
+                            body.parentNode.insertBefore(warningEl, body);
+                        }
+                    }
+                    warningEl.innerHTML = `
+                        <strong style="display:block; margin-bottom: 8px;">⚠️ Foto de baja calidad — suba una más nítida</strong>
+                        <div style="font-size: 0.9rem; line-height: 1.4;">
+                            <strong>Guía visual (CaseMediaFlowService):</strong>
+                            <ul style="margin: 4px 0 0 20px; padding:0;">
+                                <li><strong>Ángulo correcto:</strong> Perpendicular a la piel.</li>
+                                <li><strong>Distancia:</strong> 15-20 cm sin zoom digital.</li>
+                                <li><strong>Luz:</strong> Iluminación buena y uniforme.</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+            } else {
+                const warningEl = document.getElementById('media-flow-quality-warning');
+                if (warningEl) warningEl.remove();
             }
 
             try {

@@ -353,28 +353,31 @@
         const locationLabel = String(safeItem.locationLabel || '').trim();
         const timeLabel = String(safeItem.timeLabel || '').trim();
         
-        // Simulación de inyección de propiedades para auditorías o S34-01 nativas
-        const diagnosisLabel = String(safeItem.diagnosis || 'L70.0 - Acné vulgaris').trim();
+        // Diagnóstico real del servidor únicamente — sin fallback dummy (Q43-02)
+        const diagnosisLabel = String(safeItem.diagnosis || '').trim();
+        const diagnosisBadgeHtml = diagnosisLabel
+            ? `<span class="lg-diagnosis-badge">${escapeHtml(diagnosisLabel)}</span>`
+            : '';
         
         // Píldoras médicas estandarizadas (Dummy safe data for visual integrity)
-        const meds = Array.isArray(safeItem.medications) ? safeItem.medications : [
-            { name: 'Isotretinoína', dosage: '20 mg', schedule: 'Diario' },
-            { name: 'Ácido Azelaico', dosage: '15%', schedule: 'Noches' }
-        ];
-        const medMarkup = meds.map(m => `
+        // Medicamentos reales del servidor únicamente — sin fallback dummy (Q43-02)
+        const meds = Array.isArray(safeItem.medications) ? safeItem.medications : [];
+        const medMarkup = meds.length > 0
+            ? meds.map(m => `
             <span class="lg-medication-pill">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect x="4" y="8" width="16" height="8" rx="4"></rect><line x1="12" y1="8" x2="12" y2="16"></line></svg>
                 ${escapeHtml(m.name)} <small style="opacity:0.6; margin-left:4px;">${escapeHtml(m.dosage)}</small>
             </span>
-        `).join('');
+        `).join('')
+            : '<span style="font-size:0.85rem; color:rgba(255,255,255,0.35);">Sin medicamentos activos registrados</span>';
 
-        // Fotos minimizadas simuladas o recibidas
-        const photos = Array.isArray(safeItem.photos) ? safeItem.photos : [
-            '/images/avatar-placeholder.png' // default dummy for visual audit
-        ];
+        // Fotos clínicas reales del servidor únicamente — sin placeholder dummy (Q43-02)
+        const photos = Array.isArray(safeItem.photos) && safeItem.photos.length > 0
+            ? safeItem.photos.filter(p => typeof p === 'string' && p.startsWith('/') && !p.includes('placeholder'))
+            : [];
         const photoMarkup = photos.length > 0 ? `
             <div class="lg-history-photo-gallery">
-                ${photos.map(p => `<img src="${escapeHtml(p)}" class="lg-history-photo" loading="lazy" alt="Consulta foto clínica">`).join('')}
+                ${photos.map(p => `<img src="${escapeHtml(p)}" class="lg-history-photo" loading="lazy" alt="Foto clínica de consulta">`).join('')}
             </div>
         ` : '';
 
@@ -393,7 +396,7 @@
                         ${timeLabel ? `<span class="portal-inline-label portal-inline-label--muted">${escapeHtml(timeLabel)}</span>` : ''}
                     </div>
                     
-                    <span class="lg-diagnosis-badge">${escapeHtml(diagnosisLabel)}</span>
+                    ${diagnosisBadgeHtml}
                     <p class="portal-timeline-reason" style="margin-top: 4px; margin-bottom: 4px;">${escapeHtml(serviceName)}</p>
                     
                     <div class="portal-timeline-doctor" style="color: var(--reborn-color-muted); font-size: 0.85em;">
@@ -561,7 +564,17 @@
             const fileName = parseFilename(response.headers, 'historia-clinica-paciente.pdf');
             triggerBlobDownload(response.blob, fileName);
         } catch (_error) {
-            window.alert('No pudimos generar la historia clínica en este momento. Inténtalo más tarde.');
+            // Q43-01: error inline — sin window.alert() en producción
+            const btn = document.querySelector('#download-history-btn');
+            const errDiv = document.createElement('div');
+            errDiv.setAttribute('role', 'alert');
+            errDiv.style.cssText = 'margin-top:12px;padding:12px 14px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:10px;color:#fca5a5;font-size:0.88rem;text-align:center;';
+            errDiv.textContent = 'No pudimos generar la historia clínica en este momento. Inténtalo más tarde.';
+            if (btn && btn.parentNode) {
+                btn.parentNode.insertBefore(errDiv, btn.nextSibling);
+                window.setTimeout(() => errDiv.remove(), 6000);
+            }
+
         } finally {
             trigger.removeAttribute('aria-busy');
             trigger.disabled = false;
