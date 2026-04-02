@@ -7735,6 +7735,35 @@ export function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValu
                     )}
                 `
             )}
+
+            <div class="anamnesis-save-row" style="margin-top: 16px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; display: flex; justify-content: flex-end;">
+                <button type="button" id="btnSaveStructuredAnamnesis" class="clinical-history-action-btn"
+                    ${disabled ? 'disabled' : ''}
+                    onclick="(function(btn){
+                        btn.disabled = true; btn.textContent = 'Guardando...';
+                        var payload = {
+                            caseId: document.querySelector('[data-case-id]')?.getAttribute('data-case-id') || '',
+                            anamnesis: {
+                                motivo_consulta: document.getElementById('intake_motivo_consulta')?.value || '',
+                                enfermedad_actual: document.getElementById('intake_enfermedad_actual')?.value || '',
+                                antecedentes_personales: document.getElementById('intake_antecedentes_personales')?.value || '',
+                                antecedentes_familiares: document.getElementById('intake_antecedentes_familiares')?.value || '',
+                                alergias: document.getElementById('intake_alergias')?.value || '',
+                                medicacion_actual: document.getElementById('intake_medicacion_actual')?.value || ''
+                            }
+                        };
+                        fetch('/api.php?resource=clinical-anamnesis', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(payload)
+                        }).then(r => r.json()).then(data => {
+                            if(data.ok) { btn.textContent = '✅ Anamnesis guardada'; setTimeout(() => {btn.disabled=false; btn.textContent='Guardar Anamnesis Estructurada';}, 2500); }
+                            else { alert('Error: ' + data.error); btn.disabled=false; btn.textContent='Guardar Anamnesis Estructurada'; }
+                        }).catch(e => { alert('Red: ' + e.message); btn.disabled=false; btn.textContent='Guardar Anamnesis Estructurada'; });
+                    })(this)">
+                    Guardar Anamnesis Estructurada
+                </button>
+            </div>
+
         </div>
         <!-- /anamnesis-form -->
     `;
