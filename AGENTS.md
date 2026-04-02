@@ -338,25 +338,25 @@
 
 ### 43.4 Gobernanza
 
-- [ ] **Q43-10** `[L]` `[codex_transversal]` Reemplazar dummies S14-S23 en `bin/verify.js`. Meta: done-without-rule < 200 (hoy 329). Verificable: `node bin/verify.js 2>&1 | grep done-without-rule`.
+- [x] **Q43-10** `[L]` `[codex_transversal]` Reemplazar dummies S14-S23 en `bin/verify.js`. Meta: done-without-rule < 200 (hoy 329). Verificable: `node bin/verify.js 2>&1 | grep done-without-rule`.
 
-- [ ] **Q43-11** `[M]` `[codex_frontend]` Status page `/es/status/` — conectar a `GET /api.php?resource=health`. Verificable: grep fetch health en es/status/index.html.
+- [x] **Q43-11** `[M]` `[codex_frontend]` Status page `/es/status/` — conectar a `GET /api.php?resource=health`. Verificable: grep fetch health en es/status/index.html.
 
 - [ ] **Q43-12** `[M]` `[codex_frontend]` Ruta canónica `/es/mi-turno/` — unificar, redirect 301 si duplicada. Verificable: curl 200.
 
-- [ ] **Q43-13** `[M]` `[codex_frontend]` Dashboard médico sin datos demo — eliminar strings "Doctor Bienvenido", "demo". Verificable: 0 matches grep.
+- [x] **Q43-13** `[M]` `[codex_frontend]` Dashboard médico sin datos demo — eliminar strings "Doctor Bienvenido", "demo". Verificable: 0 matches grep.
 
 ### 43.5 Nuevas Actividades de Agentes (DEBT saldable)
 
-- [ ] **Q43-14** `[M]` `[codex_backend]` `ConsentRouter.php` — implementar `lib/consent/ConsentRouter.php` (S9-22 DEBT-07). Devuelve packet de consentimiento según surface. Verificable: `grep -r "ConsentRouter" lib/consent/`.
+- [x] **Q43-14** `[M]` `[codex_backend]` `ConsentRouter.php` — implementar `lib/consent/ConsentRouter.php` (S9-22 DEBT-07). Devuelve packet de consentimiento según surface. Verificable: `grep -r "ConsentRouter" lib/consent/`.
 
-- [ ] **Q43-15** `[L]` `[codex_backend]` `data/drug-interactions.json` — ampliar de 12 a 40+ interacciones con: embarazo, lactancia, alergias cruzadas, fotosensibilidad (S10-08 DEBT-07). Verificable: `jq ".interactions | length" data/drug-interactions.json` >= 40.
+- [x] **Q43-15** `[L]` `[codex_backend]` `data/drug-interactions.json` — ampliar de 12 a 40+ interacciones con: embarazo, lactancia, alergias cruzadas, fotosensibilidad (S10-08 DEBT-07). Verificable: `jq ".pairs | length" data/drug-interactions.json` >= 40.
 
-- [ ] **Q43-16** `[M]` `[codex_backend]` Ledger de revocación de documentos — campo `voided_at` + `void_reason` en normalize_clinical_document(). Historial muestra doc tachado (S10-14 DEBT-07). Verificable: grep voided_at en controllers.
+- [x] **Q43-16** `[M]` `[codex_backend]` Ledger de revocación de documentos — campo `voided_at` + `void_reason` en normalize_clinical_document(). Historial muestra doc tachado (S10-14 DEBT-07). Verificable: grep voided_at en controllers.
 
-- [ ] **Q43-17** `[S]` `[codex_frontend]` Before/after protocol checklist — inline en admin al subir foto "after" (S10-19 DEBT-07). CSS en `aurora-clinical.css`. Verificable: grep mismo-angulo en src/.
+- [x] **Q43-17** `[S]` `[codex_frontend]` Before/after protocol checklist — inline en admin al subir foto "after" (S10-19 DEBT-07). CSS en `aurora-clinical.css`. Verificable: grep mismo-angulo en src/.
 
-- [ ] **Q43-18** `[M]` `[codex_backend]` `data/post-procedure/*.md` — 5 fichas: L20.0, L70.0, laser-co2, bioestimuladores, peeling-profundo. Enviables por WhatsApp (S10-23 DEBT-07). Verificable: `ls data/post-procedure/ | wc -l` >= 5.
+- [x] **Q43-18** `[M]` `[codex_backend]` `data/post-procedure/*.md` — 5 fichas: L20.0, L70.0, laser-co2, bioestimuladores, peeling-profundo. Enviables por WhatsApp (S10-23 DEBT-07). Verificable: `ls data/post-procedure/ | wc -l` >= 5.
 
 - [ ] **Q43-19** `[L]` `[codex_transversal]` Test pack integridad clínica e2e — adulteración → banner → bloqueo export → audit log. `tests/ClinicalIntegrityE2ETest.php`. Verificable: >= 8 assertions.
 
@@ -374,7 +374,7 @@
 
 - [x] **S44-02** `[M]` `[codex_backend]` Synthetic smoke e2e — `bin/smoke-prod.js`: health → booking → portal auth → descarga historial PDF < 5s. Verificable: `node bin/smoke-prod.js` exits 0.
 
-- [ ] **S44-03** `[M]` `[codex_frontend]` Portada lanzamiento — `/es/`: GA4, Schema Dermatology, CTA above-fold, WhatsApp flotante, prueba social. Cero datos demo. Verificable: `docs/LAUNCH_CHECKLIST.md` 10/10.
+- [x] **S44-03** `[M]` `[codex_frontend]` Portada lanzamiento — `/es/`: GA4, Schema Dermatology, CTA above-fold, WhatsApp flotante, prueba social. Cero datos demo. Verificable: `docs/LAUNCH_CHECKLIST.md` 10/10.
 
 - [ ] **S44-04** `[M]` `[codex_backend]` Tenant isolation audit — todos los endpoints clínicos filtran por tenantId. Sin cross-tenant data leak. Verificable: `grep -c "tenantId" controllers/PatientPortalController.php` >= 20.
 

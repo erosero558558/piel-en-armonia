@@ -28,6 +28,33 @@ const navModel = getV6NavigationModel(locale, pathname);
     templateId="home_v6"
     ogImageSrc="/images/optimized/v6-clinic-brand-hero-wide.jpg"
 >
+    <!-- Schema.org Dermatology JSON-LD -->
+    <script type="application/ld+json" slot="head">
+    {
+      "@context": "https://schema.org",
+      "@type": "MedicalBusiness",
+      "name": "Aurora Derm",
+      "image": "https://pielarmonia.com/images/optimized/v6-clinic-brand-hero-wide.jpg",
+      "url": "https://pielarmonia.com/es/",
+      "telephone": "+593982453672",
+      "medicalSpecialty": "Dermatology",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Av. de los Shyris y Naciones Unidas",
+        "addressLocality": "Quito",
+        "addressRegion": "Pichincha",
+        "postalCode": "170135",
+        "addressCountry": "EC"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": -0.1764,
+        "longitude": -78.4803
+      },
+      "priceRange": "$$"
+    }
+    </script>
+
     <!-- RB-05: Hero Cinemático -->
     <header class="reborn-hero" data-v6-hero>
         <picture class="reborn-hero__media">
@@ -42,7 +69,7 @@ const navModel = getV6NavigationModel(locale, pathname);
         <div class="reborn-hero__scrim"></div>
         <div class="reborn-hero__content">
             <h1 class="reborn-hero__title reborn-display">La ciencia detrás de tu piel</h1>
-            <a href="/portal/agendar" class="reborn-hero__ghost">Agendar ahora</a>
+            <a href="/portal/agendar" class="reborn-hero__ghost reborn-hero__cta reborn-btn-primary" style="background-color: var(--v6-color-accent, #c6a87c); color: #fff; padding: 1rem 2rem; border-radius: 4px; font-weight: 600; font-size: 1.125rem;">Agendar ahora</a>
         </div>
     </header>
 
@@ -67,4 +94,9 @@ const navModel = getV6NavigationModel(locale, pathname);
             <p class="reborn-bento__desc">Consulta remota HD.</p>
         </a>
     </section>
+
+    <!-- Trust Signals & Social Proof -->
+    <TrustSignalsV6 section={page.trustSignals} />
+    <GoogleReviewsV6 section={page.googleReviews} locale={locale} />
+    
 </PublicShellV6>
