@@ -281,3 +281,105 @@ export function highestReviewEventSeverity(review) {
     return highest;
 }
 
+export const EVENT_ICONS = {
+    soap: '🩺', prescription: '💊', certificate: '📋',
+    lab_result: '🧪', lab_critical: '🚨', photo: '📷',
+    telemedicine: '💻', imaging: '🔬', consent: '✍️',
+    followup: '📅', anamnesis: '📝', interconsult: '🔗',
+};
+
+export function buildClinicalTimeline(events = [], options = {}) {
+    if (!events.length) {
+        return `<div class="clinical-timeline-empty" data-clinical-timeline="true">
+            <p style="color:#9ca3af;text-align:center;padding:24px 0;">Sin eventos clínicos registrados aún.</p>
+        </div>`;
+    }
+    // Sort newest-first
+    const sorted = [...events].sort((a, b) => {
+        const da = a.createdAt || a.date || '';
+        const db = b.createdAt || b.date || '';
+        return db.localeCompare(da);
+    });
+
+    const items = sorted.map((event, idx) => {
+        const type = event.type || 'unknown';
+        const icon = EVENT_ICONS[type] || '📌';
+        const date = event.createdAt || event.date || '';
+        const displayDate = date ? new Date(date).toLocaleDateString('es-EC', {day:'2-digit', month:'short', year:'numeric'}) : '—';
+        const isCritical = type === 'lab_critical' || event.data?.critical === true;
+
+        // Summary line by type
+        let summary = '';
+        if (type === 'soap' || type === 'evolution') {
+            const soap = event.data?.soap || {};
+            summary = soap.assessment || event.data?.note || 'Nota clínica';
+            summary = summary.length > 80 ? summary.slice(0, 77) + '…' : summary;
+        } else if (type === 'prescription') {
+            const meds = (event.data?.medications || []).map(m => m.medication || m.name || '').filter(Boolean);
+            summary = meds.length ? meds.slice(0,3).join(', ') + (meds.length > 3 ? '…' : '') : 'Prescripción';
+        } else if (type === 'lab_result' || type === 'lab_critical') {
+            const vals = event.data?.values || [];
+            summary = vals.length ? vals.slice(0,2).map(v => `${v.test}: ${v.value} ${v.unit||''}`).join(' | ') : 'Resultado de laboratorio';
+        } else if (type === 'certificate') {
+            summary = event.data?.reason || 'Certificado médico';
+        } else if (type === 'imaging') {
+            summary = event.data?.impression || event.data?.type || 'Imagen diagnóstica';
+        } else {
+            summary = event.data?.summary || event.data?.note || type;
+        }
+
+        // Gap indicator: if next event > 7 days apart
+        let gapHtml = '';
+        if (idx < sorted.length - 1) {
+            const nextDate = sorted[idx + 1].createdAt || sorted[idx + 1].date || '';
+            if (date && nextDate) {
+                const gapDays = Math.round((new Date(date) - new Date(nextDate)) / 86400000);
+                if (gapDays >= 7) {
+                    gapHtml = `<div class="timeline-gap-indicator" data-gap-days="\${gapDays}">
+                        <span>⏱ \${gapDays} días sin visita</span>
+                    </div>`;
+                }
+            }
+        }
+
+        return `
+        <li class="timeline-event \${isCritical ? 'timeline-event--critical' : ''}"
+            data-timeline-event-type="\${type}"
+            data-timeline-expand="\${event.id || idx}">
+            <div class="timeline-event-icon">\${icon}</div>
+            <div class="timeline-event-body">
+                <div class="timeline-event-header">
+                    <span class="timeline-event-type">\${type.replace(/_/g,' ')}</span>
+                    <span class="timeline-event-date">\${displayDate}</span>
+                </div>
+                <p class="timeline-event-summary">\${summary}</p>
+            </div>
+        </li>\${gapHtml}`;
+    }).join('');
+
+    return `
+    <ol class="clinical-timeline" data-clinical-timeline="true">
+        \${items}
+    </ol>
+    <style>
+        .clinical-timeline { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0; }
+        .timeline-event { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; transition:background 0.15s; border-radius:8px; }
+        .timeline-event:hover { background:rgba(255,255,255,0.03); }
+        .timeline-event--critical { border-left:3px solid #ef4444; padding-left:8px; }
+        .timeline-event-icon { font-size:18px; flex-shrink:0; width:28px; text-align:center; }
+        .timeline-event-body { flex:1; min-width:0; }
+        .timeline-event-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; }
+        .timeline-event-type { font-size:11px; font-weight:600; color:#9ca3af; text-transform:capitalize; }
+        .timeline-event-date { font-size:11px; color:#6b7280; }
+        .timeline-event-summary { margin:0; font-size:13px; color:#dbe3ed; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .timeline-event--critical .timeline-event-summary { color:#fca5a5; }
+        .timeline-gap-indicator { display:flex; justify-content:center; padding:6px; }
+        .timeline-gap-indicator span { font-size:11px; color:#6b7280; background:rgba(255,255,255,0.04); padding:3px 10px; border-radius:12px; }
+        .clinical-timeline-empty { border:1px dashed rgba(255,255,255,0.1); border-radius:12px; }
+    </style>`;
+}
+
+export function buildTimelineEventDetail(event) {
+    // Stub definition placeholder
+    return '';
+}
