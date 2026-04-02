@@ -6,9 +6,11 @@
  * realmente completadas vs lo que dice el board.
  *
  * Uso:
- *   node bin/verify.js           — scan y reportar discrepancias
- *   node bin/verify.js --fix     — además, marcar [x] automáticamente en AGENTS.md
- *   node bin/verify.js --sprint 2 — solo verificar sprint 2
+ *   node bin/verify.js                 — scan y reportar discrepancias
+ *   node bin/verify.js --fix           — además, marcar [x] automáticamente en AGENTS.md
+ *   node bin/verify.js --json          — salida estructurada para tooling
+ *   node bin/verify.js --task S44-01 --json
+ *   node bin/verify.js --gate launch   — gate mínimo de lanzamiento (13 checks)
  */
 
 'use strict';
@@ -20,7 +22,11 @@ const { resolve } = require('path');
 const ROOT = resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 const ROUTES_FILE = 'lib/routes.php';
-const FIX = process.argv.includes('--fix');
+const CLI_ARGS = process.argv.slice(2);
+const FIX = CLI_ARGS.includes('--fix');
+const JSON_OUTPUT = CLI_ARGS.includes('--json');
+const REQUESTED_TASK = readFlagValue(CLI_ARGS, '--task');
+const REQUESTED_GATE = readFlagValue(CLI_ARGS, '--gate');
 const TASK_LINE_PATTERN = /^- \[([ x])\] \*\*([A-Z0-9]+(?:-[A-Z0-9]+)+)\*\*/;
 const PHASE_TWO_AUDIT_CHECK_KEYS = [
     'serviceCssCoverage',
@@ -40,7 +46,7 @@ const OPENCLAW_ENDPOINTS = [
     { method: 'GET',  resource: 'openclaw-protocol',           action: 'protocol' },
     { method: 'POST', resource: 'openclaw-chat',               action: 'chat' },
     { method: 'POST', resource: 'openclaw-save-diagnosis',     action: 'saveDiagnosis' },
-    { method: 'POST', resource: 'openclaw-save-chronic',       action: 'saveChronic' },
+    { method: 'POST', resource: 'openclaw-save-chronic',       action: 'saveChronicCondition' },
     { method: 'POST', resource: 'openclaw-save-evolution',     action: 'saveEvolution' },
     { method: 'GET',  resource: 'openclaw-prescription',       action: 'getPrescriptionPdf' },
     { method: 'POST', resource: 'openclaw-prescription',       action: 'savePrescription' },
@@ -86,6 +92,15 @@ const JSON_KEY_EVIDENCE_TASKS = new Set([
     'S1-04',
     'S9-11',
 ]);
+
+function readFlagValue(args, flag) {
+    const index = Array.isArray(args) ? args.indexOf(flag) : -1;
+    if (index === -1 || index === args.length - 1) {
+        return '';
+    }
+
+    return String(args[index + 1] || '').trim();
+}
 
 function read(filePath) {
     return existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
@@ -173,6 +188,20 @@ function fileContains(relativePath, pattern) {
     return pattern instanceof RegExp
         ? pattern.test(content)
         : content.includes(pattern);
+}
+
+function gatePass(detail) {
+    return {
+        ok: true,
+        detail: String(detail || ''),
+    };
+}
+
+function gateFail(detail) {
+    return {
+        ok: false,
+        detail: String(detail || ''),
+    };
 }
 
 function getServiceAuroraCssCoverage() {
@@ -267,6 +296,314 @@ function controllerSurfaceExists({
         ({ method, resource, action, controller = className }) =>
             routeExists(method, resource, controller, action)
     );
+}
+
+function createLaunchGateChecks({ markdown = read(AGENTS_FILE), verificationSnapshot = null } = {}) {
+    const ga4Files = [
+        'index.html',
+        'es/portal/login/index.html',
+        'es/portal/consentimiento/index.html',
+        'es/portal/pagos/index.html',
+        'es/portal/historial/index.html',
+    ];
+
+    return [
+        {
+            id: 'auth.endpoint',
+            label: 'Portal auth endpoint',
+            evaluate: () =>
+                controllerSurfaceExists({
+                    file: 'controllers/PatientPortalController.php',
+                    className: 'PatientPortalController',
+                    methods: ['start'],
+                    routes: [
+                        {
+                            method: 'POST',
+                            resource: 'patient-portal-auth-start',
+                            action: 'start',
+                        },
+                    ],
+                })
+                    ? gatePass(
+                        'POST patient-portal-auth-start apunta a PatientPortalController::start'
+                    )
+                    : gateFail(
+                        'Falta POST patient-portal-auth-start -> PatientPortalController::start'
+                    ),
+        },
+        {
+            id: 'auth.surface',
+            label: 'Portal auth surface',
+            evaluate: () =>
+                fileExists('es/portal/login/index.html') &&
+                fileContains(
+                    'es/portal/login/index.html',
+                    'data-portal-login-request-form'
+                ) &&
+                fileContains('js/portal-login.js', 'patient-portal-auth-start')
+                    ? gatePass(
+                        'Login del portal expone el formulario OTP y su cliente consume patient-portal-auth-start'
+                    )
+                    : gateFail(
+                        'La surface de login no muestra el formulario OTP o js/portal-login.js no consume patient-portal-auth-start'
+                    ),
+        },
+        {
+            id: 'booking.endpoint',
+            label: 'Booking endpoint',
+            evaluate: () =>
+                controllerSurfaceExists({
+                    file: 'controllers/AppointmentController.php',
+                    className: 'AppointmentController',
+                    methods: ['store', 'bookedSlots'],
+                    routes: [
+                        {
+                            method: 'POST',
+                            resource: 'appointments',
+                            action: 'store',
+                        },
+                        {
+                            method: 'GET',
+                            resource: 'booked-slots',
+                            action: 'bookedSlots',
+                        },
+                    ],
+                })
+                    ? gatePass(
+                        'Booking conserva POST appointments y GET booked-slots en AppointmentController'
+                    )
+                    : gateFail(
+                        'Booking no tiene completo el contrato POST appointments + GET booked-slots'
+                    ),
+        },
+        {
+            id: 'booking.surface',
+            label: 'Booking surface',
+            evaluate: () =>
+                fileExists('es/agendar/agendar.js') &&
+                fileContains('es/agendar/agendar.js', 'booking-app') &&
+                fileContains('es/agendar/agendar.js', 'booking-loading-state') &&
+                fileContains(
+                    'es/agendar/agendar.js',
+                    '/api.php?resource=appointments'
+                ) &&
+                fileContains(
+                    'es/agendar/agendar.js',
+                    '/api.php?resource=booked-slots'
+                )
+                    ? gatePass(
+                        'es/agendar/agendar.js conserva el shell de booking con carga, slots y submit real'
+                    )
+                    : gateFail(
+                        'es/agendar/agendar.js no expone el flujo mínimo de booking (shell, loading, slots o submit)'
+                    ),
+        },
+        {
+            id: 'consent.endpoint',
+            label: 'Consent endpoint',
+            evaluate: () =>
+                controllerSurfaceExists({
+                    file: 'controllers/PatientPortalController.php',
+                    className: 'PatientPortalController',
+                    methods: ['handle'],
+                    routes: [
+                        {
+                            method: 'GET',
+                            resource: 'patient-portal-consent',
+                            action: 'handle',
+                        },
+                        {
+                            method: 'POST',
+                            resource: 'patient-portal-consent',
+                            action: 'handle',
+                        },
+                    ],
+                })
+                    ? gatePass(
+                        'patient-portal-consent está cableado para lectura y firma'
+                    )
+                    : gateFail(
+                        'Falta el contrato GET/POST patient-portal-consent en PatientPortalController::handle'
+                    ),
+        },
+        {
+            id: 'consent.surface',
+            label: 'Consent surface',
+            evaluate: () =>
+                fileExists('es/portal/consentimiento/index.html') &&
+                fileContains(
+                    'es/portal/consentimiento/index.html',
+                    'data-portal-consent-form'
+                ) &&
+                fileContains('js/portal-consent.js', 'patient-portal-consent')
+                    ? gatePass(
+                        'La página de consentimiento conserva la firma táctil y su cliente consume patient-portal-consent'
+                    )
+                    : gateFail(
+                        'La surface de consentimiento no expone firma táctil o js/portal-consent.js no consume patient-portal-consent'
+                    ),
+        },
+        {
+            id: 'payments.endpoint',
+            label: 'Payments endpoint',
+            evaluate: () => {
+                const paymentsRead = routeExists(
+                    'GET',
+                    'patient-portal-payments',
+                    'PatientPortalController',
+                    'handle'
+                );
+                const intentWrite = controllerSurfaceExists({
+                    file: 'controllers/PaymentController.php',
+                    className: 'PaymentController',
+                    methods: ['createIntent'],
+                    routes: [
+                        {
+                            method: 'POST',
+                            resource: 'payment-intent',
+                            action: 'createIntent',
+                            controller: 'PaymentController',
+                        },
+                    ],
+                });
+
+                return paymentsRead && intentWrite
+                    ? gatePass(
+                        'Pagos conserva lectura del portal y creación de payment intent'
+                    )
+                    : gateFail(
+                        'Pagos no tiene completo el contrato patient-portal-payments + payment-intent'
+                    );
+            },
+        },
+        {
+            id: 'payments.surface',
+            label: 'Payments surface',
+            evaluate: () =>
+                fileExists('es/portal/pagos/index.html') &&
+                fileContains('es/portal/pagos/index.html', 'id="v6-payments-feed"') &&
+                fileContains('js/portal-payments.js', 'patient-portal-payments')
+                    ? gatePass(
+                        'La surface de pagos muestra el feed financiero y consume patient-portal-payments'
+                    )
+                    : gateFail(
+                        'La surface de pagos no muestra el feed financiero o js/portal-payments.js no consume patient-portal-payments'
+                    ),
+        },
+        {
+            id: 'documents.endpoint',
+            label: 'Documents endpoint',
+            evaluate: () =>
+                controllerSurfaceExists({
+                    file: 'controllers/PatientPortalController.php',
+                    className: 'PatientPortalController',
+                    methods: ['handle'],
+                    routes: [
+                        {
+                            method: 'GET',
+                            resource: 'patient-portal-history',
+                            action: 'handle',
+                        },
+                        {
+                            method: 'GET',
+                            resource: 'patient-portal-history-pdf',
+                            action: 'handle',
+                        },
+                        {
+                            method: 'GET',
+                            resource: 'patient-portal-document',
+                            action: 'handle',
+                        },
+                    ],
+                })
+                    ? gatePass(
+                        'Documentos del portal conserva timeline, export PDF y descarga autenticada'
+                    )
+                    : gateFail(
+                        'Falta el contrato de documentos del portal (history, history-pdf o patient-portal-document)'
+                    ),
+        },
+        {
+            id: 'documents.surface',
+            label: 'Documents surface',
+            evaluate: () =>
+                fileExists('es/portal/historial/index.html') &&
+                fileContains(
+                    'es/portal/historial/index.html',
+                    'id="download-history-btn"'
+                ) &&
+                fileContains('js/portal-history.js', 'patient-portal-history') &&
+                fileContains(
+                    'js/portal-history.js',
+                    'patient-portal-history-pdf'
+                )
+                    ? gatePass(
+                        'Historial del portal muestra exportación y su cliente consume timeline + PDF'
+                    )
+                    : gateFail(
+                        'La surface de historial no expone exportación o js/portal-history.js no consume timeline + PDF'
+                    ),
+        },
+        {
+            id: 'analytics.ga4_head',
+            label: 'GA4 in representative public heads',
+            evaluate: () => {
+                const allFilesHaveScript = ga4Files.every(
+                    (relativePath) =>
+                        fileExists(relativePath) &&
+                        fileContains(
+                            relativePath,
+                            'https://www.googletagmanager.com/gtag/js?id='
+                        ) &&
+                        fileContains(relativePath, "gtag('config'")
+                );
+                const sameMeasurementId = filesShareSingleRegexMatch(
+                    ga4Files,
+                    /G-[A-Z0-9]+/g
+                );
+
+                return allFilesHaveScript && sameMeasurementId
+                    ? gatePass(
+                        `GA4 está presente y consistente en ${ga4Files.length} heads públicos representativos`
+                    )
+                    : gateFail(
+                        'GA4 no está presente o no comparte el mismo measurement id en los heads públicos representativos'
+                    );
+            },
+        },
+        {
+            id: 'governance.done_without_rule',
+            label: 'done-without-rule < 100',
+            evaluate: () => {
+                const snapshot =
+                    verificationSnapshot || evaluateVerificationRegistry(markdown);
+                const count = snapshot.results.doneWithoutRule.length;
+
+                return count < 100
+                    ? gatePass(`done-without-rule actual: ${count} (< 100)`)
+                    : gateFail(`done-without-rule actual: ${count} (debe ser < 100)`);
+            },
+        },
+        {
+            id: 'health.endpoint',
+            label: 'Health endpoint',
+            evaluate: () =>
+                controllerSurfaceExists({
+                    file: 'controllers/HealthController.php',
+                    className: 'HealthController',
+                    methods: ['check'],
+                    routes: [
+                        {
+                            method: 'GET',
+                            resource: 'health',
+                            action: 'check',
+                        },
+                    ],
+                })
+                    ? gatePass('GET health apunta a HealthController::check')
+                    : gateFail('Falta GET health -> HealthController::check'),
+        },
+    ];
 }
 
 function openclawSurfaceExists(resources) {
@@ -533,6 +870,10 @@ function createVerificationChecks() {
         'S38-09': () => fileContains('es/telemedicina/consulta/index.html', 'jitsi-frame\|tele-hce-panel\|foto-upload-teleconsulta\|close-tele-soap'),
         'S42-01': () => fileExists('controllers/ClinicalMediaController.php'),
         'S42-02': () => fileExists('controllers/ClinicalLabResultsController.php'),
+        'S44-01': () =>
+            createLaunchGateChecks().length === 13 &&
+            fileContains('bin/verify.js', 'function evaluateLaunchGate(') &&
+            fileContains('tests-node/verify-cli.test.js', 'launch gate'),
 
 
         // ── Sprint 1 ───────────────────────────────────────────────────────
@@ -1197,9 +1538,161 @@ function evaluateVerificationRegistry(markdown) {
     };
 }
 
+function evaluateLaunchGate(markdown = read(AGENTS_FILE)) {
+    const verificationSnapshot = evaluateVerificationRegistry(markdown);
+    const checkDefinitions = createLaunchGateChecks({
+        markdown,
+        verificationSnapshot,
+    });
+    const checks = checkDefinitions.map((definition) => {
+        try {
+            const outcome = definition.evaluate();
+            return {
+                id: definition.id,
+                label: definition.label,
+                ok: Boolean(outcome && outcome.ok),
+                detail: String(
+                    outcome && typeof outcome.detail === 'string'
+                        ? outcome.detail
+                        : 'Sin detalle'
+                ),
+            };
+        } catch (error) {
+            return {
+                id: definition.id,
+                label: definition.label,
+                ok: false,
+                detail: error instanceof Error ? error.message : String(error),
+            };
+        }
+    });
+
+    const blockers = checks.filter((check) => !check.ok);
+    const warnings = [];
+    if (verificationSnapshot.results.doneWithoutEvidence.length > 0) {
+        warnings.push(
+            `verify base mantiene ${verificationSnapshot.results.doneWithoutEvidence.length} done-without-evidence fuera del launch gate`
+        );
+    }
+
+    return {
+        gate: 'launch',
+        ok: blockers.length === 0,
+        checks,
+        blockers,
+        warnings,
+        summary: {
+            total: checks.length,
+            passed: checks.filter((check) => check.ok).length,
+            failed: blockers.length,
+        },
+        recommendation:
+            blockers.length === 0 ? 'safe to continue' : 'needs fixes',
+        verification: {
+            doneWithoutRule: verificationSnapshot.results.doneWithoutRule.length,
+            doneWithoutEvidence:
+                verificationSnapshot.results.doneWithoutEvidence.length,
+        },
+    };
+}
+
+function buildVerificationJsonPayload({
+    markdown,
+    registry,
+    results,
+    taskLines,
+    taskId = '',
+}) {
+    const noCheckTasks = Object.keys(taskLines)
+        .filter((candidateTaskId) => !registry[candidateTaskId])
+        .sort();
+    const total = Object.keys(registry).length;
+    const done = results.alreadyDone.length + results.nowDone.length;
+    const payload = {
+        ok: results.doneWithoutEvidence.length === 0,
+        summary: {
+            verifiedDone: done,
+            totalRules: total,
+            pending: results.stillPending.length,
+            doneWithoutEvidence: results.doneWithoutEvidence.length,
+            doneWithoutRule: results.doneWithoutRule.length,
+        },
+        alreadyDone: results.alreadyDone,
+        nowDone: results.nowDone.map(({ taskId: currentTaskId }) => currentTaskId),
+        stillPending: results.stillPending,
+        withoutEvidence: results.doneWithoutEvidence,
+        doneWithoutRule: results.doneWithoutRule,
+        noCheckTasks,
+    };
+
+    if (taskId) {
+        const rule = registry[taskId];
+        payload.taskId = taskId;
+        payload.taskHasRule = Boolean(rule);
+        payload.taskResult = rule ? Boolean(rule.verify()) : null;
+    }
+
+    return payload;
+}
+
 function main() {
+    if (REQUESTED_GATE) {
+        if (REQUESTED_GATE !== 'launch') {
+            console.error(`Unknown gate "${REQUESTED_GATE}"`);
+            return 1;
+        }
+
+        const launchGate = evaluateLaunchGate(read(AGENTS_FILE));
+        if (JSON_OUTPUT) {
+            console.log(JSON.stringify(launchGate, null, 2));
+            return launchGate.ok ? 0 : 1;
+        }
+
+        console.log('\n🚀 Aurora Derm — Launch Gate\n');
+        console.log(
+            'Using smallest sufficient gate: verify.js --gate launch (auth, booking, consent, pagos, documentos, analytics y health).\n'
+        );
+
+        if (launchGate.blockers.length > 0) {
+            console.log(`❌ Blockers: ${launchGate.blockers.length}`);
+            launchGate.blockers.forEach((check) => {
+                console.log(`   [${check.id}] ${check.label}: ${check.detail}`);
+            });
+        } else {
+            console.log('✅ Blockers: none');
+        }
+
+        if (launchGate.warnings.length > 0) {
+            console.log('\n⚠️  Tolerated warnings:');
+            launchGate.warnings.forEach((warning) => console.log(`   ${warning}`));
+        }
+
+        console.log(
+            `\n📊 Launch summary: ${launchGate.summary.passed}/${launchGate.summary.total} passed`
+        );
+        console.log(`Recommendation: ${launchGate.recommendation}\n`);
+        return launchGate.ok ? 0 : 1;
+    }
+
     const markdown = read(AGENTS_FILE);
-    const { registry, results } = evaluateVerificationRegistry(markdown);
+    const { registry, results, taskLines } = evaluateVerificationRegistry(markdown);
+
+    if (JSON_OUTPUT) {
+        console.log(
+            JSON.stringify(
+                buildVerificationJsonPayload({
+                    markdown,
+                    registry,
+                    results,
+                    taskLines,
+                    taskId: REQUESTED_TASK,
+                }),
+                null,
+                2
+            )
+        );
+        return results.doneWithoutEvidence.length > 0 ? 1 : 0;
+    }
 
     console.log('\n🔍 Aurora Derm — Board Verification\n');
 
@@ -1336,9 +1829,11 @@ module.exports = {
     TASK_LINE_PATTERN,
     allFilesExist,
     controllerSurfaceExists,
+    createLaunchGateChecks,
     createPhaseTwoAuditChecks,
     createVerificationChecks,
     createVerificationRegistry,
+    evaluateLaunchGate,
     evaluateVerificationRegistry,
     fileContains,
     fileExists,

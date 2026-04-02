@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
+const { execFileSync, spawnSync } = require('node:child_process');
 const { resolve } = require('node:path');
 
 const REPO_ROOT = resolve(__dirname, '..');
@@ -13,9 +14,11 @@ const {
     OPENCLAW_ENDPOINTS,
     PHASE_TWO_AUDIT_CHECK_KEYS,
     VERIFY_ALLOWED_EVIDENCE_TYPES,
+    createLaunchGateChecks,
     createPhaseTwoAuditChecks,
     createVerificationChecks,
     createVerificationRegistry,
+    evaluateLaunchGate,
     evaluateVerificationRegistry,
     getServiceAuroraCssCoverage,
     parseTaskLines,
@@ -23,17 +26,17 @@ const {
     verificationEvidenceTypeFor,
 } = require('../bin/verify.js');
 
-test('parseTaskLines captures OpenClaw task ids from AGENTS.md', () => {
+test('parseTaskLines captures current done task ids from AGENTS.md', () => {
     const taskLines = parseTaskLines(AGENTS_MD);
 
-    assert.equal(taskLines['S3-OC1'].done, true);
-    assert.equal(taskLines['S3-OC4'].done, true);
-    assert.equal(taskLines['S7-22'].done, true);
-    assert.equal(taskLines['UI2-20'].done, true);
+    assert.equal(taskLines['S36-05'].done, true);
+    assert.equal(taskLines['S36-09'].done, true);
+    assert.equal(taskLines['S37-01'].done, true);
+    assert.equal(taskLines['S44-05'].done, true);
 });
 
 test('routeExists validates Sprint 3 controller routes with controller actions', () => {
-    assert.equal(OPENCLAW_ENDPOINTS.length, 13);
+    assert.equal(OPENCLAW_ENDPOINTS.length, 16);
     assert.equal(
         OPENCLAW_ENDPOINTS.every((endpoint) =>
             routeExists(
@@ -87,7 +90,7 @@ test('Phase 2 UI audit checks capture the current repo gaps explicitly', () => {
     assert.equal(coverage.missing.length, 0);
     assert.equal(checks.serviceCssCoverage(), false);
     assert.equal(checks.salaTurnosAriaLive(), true);
-    assert.equal(checks.baseCssReducedMotion(), false);
+    assert.equal(checks.baseCssReducedMotion(), true);
     assert.equal(checks.manifestShortcuts(), true);
     assert.equal(checks.portalFetch(), false);
 });
@@ -123,4 +126,75 @@ test('evaluation reports done tasks without verification rule explicitly', () =>
     const evaluation = evaluateVerificationRegistry(markdown);
 
     assert.deepEqual(evaluation.results.doneWithoutRule, ['S99-99']);
+});
+
+test('launch gate exposes 13 stable checks for release preflight', () => {
+    const checks = createLaunchGateChecks();
+
+    assert.equal(checks.length, 13);
+    assert.deepEqual(
+        checks.map((check) => check.id),
+        [
+            'auth.endpoint',
+            'auth.surface',
+            'booking.endpoint',
+            'booking.surface',
+            'consent.endpoint',
+            'consent.surface',
+            'payments.endpoint',
+            'payments.surface',
+            'documents.endpoint',
+            'documents.surface',
+            'analytics.ga4_head',
+            'governance.done_without_rule',
+            'health.endpoint',
+        ]
+    );
+});
+
+test('launch gate passes on the current repository snapshot', () => {
+    const gate = evaluateLaunchGate(AGENTS_MD);
+
+    assert.equal(gate.gate, 'launch');
+    assert.equal(gate.ok, true);
+    assert.equal(gate.summary.total, 13);
+    assert.equal(gate.summary.failed, 0);
+    assert.deepEqual(gate.blockers, []);
+    assert.equal(gate.verification.doneWithoutRule < 100, true);
+});
+
+test('verify CLI returns launch gate JSON when requested', () => {
+    const stdout = execFileSync(
+        process.execPath,
+        [resolve(REPO_ROOT, 'bin/verify.js'), '--gate', 'launch', '--json'],
+        {
+            cwd: REPO_ROOT,
+            encoding: 'utf8',
+        }
+    );
+    const payload = JSON.parse(stdout);
+
+    assert.equal(payload.gate, 'launch');
+    assert.equal(payload.ok, true);
+    assert.equal(payload.summary.total, 13);
+    assert.equal(payload.summary.failed, 0);
+});
+
+test('verify CLI JSON exposes noCheckTasks and single-task results for tooling', () => {
+    const result = spawnSync(
+        process.execPath,
+        [resolve(REPO_ROOT, 'bin/verify.js'), '--task', 'S44-01', '--json'],
+        {
+            cwd: REPO_ROOT,
+            encoding: 'utf8',
+        }
+    );
+    const payload = JSON.parse(result.stdout || '{}');
+
+    assert.equal(result.status, 1);
+    assert.equal(Array.isArray(payload.noCheckTasks), true);
+    assert.equal(Array.isArray(payload.withoutEvidence), true);
+    assert.equal(payload.taskId, 'S44-01');
+    assert.equal(payload.taskHasRule, true);
+    assert.equal(payload.taskResult, true);
 });

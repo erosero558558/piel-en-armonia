@@ -370,7 +370,7 @@
 
 > **Goal:** Gate 13/13 automatizados, smoke e2e < 5s, cero datos demo visibles, tenant isolation auditado.
 
-- [ ] **S44-01** `[L]` `[codex_transversal]` Gate de lanzamiento — 13 checks en `bin/verify.js --gate launch`: auth, booking, consent, pagos, documentos, GA4 en head, done-without-rule < 100, health ok. Verificable: exits 0.
+- [x] **S44-01** `[L]` `[codex_transversal]` Gate de lanzamiento — 13 checks en `bin/verify.js --gate launch`: auth, booking, consent, pagos, documentos, GA4 en head, done-without-rule < 100, health ok. Verificable: exits 0.
 
 - [x] **S44-02** `[M]` `[codex_backend]` Synthetic smoke e2e — `bin/smoke-prod.js`: health → booking → portal auth → descarga historial PDF < 5s. Verificable: `node bin/smoke-prod.js` exits 0.
 
