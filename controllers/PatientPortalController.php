@@ -495,6 +495,11 @@ final class PatientPortalController
             }
         }
 
+        $totalDue = 0.0;
+        foreach ($payments as $p) {
+            $totalDue += (float) ($p['amountDue'] ?? 0);
+        }
+
         self::emit([
             'ok' => true,
             'data' => [
@@ -502,7 +507,9 @@ final class PatientPortalController
                 'patient' => $patient,
                 'summary' => [
                     'totalPaid' => sprintf('$%.2f', $totalPaid),
+                    'totalDue'  => $totalDue,          // S42-10: portal-payments.js banner
                     'lastPaymentDate' => $lastPaymentDate,
+                    'pendingCount'    => count(array_filter($payments, fn($p) => ($p['amountDue'] ?? 0) > 0)),
                 ],
                 'payments' => $payments,
                 'generatedAt' => local_date('c'),
@@ -5346,9 +5353,6 @@ final class PatientPortalController
                             return;
                         case 'history':
                             self::history($context);
-                            return;
-                        case 'historyPdf':
-                            self::historyPdf($context);
                             return;
                         case 'historyPdf':
                             self::historyPdf($context);

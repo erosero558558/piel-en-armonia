@@ -100,6 +100,34 @@ async function augmentRuntimeConfigWithClarity(page) {
     );
 }
 
+async function augmentRuntimeConfigWithAnalytics(page, config = { gaMeasurementId: 'G-2DWZ5PJ4MC' }) {
+    await page.route(
+        '**/api.php?resource=public-runtime-config',
+        async (route) => {
+            const response = await route.fetch();
+            const payload = await response.json();
+            const data =
+                payload && payload.data && typeof payload.data === 'object'
+                    ? payload.data
+                    : {};
+
+            await route.fulfill({
+                response,
+                json: {
+                    ...payload,
+                    data: {
+                        ...data,
+                        analytics: {
+                            ...(data.analytics || {}),
+                            ...config,
+                        },
+                    },
+                },
+            });
+        }
+    );
+}
+
 async function getClarityState(page, projectId = CLARITY_PROJECT_ID) {
     return page.evaluate((projectId) => {
         const hasScript = Array.from(document.scripts).some((script) =>
@@ -118,10 +146,15 @@ async function getClarityState(page, projectId = CLARITY_PROJECT_ID) {
 test.describe('Consentimiento de cookies', () => {
     test.beforeEach(async ({ page }) => {
         page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+        await augmentRuntimeConfigWithAnalytics(page);
         // Limpiar localStorage para que aparezca el banner
         await page.goto('/');
         await page.evaluate(() => localStorage.clear());
         await page.reload();
+    });
+
+    test.afterEach(async ({ page }) => {
+        await page.unrouteAll({ behavior: 'ignoreErrors' });
     });
 
     test('banner de cookies aparece sin consentimiento previo', async ({
@@ -304,5 +337,19 @@ test.describe('Consentimiento de cookies', () => {
                 hasScript: true,
                 clarityLoaded: true,
             });
+    });
+
+    test('GA4 declara disabled_by_config si falta config', async ({ page }) => {
+        await page.unrouteAll({ behavior: 'wait' });
+        await augmentRuntimeConfigWithAnalytics(page, { gaMeasurementId: '' });
+        
+        const banner = page.locator('#cookieBanner');
+        await expect(banner).toBeVisible({ timeout: 10000 });
+        
+        await page.locator('#cookieAcceptBtn').click();
+        
+        await expect
+            .poll(() => page.evaluate(() => window._ga4Loaded))
+            .toBe('disabled_by_config');
     });
 });

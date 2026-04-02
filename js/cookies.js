@@ -9,12 +9,13 @@ const UI_BUNDLE_URL = withDeployAssetVersion(
 );
 
 function getConsentEngineDeps() {
+    const config = window.Piel && window.Piel.config && window.Piel.config.analytics ? window.Piel.config.analytics : {};
     return {
         getCurrentLang: () => state.currentLang,
         showToast,
         trackEvent,
         cookieConsentKey: COOKIE_CONSENT_KEY,
-        gaMeasurementId: 'G-2DWZ5PJ4MC',
+        gaMeasurementId: config.gaMeasurementId || '',
     };
 }
 

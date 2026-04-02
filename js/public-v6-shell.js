@@ -22,7 +22,6 @@
     }
 
     var WHATSAPP_PHONE = '593982453672';
-    var GA4_MEASUREMENT_ID = 'G-2DWZ5PJ4MC';
     var COOKIE_CONSENT_STORAGE_KEY = 'pa_cookie_consent_v1';
     var COOKIE_BANNER_STYLE_ID = 'aurora-cookie-banner-styles';
     var PUBLIC_RUNTIME_CONFIG_URL = '/api.php?resource=public-runtime-config';
@@ -295,8 +294,17 @@
         window.gtag.apply(null, arguments);
     }
 
+    function getMeasurementId() {
+        if (window.Piel && window.Piel.config && window.Piel.config.analytics && window.Piel.config.analytics.gaMeasurementId) {
+            return window.Piel.config.analytics.gaMeasurementId;
+        }
+        return '';
+    }
+
     function ensureGa4ScriptTag() {
-        var selector = 'script[data-aurora-ga4="' + GA4_MEASUREMENT_ID + '"]';
+        var measurementId = getMeasurementId();
+        if (!measurementId) return;
+        var selector = 'script[data-aurora-ga4="' + measurementId + '"]';
         if (document.querySelector(selector)) {
             return;
         }
@@ -304,8 +312,8 @@
         var script = document.createElement('script');
         script.async = true;
         script.src =
-            'https://www.googletagmanager.com/gtag/js?id=' + GA4_MEASUREMENT_ID;
-        script.dataset.auroraGa4 = GA4_MEASUREMENT_ID;
+            'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
+        script.dataset.auroraGa4 = measurementId;
         document.head.appendChild(script);
     }
 
@@ -332,6 +340,12 @@
     function loadGa4() {
         if (getCookieConsent() !== 'accepted') return;
 
+        var measurementId = getMeasurementId();
+        if (!measurementId) {
+            window._ga4Loaded = 'disabled_by_config';
+            return;
+        }
+
         ensureAnalyticsBridge();
         ensureGa4ScriptTag();
         if (window._ga4Loaded) {
@@ -343,7 +357,7 @@
 
         gtagCall('js', new Date());
         updateAnalyticsConsent('accepted');
-        gtagCall('config', GA4_MEASUREMENT_ID);
+        gtagCall('config', measurementId);
     }
 
     function getCookieBannerCopy(locale) {

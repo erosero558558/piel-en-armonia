@@ -32,7 +32,7 @@ function getMeasurementId() {
     if (deps && typeof deps.gaMeasurementId === 'string' && deps.gaMeasurementId) {
         return deps.gaMeasurementId;
     }
-    return 'G-2DWZ5PJ4MC';
+    return '';
 }
 
 function getCookieConsent() {
@@ -68,13 +68,17 @@ function initGA4() {
     if (window._ga4Loaded) return;
     if (getCookieConsent() !== 'accepted') return;
 
+    const measurementId = getMeasurementId();
+    if (!measurementId) {
+        window._ga4Loaded = 'disabled_by_config';
+        return;
+    }
+
     window._ga4Loaded = true;
     window.dataLayer = window.dataLayer || [];
     if (!window.gtag) {
         window.gtag = function () { window.dataLayer.push(arguments); };
     }
-
-    const measurementId = getMeasurementId();
     const script = document.createElement('script');
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;

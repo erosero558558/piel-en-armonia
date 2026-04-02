@@ -79,6 +79,13 @@
             current.features = runtimePayload.features;
         }
         if (
+            (!current.analytics || typeof current.analytics !== 'object') &&
+            runtimePayload.analytics &&
+            typeof runtimePayload.analytics === 'object'
+        ) {
+            current.analytics = runtimePayload.analytics;
+        }
+        if (
             (typeof current.deployVersion !== 'string' ||
                 current.deployVersion.trim() === '') &&
             typeof runtimePayload.deployVersion === 'string' &&
