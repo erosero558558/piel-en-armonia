@@ -11,6 +11,7 @@ const AGENTS_MD = readFileSync(resolve(REPO_ROOT, 'AGENTS.md'), 'utf8');
 
 const {
     CLINICAL_SAMPLE_PHOTOS,
+    HISTORICAL_GOVERNANCE_CHECK_KEYS,
     OPENCLAW_ENDPOINTS,
     PHASE_TWO_AUDIT_CHECK_KEYS,
     VERIFY_ALLOWED_EVIDENCE_TYPES,
@@ -100,6 +101,20 @@ test('UI2-20 verification rule exists once the Phase 2 audit checks are wired', 
 
     assert.equal(typeof checks['UI2-20'], 'function');
     assert.equal(checks['UI2-20'](), true);
+});
+
+test('historical governance rules from Sprint 14-20 exist and evaluate true', () => {
+    const checks = createVerificationChecks();
+
+    assert.equal(HISTORICAL_GOVERNANCE_CHECK_KEYS.length >= 20, true);
+    assert.deepEqual(
+        HISTORICAL_GOVERNANCE_CHECK_KEYS.every(
+            (taskId) => typeof checks[taskId] === 'function' && checks[taskId]()
+        ),
+        true
+    );
+    assert.equal(typeof checks['S42-09'], 'function');
+    assert.equal(checks['S42-09'](), true);
 });
 
 test('verification registry expands to at least 100 tasks with explicit evidence types', () => {

@@ -58,6 +58,28 @@ const OPENCLAW_ENDPOINTS = [
     { method: 'POST', resource: 'openclaw-close-telemedicine', action: 'closeTelemedicine' },
     { method: 'POST', resource: 'openclaw-fast-close',         action: 'fastClose' },
 ];
+const HISTORICAL_GOVERNANCE_CHECK_KEYS = [
+    'S14-00',
+    'S14-06',
+    'S14-08',
+    'S14-09',
+    'S14-11',
+    'S14-13',
+    'S15-07',
+    'S17-05',
+    'S17-06',
+    'S17-07',
+    'S17-08',
+    'S17-10',
+    'S18-02',
+    'S18-03',
+    'S18-12',
+    'S19-04',
+    'S19-15',
+    'S19-17',
+    'S20-01',
+    'S20-05',
+];
 const VERIFY_ALLOWED_EVIDENCE_TYPES = ['file_exists', 'grep', 'json_key'];
 const FILE_EXISTS_EVIDENCE_TASKS = new Set([
     'S1-05',
@@ -1375,6 +1397,44 @@ function createVerificationChecks() {
             fileExists('docs/DEAD_FILES.md') &&
             fileExists('bin/dead-file-audit.js'),
 
+        // ── Sprints 14-20: historical governance and ops rules ─────────────
+        'S14-00': () =>
+            fileContains('agent-orchestrator.js', "source:       'live'") &&
+            fileContains('agent-orchestrator.js', "parsedFrom:   'AGENTS.md'"),
+        'S14-06': () =>
+            fileExists('bin/verify-scripts.js') &&
+            fileContains('bin/verify-scripts.js', 'broken-scripts.json') &&
+            fileContains('docs/SCRIPTS_AUDIT.md', 'S14-06'),
+        'S14-08': () =>
+            fileExists('bin/verify-sentry-events.js') &&
+            fileContains('bin/verify-sentry-events.js', 'S14-08 Contract') &&
+            fileContains(
+                'bin/verify-sentry-events.js',
+                'verification/runtime/sentry-events-last.json'
+            ),
+        'S14-09': () =>
+            fileExists('bin/check-warnings.js') &&
+            fileContains('bin/audit.js', "args: ['bin/check-warnings.js']") &&
+            fileContains(
+                'bin/check-warnings.js',
+                'data/warning-registry.json'
+            ),
+        'S14-11': () =>
+            fileContains(
+                'bin/report.js',
+                'data/funnel/service-funnel-latest.json'
+            ) &&
+            fileContains('bin/report.js', 'service_funnel_missing'),
+        'S14-13': () =>
+            fileExists('tests-node/ComponentLoaderInject.test.js') &&
+            fileContains(
+                'tests-node/ComponentLoaderInject.test.js',
+                'DOMPurify'
+            ) &&
+            fileContains(
+                'tests-node/ComponentLoaderInject.test.js',
+                'fallback textContent'
+            ),
         'S16-13': () => {
              const verifyJS = readRepoFile('bin/verify.js');
              return verifyJS.includes('verifyResourceHints()') && verifyJS.includes('https://browser.sentry-cdn.com') && verifyJS.includes('https://www.googletagmanager.com');
@@ -1386,6 +1446,9 @@ function createVerificationChecks() {
             fileContains('bin/dispatch.js', "'S8-07'") &&
             fileContains('bin/dispatch.js', "'S9-08'") &&
             fileContains('bin/dispatch.js', "'S14-02'"),
+        'S15-07': () =>
+            fileContains('bin/audit.js', "args: ['bin/verify-scripts.js', '--json']") &&
+            fileContains('bin/audit.js', 'Broken Scripts'),
 
         // ── Sprint 16 ──────────────────────────────────────────────────────
         'S16-06': () =>
@@ -1401,6 +1464,115 @@ function createVerificationChecks() {
         'S17-15': () =>
             fileContains('js/dynamic-reviews.js', '.dynamic-reviews[data-service]') &&
             routeExists('GET', 'reviews', 'ReviewController', 'index'),
+        'S17-05': () =>
+            fileContains(
+                'lib/referrals/ReferralService.php',
+                'available_benefits'
+            ) &&
+            fileContains(
+                'lib/referrals/ReferralService.php',
+                'matching the conversions'
+            ),
+        'S17-06': () =>
+            fileContains(
+                'controllers/MembershipController.php',
+                'case \'POST:membership-issue\''
+            ) &&
+            fileContains(
+                'lib/memberships/MembershipService.php',
+                'active membership status flag'
+            ),
+        'S17-07': () =>
+            fileContains(
+                'controllers/MembershipController.php',
+                'case \'GET:membership-status\''
+            ) &&
+            fileContains(
+                'lib/memberships/MembershipService.php',
+                'renewalWarning'
+            ),
+        'S17-08': () =>
+            fileContains(
+                'controllers/MembershipController.php',
+                'case \'POST:package-consume\''
+            ) &&
+            fileContains(
+                'lib/packages/PackageService.php',
+                'remaining_sessions'
+            ) &&
+            fileContains(
+                'lib/packages/PackageService.php',
+                'duplicate_active_package'
+            ),
+        'S17-10': () =>
+            fileExists('docs/promotions.md') &&
+            fileContains('docs/promotions.md', 'Motor de Promociones') &&
+            fileContains(
+                'controllers/PromotionController.php',
+                'case \'GET:active-promotions\''
+            ),
+        'S18-02': () =>
+            fileContains(
+                'lib/onboarding/OnboardingService.php',
+                'Guided onboarding progress per clinic'
+            ) &&
+            fileContains(
+                'controllers/OnboardingController.php',
+                'case \'GET:onboarding-progress\''
+            ),
+        'S18-03': () =>
+            fileContains(
+                'controllers/OnboardingController.php',
+                'case \'GET:walkthrough-config\''
+            ) &&
+            fileContains(
+                'controllers/OnboardingController.php',
+                'adminWalkthroughSteps'
+            ) &&
+            fileContains(
+                'controllers/OnboardingController.php',
+                'operatorWalkthroughSteps'
+            ),
+        'S18-12': () =>
+            fileContains('admin.html', '<!-- Live Preview Hook (S18-12) -->') &&
+            fileContains(
+                'kiosco-turnos.html',
+                '<!-- Live Preview Hook (S18-12) -->'
+            ) &&
+            fileContains(
+                'sala-turnos.html',
+                '<!-- Live Preview Hook (S18-12) -->'
+            ),
+        'S19-04': () =>
+            fileContains('admin.html', '<!-- S19-04: WhatsApp OpenClaw Ops -->') &&
+            fileContains(
+                'src/apps/admin-v3/sections/whatsapp-ops.js',
+                'whatsapp-openclaw-ops'
+            ),
+        'S19-15': () =>
+            fileContains('bin/verify.js', 'verifyResourceHints()') &&
+            fileContains('bin/verify.js', 'S19-15: Justificado'),
+        'S19-17': () =>
+            fileExists('bin/admin-openclaw-rollout-diagnostic.js') &&
+            fileContains(
+                'bin/admin-openclaw-rollout-diagnostic.js',
+                'openclaw-rollout-diagnostic.json'
+            ) &&
+            fileContains(
+                'bin/admin-openclaw-rollout-diagnostic.js',
+                'OpenClaw Rollout:'
+            ),
+        'S20-01': () =>
+            fileExists('bin/admin-rollout-gate.js') &&
+            fileContains(
+                'bin/admin-rollout-gate.js',
+                'compareShellVsServiceWorker'
+            ) &&
+            fileContains('bin/admin-rollout-gate.js', 'admin_shell_vs_sw_ok'),
+        'S20-05': () =>
+            fileExists('bin/qa-summary.js') &&
+            fileContains('bin/qa-summary.js', 'QA Summary') &&
+            fileContains('bin/qa-summary.js', 'checkGovAudit'),
 
         // ── UI4 ────────────────────────────────────────────────────────────
         'UI4-01': () =>
@@ -1473,6 +1645,17 @@ function createVerificationChecks() {
                 (checkId) => typeof phaseTwoAuditChecks[checkId] === 'function'
             ) &&
             Object.keys(parseTaskLines('- [ ] **UI2-20**')).includes('UI2-20'),
+        'S42-09': () => {
+            const historicalChecks = createVerificationChecks();
+            return (
+                HISTORICAL_GOVERNANCE_CHECK_KEYS.length >= 20 &&
+                HISTORICAL_GOVERNANCE_CHECK_KEYS.every(
+                    (taskId) =>
+                        typeof historicalChecks[taskId] === 'function' &&
+                        historicalChecks[taskId]()
+                )
+            );
+        },
     };
 }
 
@@ -1824,6 +2007,7 @@ if (require.main === module) {
 
 module.exports = {
     CLINICAL_SAMPLE_PHOTOS,
+    HISTORICAL_GOVERNANCE_CHECK_KEYS,
     OPENCLAW_ENDPOINTS,
     PHASE_TWO_AUDIT_CHECK_KEYS,
     TASK_LINE_PATTERN,

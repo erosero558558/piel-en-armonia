@@ -286,7 +286,7 @@
 
 - [x] **S42-08** `[M]` `[codex_transversal]` Reglas para DEBT-_ y OPS-_ items. Meta: todos tienen regla real. Verificable: grep -r "Verificable" AGENTS.md
 
-- [ ] **S42-09** `[L]` `[codex_transversal]` Reemplazar dummies S14-S23 con reglas reales. Meta: done-without-rule < 200. Verificable: grep -r "Verificable" AGENTS.md
+- [x] **S42-09** `[L]` `[codex_transversal]` Reemplazar dummies S14-S23 con reglas reales. Meta: done-without-rule < 200. Verificable: grep -r "Verificable" AGENTS.md
 
 ### 42.3 Hardening de Portal del Paciente
 
