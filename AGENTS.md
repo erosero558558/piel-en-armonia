@@ -2717,7 +2717,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S36-07** `[M]` `[codex_frontend]` Callbacks grid: hidratación de datos (AUD-011) — `#callbacksGrid .callback-card` esperado ≥4, recibido 0. El grid existe en el HTML pero el JS que lo hidrata no ejecuta. Diagnóstico: buscar en `admin.js` / `js/admin-chunks/` la función que carga callbacks. Verificar que `GET /api.php?resource=callbacks` responde con datos (actualmente 401 sin auth). En el admin, cuando el médico está autenticado, ese fetch debe completarse y renderizar las cards. Verificable: con admin autenticado, `#callbacksGrid` tiene ≥1 `.callback-card`.
 
-- [ ] **S36-08** `[S]` `[codex_frontend]` Settings: foto y firma del médico en el perfil — El test `admin.spec.js "settings guarda perfil"` falla. El formulario de settings (`#settings` section) debe tener: campo de foto de perfil, upload de firma digital, guardado via `POST /api.php?resource=doctor-profile`. Verificar que los campos existen en el HTML y el submit funciona. Verificable: en admin, ir a Settings → completar formulario → guardar → `data-admin-ready` permanece `true`.
+- [x] **S36-08** `[S]` `[codex_frontend]` Settings: foto y firma del médico en el perfil — El test `admin.spec.js "settings guarda perfil"` falla. El formulario de settings (`#settings` section) debe tener: campo de foto de perfil, upload de firma digital, guardado via `POST /api.php?resource=doctor-profile`. Verificar que los campos existen en el HTML y el submit funciona. Verificable: en admin, ir a Settings → completar formulario → guardar → `data-admin-ready` permanece `true`.
 
 ---
 
