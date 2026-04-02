@@ -378,7 +378,7 @@
 
 - [x] **S44-04** `[M]` `[codex_backend]` Tenant isolation audit — todos los endpoints clínicos filtran por tenantId. Sin cross-tenant data leak. Verificable: `grep -c "tenantId" controllers/PatientPortalController.php` >= 20.
 
-- [ ] **S44-05** `[L]` `[codex_backend]` Clinic profile API — `GET /api.php?resource=clinic-profile` con: nombre, logo, colores, horarios, doctores activos, servicios. Portal usa esto en lugar de constantes hardcodeadas. Verificable: endpoint 200.
+- [x] **S44-05** `[L]` `[codex_backend]` Clinic profile API — `GET /api.php?resource=clinic-profile` con: nombre, logo, colores, horarios, doctores activos, servicios. Portal usa esto en lugar de constantes hardcodeadas. Verificable: endpoint 200.
 
 ---
 

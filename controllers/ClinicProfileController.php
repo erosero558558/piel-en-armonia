@@ -9,11 +9,14 @@ final class ClinicProfileController
 {
     public static function show(array $context): void
     {
-        require_admin_auth();
-
+        header('Cache-Control: public, max-age=300, s-maxage=300');
         json_response([
             'ok' => true,
-            'data' => read_clinic_profile(),
+            'data' => clinic_profile_public_snapshot(),
+            'meta' => [
+                'scope' => 'public',
+                'generatedAt' => gmdate('c'),
+            ],
         ]);
     }
 

@@ -146,6 +146,45 @@
         window.location.replace('/es/portal/login/');
     }
 
+    function getClinicProfile() {
+        return portalShell && typeof portalShell.getClinicProfile === 'function'
+            ? portalShell.getClinicProfile()
+            : null;
+    }
+
+    function getClinicBrandName(profile) {
+        const safeProfile = profile && typeof profile === 'object' ? profile : {};
+        return String(
+            safeProfile.clinicName || safeProfile.name || 'Aurora Derm'
+        ).trim() || 'Aurora Derm';
+    }
+
+    function getClinicPrimaryDoctorName(profile) {
+        const safeProfile = profile && typeof profile === 'object' ? profile : {};
+        const doctors = Array.isArray(safeProfile.activeDoctors)
+            ? safeProfile.activeDoctors
+            : [];
+        const firstDoctor =
+            doctors[0] && typeof doctors[0] === 'object' ? doctors[0] : null;
+        const name = String(firstDoctor?.name || '').trim();
+        return name || `Especialista ${getClinicBrandName(safeProfile)}`;
+    }
+
+    function getClinicFallbackServiceName(profile) {
+        const safeProfile = profile && typeof profile === 'object' ? profile : {};
+        const services = Array.isArray(safeProfile.services) ? safeProfile.services : [];
+        const firstService =
+            services[0] && typeof services[0] === 'object' ? services[0] : null;
+        const name = String(firstService?.name || '').trim();
+        return name || `Consulta ${getClinicBrandName(safeProfile)}`;
+    }
+
+    function getClinicFallbackLocation(profile) {
+        const safeProfile = profile && typeof profile === 'object' ? profile : {};
+        const address = String(safeProfile.address || '').trim();
+        return address || getClinicBrandName(safeProfile);
+    }
+
     async function requestJson(resource, token) {
         const response = await window.fetch(`/api.php?resource=${resource}`, {
             headers: {
@@ -553,9 +592,13 @@
         `).join('');
     }
 
-    function renderNextAppointment(appointment, crossSellSuggestion) {
+    function renderNextAppointment(appointment, crossSellSuggestion, clinicProfile) {
         const safeAppointment =
             appointment && typeof appointment === 'object' ? appointment : {};
+        const safeClinicProfile =
+            clinicProfile && typeof clinicProfile === 'object'
+                ? clinicProfile
+                : getClinicProfile();
         const rescheduleUrl = String(safeAppointment.rescheduleUrl || '').trim();
         const whatsappUrl = String(safeAppointment.whatsappUrl || '').trim();
         const roomUrl = String(
@@ -586,14 +629,14 @@
                 </div>
                 <div class="portal-card-next__time">
                     <strong data-portal-next-date>${escapeHtml(safeAppointment.dateLabel || safeAppointment.date || 'Por confirmar')}</strong>
-                    <span data-portal-next-time>${escapeHtml(safeAppointment.timeLabel || safeAppointment.time || 'Por confirmar')} · ${escapeHtml(safeAppointment.locationLabel || 'Aurora Derm')}</span>
+                    <span data-portal-next-time>${escapeHtml(safeAppointment.timeLabel || safeAppointment.time || 'Por confirmar')} · ${escapeHtml(safeAppointment.locationLabel || getClinicFallbackLocation(safeClinicProfile))}</span>
                 </div>
                 <div class="portal-card-next__doctor">
-                    <div class="portal-card-next__avatar" aria-hidden="true">${escapeHtml(doctorInitials(safeAppointment.doctorName))}</div>
+                    <div class="portal-card-next__avatar" aria-hidden="true">${escapeHtml(doctorInitials(safeAppointment.doctorName || getClinicPrimaryDoctorName(safeClinicProfile)))}</div>
                     <div style="flex:1;">
-                        <span data-portal-next-doctor>${escapeHtml(safeAppointment.doctorName || 'Especialista Aurora Derm')}</span>
+                        <span data-portal-next-doctor>${escapeHtml(safeAppointment.doctorName || getClinicPrimaryDoctorName(safeClinicProfile))}</span>
                         <small data-portal-next-type>${escapeHtml(safeAppointment.appointmentTypeLabel || 'Consulta presencial')}</small>
-                        <small data-portal-next-service>${escapeHtml(safeAppointment.serviceName || 'Consulta Aurora Derm')}</small>
+                        <small data-portal-next-service>${escapeHtml(safeAppointment.serviceName || getClinicFallbackServiceName(safeClinicProfile))}</small>
                     </div>
                 </div>
                 <div class="portal-appointment-prep">
@@ -1032,6 +1075,15 @@
             return;
         }
 
+        let clinicProfile = getClinicProfile();
+        if (portalShell && typeof portalShell.loadClinicProfile === 'function') {
+            try {
+                clinicProfile = await portalShell.loadClinicProfile();
+            } catch (_error) {
+                clinicProfile = getClinicProfile();
+            }
+        }
+
         if (portalShell && typeof portalShell.fetchPatientSummary === 'function') {
             portalShell.fetchPatientSummary().then(summary => {
                 const wrapper = document.getElementById('active-condition-wrapper');
@@ -1112,7 +1164,7 @@
             }
 
             nextAppointmentContainer.innerHTML = nextAppointment
-                ? renderNextAppointment(nextAppointment, crossSellSuggestion)
+                ? renderNextAppointment(nextAppointment, crossSellSuggestion, clinicProfile)
                 : renderEmptyState(support);
             if (treatmentPlanContainer instanceof HTMLElement) {
                 treatmentPlanContainer.innerHTML = treatmentPlan
@@ -1164,7 +1216,9 @@
                     bookingUrl: '/#citas',
                     historyUrl: '/es/portal/historial/',
                     photosUrl: '/es/portal/fotos/',
-                    whatsappUrl: 'https://wa.me/593982453672?text=Hola%2C%20necesito%20ayuda%20con%20mi%20portal%20de%20Aurora%20Derm.',
+                    whatsappUrl: `https://wa.me/593982453672?text=${encodeURIComponent(
+                        `Hola, necesito ayuda con mi portal de ${getClinicBrandName(clinicProfile)}.`
+                    )}`,
                 });
             }
         }
