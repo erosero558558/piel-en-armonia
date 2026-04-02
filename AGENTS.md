@@ -2834,3 +2834,48 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
       **(1) Sala de espera del médico:** nombre del paciente, foto si existe, diagnóstico previo, tiempo en espera.
       **(2) Sala de consulta:** iframe de Jitsi Meet con `room = roomId del appointment` desde `api.php?resource=telemedicine-room`. Panel lateral derecho con: anamnesis previa, vitales auto-reportados del paciente, botón "Subir foto diagnóstica" que llama `POST patient-portal-photo-upload`.
       **(3) Cierre de teleconsulta:** botón "Finalizar consulta" → abre el formulario SOAP de S38-01 inline. Al guardar → llama `POST openclaw-close-telemedicine`. Verificable: `grep "jitsi-frame\|tele-hce-panel\|foto-upload-teleconsulta\|close-tele-soap" es/telemedicina/consulta/index.html` → ≥4 matches.
+
+---
+
+## Sprint 42 — Arquitectura, Gobernanza y Hardening de Portal
+
+**Owner:** `codex_backend` + `codex_transversal` | **Prioridad:** ALTA — deuda técnica estructural.
+
+> **Diagnóstico (2026-04-02):** Monolitos de controller (ClinicalHistory 2065L, Openclaw 2186L), 347 `done-without-rule` en verify.js, datos dummy en producción en portal-history, rutas de portal sin registrar.
+
+### 42.1 Split Arquitectónico de Controladores Clínicos
+
+- [x] **S42-01** `[M]` `[codex_backend]` `ClinicalMediaController` facade — `controllers/ClinicalMediaController.php`, delega `getClinicalPhotos` y `uploadClinicalPhoto`. Rutas: `clinical-photo-gallery`, `clinical-photo-upload`. Verificable: archivo existe.
+
+- [x] **S42-02** `[M]` `[codex_backend]` `ClinicalLabResultsController` facade — `controllers/ClinicalLabResultsController.php`. Rutas: `receive-lab-result`, `receive-imaging-result`, `receive-interconsult-report`, `upload-lab-pdf`, `report-adverse-reaction`. Verificable: archivo y rutas existen.
+
+- [x] **S42-03** `[M]` `[codex_backend]` `ClinicalVitalsController` facade — `controllers/ClinicalVitalsController.php`. Rutas: `clinical-vitals`, `clinical-vitals-history`. Verificable: archivo y rutas existen.
+
+- [ ] **S42-04** `[XL]` `[codex_backend]` Split real de `ClinicalHistoryController` — reducir de 2065 a <600 líneas implementando los métodos en los facades. Verificable: `wc -l controllers/ClinicalHistoryController.php` < 600.
+
+- [ ] **S42-05** `[XL]` `[codex_backend]` Split de `OpenclawController` — reducir de 2186 a <700 líneas. Verificable: controller < 700 líneas.
+
+### 42.2 Gobernanza: Reglas de Verificación
+
+- [x] **S42-06** `[L]` `[codex_transversal]` Reglas reales S24-S29 en `bin/verify.js` — reemplazar dummy loop S12-S29. Reducción: 347 → 329 done-without-rule, 281 → 300 verified. Verificable: summary < 330.
+
+- [x] **S42-07** `[M]` `[codex_transversal]` Reglas S30, S36, S37 corregidas — done-without-evidence: 16 → 4. Verificable: < 5 done-without-evidence.
+
+- [ ] **S42-08** `[M]` `[codex_transversal]` Reglas para DEBT-* y OPS-* items. Meta: todos tienen regla real.
+
+- [ ] **S42-09** `[L]` `[codex_transversal]` Reemplazar dummies S14-S23 con reglas reales. Meta: done-without-rule < 200.
+
+### 42.3 Hardening de Portal del Paciente
+
+- [x] **S42-10** `[M]` `[codex_frontend]` `portal-payments.js` — summary banner de saldo pendiente total + GA4 event `portal_payments_viewed`. Verificable: `fileContains('js/portal-payments.js', 'summaryHtml')`.
+
+- [x] **S42-11** `[S]` `[codex_frontend]` `portal-history.js` — eliminar datos dummy hardcodeados (medicamentos ficticios, avatar-placeholder). Solo datos reales del servidor. Verificable: 0 matches en grep de `Isotretinoína`.
+
+- [x] **S42-12** `[S]` `[codex_frontend]` GA4 tag correctamente indentado en `es/portal/historial/index.html`. Verificable: GA4 dentro del `<head>` con indentación correcta.
+
+- [x] **S42-13** `[M]` `[codex_backend]` 21 rutas del portal re-registradas en `lib/routes.php` — payments, plan, prescription, consent, photo-upload, push-preferences, patient-summary, etc. Verificable: `grep -c "patient-portal" lib/routes.php` >= 15.
+
+- [ ] **S42-14** `[M]` `[codex_backend]` `PatientPortalController::payments()` — endpoint real con `summary.totalDue` y `payments[]`.
+
+- [ ] **S42-15** `[M]` `[codex_backend]` `PatientPortalController::plan()` — plan de tratamiento con adherencia y sesiones.
+

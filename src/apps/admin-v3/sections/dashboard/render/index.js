@@ -602,7 +602,14 @@ function buildPaymentAccountOrderLine(order) {
         .join(' • ');
 }
 
-function buildPaymentAccountItems(meta) {
+function buildPaymentAccountItems(meta, options = {}) {
+    if (options.loading) {
+        return `
+            <li class="dashboard-attention-item" data-tone="neutral">
+                <div class="skeleton" style="height: 60px; width: 100%; border-radius: 8px;"></div>
+            </li>
+        `;
+    }
     const patients = Array.isArray(meta?.patients) ? meta.patients : [];
     if (!patients.length) {
         return `
@@ -674,7 +681,14 @@ function buildPaymentAccountItems(meta) {
         .join('');
 }
 
-function buildCheckoutReviewItems(meta) {
+function buildCheckoutReviewItems(meta, options = {}) {
+    if (options.loading) {
+        return `
+            <li class="dashboard-attention-item" data-tone="neutral">
+                <div class="skeleton" style="height: 60px; width: 100%; border-radius: 8px;"></div>
+            </li>
+        `;
+    }
     const queue = Array.isArray(meta?.queue) ? meta.queue : [];
     if (!queue.length) {
         return `
@@ -744,7 +758,7 @@ function buildCheckoutReviewItems(meta) {
         .join('');
 }
 
-function setCheckoutReviewState(meta) {
+function setCheckoutReviewState(meta, options = {}) {
     const summary = meta?.summary || {};
     const chip = document.getElementById('dashboardCheckoutReviewChip');
 
@@ -760,7 +774,7 @@ function setCheckoutReviewState(meta) {
         '#dashboardCheckoutReviewSummary',
         resolveCheckoutReviewSummary(meta)
     );
-    setHtml('#dashboardCheckoutReviewQueue', buildCheckoutReviewItems(meta));
+    setHtml('#dashboardCheckoutReviewQueue', buildCheckoutReviewItems(meta, options));
     setText(
         '#dashboardCheckoutReviewChip',
         resolveCheckoutReviewChipLabel(meta)
@@ -768,7 +782,7 @@ function setCheckoutReviewState(meta) {
     chip?.setAttribute('data-state', resolveCheckoutReviewTone(meta));
 }
 
-function setPaymentAccountState(meta) {
+function setPaymentAccountState(meta, options = {}) {
     const summary = meta?.summary || {};
     const chip = document.getElementById('dashboardPaymentAccountChip');
 
@@ -787,7 +801,7 @@ function setPaymentAccountState(meta) {
         '#dashboardPaymentAccountSummary',
         resolvePaymentAccountSummary(meta)
     );
-    setHtml('#dashboardPaymentAccountList', buildPaymentAccountItems(meta));
+    setHtml('#dashboardPaymentAccountList', buildPaymentAccountItems(meta, options));
     setText(
         '#dashboardPaymentAccountChip',
         resolvePaymentAccountChipLabel(meta)
@@ -956,7 +970,14 @@ function bindCheckoutReviewActions() {
     root.dataset.checkoutReviewBound = 'true';
 }
 
-function buildReputationItems(meta) {
+function buildReputationItems(meta, options = {}) {
+    if (options.loading) {
+        return `
+            <li class="dashboard-attention-item" data-tone="neutral">
+                <div class="skeleton" style="height: 60px; width: 100%; border-radius: 8px;"></div>
+            </li>
+        `;
+    }
     const list = Array.isArray(meta?.last5Reviews) ? meta.last5Reviews : [];
     if (!list.length) {
         return `
@@ -979,7 +1000,7 @@ function buildReputationItems(meta) {
     `).join('');
 }
 
-function setReputationState(meta) {
+function setReputationState(meta, options = {}) {
     const chip = document.getElementById('dashboardReputationChip');
     const total = Number(meta?.totalReviews || 0);
     const avg = Number(meta?.averageRating || 0);
@@ -989,7 +1010,7 @@ function setReputationState(meta) {
     setText('#reputationRequestsSent', 12); // Mocked per S2-20
     setText('#reputationRequestsRate', '24%');
     
-    setHtml('#dashboardReputationQueue', buildReputationItems(meta));
+    setHtml('#dashboardReputationQueue', buildReputationItems(meta, options));
     
     if (chip) {
         setText('#dashboardReputationChip', total > 0 ? (avg >= 4.0 ? 'Excelente' : 'Atención') : 'Sin datos');
@@ -997,7 +1018,9 @@ function setReputationState(meta) {
     }
 }
 
-export function renderDashboard(state) {
+export function renderDashboard(state, passedOptions = {}) {
+    const isLoading = passedOptions.loading || state?.ui?.lastRefreshAt === 0;
+    const options = { ...passedOptions, loading: isLoading };
     const dashboardState = {
         ...getDashboardDerivedState(state),
         clinicalHistoryMeta: normalizeClinicalHistoryMeta(
@@ -1014,7 +1037,7 @@ export function renderDashboard(state) {
         ),
     };
 
-    setOverviewMetrics(dashboardState);
+    setOverviewMetrics(dashboardState, options);
     loadBusinessMetrics();
     setLiveStatus(dashboardState);
     setFlowMetrics(dashboardState);
@@ -1034,15 +1057,15 @@ export function renderDashboard(state) {
     );
     setHtml(
         '#dashboardClinicalReviewQueue',
-        buildClinicalHistoryQueueItems(dashboardState.clinicalHistoryMeta)
+        buildClinicalHistoryQueueItems(dashboardState.clinicalHistoryMeta, options)
     );
     setHtml(
         '#dashboardClinicalEventFeed',
         buildClinicalHistoryEventItems(dashboardState.clinicalHistoryMeta)
     );
-    setCheckoutReviewState(dashboardState.checkoutReviewMeta);
-    setPaymentAccountState(dashboardState.paymentAccountMeta);
-    setReputationState(state?.data?.reviewsMeta);
+    setCheckoutReviewState(dashboardState.checkoutReviewMeta, options);
+    setPaymentAccountState(dashboardState.paymentAccountMeta, options);
+    setReputationState(state?.data?.reviewsMeta, options);
     setHtml('#dashboardAttentionList', buildAttentionItems(dashboardState));
     const queueAssistant = setFunnelMetrics(dashboardState.funnel);
     renderDashboardCharts(queueAssistant);

@@ -599,7 +599,14 @@ function resolveMultiClinicBadgeLabel(clinic) {
     return 'En espera';
 }
 
-function buildMultiClinicRowsMarkup(overview) {
+function buildMultiClinicRowsMarkup(overview, options = {}) {
+    if (options.loading) {
+        return `
+            <li class="dashboard-attention-item dashboard-multi-clinic__item" data-multi-clinic-row="true">
+                <div class="skeleton" style="height: 60px; width: 100%; border-radius: 8px;"></div>
+            </li>
+        `;
+    }
     const clinics = Array.isArray(overview?.clinics) ? overview.clinics : [];
     if (clinics.length === 0) {
         return `
@@ -655,7 +662,7 @@ function buildMultiClinicRowsMarkup(overview) {
         .join('');
 }
 
-export function setOverviewMetrics(state) {
+export function setOverviewMetrics(state, options = {}) {
     const {
         appointments,
         nextAppointment,
@@ -845,7 +852,7 @@ export function setOverviewMetrics(state) {
             'demand'
         )
     );
-    setHtml('#dashboardMultiClinicList', buildMultiClinicRowsMarkup(multiClinic));
+    setHtml('#dashboardMultiClinicList', buildMultiClinicRowsMarkup(multiClinic, options));
     setTelemedicineMetrics(telemedicineMeta);
 }
 

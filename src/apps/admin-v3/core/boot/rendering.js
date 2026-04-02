@@ -61,6 +61,10 @@ export function renderAllSections() {
 }
 
 export async function refreshDataAndRender(showToast = false) {
+    const previousDataAt = getState()?.ui?.lastRefreshAt;
+    if (previousDataAt === 0) {
+        renderDashboard(getState(), { loading: true });
+    }
     const result = await refreshAdminData();
     const ok = Boolean(result?.ok);
     const queueSectionActive = getState().ui.activeSection === 'queue';

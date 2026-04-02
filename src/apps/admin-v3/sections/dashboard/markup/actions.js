@@ -572,7 +572,14 @@ export function buildClinicalHistoryActions(input) {
     return actions.slice(0, 3).join('');
 }
 
-export function buildClinicalHistoryQueueItems(snapshot) {
+export function buildClinicalHistoryQueueItems(snapshot, options = {}) {
+    if (options.loading) {
+        return `
+            <li class="dashboard-attention-item" data-tone="neutral">
+                <div class="skeleton" style="height: 60px; width: 100%; border-radius: 8px;"></div>
+            </li>
+        `;
+    }
     const reviewQueue = Array.isArray(snapshot?.reviewQueue)
         ? snapshot.reviewQueue
         : [];
