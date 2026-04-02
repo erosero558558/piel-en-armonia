@@ -778,12 +778,13 @@ final class PatientPortalAuth
         }
 
         foreach ($variants as $variant) {
-            if (str_starts_with($variant, '09') && strlen($variant) === 10) {
-                return $variant;
+            $variantStr = (string) $variant;
+            if (str_starts_with($variantStr, '09') && strlen($variantStr) === 10) {
+                return $variantStr;
             }
         }
 
-        return $variants[0];
+        return (string) $variants[0];
     }
 
     private static function normalizePhoneForDelivery(string $value): string
