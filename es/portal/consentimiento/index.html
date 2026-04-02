@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="es" data-theme-mode="system" data-ops-tone="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
+        <meta name="application-name" content="Aurora Derm" />
+        <meta name="apple-mobile-web-app-title" content="Aurora Derm" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#248a65" />
+        <title>Consentimiento Digital | Aurora Derm</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/images/icon-192.png" />
+        <link rel="stylesheet" href="/styles/tokens.css" />
+        <link rel="stylesheet" href="/styles/base.css" />
+        <link rel="stylesheet" href="/styles/components.css" />
+        <link rel="stylesheet" href="/styles/aurora-portal.css" />
+        <style>
+            .portal-consent-page {
+                min-height: 100vh;
+                background:
+                    radial-gradient(circle at top, rgba(36, 138, 101, 0.18), transparent 28%),
+                    linear-gradient(180deg, #081018 0%, #0f172a 48%, #081018 100%);
+                color: #e2e8f0;
+            }
+
+            .portal-consent-app {
+                position: relative;
+                min-height: 100vh;
+                max-width: 520px;
+                margin: 0 auto;
+                background: linear-gradient(180deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.92));
+                box-shadow: 0 22px 70px rgba(2, 6, 23, 0.45);
+            }
+
+            .portal-consent-shell {
+                padding: 18px 18px 120px;
+                display: grid;
+                gap: 18px;
+            }
+
+            .portal-consent-card {
+                padding: 20px;
+                border-radius: 24px;
+                background: rgba(15, 23, 42, 0.82);
+                border: 1px solid rgba(148, 163, 184, 0.16);
+                box-shadow: 0 26px 60px rgba(8, 15, 27, 0.28);
+            }
+
+            .portal-consent-eyebrow {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 10px;
+                border-radius: 999px;
+                background: rgba(36, 138, 101, 0.18);
+                color: #a7f3d0;
+                font-size: 0.75rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+
+            .portal-consent-card h1,
+            .portal-consent-card h2 {
+                margin: 0;
+                color: #f8fafc;
+            }
+
+            .portal-consent-grid {
+                display: grid;
+                gap: 14px;
+            }
+
+            .portal-consent-meta {
+                display: grid;
+                gap: 12px;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+
+            .portal-consent-meta div,
+            .portal-consent-block {
+                padding: 14px;
+                border-radius: 18px;
+                background: rgba(15, 23, 42, 0.56);
+                border: 1px solid rgba(148, 163, 184, 0.12);
+            }
+
+            .portal-consent-meta strong,
+            .portal-consent-block strong {
+                display: block;
+                margin-bottom: 6px;
+                color: #f8fafc;
+                font-size: 0.92rem;
+            }
+
+            .portal-consent-signature {
+                width: 100%;
+                height: 220px;
+                border-radius: 22px;
+                background: #ffffff;
+                touch-action: none;
+                display: block;
+            }
+
+            .portal-consent-actions {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+
+            .portal-consent-status {
+                margin: 0;
+                font-size: 0.95rem;
+                color: #cbd5e1;
+            }
+
+            .portal-consent-status[data-state="error"] {
+                color: #fca5a5;
+            }
+
+            .portal-consent-status[data-state="success"] {
+                color: #86efac;
+            }
+
+            .portal-consent-status[data-state="loading"] {
+                color: #fde68a;
+            }
+
+            .portal-consent-signature-state,
+            .portal-consent-pdf,
+            .portal-consent-signed {
+                color: #a7f3d0;
+                font-size: 0.9rem;
+            }
+
+            .portal-consent-empty {
+                margin: 24px 18px 0;
+                text-align: center;
+            }
+        </style>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2DWZ5PJ4MC"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2DWZ5PJ4MC');
+</script>
+</head>
+    <body class="portal-body portal-consent-page" data-portal-session-required="true">
+        <div class="portal-app-shell portal-consent-app">
+            
+
+            <main class="portal-consent-shell" data-portal-consent-shell hidden>
+                <section class="portal-consent-card portal-consent-grid">
+                    <span class="portal-consent-eyebrow">Portal del paciente</span>
+                    <h1 data-portal-consent-title>Consentimiento informado digital</h1>
+                    <p>
+                        Revisa el resumen de tu procedimiento y firma con tu dedo para que el
+                        PDF quede archivado en tu historia clínica.
+                    </p>
+                    <div class="portal-consent-meta">
+                        <div>
+                            <strong>Servicio</strong>
+                            <span data-portal-consent-service>Por confirmar</span>
+                        </div>
+                        <div>
+                            <strong>Procedimiento</strong>
+                            <span data-portal-consent-procedure>Por confirmar</span>
+                        </div>
+                        <div>
+                            <strong>Diagnóstico</strong>
+                            <span data-portal-consent-diagnosis>Por confirmar</span>
+                        </div>
+                        <div>
+                            <strong>Duración estimada</strong>
+                            <span data-portal-consent-duration>Por confirmar</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="portal-consent-card portal-consent-grid">
+                    <h2>Resumen clínico</h2>
+                    <div class="portal-consent-block">
+                        <strong>¿Qué es?</strong>
+                        <span data-portal-consent-what>Por confirmar</span>
+                    </div>
+                    <div class="portal-consent-block">
+                        <strong>¿Cómo se realiza?</strong>
+                        <span data-portal-consent-how>Por confirmar</span>
+                    </div>
+                    <div class="portal-consent-block">
+                        <strong>Beneficios esperados</strong>
+                        <span data-portal-consent-benefits>Por confirmar</span>
+                    </div>
+                    <div class="portal-consent-block">
+                        <strong>Riesgos frecuentes</strong>
+                        <span data-portal-consent-risks>Por confirmar</span>
+                    </div>
+                    <div class="portal-consent-block">
+                        <strong>Riesgos poco frecuentes</strong>
+                        <span data-portal-consent-rare-risks>Por confirmar</span>
+                    </div>
+                    <div class="portal-consent-block">
+                        <strong>Alternativas</strong>
+                        <span data-portal-consent-alternatives>Por confirmar</span>
+                    </div>
+                    <div class="portal-consent-block">
+                        <strong>Cuidados posteriores</strong>
+                        <span data-portal-consent-aftercare>Por confirmar</span>
+                    </div>
+                </section>
+
+                <section class="portal-consent-card portal-consent-grid">
+                    <h2>Firma táctil</h2>
+                    <form class="portal-consent-grid" data-portal-consent-form>
+                        <div class="portal-consent-grid">
+                            <label class="portal-login-field">
+                                <span>Nombre del paciente</span>
+                                <input class="input" type="text" name="patientName" autocomplete="name" required />
+                            </label>
+                            <label class="portal-login-field">
+                                <span>Documento</span>
+                                <input class="input" type="text" name="patientDocumentNumber" required />
+                            </label>
+                        </div>
+                        <div class="portal-consent-block">
+                            <strong>Firma con tu dedo</strong>
+                            <canvas
+                                class="portal-consent-signature"
+                                data-portal-consent-signature
+                                aria-label="Firma del paciente"
+                            ></canvas>
+                        </div>
+                        <div class="portal-consent-actions">
+                            <button class="btn-ghost" type="button" data-portal-consent-clear>
+                                Borrar firma
+                            </button>
+                            <span class="portal-consent-signature-state" data-portal-consent-signature-state>
+                                Firma pendiente
+                            </span>
+                        </div>
+                        <label style="display: flex; gap: 10px; align-items: flex-start;">
+                            <input type="checkbox" name="accepted" />
+                            <span>
+                                Confirmo que leí este consentimiento, resolvieron mis dudas y autorizo
+                                la firma electrónica desde mi portal del paciente.
+                            </span>
+                        </label>
+                        <button class="btn-primary" type="submit" data-portal-consent-submit>
+                            Firmar y guardar
+                        </button>
+                    </form>
+                    <p class="portal-consent-status" data-portal-consent-status></p>
+                    <p class="portal-consent-signed" data-portal-consent-signed hidden>
+                        Consentimiento archivado correctamente.
+                    </p>
+                    <p class="portal-consent-pdf" data-portal-consent-pdf hidden></p>
+                    <button class="btn-ghost" type="button" data-portal-consent-download hidden>
+                        Descargar PDF firmado
+                    </button>
+                </section>
+            </main>
+
+            <section class="portal-consent-card portal-consent-empty" data-portal-consent-empty hidden>
+                <span class="portal-consent-eyebrow">Sin formulario pendiente</span>
+                <h1 style="margin-top: 12px;">No tienes un consentimiento activo para firmar.</h1>
+                <p>
+                    Cuando tu equipo clínico prepare el documento, aparecerá aquí para que lo
+                    revises y lo firmes desde el celular.
+                </p>
+                <a class="btn-primary" href="/es/portal/">Volver a mi portal</a>
+            </section>
+
+            <nav class="portal-bottom-nav" aria-label="Portal del paciente" style="border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);">
+                <a class="portal-nav-item" href="/es/portal/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Inicio</span></a>
+                <a class="portal-nav-item" href="/es/portal/historial/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h18"/><path d="M3 6h12"/><path d="M3 18h10"/></svg><span>Historial</span></a>
+                <a class="portal-nav-item" href="/es/portal/plan/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg><span>Plan</span></a>
+                <a class="portal-nav-item" href="/es/portal/receta/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h4"/></svg><span>Receta</span></a>
+                <a class="portal-nav-item" href="/es/portal/pagos/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Pagos</span></a>
+            </nav>
+
+        </div>
+
+        <script src="/js/portal-session.js" defer></script>
+        <script src="/js/portal-ui.js" defer></script>
+        <script src="/js/portal-renderer.js" defer></script>
+        <script src="/js/portal-shell.js" defer></script>
+        <script src="/js/portal-pwa.js" defer></script>
+        <script src="/js/portal-consent.js" defer></script>
+    </body>
+</html>
