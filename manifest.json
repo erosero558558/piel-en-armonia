@@ -1,7 +1,7 @@
 {
     "id": "/",
-    "name": "Aurora Derm — Dermatología Clínica Quito",
-    "short_name": "Aurora Derm",
+    "name": "Aurora Derm",
+    "short_name": "Aurora",
     "description": "Portal del paciente Aurora Derm: citas, historial, recetas y seguimiento clínico.",
     "lang": "es",
     "start_url": "/es/portal/",
