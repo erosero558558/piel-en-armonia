@@ -1308,7 +1308,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 7.4 Telemedicina legacy y media clínica
 
-- [ ] **S7-15** `[M]` Auditar `LegacyTelemedicineBridge.php` — tiene 34 líneas y delega a `TelemedicineIntakeService`. Verificar si sigue siendo llamado por algún controlador o si fue reemplazado por el flujo directo. `grep -rn 'LegacyTelemedicineBridge' controllers/ lib/` → listar callers. Si 0 callers activos: marcar como deprecated y agregar `@deprecated` + mover a `_archive/` en tarea separada. Verificable: echo "OK" -> match.
+- [x] **S7-15** `[M]` Auditar `LegacyTelemedicineBridge.php` — tiene 34 líneas y delega a `TelemedicineIntakeService`. Verificar si sigue siendo llamado por algún controlador o si fue reemplazado por el flujo directo. `grep -rn 'LegacyTelemedicineBridge' controllers/ lib/` → listar callers. Si 0 callers activos: marcar como deprecated y agregar `@deprecated` + mover a `_archive/` en tarea separada. Verificable: echo "OK" -> match.
 - [ ] **S7-16** `[M]` Normalizar Storage clínico — en `lib/telemedicine/` hay `ClinicalMediaService.php` y también `CaseMediaFlowService.php` en raíz `lib/`. Existe duplicidad de responsabilidad: ambos manejan uploads de fotos clínicas. Mapear qué rutas usan cuál. Elegir el canónico (`CaseMediaFlowService` es el más reciente). Plan de migración: hacer que `ClinicalMediaService` delegue a `CaseMediaFlowService`. Sin romper uploads existentes. Verificable: echo "OK" -> match.
 - [x] **S7-17** `[S]` Verificar que media privada nunca es pública — `CaseMediaFlowController` tiene un endpoint `publicMediaFile`. Confirmar que el archivo solo sirve fotos con `visibility: public`. Si una foto clínica (de lesión de paciente) puede ser accedida sin auth via ese endpoint, es HIPAA/LOPD violation. Revisar: `public function publicMediaFile()` en `CaseMediaFlowController.php` → qué filtro de visibilidad aplica.
 
@@ -2669,7 +2669,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S35-06** `[M]` `[codex_frontend]` Contrato home_v6 vs shell reborn (AUD-012) — `/es/` sirve `data-public-template-id="home_v6"` pero usa `reborn-navbar-pill`/`reborn-hero` sin los marcadores `[data-v6-header]`, `[data-v6-hero]`. Los tests de `tests/helpers/public-v6.js` fallan porque buscan esos atributos. Opciones: (1) añadir `data-v6-header` al `<header class="reborn-navbar-pill">` ya existente, (2) añadir `data-v6-hero` al hero. No cambiar la implementación — solo añadir los data-attributes que los tests esperan. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npm run test:frontend:qa:public --silent 2>&1 | grep "home" | grep "passed"`.
 
-- [ ] **S35-07** `[S]` `[codex_frontend]` Overflow horizontal `/es/telemedicina/` (AUD-013) — `clientWidth=360` vs `scrollWidth=792` en móvil. Hay un elemento que desborda. Diagnóstico: abrir `/es/telemedicina/index.html` en viewport 360px e identificar el elemento más ancho. Probable: imagen o grid sin `max-width: 100%`. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/mobile-overflow-regression.spec.js --workers=1 2>&1 | grep -E "passed|failed"` → `passed`.
+- [x] **S35-07** `[S]` `[codex_frontend]` Overflow horizontal `/es/telemedicina/` (AUD-013) — `clientWidth=360` vs `scrollWidth=792` en móvil. Hay un elemento que desborda. Diagnóstico: abrir `/es/telemedicina/index.html` en viewport 360px e identificar el elemento más ancho. Probable: imagen o grid sin `max-width: 100%`. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/mobile-overflow-regression.spec.js --workers=1 2>&1 | grep -E "passed|failed"` → `passed`.
 
 - [x] **S35-08** `[S]` `[codex_frontend]` Clarity analytics no carga tras consentimiento (AUD-014) — después de aceptar cookies, `{ hasScript: true, clarityLoaded: true }` debe ser verdadero pero ambos son `false`. El script de Clarity se inyecta condicionalmente en `js/cookie-consent.js`. Verificar que: (1) `monitoring-config` endpoint devuelve `clarity_id` no vacío cuando está configurado, (2) el inject se ejecuta tras `accept`. Si `clarity_id` está vacío en config, documentar como bloqueado por falta de variable de entorno. Verificable: `TEST_REUSE_EXISTING_SERVER=1 npx playwright test tests/cookie-consent.spec.js --workers=1 2>&1 | grep -E "passed|failed"`.
 
@@ -2879,3 +2879,81 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S42-15** `[M]` `[codex_backend]` `PatientPortalController::plan()` — plan de tratamiento con adherencia y sesiones. Verificable: grep "plan" controllers/PatientPortalController.php // Evidence: Implementado en PatientPortalController::plan y buildTreatmentPlanDetail
 
+
+---
+
+## Sprint 43 — Calidad, Producción y Gobernanza
+
+**Owner:** `codex_backend` + `codex_frontend` + `codex_transversal` | **Prioridad:** CRÍTICA — launch junio 2026.
+
+> **Diagnóstico (2026-04-02 / Auditoría de Calidad):** Veredicto 6.5/10. Monolito PatientPortalController 220KB/5408L, cero tests e2e clínicos, window.alert() en portal, diagnóstico dummy L70.0 hardcodeado, médicos hardcodeados en 4 archivos.
+
+### 43.1 Pureza de Datos en Producción
+
+- [x] **Q43-01** `[S]` `[codex_frontend]` Eliminar `window.alert()` en `portal-history.js` — toast inline rojo, auto-dismiss 6s. Verificable: `grep -c "window.alert(" js/portal-history.js` == 0.
+
+- [x] **Q43-02** `[S]` `[codex_frontend]` Datos dummy en `portal-history.js` — eliminados: diagnóstico `L70.0`, medicamentos `Isotretinoína/Ácido Azelaico`, `avatar-placeholder.png`. Solo datos reales del servidor. Verificable: `grep -c "Isotretinoína\|avatar-placeholder\|L70.0" js/portal-history.js` == 0.
+
+- [x] **Q43-03** `[M]` `[codex_backend]` Centralizar slugs de médicos — `get_valid_doctor_slugs()` y `get_valid_booking_doctor_values()` en `lib/models.php` como única fuente de verdad. Verificable: existe en models.php.
+
+- [x] **Q43-03b** `[S]` `[codex_backend]` Eliminar `case 'update'` duplicado en `AppointmentController` dispatcher. Verificable: `grep -c "case 'update'" controllers/AppointmentController.php` == 1.
+
+### 43.2 Tests E2E Clínicos
+
+- [x] **Q43-04** `[L]` `[codex_transversal]` `tests-node/portal-patient-e2e.test.js` — 6 suites / 22 tests: auth contract, 8 endpoints protegidos, HTML sin dummy, GA4 en head, no window.alert() inline, payments sin token, purity JS. Verificable: archivo existe.
+
+- [ ] **Q43-05** `[M]` `[codex_backend]` Test funcional de `buildPortalHistory()` — mock store con 3+ appointments, validar: consultations[], diagnosis sin fallback, medications desde servidor. Verificable: `tests/PatientPortalHistoryTest.php` >= 5 assertions.
+
+- [ ] **Q43-06** `[M]` `[codex_backend]` Paginación `buildPortalPhotoGallery()` — límite 20 fotos/página, parámetros `?page=1&limit=20`. Verificable: grep de page/limit en método.
+
+### 43.3 Split PatientPortalController (220KB / 5408L)
+
+- [ ] **Q43-07** `[XL]` `[codex_backend]` Extraer `PatientPortalConsentController` — signConsent, consentStatus, consentPdfDownload. Verificable: archivo `controllers/PatientPortalConsentController.php` existe.
+
+- [ ] **Q43-08** `[XL]` `[codex_backend]` Extraer `PatientPortalDocumentController` — historyPdf, prescriptionDownload, certificateDownload. Verificable: PatientPortalController.php < 4500 líneas.
+
+- [ ] **Q43-09** `[L]` `[codex_backend]` PHPDoc en `buildTreatmentPlanDetail()` + test `PatientPortalPlanContractTest.php`. Verificable: test pasa.
+
+### 43.4 Gobernanza
+
+- [ ] **Q43-10** `[L]` `[codex_transversal]` Reemplazar dummies S14-S23 en `bin/verify.js`. Meta: done-without-rule < 200 (hoy 329). Verificable: `node bin/verify.js 2>&1 | grep done-without-rule`.
+
+- [ ] **Q43-11** `[M]` `[codex_frontend]` Status page `/es/status/` — conectar a `GET /api.php?resource=health`. Verificable: grep fetch health en es/status/index.html.
+
+- [ ] **Q43-12** `[M]` `[codex_frontend]` Ruta canónica `/es/mi-turno/` — unificar, redirect 301 si duplicada. Verificable: curl 200.
+
+- [ ] **Q43-13** `[M]` `[codex_frontend]` Dashboard médico sin datos demo — eliminar strings "Doctor Bienvenido", "demo". Verificable: 0 matches grep.
+
+### 43.5 Nuevas Actividades de Agentes (DEBT saldable)
+
+- [ ] **Q43-14** `[M]` `[codex_backend]` `ConsentRouter.php` — implementar `lib/consent/ConsentRouter.php` (S9-22 DEBT-07). Devuelve packet de consentimiento según surface. Verificable: `grep -r "ConsentRouter" lib/consent/`.
+
+- [ ] **Q43-15** `[L]` `[codex_backend]` `data/drug-interactions.json` — ampliar de 12 a 40+ interacciones con: embarazo, lactancia, alergias cruzadas, fotosensibilidad (S10-08 DEBT-07). Verificable: `jq ".interactions | length" data/drug-interactions.json` >= 40.
+
+- [ ] **Q43-16** `[M]` `[codex_backend]` Ledger de revocación de documentos — campo `voided_at` + `void_reason` en normalize_clinical_document(). Historial muestra doc tachado (S10-14 DEBT-07). Verificable: grep voided_at en controllers.
+
+- [ ] **Q43-17** `[S]` `[codex_frontend]` Before/after protocol checklist — inline en admin al subir foto "after" (S10-19 DEBT-07). CSS en `aurora-clinical.css`. Verificable: grep mismo-angulo en src/.
+
+- [ ] **Q43-18** `[M]` `[codex_backend]` `data/post-procedure/*.md` — 5 fichas: L20.0, L70.0, laser-co2, bioestimuladores, peeling-profundo. Enviables por WhatsApp (S10-23 DEBT-07). Verificable: `ls data/post-procedure/ | wc -l` >= 5.
+
+- [ ] **Q43-19** `[L]` `[codex_transversal]` Test pack integridad clínica e2e — adulteración → banner → bloqueo export → audit log. `tests/ClinicalIntegrityE2ETest.php`. Verificable: >= 8 assertions.
+
+- [ ] **Q43-20** `[M]` `[codex_backend]` PDF verification endpoint — `GET /api.php?resource=document-verify&token=XXX` sin login (S10-15). Verificable: 200 con valid/invalid.
+
+---
+
+## Sprint 44 — Plataforma Lista para Producción (junio 2026)
+
+**Owner:** `codex_backend` + `codex_frontend` | **Prioridad:** LANZAMIENTO.
+
+> **Goal:** Gate 13/13 automatizados, smoke e2e < 5s, cero datos demo visibles, tenant isolation auditado.
+
+- [ ] **S44-01** `[L]` `[codex_transversal]` Gate de lanzamiento — 13 checks en `bin/verify.js --gate launch`: auth, booking, consent, pagos, documentos, GA4 en head, done-without-rule < 100, health ok. Verificable: exits 0.
+
+- [ ] **S44-02** `[M]` `[codex_backend]` Synthetic smoke e2e — `bin/smoke-prod.js`: health → booking → portal auth → descarga historial PDF < 5s. Verificable: `node bin/smoke-prod.js` exits 0.
+
+- [ ] **S44-03** `[M]` `[codex_frontend]` Portada lanzamiento — `/es/`: GA4, Schema Dermatology, CTA above-fold, WhatsApp flotante, prueba social. Cero datos demo. Verificable: `docs/LAUNCH_CHECKLIST.md` 10/10.
+
+- [ ] **S44-04** `[M]` `[codex_backend]` Tenant isolation audit — todos los endpoints clínicos filtran por tenantId. Sin cross-tenant data leak. Verificable: `grep -c "tenantId" controllers/PatientPortalController.php` >= 20.
+
+- [ ] **S44-05** `[L]` `[codex_backend]` Clinic profile API — `GET /api.php?resource=clinic-profile` con: nombre, logo, colores, horarios, doctores activos, servicios. Portal usa esto en lugar de constantes hardcodeadas. Verificable: endpoint 200.
