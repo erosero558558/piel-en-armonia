@@ -1453,7 +1453,7 @@ final class ClinicalHistoryController
                 }
             }
 
-            self::mutateStore(static function (array $store) use ($sessionId): array {
+            self::mutateStore(static function (array $store) use ($sessionId, $normalizedValues, $labOrderId): array {
                 $drafts = $store['clinical_history_drafts'] ?? [];
                 $dirty = false;
                 foreach ($drafts as &$draft) {
@@ -1468,6 +1468,25 @@ final class ClinicalHistoryController
                 if ($dirty) {
                     $store['clinical_history_drafts'] = array_values($drafts);
                 }
+                
+                if (isset($store['clinical_history_sessions'][$sessionId])) {
+                    foreach ($normalizedValues as $value) {
+                        if (($value['status'] ?? '') === 'critical' || ($value['critical'] ?? false)) {
+                            $store['clinical_history_sessions'][$sessionId]['has_critical_lab_pending'] = true;
+                            if (!isset($store['clinical_history_sessions'][$sessionId]['critical_lab_detail'])) {
+                                $store['clinical_history_sessions'][$sessionId]['critical_lab_detail'] = [];
+                            }
+                            $store['clinical_history_sessions'][$sessionId]['critical_lab_detail'][] = [
+                                'test'        => $value['test_name'] ?? $value['test'] ?? $value['name'] ?? 'desconocido',
+                                'value'       => $value['value'] ?? $value['result'] ?? '',
+                                'unit'        => $value['unit'] ?? '',
+                                'received_at' => gmdate('c'),
+                                'lab_order_id'=> $labOrderId,
+                            ];
+                        }
+                    }
+                }
+
                 return ['ok' => true, 'store' => $store, 'data' => []];
             });
         }
@@ -1492,11 +1511,13 @@ final class ClinicalHistoryController
             $pushSent = true;
         }
 
+        $criticalCount = count($criticalValues);
         json_response([
             'ok'             => true,
             'result_saved'   => true,
             'critical_values'=> $criticalValues,
-            'alert_triggered'=> !empty($criticalValues),
+            'alert_triggered'=> $criticalCount > 0,
+            'critical_count' => $criticalCount,
             'push_sent'      => $pushSent,
             'patient_notified_at' => gmdate('c'),
         ]);
