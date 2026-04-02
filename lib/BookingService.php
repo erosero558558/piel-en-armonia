@@ -31,7 +31,7 @@ class BookingService
 
         $validation = validate_appointment_payload($appointment, [
             'validServices' => array_keys(get_services_config()),
-            'validDoctors' => ['rosero', 'narvaez']
+            'validDoctors'  => get_valid_doctor_slugs(), // Q43-03: fuente canónica en models.php
         ]);
 
         if (!$validation['ok']) {

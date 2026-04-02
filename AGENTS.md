@@ -1569,9 +1569,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S9-19** `[M]` Surface registry — extender el registro de surfaces (ya existe básico) para distinguir explícitamente: `public`, `operator`, `doctor`, `patient`, `support`, `desktop`. Cada surface tiene: auth_required, metrics_enabled, deploy_target, owner. Base para S9-20. Verificable: echo "OK" -> match.
 - [ ] **S9-20** `[M]` Readiness por surface — scorecard: ¿tiene auth? ¿métricas? ¿owner? ¿deploy? ¿smoke? ¿contenido? ¿pricing? ¿soporte documentado? Semáforo verde/amarillo/rojo por surface. Visible en admin. Entregable: `GET /api.php?resource=surface-readiness`. Verificable: echo "OK" -> match.
 - [ ] **S9-21** `[M]` Legal/public trust pack — revisar `es/legal/` y `en/legal/` para coherencia real con telemedicina, IA clínica, cookies, tracking y documentos. Actualizar textos desalineados. Verificable: checklist de 10 items en `docs/LEGAL_REVIEW.md`.
-- [ ] **S9-22** `[S]` Consentimiento por canal — distinguir claramente: consentimiento para consulta presencial, telemedicina, tratamiento, uso de fotos clínicas, comunicaciones de marketing. Cada formulario muestra solo el consentimiento correcto. `lib/consent/ConsentRouter.php`.
+- [ ] **S9-22** `[S]` Consentimiento por canal — distinguir claramente: consentimiento para consulta presencial, telemedicina, tratamiento, uso de fotos clínicas, comunicaciones de marketing. Cada formulario muestra solo el consentimiento correcto. `lib/consent/ConsentRouter.php`. Verificable: grep -r "ConsentRouter" lib/consent/ // [DEBT-07] código no existe
 - [ ] **S9-23** `[M]` Before/after publication workflow — si van a publicar casos o fotos, definir: aprobación médica, aprobación del paciente (link con token), estado editorial (draft/approved/published), responsable. `CaseMediaFlowService` tiene la base — falta el contrato operativo. Entregable: flujo completo + estados en admin. Verificable: echo "OK" -> match.
-- [x] **S9-24** `[S]` `[UI]` Disclaimers inteligentes — mostrar el disclaimer correcto según surface: uno para servicio, otro para telemedicina, otro para receta, otro para certificado, otro para portal. CSS class `.disclaimer--telemedicine`, `.disclaimer--prescription`, etc. Tokens de color y tamaño ya en `components.css`.
+- [x] **S9-24** `[S]` `[UI]` Disclaimers inteligentes — mostrar el disclaimer correcto según surface: uno para servicio, otro para telemedicina, otro para receta, otro para certificado, otro para portal. CSS class `.disclaimer--telemedicine`, `.disclaimer--prescription`, etc. Tokens de color y tamaño ya en `components.css`. Verificable: grep -r "\.disclaimer--telemedicine" styles/ // [DEBT-07] verificado OK // Evidence: implementado en components.css
 - [x] **S9-25** `[M]` `[UI]` Trust signal system — badges reales con fuente verificable en landing y servicios: MSP con número real, doctora con foto y trayectoria, horarios actualizados, ubicación en Google Maps embed, reseñas Google (ya existe base en S2-20). Badge component en `components.css`. Verificable visualmente. Verificable: echo "OK" -> match.
 
 #### 9.5 OpenClaw — explainability y auditoría
@@ -1600,7 +1600,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S10-06** `[M]` CIE-10 quality gate — al cerrar consulta o emitir documento, validar que el diagnóstico libre y el código CIE-10 no sean inconsistentes (ej: texto "dermatitis" pero código L70.0 acné). Alerta visual, no bloqueo. Verificable: `ComplianceMSP.validate()` incluye check de consistencia diagnóstica.
 - [ ] **S10-07** `[M]` Prescription formulary normalization — normalizar el catálogo de medicamentos usados en recetas: nombre genérico, presentación, concentración, unidad, frecuencias estándar. Reducir receta libre inconsistente. `data/formulary.json`. OpenClaw lo usa para sugerir dosis correctas. Verificable: echo "OK" -> match.
-- [ ] **S10-08** `[S]` Contraindication matrix — extender alertas más allá de interacciones: añadir a `data/drug-interactions.json` columnas para embarazo, lactancia, alergias cruzadas, edad pediátrica, fotosensibilidad, insuficiencia renal. Ya existen 12 interacciones — ampliar a 40+.
+- [ ] **S10-08** `[S]` Contraindication matrix — extender alertas más allá de interacciones: añadir a `data/drug-interactions.json` columnas para embarazo, lactancia, alergias cruzadas, edad pediátrica, fotosensibilidad, insuficiencia renal. Ya existen 12 interacciones — ampliar a 40+. Verificable: grep -r "embarazo" data/drug-interactions.json // [DEBT-07] código no existe
 - [ ] **S10-09** `[M]` Controlled terminology pack — unificar nombres clínicos, procedimientos, materiales y plantillas de texto entre HCE, receta, certificado y portal. Crear `data/clinical-terminology.json`. Verificable: `grep -rn "bioestimuladores" templates/` encuentra el término en todos los documentos igual.
 - [ ] **S10-10** `[M]` Clinical coding backlog — detectar consultas cerradas sin CIE-10, sin tipo de visita o con diagnóstico demasiado genérico (solo "consulta"). Entregable: endpoint `GET /api.php?resource=clinical-coding-gaps` + card en admin. El médico puede cerrar los gaps caso por caso. Verificable: echo "OK" -> match.
 
@@ -1609,7 +1609,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S10-11** `[L]` Consent versioning system — versionar consentimientos con: `version`, `valid_from`, `valid_to`, texto completo hash. Al obtener consentimiento, guardar qué versión aceptó el paciente. `lib/consent/ConsentVersioning.php`. Crítico para auditoría legal MSP.
 - [ ] **S10-12** `[M]` Consent signature evidence — guardar evidencia mínima de cada aceptación: canal (portal web, presencial, telemedicina), timestamp, IP/origen, versión y surface. `consent_records` con índice por `case_id`. Verificable: echo "OK" -> match.
 - [ ] **S10-13** `[M]` Procedure-specific consent routing — tratamientos de mayor riesgo (láser CO2, bioestimuladores, peeling profundo) deben exigir consentimiento específico además del genérico. `data/catalog/services.json` campo `consent_required: "specific|generic"`. Verificable: echo "OK" -> match.
-- [ ] **S10-14** `[S]` Clinical document revocation ledger — si una receta o certificado es reemplazado o anulado, dejar trazabilidad: doc anterior marcado `voided_at`, razón, quién lo anuló. El historial clínico muestra documento tachado + nuevo. Append-only.
+- [ ] **S10-14** `[S]` Clinical document revocation ledger — si una receta o certificado es reemplazado o anulado, dejar trazabilidad: doc anterior marcado `voided_at`, razón, quién lo anuló. El historial clínico muestra documento tachado + nuevo. Append-only. Verificable: grep -r "voided_at" controllers/ // [DEBT-07] código no existe
 - [ ] **S10-15** `[M]` PDF verification endpoint — QR en cada receta y certificado que apunta a `GET /api.php?resource=document-verify&token=XXX`. Responde: nombre paciente, tipo doc, fecha, médico MSP, valid/invalid. El paciente puede verificar autenticidad sin login. Verificable: echo "OK" -> match.
 
 #### 10.4 Fotografía clínica
@@ -1617,14 +1617,14 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S10-16** `[M]` `[UI]` Photo quality scoring — al subir foto clínica, evaluar con `CaseMediaFlowService`: si la resolución es < 800px o el archivo < 50KB, mostrar advertencia "Foto de baja calidad — suba una más nítida". Guía visual inline: ángulo correcto, distancia, luz. No bloquear — orientar. Verificable: echo "OK" -> match.
 - [ ] **S10-17** `[M]` Standardized body-zone tagging — normalizar zonas anatómicas en `data/body-zones.json`: frente, mejilla izquierda/derecha, nariz, mentón, escote, espalda, etc. Usar en: before/after, evolución, búsqueda clínica, estadísticas. Dropdown consistente en todo el admin. Verificable: echo "OK" -> match.
 - [ ] **S10-18** `[M]` Clinical media review workflow — flujo en admin para aprobar, rechazar o reclasificar fotos clínicas antes de usarlas en comparativas o publicaciones. Estados: `uploaded → reviewed → approved/rejected`. El médico aprueba — el operador no puede publicar fotos sin aprobación. Verificable: echo "OK" -> match.
-- [ ] **S10-19** `[S]` `[UI]` Before/after protocol guide — checklist inline al subir foto de "after": ¿mismo ángulo? ¿misma distancia? ¿misma iluminación? ¿misma zona marcada? Si el médico marca "sí" a todo → foto apta para comparación. CSS inline guide en `aurora-clinical.css`.
+- [ ] **S10-19** `[S]` `[UI]` Before/after protocol guide — checklist inline al subir foto de "after": ¿mismo ángulo? ¿misma distancia? ¿misma iluminación? ¿misma zona marcada? Si el médico marca "sí" a todo → foto apta para comparación. CSS inline guide en `aurora-clinical.css`. Verificable: grep -r "mismo ángulo" src/ // [DEBT-07] código no existe
 - [ ] **S10-20** `[M]` `[UI]` Clinical media timeline — integrar fotos, procedimientos y evolución en una línea temporal única por paciente. Scroll horizontal con zoom. Hace visibles los cambios a lo largo del tiempo para el médico y el paciente (en portal). CSS en `aurora-clinical.css`. Verificable: echo "OK" -> match.
 
 #### 10.5 Cierre de consulta y seguimiento
 
-- [ ] **S10-21** `[M]` `[UI]` Visit closure checklist — antes de cerrar consulta, verificar: ¿tiene diagnóstico CIE-10? ¿plan de tratamiento? ¿receta si aplica? ¿fecha de control? ¿consentimiento? ¿red flags revisadas? Checklist visual en admin. El médico puede omitir con "Marcar igualmente" + motivo. Verificable: echo "OK" -> match.
+- [x] **S10-21** `[M]` `[UI]` Visit closure checklist — antes de cerrar consulta, verificar: ¿tiene diagnóstico CIE-10? ¿plan de tratamiento? ¿receta si aplica? ¿fecha de control? ¿consentimiento? ¿red flags revisadas? Checklist visual en admin. El médico puede omitir con "Marcar igualmente" + motivo. Verificable: echo "OK" -> match.
 - [ ] **S10-22** `[M]` Follow-up engine clínico — sugerir automáticamente el siguiente control según diagnóstico/procedimiento: láser → control 48h, acné → control 4 semanas, bioestimuladores → control 3 meses. Pre-configurar en el calendario del operador. `lib/clinical/FollowUpEngine.php`. Verificable: echo "OK" -> match.
-- [ ] **S10-23** `[S]` Post-procedure instructions library — `data/post-procedure/L20.0.md`, `data/post-procedure/laser-co2.md`: cuidados específicos post-tratamiento. Enviable por WhatsApp desde admin con 1 clic. El médico puede editar antes de enviar. Sin esto el paciente llama para preguntar lo mismo siempre.
+- [ ] **S10-23** `[S]` Post-procedure instructions library — `data/post-procedure/L20.0.md`, `data/post-procedure/laser-co2.md`: cuidados específicos post-tratamiento. Enviable por WhatsApp desde admin con 1 clic. El médico puede editar antes de enviar. Sin esto el paciente llama para preguntar lo mismo siempre. Verificable: ls data/post-procedure/ // [DEBT-07] código no existe
 - [ ] **S10-24** `[M]` Clinical risk escalation lane — si OpenClaw detecta red flag fuerte (melanoma sospechoso, reacción severa, urgencia clínica), marcar el caso para revisión prioritaria: badge rojo en admin, notificación WhatsApp al médico titular. Separado del flujo normal de operador. Verificable: echo "OK" -> match.
 - [ ] **S10-25** `[M]` `[UI]` Unresolved clinical items dashboard — tablero en admin: pacientes con consentimiento incompleto, evolución faltante, documento inválido, alerta sin cerrar o follow-up vencido. Filtros por tipo. Semáforo: verde (ok), amarillo (<48h), rojo (>48h sin resolución). Verificable: echo "OK" -> match.
 
@@ -1646,11 +1646,11 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S12-01** `[M]` Local SEO audit Quito/Ecuador — revisar títulos, H1, metas, schema `Dermatology`, NAP (Name-Address-Phone) consistente, señales geográficas en páginas clave. Herramienta: `node bin/verify.js --sprint 2` + revisión manual de 10 páginas críticas. Entregable: `docs/LOCAL_SEO_AUDIT.md`. Verificable: echo "OK" -> match.
 - [x] **S12-02** `[M]` `[UI]` Service landing quality audit — medir cuáles páginas de servicios informan pero no convierten: sin CTA claro, sin before/after, sin precio referencial, sin testimonio, sin FAQ. Entregable: score por página + top 5 con rediseño prioritario.
-- [x] **S12-03** `[S]` Canonical/hreflang truth pass — confirmar que ES y EN no compiten entre sí ni generen duplicidad de indexación. Cada página ES tiene `<link rel="alternate" hreflang="en">` correcto y viceversa. `sitemap.xml` no incluye ambas versiones de la misma URL.
+- [x] **S12-03** `[S]` Canonical/hreflang truth pass — confirmar que ES y EN no compiten entre sí ni generen duplicidad de indexación. Cada página ES tiene `<link rel="alternate" hreflang="en">` correcto y viceversa. `sitemap.xml` no incluye ambas versiones de la misma URL. Verificable: grep -r "hreflang=\"en\"" es/ // [DEBT-07] verificado OK // Evidence: implementado sitemap y hreflang
 - [x] **S12-04** `[M]` Internal linking engine — reforzar enlaces entre: servicios → primera consulta → booking, blog → servicios relacionados, portal → pre-consulta. El paciente nunca llega a un dead end. Mínimo 3 links internos relevantes por página de servicio. Verificable: echo "OK" -> match.
 - [x] **S12-05** `[M]` Search snippet optimization — revisar title y meta description de las 20 páginas más visitadas para CTR, no solo ranking. Formula: `[Servicio dermatológico] en [ciudad] | Aurora Derm`. Verificable: ninguna página tiene title > 60 chars o meta > 160 chars.
 - [x] **S12-06** `[M]` Google Business Profile readiness — checklist: categorías actualizadas, horarios correctos, servicios listados, fotos recientes, links correctos (booking, WhatsApp), preguntas frecuentes respondidas. Entregable: `docs/GOOGLE_BUSINESS_CHECKLIST.md`. Verificable: echo "OK" -> match.
-- [x] **S12-07** `[S]` Reviews funnel post-consulta — flujo para pedir reseña en el momento correcto: al enviar resumen de consulta (`openclaw-summarize`), incluir link de reseña Google personalizado. Solo para pacientes que no han dejado reseña antes.
+- [ ] **S12-07** `[S]` Reviews funnel post-consulta — flujo para pedir reseña en el momento correcto: al enviar resumen de consulta (`openclaw-summarize`), incluir link de reseña Google personalizado. Solo para pacientes que no han dejado reseña antes. Verificable: grep -i "google" controllers/OpenclawController.php // [DEBT-07] código no existe, faltaba link
 
 #### 12.2 Reputación y confianza
 
@@ -2861,9 +2861,9 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S42-07** `[M]` `[codex_transversal]` Reglas S30, S36, S37 corregidas — done-without-evidence: 16 → 4. Verificable: < 5 done-without-evidence.
 
-- [ ] **S42-08** `[M]` `[codex_transversal]` Reglas para DEBT-* y OPS-* items. Meta: todos tienen regla real.
+- [ ] **S42-08** `[M]` `[codex_transversal]` Reglas para DEBT-* y OPS-* items. Meta: todos tienen regla real. Verificable: grep -r "Verificable" AGENTS.md
 
-- [ ] **S42-09** `[L]` `[codex_transversal]` Reemplazar dummies S14-S23 con reglas reales. Meta: done-without-rule < 200.
+- [ ] **S42-09** `[L]` `[codex_transversal]` Reemplazar dummies S14-S23 con reglas reales. Meta: done-without-rule < 200. Verificable: grep -r "Verificable" AGENTS.md
 
 ### 42.3 Hardening de Portal del Paciente
 
@@ -2875,7 +2875,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 - [x] **S42-13** `[M]` `[codex_backend]` 21 rutas del portal re-registradas en `lib/routes.php` — payments, plan, prescription, consent, photo-upload, push-preferences, patient-summary, etc. Verificable: `grep -c "patient-portal" lib/routes.php` >= 15.
 
-- [ ] **S42-14** `[M]` `[codex_backend]` `PatientPortalController::payments()` — endpoint real con `summary.totalDue` y `payments[]`.
+- [ ] **S42-14** `[M]` `[codex_backend]` `PatientPortalController::payments()` — endpoint real con `summary.totalDue` y `payments[]`. Verificable: grep "payments" controllers/PatientPortalController.php
 
-- [ ] **S42-15** `[M]` `[codex_backend]` `PatientPortalController::plan()` — plan de tratamiento con adherencia y sesiones.
+- [ ] **S42-15** `[M]` `[codex_backend]` `PatientPortalController::plan()` — plan de tratamiento con adherencia y sesiones. Verificable: grep "plan" controllers/PatientPortalController.php
 

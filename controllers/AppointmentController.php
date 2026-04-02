@@ -7,7 +7,7 @@ require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 class AppointmentController
 {
-    private const ALLOWED_DOCTORS = ['rosero', 'narvaez', 'indiferente'];
+    // Q43-03: Doctor slugs centralizados en get_valid_booking_doctor_values() — lib/models.php
     private const ALLOWED_SERVICES = ['consulta', 'telefono', 'video', 'acne', 'cancer', 'laser', 'rejuvenecimiento'];
 
     public static function index(array $context): void
@@ -136,10 +136,10 @@ class AppointmentController
         if ($doctor === '') {
             $doctor = 'indiferente';
         }
-        if (!in_array($doctor, self::ALLOWED_DOCTORS, true)) {
+        if (!in_array($doctor, get_valid_booking_doctor_values(), true)) {
             json_response([
                 'ok' => false,
-                'error' => 'Doctor invalido. Usa rosero, narvaez o indiferente.',
+                'error' => 'Doctor invalido. Valores permitidos: ' . implode(', ', get_valid_booking_doctor_values()),
                 'code' => 'calendar_bad_request',
             ], 400);
         }
@@ -910,9 +910,6 @@ class AppointmentController
                             return;
                         case 'store':
                             self::store($context);
-                            return;
-                        case 'update':
-                            self::update($context);
                             return;
                         case 'update':
                             self::update($context);

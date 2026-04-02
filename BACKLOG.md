@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 1/4/2026, 8:45:37 p. m. | Fuente: AGENTS.md_
+_Generado: 1/4/2026, 8:49:20 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -24,8 +24,8 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint UI | 0 | 0 | 0% |
 | ⏸ Sprint 8 | 13 | 4 | 76% |
 | ⏸ Sprint 9 | 13 | 14 | 48% |
-| ⏸ Sprint 10 | 4 | 26 | 13% |
-| ⏸ Sprint 12 | 21 | 5 | 81% |
+| ⏸ Sprint 10 | 5 | 25 | 17% |
+| ⏸ Sprint 12 | 20 | 6 | 77% |
 | ✅ Sprint 13 | 21 | 0 | 100% |
 | ✅ Sprint UI | 20 | 0 | 100% |
 | ✅ Sprint 14 | 14 | 0 | 100% |
@@ -65,7 +65,7 @@ _Sprint completado. 25/25 tareas._
 ## ⏸ Sprint 7 — Operaciones, Seguridad y Deuda de Infraestructura
 _Esperando que Sprint anterior esté completo. 17 tareas pendientes._
 
-### 🟢 Disponibles (16)
+### 🟢 Disponibles (15)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -74,11 +74,12 @@ _Esperando que Sprint anterior esté completo. 17 tareas pendientes._
 | **S7-14** | `[S7]` | M |
 | **S7-15** | `[S7]` | M |
 | **S7-16** | `[S7]` | M |
-| ... | | _+11 más_ |
+| ... | | _+10 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S7-07** `[S7]` → _codex_ (expira en 108min)
+- **S7-07** `[S7]` → _codex_ (expira en 104min)
+- **S7-32** `[S7]` → _antigravity_ (expira en 119min)
 
 ## ✅ Sprint UI — Rediseño Total (ANTIGRAVITY EXCLUSIVO)
 _Sprint completado. 19/19 tareas._
@@ -116,9 +117,9 @@ _Esperando que Sprint anterior esté completo. 14 tareas pendientes._
 | ... | | _+9 más_ |
 
 ## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
-_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 
-### 🟢 Disponibles (26)
+### 🟢 Disponibles (25)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -127,20 +128,21 @@ _Esperando que Sprint anterior esté completo. 26 tareas pendientes._
 | **S10-04** | `[S10]` | M |
 | **S10-05** | `[S10]` | M |
 | **S10-07** | `[S10]` | M |
-| ... | | _+21 más_ |
+| ... | | _+20 más_ |
 
 ## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
-_Esperando que Sprint anterior esté completo. 5 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 6 tareas pendientes._
 
-### 🟢 Disponibles (5)
+### 🟢 Disponibles (6)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
+| **S12-07** | `[S12]` | S |
 | **S12-24** | `[S12]` | M |
 | **S12-25** | `[S12]` | S |
 | **S12-27** | `[S12]` | M |
 | **S12-28** | `[S12]` | M |
-| **S12-29** | `[S12]` | M |
+| ... | | _+1 más_ |
 
 ## ✅ Sprint 13 — Audit de Gobernador: Lo Que Nadie Auditó Todavía
 _Sprint completado. 21/21 tareas._
@@ -188,7 +190,7 @@ _Esperando que Sprint anterior esté completo. 11 tareas pendientes._
 
 ### 🔒 En progreso — NO tomar
 
-- **S35-07** `[S35]` → _antigravity_ (expira en 117min)
+- **S35-07** `[S35]` → _antigravity_ (expira en 113min)
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._

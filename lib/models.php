@@ -36,6 +36,37 @@ function get_doctor_label(string $doctor): string
     return $labels[$doctor] ?? $doctor;
 }
 
+/**
+ * Returns the canonical set of valid doctor slugs for this clinic.
+ *
+ * SINGLE SOURCE OF TRUTH for doctor slug validation (Q43-03).
+ * All controllers (AppointmentController, AvailabilityController, BookingService,
+ * CalendarAvailabilityService, PaymentController) must derive their allowed-doctor
+ * checks from this function rather than embedding the array literal inline.
+ *
+ * When the clinic adds a new doctor:
+ *   1. Add their slug here
+ *   2. Add their Google Calendar ID to GoogleCalendarClient::DOCTOR_CALENDAR_MAP
+ *   3. Add their label to get_doctor_label() above
+ *
+ * @return string[]   Named doctor slugs (excludes 'indiferente')
+ */
+function get_valid_doctor_slugs(): array
+{
+    return ['rosero', 'narvaez'];
+}
+
+/**
+ * Valid booking targets including 'indiferente' (any available doctor).
+ * Use get_valid_doctor_slugs() when you need the real doctor list.
+ *
+ * @return string[]
+ */
+function get_valid_booking_doctor_values(): array
+{
+    return array_merge(get_valid_doctor_slugs(), ['indiferente']);
+}
+
 function get_payment_method_label(string $method): string
 {
     $labels = [

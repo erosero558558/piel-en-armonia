@@ -10971,44 +10971,82 @@ export function bindClinicalHistoryEvents() {
             const soapData = [...prevEvolutions, ...draftEvolutions].find(evo => normalizeString(evo.type) === 'soap' || normalizeString(evo.note_subjective));
             const hasSoap = Boolean(soapData && (soapData.note_subjective || soapData.subjective));
             
-            if (!hasSoap && !draft.evolution_missing) {
+            // Evaluaciones S10-21: Visit closure checklist
+            const hcu005Soap = draft?.hcu005?.soap || {};
+            const hasDiagnosis = Boolean(hcu005Soap.assessment || draft?.hcu002?.diagnostico_cie10 || (soapData?.assessment || soapData?.note_assessment));
+            const hasPlan = Boolean(hcu005Soap.plan || draft?.hcu002?.plan_tratamiento || (soapData?.plan || soapData?.note_plan));
+            const hasPresc = Boolean(Array.isArray(draft?.hcu005?.prescriptions) && draft.hcu005.prescriptions.length > 0);
+            
+            const showChecklist = () => {
+                if (document.getElementById('closure-checklist-modal')) return;
                 const modal = document.createElement('div');
-                modal.id = 'soap-required-modal';
+                modal.id = 'closure-checklist-modal';
                 modal.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);';
+                
+                const renderCheck = (label, isOk, manualText) => `
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                        <div style="min-width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:${isOk ? '#10b981' : 'transparent'}; border:2px solid ${isOk ? '#10b981' : '#f59e0b'}; color:${isOk ? '#fff' : '#f59e0b'}; font-size:12px; font-weight:bold;">
+                            ${isOk ? '✓' : '!'}
+                        </div>
+                        <span style="color:${isOk ? '#cbd5e1' : '#f87171'}">${label} ${isOk ? '' : '<small style="color:#94a3b8">(' + manualText + ')</small>'}</span>
+                    </div>
+                `;
+
+                const allOk = hasDiagnosis && hasPlan && hasSoap;
+
                 modal.innerHTML = `
-                    <div style="background:var(--rb-surface, #1e293b); padding:24px; border-radius:12px; width:450px; border:1px solid #f59e0b; color:#fff; display:flex; flex-direction:column; gap:16px;">
-                        <h3 style="margin:0; color:#f59e0b; display:flex; align-items:center; gap:8px;">⚠️ Consulta Incompleta</h3>
-                        <p style="margin:0; font-size:0.95rem; line-height:1.4; color:var(--text-muted, #94a3b8);">Esta consulta no tiene nota de evolución SOAP. ¿Deseas agregar una nota mínima antes de cerrar? (Requerido por el MSP Ecuador)</p>
+                    <div style="background:var(--rb-surface, #1e293b); padding:24px; border-radius:12px; width:520px; border:1px solid #334155; color:#fff; display:flex; flex-direction:column; gap:16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                        <h3 style="margin:0; color:#fff; display:flex; align-items:center; gap:8px;">✅ Checklist de Cierre de Consulta</h3>
+                        <p style="margin:0; font-size:0.95rem; line-height:1.4; color:var(--text-muted, #94a3b8);">Antes de cerrar la consulta, verifica los siguientes puntos clave:</p>
+                        
+                        <div style="background:rgba(0,0,0,0.2); padding:12px; border-radius:8px;">
+                            ${renderCheck('¿Tiene diagnóstico CIE-10 / Assessment?', hasDiagnosis, 'Falta')}
+                            ${renderCheck('¿Plan de tratamiento documentado?', hasPlan, 'Falta')}
+                            ${renderCheck('¿Receta si aplica?', hasPresc, 'Pendiente o no aplica')}
+                            ${renderCheck('¿Fecha de control definida?', false, 'Revisar')}
+                            ${renderCheck('¿Consentimiento informado registrado?', false, 'Revisar')}
+                            ${renderCheck('¿Red flags (alertas) revisadas?', false, 'Revisar')}
+                        </div>
+
+                        ${!allOk || !hasPresc ? `
+                        <div style="display:flex; flex-direction:column; gap:8px;" id="closure-override-section">
+                            <label style="font-size:0.85rem; color:#f59e0b; font-weight:bold;">Para omitir pendientes ("Marcar igualmente"), ingresa el motivo:</label>
+                            <input type="text" id="closure-reason-input" placeholder="Ej: Control se agendará después, nota libre usada..." style="padding:10px; border-radius:6px; border:1px solid #475569; background:#0f172a; color:#fff; width:100%; box-sizing:border-box;" />
+                        </div>
+                        ` : ''}
+
                         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
-                            <button id="soap-cancel-btn" style="padding:8px 16px; border-radius:6px; border:1px solid var(--admin-border); background:transparent; color:#fff; cursor:pointer;">Cancelar</button>
-                            <button id="close-without-soap-btn" class="close-without-soap" style="padding:8px 16px; border-radius:6px; border:none; background:rgba(245,158,11,0.2); color:#f59e0b; cursor:pointer;">Cerrar como nota libre</button>
-                            <button id="soap-add-btn" style="padding:8px 16px; border-radius:6px; border:none; background:var(--color-aurora-500); color:#000; font-weight:bold; cursor:pointer;">Agregar nota SOAP</button>
+                            <button id="closure-cancel-btn" style="padding:8px 16px; border-radius:6px; border:1px solid var(--admin-border, #475569); background:transparent; color:#fff; cursor:pointer;">Regresar a Editar</button>
+                            <button id="closure-confirm-btn" style="padding:8px 16px; border-radius:6px; border:none; background:var(--color-aurora-500, #3b82f6); color:#fff; font-weight:bold; cursor:pointer;">Cerrar Consulta</button>
                         </div>
                     </div>
                 `;
                 document.body.appendChild(modal);
 
-                modal.querySelector('#soap-cancel-btn').onclick = () => modal.remove();
-                modal.querySelector('#soap-add-btn').onclick = () => {
+                modal.querySelector('#closure-cancel-btn').onclick = () => modal.remove();
+                modal.querySelector('#closure-confirm-btn').onclick = async () => {
+                    const reasonInput = modal.querySelector('#closure-reason-input');
+                    const reason = reasonInput ? reasonInput.value.trim() : '';
+                    if ((!hasDiagnosis || !hasPlan || !hasSoap) && !reason) {
+                        createToast('Debes ingresar un motivo para "marcar igualmente" y forzar el cierre sin campos obligatorios.', 'warning');
+                        return;
+                    }
                     modal.remove();
-                    const draftPanel = document.getElementById('clinicalHistoryDraftForm');
-                    if (draftPanel) draftPanel.scrollIntoView({ behavior: 'smooth' });
-                };
-                modal.querySelector('#close-without-soap-btn').onclick = async () => {
-                    modal.remove();
-                    draft.evolution_missing = true;
-                    updateState(s => {
-                        if (s.clinicalHistory?.draftForm) {
-                            s.clinicalHistory.draftForm.evolution_missing = true;
-                        }
-                        return s;
-                    });
+                    if (reason) {
+                        draft.closure_override_reason = reason;
+                    }
+                    if (!hasSoap) {
+                         draft.evolution_missing = true;
+                         updateState(s => {
+                             if (s.clinicalHistory?.draftForm) s.clinicalHistory.draftForm.evolution_missing = true;
+                             return s;
+                         });
+                    }
                     await saveClinicalHistoryReview('approve', '');
                 };
-                return;
-            }
+            };
 
-            await saveClinicalHistoryReview('approve', '');
+            showChecklist();
             return;
         }
 
