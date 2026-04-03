@@ -206,9 +206,6 @@ function app_backend_only_removed_ui_exact_paths(): array
         '/admin-v3.css',
         '/admin.js',
         '/admin.html',
-        '/favicon.ico',
-        '/favicon.svg',
-        '/index.html',
         '/kiosco-turnos.html',
         '/kiosk-cie10-sandbox.html',
         '/kiosk.html',
@@ -220,9 +217,7 @@ function app_backend_only_removed_ui_exact_paths(): array
         '/queue-kiosk.html',
         '/queue-ops.css',
         '/queue-operator.html',
-        '/robots.txt',
         '/sala-turnos.html',
-        '/sitemap.xml',
         '/stats.html',
         '/sw.js',
     ];
@@ -237,7 +232,6 @@ function app_backend_only_removed_ui_prefixes(): array
         '/en',
         '/es',
         '/images',
-        '/js',
         '/ninos',
         '/servicios',
     ];

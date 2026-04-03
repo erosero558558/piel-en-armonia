@@ -47,4 +47,35 @@ if (app_backend_only_is_removed_ui_path($requestPath)) {
     exit;
 }
 
+// ── Servir archivos estáticos localmente ──────────────────────────────
+// HTML, JS, CSS que existen en disco los servimos directamente.
+// En producción (nginx/Apache) esto lo maneja el servidor web.
+$mimeMap = [
+    'html' => 'text/html; charset=utf-8',
+    'js'   => 'application/javascript; charset=utf-8',
+    'css'  => 'text/css; charset=utf-8',
+    'json' => 'application/json; charset=utf-8',
+    'svg'  => 'image/svg+xml',
+    'ico'  => 'image/x-icon',
+    'png'  => 'image/png',
+    'jpg'  => 'image/jpeg',
+    'webp' => 'image/webp',
+];
+
+$ext = strtolower(pathinfo($requestPath, PATHINFO_EXTENSION));
+if (isset($mimeMap[$ext])) {
+    $filePath = __DIR__ . '/../' . ltrim($requestPath, '/');
+    $filePath = realpath($filePath);
+    $rootPath = realpath(__DIR__ . '/../');
+    // Validación de path traversal
+    if ($filePath !== false && $rootPath !== false && str_starts_with($filePath, $rootPath . '/')) {
+        if (is_file($filePath)) {
+            header('Content-Type: ' . $mimeMap[$ext]);
+            header('Cache-Control: no-cache');
+            readfile($filePath);
+            exit;
+        }
+    }
+}
+
 require __DIR__ . '/../index.php';

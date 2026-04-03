@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Consola de recepción — Aurora Derm">
+  <title>Recepción — Aurora Derm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --verde:     #1FAD65;
+      --verde-dk:  #0A3D24;
+      --verde-lt:  #EDFAF4;
+      --amarillo:  #F59E0B;
+      --rojo:      #DC2626;
+      --azul:      #3B82F6;
+      --gris-bg:   #F9FAFB;
+      --gris-brd:  #E5E7EB;
+      --gris-txt:  #6B7280;
+      --font:      'Inter', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100vh;
+      font-family: var(--font);
+      background: var(--gris-bg);
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: grid;
+      grid-template-rows: 64px 1fr;
+      grid-template-columns: 280px 1fr 320px;
+    }
+
+    /* ── Header ── */
+    header {
+      grid-column: 1 / -1;
+      background: white;
+      border-bottom: 1px solid var(--gris-brd);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      gap: 16px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-logo {
+      width: 36px; height: 36px;
+      background: var(--verde);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand-name { font-size: 1rem; font-weight: 700; }
+    .brand-pill {
+      font-size: 0.7rem; font-weight: 600;
+      background: #DCFCE7; color: #166534;
+      border-radius: 20px; padding: 2px 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .header-meta {
+      display: flex; align-items: center; gap: 16px;
+    }
+
+    .header-clock {
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #374151;
+    }
+
+    .header-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.8rem; color: var(--gris-txt);
+    }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .dot.green { background: var(--verde); animation: blink 2s infinite; }
+    .dot.red   { background: var(--rojo); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Cola sidebar izquierdo ── */
+    .col-queue {
+      background: white;
+      border-right: 1px solid var(--gris-brd);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .col-title {
+      padding: 16px 20px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--gris-txt);
+      border-bottom: 1px solid var(--gris-brd);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .queue-scroll { overflow-y: auto; flex: 1; }
+
+    .ticket-row {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      gap: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #F3F4F6;
+      transition: background 150ms;
+    }
+
+    .ticket-row:hover { background: var(--verde-lt); }
+
+    .ticket-row.calling {
+      background: #FEF3C7;
+      border-left: 3px solid var(--amarillo);
+    }
+
+    .ticket-num {
+      font-size: 1.3rem;
+      font-weight: 800;
+      min-width: 52px;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ticket-info { flex: 1; min-width: 0; }
+    .ticket-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #111827;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ticket-service {
+      font-size: 0.75rem;
+      color: var(--gris-txt);
+      margin-top: 1px;
+    }
+
+    .ticket-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    .badge-waiting   { background: #EFF6FF; color: #1D4ED8; }
+    .badge-calling   { background: #FEF3C7; color: #B45309; }
+    .badge-checkedin { background: #DCFCE7; color: #166534; }
+
+    .queue-empty-msg {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gris-txt);
+      font-size: 0.9rem;
+    }
+
+    /* ── Panel central: Llamar ── */
+    .col-main {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .call-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid var(--gris-brd);
+      overflow: hidden;
+    }
+
+    .call-card-header {
+      padding: 20px 24px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #F3F4F6;
+    }
+
+    .call-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .call-card-body { padding: 24px; }
+
+    /* Número actual en consultorio */
+    .calling-display {
+      text-align: center;
+      padding: 32px 0;
+    }
+
+    .calling-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--gris-txt);
+      margin-bottom: 12px;
+    }
+
+    .calling-num {
+      font-size: 6rem;
+      font-weight: 900;
+      color: var(--verde);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .calling-patient {
+      font-size: 1rem;
+      color: #374151;
+      margin-top: 8px;
+    }
+
+    /* Botones de acción */
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 20px 16px;
+      border-radius: 14px;
+      border: 2px solid var(--gris-brd);
+      background: white;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #374151;
+      transition: all 150ms;
+    }
+
+    .action-btn:hover { border-color: var(--verde); background: var(--verde-lt); color: var(--verde-dk); }
+
+    .action-btn.primary {
+      background: var(--verde);
+      border-color: var(--verde);
+      color: white;
+      grid-column: 1 / -1;
+      padding: 22px;
+      font-size: 1rem;
+    }
+
+    .action-btn.primary:hover { background: #178F52; border-color: #178F52; }
+    .action-btn.danger { border-color: #FCA5A5; }
+    .action-btn.danger:hover { background: #FEF2F2; border-color: var(--rojo); color: var(--rojo); }
+
+    .action-icon { font-size: 1.4rem; }
+
+    /* Agregar turno walk-in */
+    .walkin-form {
+      display: flex;
+      gap: 12px;
+    }
+
+    .walkin-input {
+      flex: 1;
+      height: 48px;
+      border: 2px solid var(--gris-brd);
+      border-radius: 12px;
+      padding: 0 16px;
+      font-size: 1rem;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 200ms;
+    }
+
+    .walkin-input:focus { border-color: var(--verde); }
+
+    .walkin-btn {
+      height: 48px;
+      padding: 0 20px;
+      background: var(--verde);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 150ms;
+    }
+
+    .walkin-btn:hover { background: #178F52; }
+
+    /* ── Panel derecho: métricas + historial ── */
+    .col-stats {
+      background: white;
+      border-left: 1px solid var(--gris-brd);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .stat-block {
+      padding: 16px 20px;
+      border-bottom: 1px solid #F3F4F6;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--gris-txt);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .stat-sub { font-size: 0.8rem; color: var(--gris-txt); margin-top: 4px; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: #F3F4F6;
+      border-bottom: 1px solid var(--gris-brd);
+    }
+
+    .stats-grid .stat-block { background: white; }
+
+    /* Historial de turnos */
+    .history-item {
+      padding: 12px 20px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      border-bottom: 1px solid #F9FAFB;
+      font-size: 0.85rem;
+    }
+
+    .history-num {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #374151;
+      min-width: 40px;
+    }
+
+    .history-info { flex: 1; }
+    .history-name { font-weight: 600; color: #111827; }
+    .history-time { font-size: 0.75rem; color: var(--gris-txt); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: #111827;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      max-width: 320px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .toast.visible { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--verde-dk); }
+    .toast.error   { background: var(--rojo); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="7" stroke="white" stroke-width="1.8"/>
+          <path d="M10 7v3l2.5 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="brand-name">Aurora Derm</span>
+      <span class="brand-pill">RECEPCIÓN</span>
+    </div>
+    <div class="header-meta">
+      <div class="header-clock" id="clock">—:—</div>
+      <div class="header-status">
+        <div class="dot green" id="conn-dot"></div>
+        <span id="conn-text">En línea</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Cola izquierda -->
+  <div class="col-queue">
+    <div class="col-title">
+      <span>Cola de espera</span>
+      <span id="queue-count" style="font-size:0.85rem;font-weight:700;color:#111">0</span>
+    </div>
+    <div class="queue-scroll" id="queue-list" role="list" aria-label="Lista de turnos">
+      <div class="queue-empty-msg">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- Panel central -->
+  <div class="col-main">
+
+    <!-- Turno activo -->
+    <div class="call-card">
+      <div class="call-card-header">
+        <div class="call-card-title">Turno actual</div>
+      </div>
+      <div class="call-card-body">
+        <div class="calling-display">
+          <div class="calling-label">Consultorio — llamando</div>
+          <div class="calling-num" id="calling-num" aria-live="polite">—</div>
+          <div class="calling-patient" id="calling-patient"></div>
+        </div>
+
+        <div class="action-grid">
+          <button class="action-btn primary" id="btn-llamar" onclick="llamarSiguiente()">
+            <span class="action-icon">📢</span>
+            Llamar siguiente
+          </button>
+          <button class="action-btn" onclick="rellamar()">
+            <span class="action-icon">🔁</span>
+            Re-llamar
+          </button>
+          <button class="action-btn" onclick="marcarNoShow()">
+            <span class="action-icon">⚠️</span>
+            No se presentó
+          </button>
+          <button class="action-btn danger" onclick="cancelarTurno()">
+            <span class="action-icon">✕</span>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agregar walk-in -->
+    <div class="call-card">
+      <div class="call-card-header">
+        <div class="call-card-title">Agregar turno sin cita</div>
+      </div>
+      <div class="call-card-body">
+        <div class="walkin-form">
+          <input
+            type="text"
+            class="walkin-input"
+            id="walkin-name"
+            placeholder="Nombre del paciente (opcional)"
+            maxlength="80"
+          >
+          <button class="walkin-btn" onclick="agregarWalkIn()">+ Turno</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Panel derecho: estadísticas -->
+  <div class="col-stats">
+    <div class="stat-block">
+      <div class="stat-label">En espera ahora</div>
+      <div class="stat-value" id="stat-waiting">—</div>
+      <div class="stat-sub" id="stat-eta">Tiempo promedio: —</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-block">
+        <div class="stat-label">Atendidos hoy</div>
+        <div class="stat-value" id="stat-done">—</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">No se presentaron</div>
+        <div class="stat-value" id="stat-noshow" style="color:var(--rojo)">—</div>
+      </div>
+    </div>
+
+    <div class="stat-block">
+      <div class="stat-label">Historial del día</div>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    'use strict';
+
+    const POLL_MS = 6000;
+    let state     = { currentTicket: null, queue: [], stats: {} };
+    let pollTimer = null;
+    let errors    = 0;
+
+    // ── Reloj ─────────────────────────────────────────────────
+    setInterval(() => {
+      document.getElementById('clock').textContent =
+        new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    }, 1000);
+
+    // ── Fetch & render ────────────────────────────────────────
+    async function fetchState() {
+      try {
+        const res  = await fetch('/api.php?resource=queue-state', { cache: 'no-store' });
+        const json = await res.json();
+        if (json.ok) {
+          state = json.data || json;
+          renderAll();
+          setOnline(true);
+        }
+      } catch {
+        setOnline(false);
+      } finally {
+        const delay = errors > 2 ? Math.min(POLL_MS * 2, 20000) : POLL_MS;
+        pollTimer = setTimeout(fetchState, delay);
+      }
+    }
+
+    function setOnline(ok) {
+      errors = ok ? 0 : errors + 1;
+      document.getElementById('conn-dot').className  = 'dot ' + (ok ? 'green' : 'red');
+      document.getElementById('conn-text').textContent = ok ? 'En línea' : 'Sin conexión';
+    }
+
+    function renderAll() {
+      renderQueue();
+      renderCurrent();
+      renderStats();
+      renderHistory();
+    }
+
+    function renderQueue() {
+      const queue = Array.isArray(state.queue) ? state.queue : [];
+      const el    = document.getElementById('queue-list');
+      document.getElementById('queue-count').textContent = queue.filter(t => !t.done).length;
+
+      if (!queue.length) {
+        el.innerHTML = '<div class="queue-empty-msg">Sin turnos en espera</div>';
+        return;
+      }
+
+      el.innerHTML = queue.map(t => {
+        const num    = t.ticketNumber || t.number || '?';
+        const name   = t.patientName  || t.name   || 'Paciente';
+        const svc    = capitalize(t.service || 'Consulta');
+        const status = t.status || 'waiting';
+        let   badge  = '', badgeClass = '';
+
+        if (status === 'calling') { badge = 'Llamando'; badgeClass = 'badge-calling calling'; }
+        else if (status === 'checked_in') { badge = 'Llegó'; badgeClass = 'badge-checkedin'; }
+        else { badge = 'Espera'; badgeClass = 'badge-waiting'; }
+
+        return `
+          <div class="ticket-row ${status === 'calling' ? 'calling' : ''}"
+               role="listitem"
+               aria-label="Turno ${num}: ${name}"
+               onclick="selectTicket('${num}')">
+            <div class="ticket-num">${num}</div>
+            <div class="ticket-info">
+              <div class="ticket-name">${name}</div>
+              <div class="ticket-service">${svc}</div>
+            </div>
+            <span class="ticket-badge ${badgeClass}">${badge}</span>
+          </div>`;
+      }).join('');
+    }
+
+    function renderCurrent() {
+      const cur    = state.currentTicket || state.current || null;
+      const numEl  = document.getElementById('calling-num');
+      const patEl  = document.getElementById('calling-patient');
+
+      if (cur) {
+        numEl.textContent = cur.ticketNumber || cur.number || '?';
+        patEl.textContent = cur.patientName  || cur.name   || '';
+      } else {
+        numEl.textContent = '—';
+        patEl.textContent = 'Ninguno activo';
+      }
+    }
+
+    function renderStats() {
+      const s = state.stats || {};
+      document.getElementById('stat-waiting').textContent = s.waiting ?? (state.queue || []).filter(t => !t.done).length;
+      document.getElementById('stat-done').textContent    = s.served   ?? '—';
+      document.getElementById('stat-noshow').textContent  = s.noShow   ?? '—';
+      if (s.avgWaitMin != null) {
+        document.getElementById('stat-eta').textContent = `Promedio: ~${s.avgWaitMin} min`;
+      }
+    }
+
+    function renderHistory() {
+      const hist = Array.isArray(state.history) ? state.history.slice(0, 15) : [];
+      const el   = document.getElementById('history-list');
+      if (!hist.length) {
+        el.innerHTML = '<div class="queue-empty-msg" style="padding:16px 20px">Sin historial aún</div>';
+        return;
+      }
+      el.innerHTML = hist.map(t => {
+        const num  = t.ticketNumber || t.number || '?';
+        const name = t.patientName  || t.name   || 'Paciente';
+        const time = t.calledAt ? new Date(t.calledAt).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }) : '';
+        return `
+          <div class="history-item">
+            <div class="history-num">${num}</div>
+            <div class="history-info">
+              <div class="history-name">${name}</div>
+              <div class="history-time">${time}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Acciones operador ─────────────────────────────────────
+    async function apiPost(resource, body) {
+      const res  = await fetch(`/api.php?resource=${resource}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+      return res.json();
+    }
+
+    async function llamarSiguiente() {
+      try {
+        const r = await apiPost('queue-call-next', {});
+        if (r.ok) {
+          toast('✓ Turno ' + (r.data?.number || '') + ' llamado', 'success');
+          fetchState();
+        } else {
+          toast(r.error || 'No hay turnos en espera', 'error');
+        }
+      } catch {
+        toast('Error de conexión', 'error');
+      }
+    }
+
+    async function rellamar() {
+      try {
+        const r = await apiPost('queue-recall', {});
+        if (r.ok) toast('🔁 Re-llamando turno actual', 'success');
+        else toast(r.error || 'Error', 'error');
+      } catch { toast('Error de conexión', 'error'); }
+    }
+
+    async function marcarNoShow() {
+      const cur = state.currentTicket || state.current;
+      if (!cur) { toast('No hay turno activo', ''); return; }
+      try {
+        const r = await apiPost('queue-no-show', { ticketId: cur.id });
+        if (r.ok) {
+          toast('⚠ No se presentó — turno cerrado', 'success');
+          fetchState();
+        } else toast(r.error || 'Error', 'error');
+      } catch { toast('Error de conexión', 'error'); }
+    }
+
+    async function cancelarTurno() {
+      const cur = state.currentTicket || state.current;
+      if (!cur) { toast('No hay turno activo', ''); return; }
+      if (!confirm('¿Cancelar el turno ' + (cur.ticketNumber || cur.number) + '?')) return;
+      try {
+        const r = await apiPost('queue-cancel', { ticketId: cur.id });
+        if (r.ok) {
+          toast('Turno cancelado', 'success');
+          fetchState();
+        } else toast(r.error || 'Error', 'error');
+      } catch { toast('Error de conexión', 'error'); }
+    }
+
+    async function agregarWalkIn() {
+      const name = document.getElementById('walkin-name').value.trim();
+      try {
+        const r = await apiPost('queue-ticket', { patientName: name, mode: 'walk-in' });
+        if (r.ok) {
+          document.getElementById('walkin-name').value = '';
+          toast('✓ Turno ' + (r.data?.ticketNumber || '') + ' agregado', 'success');
+          fetchState();
+        } else toast(r.error || 'Error al crear turno', 'error');
+      } catch { toast('Error de conexión', 'error'); }
+    }
+
+    function selectTicket(num) {
+      // TODO: expandir para ver detalle del paciente
+    }
+
+    // ── Toast ─────────────────────────────────────────────────
+    let toastTimer = null;
+    function toast(msg, type) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className   = `toast ${type || ''} visible`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('visible'), 3500);
+    }
+
+    function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+    // Arrancar
+    fetchState();
+  </script>
+</body>
+</html>
