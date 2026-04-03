@@ -249,7 +249,7 @@ class OpenclawPrescriptionController
                     $savedStore['prescriptions'][$rxId],
                     [],
                     [
-                        'portalUrl' => app_api_absolute_url('patient-portal-prescription'),
+                        'portalUrl' => rtrim(AppConfig::BASE_URL, '/') . '/es/portal/recetas/',
                     ]
                 );
     
