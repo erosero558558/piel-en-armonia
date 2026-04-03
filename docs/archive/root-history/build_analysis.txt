@@ -1,2 +1,0 @@
-Historical placeholder for the archived root-level build analysis report.
-The active workflow no longer writes this file at repository root.

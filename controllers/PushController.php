@@ -87,7 +87,7 @@ class PushController
         $payload = [
             'title' => 'Aurora Derm',
             'body' => 'Notificacion de prueba desde el panel admin.',
-            'url' => '/admin.html',
+            'url' => app_backend_status_relative_url(),
             'timestamp' => local_date('c')
         ];
 

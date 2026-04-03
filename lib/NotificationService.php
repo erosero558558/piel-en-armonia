@@ -251,7 +251,7 @@ final class NotificationService
             ? rtrim((string) AppConfig::BASE_URL, '/')
             : '';
 
-        return $baseUrl !== '' ? $baseUrl . '/es/portal/' : '/es/portal/';
+        return $baseUrl !== '' ? $baseUrl . app_api_relative_url('patient-summary') : app_api_relative_url('patient-summary');
     }
 
     private static function normalizeDate(string $value): string
@@ -301,7 +301,7 @@ final class NotificationService
             'data' => [
                 'type' => 'appointment_created',
                 'appointmentId' => $appointment['id'] ?? null,
-                'url' => '/patient/appointments'
+                'url' => app_api_relative_url('appointments')
             ]
         ];
 
@@ -329,7 +329,7 @@ final class NotificationService
                 'type' => 'queue_call_next',
                 'ticketCode' => $code,
                 'room' => $room,
-                'url' => '/patient/queue'
+                'url' => app_api_relative_url('queue-status')
             ]
         ];
 
@@ -370,7 +370,7 @@ final class NotificationService
                 'type' => 'document_ready',
                 'docType' => $docType,
                 'docId' => $docId,
-                'url' => '/patient/documents'
+                'url' => app_api_relative_url('patient-portal-document')
             ]
         ];
 
@@ -402,7 +402,7 @@ final class NotificationService
             'body' => "Sus resultados de {$labName} ya están disponibles en su portal.",
             'data' => [
                 'type' => 'lab_result_ready',
-                'url' => '/es/portal/historial/'
+                'url' => app_api_relative_url('patient-portal-history')
             ]
         ];
 

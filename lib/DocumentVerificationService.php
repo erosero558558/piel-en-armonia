@@ -84,7 +84,7 @@ final class DocumentVerificationService
             return '';
         }
 
-        return self::baseUrl() . '/api.php?resource=document-verify&token=' . rawurlencode($token);
+        return app_api_absolute_url('document-verify', ['token' => $token]);
     }
 
     public static function verificationPageUrlForDocument(string $type, string $documentId): string
@@ -100,7 +100,7 @@ final class DocumentVerificationService
             return '';
         }
 
-        return self::baseUrl() . '/es/verificar-documento/?token=' . rawurlencode($token);
+        return self::apiVerificationUrlForToken($token);
     }
 
     public static function qrImageUrlForDocument(string $type, string $documentId, int $size = 220): string
@@ -158,18 +158,6 @@ final class DocumentVerificationService
     {
         $type = strtolower(trim($type));
         return in_array($type, ['prescription', 'certificate'], true) ? $type : '';
-    }
-
-    private static function baseUrl(): string
-    {
-        $baseUrl = trim((string) app_env('AURORADERM_BASE_URL', app_env('PIELARMONIA_BASE_URL', '')));
-        if ($baseUrl !== '') {
-            return rtrim($baseUrl, '/');
-        }
-
-        $host = trim((string) ($_SERVER['HTTP_HOST'] ?? '127.0.0.1'));
-        $scheme = is_https_request() ? 'https' : 'http';
-        return $scheme . '://' . $host;
     }
 
     private static function secret(): string

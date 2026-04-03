@@ -253,7 +253,7 @@ final class OpenclawPrescriptionFacade
                 $savedStore['prescriptions'][$rxId],
                 [],
                 [
-                    'portalUrl' => AppConfig::BASE_URL . '/es/portal/receta/',
+                    'portalUrl' => app_api_absolute_url('patient-portal-prescription'),
                 ]
             );
 

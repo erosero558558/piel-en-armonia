@@ -153,11 +153,11 @@ final class PatientPortalController
                 'alerts' => self::buildPatientRedFlags($store, $snapshot, $tenantId),
                 'pendingSurvey' => self::findPendingSurvey($store, $snapshot, $patient, $tenantId),
                 'support' => [
-                    'bookingUrl' => '/#citas',
-                    'historyUrl' => '/es/portal/historial/',
-                    'planUrl' => '/es/portal/plan/',
-                    'prescriptionUrl' => '/es/portal/receta/',
-                    'photosUrl' => '/es/portal/fotos/',
+                    'bookingUrl' => app_api_relative_url('appointments'),
+                    'historyUrl' => app_api_relative_url('patient-portal-history'),
+                    'planUrl' => app_api_relative_url('patient-portal-plan'),
+                    'prescriptionUrl' => app_api_relative_url('patient-portal-prescription'),
+                    'photosUrl' => app_api_relative_url('patient-portal-photos'),
                     'whatsappUrl' => self::buildSupportWhatsappUrl($patient, $nextAppointment),
                 ],
                 'generatedAt' => local_date('c'),
@@ -1523,7 +1523,7 @@ final class PatientPortalController
                 'reviewBalanceLabel' => self::formatPortalCurrency(0, $currency),
                 'lastPayment' => null,
                 'nextObligation' => null,
-                'payNowUrl' => '/es/pago/',
+                'payNowUrl' => app_api_relative_url('patient-portal-payments'),
             ];
         }
 
@@ -1569,7 +1569,7 @@ final class PatientPortalController
             'reviewBalanceLabel' => self::formatPortalCurrency($reviewBalanceCents, $currency),
             'lastPayment' => $lastPayment,
             'nextObligation' => $nextObligation,
-            'payNowUrl' => '/es/pago/',
+            'payNowUrl' => app_api_relative_url('patient-portal-payments'),
         ];
     }
 
@@ -2889,25 +2889,25 @@ final class PatientPortalController
     public static function buildTelemedicineRoomUrl(int $appointmentId, string $token): string
     {
         if ($token !== '') {
-            return '/es/telemedicina/sala/index.html?token=' . rawurlencode($token);
+            return app_api_relative_url('telemedicine-preconsultation', ['token' => $token]);
         }
         if ($appointmentId > 0) {
-            return '/es/telemedicina/sala/index.html?id=' . rawurlencode((string) $appointmentId);
+            return app_api_relative_url('telemedicine-preconsultation', ['id' => (string) $appointmentId]);
         }
 
-        return '/es/telemedicina/sala/index.html';
+        return app_api_relative_url('telemedicine-preconsultation');
     }
 
     public static function buildTelemedicinePreConsultationUrl(int $appointmentId, string $token): string
     {
         if ($token !== '') {
-            return '/es/telemedicina/pre-consulta/?token=' . rawurlencode($token);
+            return app_api_relative_url('telemedicine-preconsultation', ['token' => $token]);
         }
         if ($appointmentId > 0) {
-            return '/es/telemedicina/pre-consulta/?id=' . rawurlencode((string) $appointmentId);
+            return app_api_relative_url('telemedicine-preconsultation', ['id' => (string) $appointmentId]);
         }
 
-        return '/es/telemedicina/pre-consulta/';
+        return app_api_relative_url('telemedicine-preconsultation');
     }
 
     public static function resolveAppointmentTypeKey(array $appointment, ?array $serviceConfig): string

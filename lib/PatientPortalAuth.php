@@ -198,7 +198,7 @@ final class PatientPortalAuth
                 'expiresAt' => gmdate('c', $expiresAtTs),
                 'patient' => self::publicPatientPayload($snapshot),
                 'storageKey' => self::storageKey(),
-                'portalHome' => '/es/portal/',
+                'portalHome' => app_api_relative_url('patient-summary'),
             ],
         ];
     }

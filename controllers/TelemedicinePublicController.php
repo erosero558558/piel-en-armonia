@@ -332,25 +332,25 @@ final class TelemedicinePublicController
     public static function buildRoomUrl(int $appointmentId, string $token): string
     {
         if ($token !== '') {
-            return '/es/telemedicina/sala/index.html?token=' . rawurlencode($token);
+            return app_api_relative_url('telemedicine-preconsultation', ['token' => $token]);
         }
         if ($appointmentId > 0) {
-            return '/es/telemedicina/sala/index.html?id=' . rawurlencode((string) $appointmentId);
+            return app_api_relative_url('telemedicine-preconsultation', ['id' => (string) $appointmentId]);
         }
 
-        return '/es/telemedicina/sala/index.html';
+        return app_api_relative_url('telemedicine-preconsultation');
     }
 
     public static function buildPreConsultationUrl(int $appointmentId, string $token): string
     {
         if ($token !== '') {
-            return '/es/telemedicina/pre-consulta/?token=' . rawurlencode($token);
+            return app_api_relative_url('telemedicine-preconsultation', ['token' => $token]);
         }
         if ($appointmentId > 0) {
-            return '/es/telemedicina/pre-consulta/?id=' . rawurlencode((string) $appointmentId);
+            return app_api_relative_url('telemedicine-preconsultation', ['id' => (string) $appointmentId]);
         }
 
-        return '/es/telemedicina/pre-consulta/';
+        return app_api_relative_url('telemedicine-preconsultation');
     }
 
     public static function buildSupportWhatsappUrl(array $appointment): string

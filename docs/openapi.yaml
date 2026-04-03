@@ -1,1669 +1,708 @@
 openapi: 3.1.0
-jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
-    title: Piel en Armonía API
-    description: |
-        API for appointment booking, reviews, and callbacks for Piel en Armonía clinic.
+  title: OpenClaw — Aurora Derm Clinical Actions API
+  description: |
+    API que permite a OpenClaw (Custom GPT) acceder a la historia clínica del
+    paciente en tiempo real durante la consulta médica.
 
-        **Routing Note:**
-        This API uses a legacy routing mechanism via the `resource` query parameter.
-        All endpoints are accessed via `api.php`.
-        Example: The logical resource `/health` is accessed via `GET /api.php?resource=health`.
-    version: 2026-02
+    El GPT llama a estos endpoints con el token OAuth del médico autenticado.
+    Todos los datos pertenecen a la clínica. ChatGPT no los almacena.
+
+    Uso: este archivo se sube en la sección "Actions" del Custom GPT en ChatGPT.
+  version: 1.0.0
+  x-schema-version: 2026-03-31-0160650b
+  contact:
+    name: Aurora Derm — Flow OS
+    url: https://pielarmonia.com
+
 servers:
-    - url: https://pielarmonia.com
-      description: Production Server
-    - url: http://127.0.0.1:8011
-      description: Local Development Server
+  - url: https://pielarmonia.com/api/openclaw
+    description: Producción
+
+security:
+  - bearerAuth: []
 
 components:
-    securitySchemes:
-        cookieAuth:
-            type: apiKey
-            in: cookie
-            name: PHPSESSID
-        csrfToken:
-            type: apiKey
-            in: header
-            name: X-CSRF-Token
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtenido del OAuth de Aurora Derm
 
-    schemas:
-        Appointment:
+  schemas:
+    PatientContext:
+      type: object
+      description: Contexto completo del paciente para alimentar la IA
+      properties:
+        patient_id:
+          type: string
+        name:
+          type: string
+          example: "María García"
+        age:
+          type: integer
+          example: 34
+        sex:
+          type: string
+          enum: [M, F, O]
+        phone:
+          type: string
+          example: "0991234567"
+        allergies:
+          type: array
+          items:
+            type: string
+          example: ["Penicilina", "Ibuprofeno"]
+        medications_active:
+          type: array
+          items:
             type: object
             properties:
-                id:
-                    type: integer
-                    readOnly: true
-                service:
-                    type: string
-                    description: Service identifier (e.g., 'consulta', 'laser')
-                doctor:
-                    type: string
-                    description: Doctor identifier (e.g., 'rosero', 'narvaez')
-                date:
-                    type: string
-                    format: date
-                    example: '2023-10-25'
-                time:
-                    type: string
-                    example: '10:00'
-                name:
-                    type: string
-                email:
-                    type: string
-                    format: email
-                phone:
-                    type: string
-                reason:
-                    type: string
-                affectedArea:
-                    type: string
-                evolutionTime:
-                    type: string
-                privacyConsent:
-                    type: boolean
-                casePhotoUrls:
-                    type: array
-                    items:
-                        type: string
-                    description: Legacy staged uploads. Case photos are moved to private clinical storage after booking.
-                status:
-                    type: string
-                    enum: [confirmed, pending, cancelled, completed, no_show]
-                paymentMethod:
-                    type: string
-                    enum: [card, transfer, cash, unpaid]
-                paymentStatus:
-                    type: string
-                    enum:
-                        [
-                            paid,
-                            pending,
-                            pending_cash,
-                            pending_transfer_review,
-                            failed,
-                        ]
-                doctorAssigned:
-                    type: string
-                calendarProvider:
-                    type: string
-                calendarId:
-                    type: string
-                calendarEventId:
-                    type: string
-                slotDurationMin:
-                    type: integer
-                telemedicineIntakeId:
-                    type: integer
-                telemedicineChannel:
-                    type: string
-                    enum: [phone, secure_video]
-                telemedicineSuitability:
-                    type: string
-                    enum: [fit, review_required, unsuitable]
-                telemedicineReviewRequired:
-                    type: boolean
-                telemedicineEscalationRecommendation:
-                    type: string
-            required:
-                - service
-                - date
-                - time
-                - name
-                - email
-                - phone
-                - privacyConsent
-
-        Callback:
+              name: { type: string }
+              dose: { type: string }
+              since: { type: string }
+        diagnoses_history:
+          type: array
+          items:
             type: object
             properties:
-                id:
-                    type: integer
-                    readOnly: true
-                telefono:
-                    type: string
-                preferencia:
-                    type: string
-                fecha:
-                    type: string
-                    format: date-time
-                    readOnly: true
-                status:
-                    type: string
-                    enum: [pendiente, contactado]
-            required:
-                - telefono
+              cie10_code: { type: string }
+              cie10_description: { type: string }
+              date: { type: string }
+              doctor: { type: string }
+        last_evolution:
+          type: string
+          description: Nota de evolución de la última consulta
+        last_visit_date:
+          type: string
+        visit_count:
+          type: integer
+        photos_available:
+          type: boolean
+          description: Si tiene fotos clínicas previas en el sistema
+        ai_summary:
+          type: string
+          description: Resumen generado por IA de las últimas 3 consultas
 
-        Review:
+    CIE10Suggestion:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "L20.0"
+        description:
+          type: string
+          example: "Dermatitis atópica de la cara"
+        category:
+          type: string
+          example: "Dermatitis y eczema"
+        confidence:
+          type: number
+          format: float
+
+    Evolution:
+      type: object
+      required: [case_id, text]
+      properties:
+        case_id:
+          type: string
+        text:
+          type: string
+          description: Nota de evolución clínica redactada por el médico o generada por la IA
+        cie10_code:
+          type: string
+        cie10_description:
+          type: string
+        doctor_id:
+          type: string
+
+    Prescription:
+      type: object
+      required: [case_id, medications]
+      properties:
+        case_id:
+          type: string
+        medications:
+          type: array
+          items:
             type: object
+            required: [name, dose, frequency, duration]
             properties:
-                id:
-                    type: integer
-                    readOnly: true
-                name:
-                    type: string
-                rating:
-                    type: integer
-                    minimum: 1
-                    maximum: 5
-                text:
-                    type: string
-                date:
-                    type: string
-                    format: date-time
-                    readOnly: true
-                verified:
-                    type: boolean
-            required:
-                - name
-                - rating
-                - text
+              name:
+                type: string
+                example: "Hidrocortisona 1%"
+              dose:
+                type: string
+                example: "5g"
+              frequency:
+                type: string
+                example: "2 veces al día"
+              duration:
+                type: string
+                example: "14 días"
+              instructions:
+                type: string
+                example: "Aplicar en área afectada con movimientos circulares"
+        notes:
+          type: string
+          description: Indicaciones adicionales para el paciente
 
-        Availability:
-            type: object
-            additionalProperties:
-                type: array
-                items:
-                    type: string
-                    example: '09:00'
-            description: Map of date strings (YYYY-MM-DD) to arrays of available time slots.
-
-        CalendarMeta:
-            type: object
-            properties:
-                source:
-                    type: string
-                    description: Data source for availability resolution.
-                    enum: [google, store, fallback, configured, empty]
-                mode:
-                    type: string
-                    description: Calendar operation mode.
-                    enum: [live, blocked]
-                timezone:
-                    type: string
-                    example: America/Guayaquil
-                doctor:
-                    type: string
-                    enum: [rosero, narvaez, indiferente]
-                service:
-                    type: string
-                    enum:
-                        [
-                            consulta,
-                            telefono,
-                            video,
-                            acne,
-                            cancer,
-                            laser,
-                            rejuvenecimiento,
-                        ]
-                durationMin:
-                    type: integer
-                generatedAt:
-                    type: string
-                    format: date-time
-            additionalProperties: true
-
-        ApiError:
-            type: object
-            required: [ok, error]
-            properties:
-                ok:
-                    type: boolean
-                    const: false
-                error:
-                    type: string
-                code:
-                    type: string
-                meta:
-                    type: object
-                    additionalProperties: true
-
-        TelemedicineOpsSummary:
-            type: object
-            description: Telemedicine operational snapshot without PHI. Exposed in health checks and admin summary.
-            properties:
-                configured:
-                    type: boolean
-                intakes:
-                    type: object
-                    additionalProperties: true
-                media:
-                    type: object
-                    additionalProperties: true
-                integrity:
-                    type: object
-                    additionalProperties: true
-                reviewQueueCount:
-                    type: integer
-                latestActivityAt:
-                    type: string
-                    format: date-time
-                policy:
-                    type: object
-                    properties:
-                        shadowModeEnabled:
-                            type: boolean
-                        enforceUnsuitable:
-                            type: boolean
-                        enforceReviewRequired:
-                            type: boolean
-                        allowDecisionOverride:
-                            type: boolean
-                    additionalProperties: false
-                diagnostics:
-                    $ref: '#/components/schemas/TelemedicineDiagnosticsSummary'
-            additionalProperties: true
-
-        TelemedicineDiagnosticsSummary:
-            type: object
-            properties:
-                status:
-                    type: string
-                    enum: [healthy, degraded, critical, unknown]
-                healthy:
-                    type: boolean
-                summary:
-                    type: object
-                    properties:
-                        critical:
-                            type: integer
-                        warning:
-                            type: integer
-                        info:
-                            type: integer
-                        totalChecks:
-                            type: integer
-                        totalIssues:
-                            type: integer
-                    additionalProperties: true
-            additionalProperties: true
-
-        TelemedicineReviewQueueItem:
-            type: object
-            description: Admin-only review queue item for telemedicine triage.
-            properties:
-                intakeId:
-                    type: integer
-                appointmentId:
-                    type: integer
-                channel:
-                    type: string
-                    enum: [phone, secure_video]
-                status:
-                    type: string
-                suitability:
-                    type: string
-                    enum: [fit, review_required, unsuitable]
-                reasons:
-                    type: array
-                    items:
-                        type: string
-                escalationRecommendation:
-                    type: string
-                requestedDate:
-                    type: string
-                    format: date
-                requestedTime:
-                    type: string
-                requestedDoctor:
-                    type: string
-                patientName:
-                    type: string
-                patientEmail:
-                    type: string
-                    format: email
-                patientPhone:
-                    type: string
-                clinicalMediaCount:
-                    type: integer
-                reviewDecision:
-                    type: string
-                    enum: [approve_remote, request_more_info, escalate_presential]
-                reviewStatus:
-                    type: string
-                    enum: [pending, awaiting_patient, resolved]
-                reviewNotes:
-                    type: string
-                reviewedBy:
-                    type: string
-                reviewedAt:
-                    type: string
-                    format: date-time
-                createdAt:
-                    type: string
-                    format: date-time
-                updatedAt:
-                    type: string
-                    format: date-time
-            additionalProperties: true
-
-        TelemedicineIntakeAdminRecord:
-            type: object
-            description: Full intake payload for admin triage (internal-only, additive).
-            additionalProperties: true
-
-        TelemedicineDecisionRequest:
-            type: object
-            required: [intakeId, decision]
-            properties:
-                intakeId:
-                    type: integer
-                decision:
-                    type: string
-                    enum: [approve_remote, request_more_info, escalate_presential]
-                notes:
-                    type: string
-                reviewedBy:
-                    type: string
-
-        TelemedicinePolicySimulationRequest:
-            type: object
-            description: Admin simulation payload for telemedicine enforcement without persisting changes.
-            properties:
-                intakeId:
-                    type: integer
-                intake:
-                    type: object
-                    additionalProperties: true
-                appointment:
-                    type: object
-                    additionalProperties: true
-                policyOverride:
-                    type: object
-                    properties:
-                        shadowModeEnabled:
-                            type: boolean
-                        enforceUnsuitable:
-                            type: boolean
-                        enforceReviewRequired:
-                            type: boolean
-                        allowDecisionOverride:
-                            type: boolean
-                    additionalProperties: false
-
-        TelemedicinePolicySimulationResponse:
-            type: object
-            properties:
-                ok:
-                    type: boolean
-                data:
-                    type: object
-                    properties:
-                        intakeId:
-                            type: integer
-                        linkedAppointmentId:
-                            type: integer
-                        service:
-                            type: string
-                        suitability:
-                            type: string
-                            enum: [fit, review_required, unsuitable]
-                        reviewDecision:
-                            type: string
-                        reviewRequired:
-                            type: boolean
-                        effectivePolicy:
-                            type: object
-                            additionalProperties: true
-                        evaluation:
-                            type: object
-                            properties:
-                                allowed:
-                                    type: boolean
-                                status:
-                                    type: integer
-                                errorCode:
-                                    type: string
-                                error:
-                                    type: string
-                                reason:
-                                    type: string
-                            additionalProperties: true
-                    additionalProperties: true
-
-        TelemedicineRolloutReadinessResponse:
-            type: object
-            properties:
-                ok:
-                    type: boolean
-                generatedAt:
-                    type: string
-                    format: date-time
-                currentPolicy:
-                    type: object
-                    properties:
-                        shadowModeEnabled:
-                            type: boolean
-                        enforceUnsuitable:
-                            type: boolean
-                        enforceReviewRequired:
-                            type: boolean
-                        allowDecisionOverride:
-                            type: boolean
-                    additionalProperties: false
-                intakesTotal:
-                    type: integer
-                reviewQueueCount:
-                    type: integer
-                suitabilityCounts:
-                    type: object
-                    additionalProperties:
-                        type: integer
-                scenarios:
-                    type: object
-                    additionalProperties:
-                        type: object
-                        properties:
-                            policy:
-                                type: object
-                                additionalProperties: true
-                            allowed:
-                                type: integer
-                            blocked:
-                                type: integer
-                            blockedByReason:
-                                type: object
-                                additionalProperties:
-                                    type: integer
-                        additionalProperties: true
-            additionalProperties: true
-
-        TelemedicineOpsDiagnosticsCheck:
-            type: object
-            properties:
-                code:
-                    type: string
-                severity:
-                    type: string
-                    enum: [critical, warning, info]
-                count:
-                    type: integer
-                threshold:
-                    type: integer
-                triggered:
-                    type: boolean
-                status:
-                    type: string
-                    enum: [ok, alert]
-                message:
-                    type: string
-                recommendation:
-                    type: string
-            additionalProperties: true
-
-        TelemedicineOpsDiagnosticsPayload:
-            type: object
-            properties:
-                status:
-                    type: string
-                    enum: [healthy, degraded, critical, unknown]
-                healthy:
-                    type: boolean
-                summary:
-                    type: object
-                    properties:
-                        critical:
-                            type: integer
-                        warning:
-                            type: integer
-                        info:
-                            type: integer
-                        totalChecks:
-                            type: integer
-                        totalIssues:
-                            type: integer
-                    additionalProperties: true
-                checks:
-                    type: object
-                    additionalProperties:
-                        $ref: '#/components/schemas/TelemedicineOpsDiagnosticsCheck'
-                issues:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/TelemedicineOpsDiagnosticsCheck'
-            additionalProperties: true
-
-        TelemedicineOpsDiagnosticsResponse:
-            type: object
-            properties:
-                ok:
-                    type: boolean
-                generatedAt:
-                    type: string
-                    format: date-time
-                data:
-                    $ref: '#/components/schemas/TelemedicineOpsDiagnosticsPayload'
-            additionalProperties: true
-
-        TelemedicineAdminMeta:
-            type: object
-            properties:
-                summary:
-                    $ref: '#/components/schemas/TelemedicineOpsSummary'
-                reviewQueue:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/TelemedicineReviewQueueItem'
-                diagnostics:
-                    $ref: '#/components/schemas/TelemedicineOpsDiagnosticsPayload'
-            additionalProperties: true
+    Certificate:
+      type: object
+      required: [case_id, type]
+      properties:
+        case_id:
+          type: string
+        type:
+          type: string
+          enum: [reposo_laboral, aptitud_medica, constancia_tratamiento, control_salud]
+        rest_days:
+          type: integer
+          description: Días de reposo (solo para reposo_laboral)
+        diagnosis_text:
+          type: string
+          description: Diagnóstico para el certificado (redactado para el paciente)
+        cie10_code:
+          type: string
+        restrictions:
+          type: string
+          description: Restricciones o indicaciones específicas
+        observations:
+          type: string
 
 paths:
-    /api.php?resource=health:
-        get:
-            summary: API Health Check
-            description: Returns the health status of the API and storage, including additive publicSync and telemedicine operational summaries.
-            tags: [System]
-            responses:
-                '200':
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    status:
-                                        type: string
-                                    storageReady:
-                                        type: boolean
-                                    timingMs:
-                                        type: integer
-                                    version:
-                                        type: string
-                                    dataDirWritable:
-                                        type: boolean
-                                    dataDirSource:
-                                        type: string
-                                    storeEncrypted:
-                                        type: boolean
-                                    figoConfigured:
-                                        type: boolean
-                                    figoRecursiveConfig:
-                                        type: boolean
-                                    calendarConfigured:
-                                        type: boolean
-                                    calendarReachable:
-                                        type: boolean
-                                    calendarMode:
-                                        type: string
-                                        enum: [live, blocked]
-                                    calendarSource:
-                                        type: string
-                                        enum: [google, store]
-                                    calendarAuth:
-                                        type: string
-                                        enum:
-                                            [
-                                                none,
-                                                service_account,
-                                                oauth_refresh,
-                                            ]
-                                    calendarLastSuccessAt:
-                                        type: string
-                                        format: date-time
-                                    calendarTokenHealthy:
-                                        type: boolean
-                                    checks:
-                                        type: object
-                                        properties:
-                                            telemedicine:
-                                                $ref: '#/components/schemas/TelemedicineOpsSummary'
-                                        additionalProperties: true
-                                    timestamp:
-                                        type: string
-                                        format: date-time
 
-    /api.php?resource=metrics:
-        get:
-            summary: Export Metrics
-            description: Exports Prometheus metrics including telemedicine operational gauges.
-            tags: [System, Observability]
-            responses:
-                '200':
-                    description: Prometheus plaintext metrics.
-                    content:
-                        text/plain:
-                            schema:
-                                type: string
+  /patient/{patient_id}:
+    get:
+      operationId: patient
+      summary: Obtener contexto completo del paciente
+      description: |
+        Carga toda la información relevante del paciente para incluirla en el
+        contexto de la consulta con IA. Llamar al inicio de cada consulta.
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: case_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Si se proporciona, incluye datos del caso activo
+      responses:
+        '200':
+          description: Contexto del paciente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientContext'
+        '404':
+          description: Paciente no encontrado
 
-    /api.php?resource=payment-config:
-        get:
-            summary: Get Payment Configuration
-            description: Returns public Stripe key and currency settings.
-            tags: [Payment]
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    provider:
-                                        type: string
-                                    enabled:
-                                        type: boolean
-                                    publishableKey:
-                                        type: string
-                                    currency:
-                                        type: string
+  /cie10/suggest:
+    get:
+      operationId: cie10Suggest
+      summary: Sugerir códigos CIE-10 basados en descripción clínica
+      description: |
+        Dado un texto clínico (síntoma, diagnóstico probable), devuelve los
+        códigos CIE-10 más relevantes ordenados por probabilidad.
+        Útil para que la IA proponga el código correcto al médico.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Descripción clínica o diagnóstico probable
+          example: "dermatitis atópica cara"
+        - name: specialty
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "dermatology"
+      responses:
+        '200':
+          description: Lista de sugerencias CIE-10
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CIE10Suggestion'
 
-    /api.php?resource=availability:
-        get:
-            summary: Get Availability Slots
-            description: Returns availability with provider metadata and service duration.
-            tags: [Availability]
-            parameters:
-                - in: query
-                  name: doctor
-                  schema:
+  /protocol/{cie10_code}:
+    get:
+      operationId: protocol
+      summary: Obtener protocolo de tratamiento para un diagnóstico CIE-10
+      description: |
+        Devuelve el protocolo de tratamiento estándar de Aurora Derm para el
+        diagnóstico dado. Incluye primera línea, alternativas, y seguimiento.
+        El médico puede aceptar, modificar, o ignorar.
+      parameters:
+        - name: cie10_code
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "L20.0"
+      responses:
+        '200':
+          description: Protocolo de tratamiento
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cie10_code:
+                    type: string
+                  cie10_description:
+                    type: string
+                  first_line:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        medication: { type: string }
+                        dose: { type: string }
+                        duration: { type: string }
+                  alternatives:
+                    type: array
+                    items:
                       type: string
-                      enum: [rosero, narvaez, indiferente]
-                - in: query
-                  name: service
-                  schema:
+                  follow_up:
+                    type: string
+                  referral_criteria:
+                    type: string
+                  patient_instructions:
+                    type: string
+        '404':
+          description: Sin protocolo para este código
+
+  /save/evolution:
+    post:
+      operationId: saveEvolution
+      summary: Guardar nota de evolución clínica en la HCE
+      description: |
+        Guarda la nota de evolución de la consulta actual en la historia clínica
+        electrónica del paciente. El texto puede ser redactado por el médico
+        o generado/resumido por la IA con aprobación del médico.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Evolution'
+      responses:
+        '201':
+          description: Evolución guardada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  saved_at: { type: string }
+
+  /save/diagnosis:
+    post:
+      operationId: saveDiagnosis
+      summary: Aplicar diagnóstico CIE-10 al caso activo
+      description: |
+        Guarda el diagnóstico confirmado en el caso del paciente.
+        La IA propone, el médico confirma, este endpoint lo aplica.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id, cie10_code, cie10_description]
+              properties:
+                case_id: { type: string }
+                cie10_code: { type: string }
+                cie10_description: { type: string }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Diagnóstico aplicado
+
+  /save/chronic:
+    post:
+      operationId: saveChronicCondition
+      summary: Guardar condición crónica
+      description: |
+        Registra una condición crónica para el paciente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id, cie10_code]
+              properties:
+                case_id: { type: string }
+                cie10_code: { type: string }
+      responses:
+        '200':
+          description: Condición crónica guardada
+
+  /close/telemedicine:
+    post:
+      operationId: closeTelemedicine
+      summary: Cerrar consulta de telemedicina
+      description: |
+        Cierra formalmente una consulta de telemedicina.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id]
+              properties:
+                case_id: { type: string }
+      responses:
+        '200':
+          description: Telemedicina cerrada
+
+  /close/fast:
+    post:
+      operationId: fastClose
+      summary: Cierre rápido de consulta
+      description: |
+        Cierra una consulta en 1 click (S24).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id]
+              properties:
+                case_id: { type: string }
+      responses:
+        '200':
+          description: Consulta cerrada
+
+  /save/prescription:
+    post:
+      operationId: savePrescription
+      summary: Crear receta digital para el paciente
+      description: |
+        Genera y guarda la receta médica con los medicamentos indicados.
+        El sistema verifica interacciones con medicamentos activos del paciente.
+        Devuelve URL del PDF generado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Prescription'
+      responses:
+        '201':
+          description: Receta creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prescription_id: { type: string }
+                  pdf_url: { type: string }
+                  whatsapp_url:
+                    type: string
+                    description: URL para enviar la receta directamente por WhatsApp
+
+  /generate/certificate:
+    post:
+      operationId: generateCertificate
+      summary: Generar certificado médico en PDF
+      description: |
+        Genera el certificado médico con membrete oficial de Aurora Derm,
+        datos del médico (especialidad, registro MSP), folio secuencial,
+        y firma digital del doctor. PDF listo para imprimir o enviar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Certificate'
+      responses:
+        '201':
+          description: Certificado generado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  certificate_id: { type: string }
+                  folio: { type: string }
+                  pdf_url: { type: string }
+                  whatsapp_url: { type: string }
+
+  /summarize/session:
+    post:
+      operationId: summarizeSession
+      summary: Generar resumen de cierre de consulta
+      description: |
+        Al finalizar la consulta, genera automáticamente:
+        1. Nota de evolución clínica (para HCE)
+        2. Resumen para el paciente en lenguaje simple (para WhatsApp)
+        3. Lista de pendientes (estudios, próxima cita)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id, chat_summary]
+              properties:
+                case_id: { type: string }
+                chat_summary:
+                  type: string
+                  description: Resumen de lo discutido en la sesión de chat
+      responses:
+        '200':
+          description: Resumen generado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evolution_text: { type: string }
+                  patient_summary: { type: string }
+                  whatsapp_url:
+                    type: string
+                    description: "Enlace generado dinámicamente para contactar al paciente por WhatsApp con el paciente_summary ya formateado"
+                  pending_actions:
+                    type: array
+                    items:
                       type: string
-                      enum:
-                          [
-                              consulta,
-                              telefono,
-                              video,
-                              acne,
-                              cancer,
-                              laser,
-                              rejuvenecimiento,
-                          ]
-                - in: query
-                  name: dateFrom
-                  schema:
-                      type: string
-                      format: date
-                - in: query
-                  name: days
-                  schema:
-                      type: integer
-                      minimum: 1
-                      maximum: 45
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        $ref: '#/components/schemas/Availability'
-                                    meta:
-                                        $ref: '#/components/schemas/CalendarMeta'
-                '400':
-                    description: Invalid query params.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '503':
-                    description: Calendar upstream unavailable in blocked mode.
-                    content:
-                        application/json:
-                            schema:
-                                allOf:
-                                    - $ref: '#/components/schemas/ApiError'
-                                    - type: object
-                                      properties:
-                                          code:
-                                              type: string
-                                              enum: [calendar_unreachable]
-        post:
-            summary: Update Availability
-            description: Updates the availability configuration. Requires Admin authentication.
-            tags: [Availability, Admin]
-            security:
-                - cookieAuth: []
-                - csrfToken: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                availability:
-                                    $ref: '#/components/schemas/Availability'
-            responses:
-                '200':
-                    description: Updated successfully
-                '403':
-                    description: Availability is read-only while Google Calendar mode is enabled.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
 
-    /api.php?resource=booked-slots:
-        get:
-            summary: Get Booked Slots
-            description: Returns a list of time slots that are already booked for a specific date and doctor.
-            tags: [Appointments]
-            parameters:
-                - in: query
-                  name: date
-                  schema:
-                      type: string
-                      format: date
-                  required: true
-                - in: query
-                  name: doctor
-                  schema:
-                      type: string
-                      enum: [rosero, narvaez, indiferente]
-                - in: query
-                  name: service
-                  schema:
-                      type: string
-                      enum:
-                          [
-                              consulta,
-                              telefono,
-                              video,
-                              acne,
-                              cancer,
-                              laser,
-                              rejuvenecimiento,
-                          ]
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: array
-                                        items:
-                                            type: string
-                                    meta:
-                                        $ref: '#/components/schemas/CalendarMeta'
-                '400':
-                    description: Invalid query params.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '503':
-                    description: Calendar upstream unavailable in blocked mode.
-                    content:
-                        application/json:
-                            schema:
-                                allOf:
-                                    - $ref: '#/components/schemas/ApiError'
-                                    - type: object
-                                      properties:
-                                          code:
-                                              type: string
-                                              enum: [calendar_unreachable]
+  /check/interactions:
+    post:
+      operationId: checkInteractions
+      summary: Verificar interacciones medicamentosas
+      description: |
+        Verifica si los medicamentos propuestos tienen interacciones conocidas
+        con los medicamentos activos del paciente. Responde con alertas.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id, proposed_medications]
+              properties:
+                case_id: { type: string }
+                proposed_medications:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Resultado de verificación
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  has_interactions:
+                    type: boolean
+                  interactions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        drug_a: { type: string }
+                        drug_b: { type: string }
+                        severity:
+                          type: string
+                          enum: [low, medium, high]
+                        description: { type: string }
 
-    /api.php?resource=reviews:
-        get:
-            summary: Get Reviews
-            description: Returns a list of patient reviews.
-            tags: [Reviews]
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: array
-                                        items:
-                                            $ref: '#/components/schemas/Review'
-        post:
-            summary: Submit Review
-            description: Submit a new review.
-            tags: [Reviews]
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/Review'
-            responses:
-                '201':
-                    description: Created
+  /chat:
+    post:
+      operationId: chat
+      summary: Conversar con el Copiloto Clínico
+      description: |
+        Envía un mensaje o historial al AI Router (Tier 1/2/3).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    required: [role, content]
+                    properties:
+                      role: { type: string, enum: [user, assistant, system] }
+                      content: { type: string }
+                case_id:
+                  type: string
+                  description: "ID del caso activo para contexto opcional"
+                stream:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Respuesta generada por el router de IA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  choices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: object
+                          properties:
+                            role: { type: string }
+                            content: { type: string }
+                  provider: { type: string }
+                  tier: { type: string }
 
-    /api.php?resource=appointments:
-        get:
-            summary: Get All Appointments
-            description: Returns all appointments. Requires Admin authentication.
-            tags: [Appointments, Admin]
-            security:
-                - cookieAuth: []
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: array
-                                        items:
-                                            $ref: '#/components/schemas/Appointment'
-        post:
-            summary: Create Appointment
-            description: |
-                Book a new appointment.
+  /router/status:
+    get:
+      operationId: routerStatus
+      summary: Ver estado del AI Router
+      description: |
+        Verifica qué tiers del AI Router están disponibles (Codex, OpenRouter, Local).
+      responses:
+        '200':
+          description: Health check del sistema de IA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  router:
+                    type: object
+                    additionalProperties: true
 
-                Telemedicine services (`telefono`, `video`) keep backward compatibility and can optionally
-                enforce backend suitability policy through flags:
-                - `AURORADERM_TELEMED_V2_ENFORCE_UNSUITABLE`
-                - `AURORADERM_TELEMED_V2_ENFORCE_REVIEW_REQUIRED`
-            tags: [Appointments]
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/Appointment'
-            responses:
-                '201':
-                    description: Created
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        $ref: '#/components/schemas/Appointment'
-                                    emailSent:
-                                        type: boolean
-                '400':
-                    description: Validation error.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '409':
-                    description: Slot conflict or telemedicine manual review required.
-                    content:
-                        application/json:
-                            schema:
-                                allOf:
-                                    - $ref: '#/components/schemas/ApiError'
-                                    - type: object
-                                      properties:
-                                          code:
-                                              type: string
-                                              enum: [slot_conflict, telemedicine_review_required]
-                '422':
-                    description: Telemedicine unsuitable for remote consultation (when enforcement is enabled).
-                    content:
-                        application/json:
-                            schema:
-                                allOf:
-                                    - $ref: '#/components/schemas/ApiError'
-                                    - type: object
-                                      properties:
-                                          code:
-                                              type: string
-                                              enum: [telemedicine_unsuitable]
-                '503':
-                    description: Google/store unavailable in blocked mode.
-                    content:
-                        application/json:
-                            schema:
-                                allOf:
-                                    - $ref: '#/components/schemas/ApiError'
-                                    - type: object
-                                      properties:
-                                          code:
-                                              type: string
-                                              enum:
-                                                  [
-                                                      calendar_unreachable,
-                                                      booking_store_failed,
-                                                      slot_lock_failed,
-                                                  ]
-        patch:
-            summary: Update Appointment
-            description: Update an existing appointment. Requires Admin authentication.
-            tags: [Appointments, Admin]
-            security:
-                - cookieAuth: []
-                - csrfToken: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                id:
-                                    type: integer
-                                status:
-                                    type: string
-                                paymentStatus:
-                                    type: string
-            responses:
-                '200':
-                    description: Updated
-                '404':
-                    description: Appointment not found.
+  /prescription/{id}:
+    get:
+      operationId: getPrescriptionPdf
+      summary: Descargar PDF de receta
+      description: Retorna el archivo binario PDF de la receta.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            default: pdf
+      responses:
+        '200':
+          description: Archivo PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Receta no encontrada
 
-    /api.php?resource=callbacks:
-        get:
-            summary: Get Callbacks
-            description: Returns all callback requests. Requires Admin authentication.
-            tags: [Callbacks, Admin]
-            security:
-                - cookieAuth: []
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: array
-                                        items:
-                                            $ref: '#/components/schemas/Callback'
-        post:
-            summary: Request Callback
-            description: Request a callback from the clinic.
-            tags: [Callbacks]
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/Callback'
-            responses:
-                '201':
-                    description: Created
-        patch:
-            summary: Update Callback
-            description: Update callback status. Requires Admin authentication.
-            tags: [Callbacks, Admin]
-            security:
-                - cookieAuth: []
-                - csrfToken: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                id:
-                                    type: integer
-                                status:
-                                    type: string
-            responses:
-                '200':
-                    description: Updated
+  /certificate/{id}:
+    get:
+      operationId: getCertificatePdf
+      summary: Descargar PDF de certificado
+      description: Retorna el archivo binario PDF del certificado médico.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            default: pdf
+      responses:
+        '200':
+          description: Archivo PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Certificado no encontrado
 
-    /api.php?resource=funnel-event:
-        post:
-            summary: Record Funnel Event
-            description: Tracks conversion funnel and chat interaction events.
-            tags: [Analytics]
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            required: [event]
-                            properties:
-                                event:
-                                    type: string
-                                    enum:
-                                        [
-                                            view_booking,
-                                            start_checkout,
-                                            payment_method_selected,
-                                            payment_success,
-                                            booking_confirmed,
-                                            checkout_abandon,
-                                            booking_step_completed,
-                                            booking_error,
-                                            checkout_error,
-                                            chat_started,
-                                            chat_handoff_whatsapp,
-                                            whatsapp_click,
-                                        ]
-                                source:
-                                    type: string
-                                params:
-                                    type: object
-                                    additionalProperties: true
-            responses:
-                '202':
-                    description: Event accepted.
-                '400':
-                    description: Invalid event payload.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
+  /next/patient:
+    get:
+      operationId: nextPatient
+      summary: Obtener siguiente paciente en cola
+      description: |
+        Devuelve el siguiente paciente en la cola de atención para el médico.
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Información del siguiente paciente
 
-    /api.php?resource=funnel-metrics:
-        get:
-            summary: Get Funnel Metrics
-            description: Returns aggregated funnel and retention metrics for admin dashboard.
-            tags: [Analytics, Admin]
-            security:
-                - cookieAuth: []
-            responses:
-                '200':
-                    description: Metrics snapshot.
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: object
-                                        additionalProperties: true
+  /cie10/search:
+    get:
+      operationId: cie10
+      summary: Búsqueda de código CIE-10
+      description: |
+        Sugiere códigos CIE-10 basados en un query libre. Alias de /cie10/suggest.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de sugerencias CIE-10
 
-    /api.php?resource=retention-report:
-        get:
-            summary: Get Retention Report
-            description: Returns daily no-show/retention report in JSON or CSV format for admin operations.
-            tags: [Analytics, Admin]
-            security:
-                - cookieAuth: []
-            parameters:
-                - in: query
-                  name: dateFrom
-                  schema:
-                      type: string
-                      format: date
-                  description: Start date (YYYY-MM-DD), inclusive.
-                - in: query
-                  name: dateTo
-                  schema:
-                      type: string
-                      format: date
-                  description: End date (YYYY-MM-DD), inclusive.
-                - in: query
-                  name: days
-                  schema:
-                      type: integer
-                      minimum: 1
-                      maximum: 120
-                  description: Used when dateFrom is omitted. Default 30.
-                - in: query
-                  name: doctor
-                  schema:
-                      type: string
-                  description: Optional doctor filter.
-                - in: query
-                  name: service
-                  schema:
-                      type: string
-                  description: Optional service filter.
-                - in: query
-                  name: format
-                  schema:
-                      type: string
-                      enum: [json, csv]
-                      default: json
-                  description: Response format.
-            responses:
-                '200':
-                    description: Retention report generated.
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: object
-                                        additionalProperties: true
-                        text/csv:
-                            schema:
-                                type: string
-                                description: CSV export with daily rows and TOTAL summary row.
-                '400':
-                    description: Invalid query parameters.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-
-    /api.php?resource=payment-intent:
-        post:
-            summary: Create Payment Intent
-            description: Create a Stripe Payment Intent for an appointment.
-            tags: [Payment]
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/Appointment'
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    clientSecret:
-                                        type: string
-                                    paymentIntentId:
-                                        type: string
-                                    amount:
-                                        type: integer
-                                    currency:
-                                        type: string
-                                    publishableKey:
-                                        type: string
-                '400':
-                    description: Validation error.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '409':
-                    description: Slot conflict.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '503':
-                    description: Payment gateway or calendar unavailable.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-
-    /api.php?resource=payment-verify:
-        post:
-            summary: Verify Payment
-            description: Verify the status of a Payment Intent.
-            tags: [Payment]
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                paymentIntentId:
-                                    type: string
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    paid:
-                                        type: boolean
-                                    status:
-                                        type: string
-                                    id:
-                                        type: string
-                                    amount:
-                                        type: integer
-                                    amountReceived:
-                                        type: integer
-                                    currency:
-                                        type: string
-
-    /api.php?resource=transfer-proof:
-        post:
-            summary: Upload Transfer Proof
-            description: |
-                Upload a legacy staged file used by the current frontend.
-
-                In telemedicine flows the backend later reclassifies the staged
-                file as `case_photo` or `payment_proof` without changing the
-                public request contract.
-            tags: [Payment]
-            requestBody:
-                content:
-                    multipart/form-data:
-                        schema:
-                            type: object
-                            properties:
-                                proof:
-                                    type: string
-                                    format: binary
-            responses:
-                '201':
-                    description: Uploaded
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: object
-                                        properties:
-                                            transferProofUrl:
-                                                type: string
-                                            transferProofUploadId:
-                                                type: integer
-
-    /api.php?resource=stripe-webhook:
-        post:
-            summary: Stripe Webhook
-            description: Endpoint for Stripe webhook events.
-            tags: [Payment]
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            type: object
-            responses:
-                '200':
-                    description: Received
-
-    /api.php?resource=reschedule:
-        get:
-            summary: Get Reschedule Info
-            description: Get appointment details by reschedule token.
-            tags: [Appointments]
-            parameters:
-                - in: query
-                  name: token
-                  schema:
-                      type: string
-                  required: true
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: object
-                                        properties:
-                                            id:
-                                                type: integer
-                                            service:
-                                                type: string
-                                            doctor:
-                                                type: string
-                                            date:
-                                                type: string
-                                                format: date
-                                            time:
-                                                type: string
-                                            name:
-                                                type: string
-                                            status:
-                                                type: string
-                '400':
-                    description: Invalid token.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '404':
-                    description: Appointment not found or cancelled.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-        patch:
-            summary: Reschedule Appointment
-            description: Reschedule an appointment using a token.
-            tags: [Appointments]
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                token:
-                                    type: string
-                                date:
-                                    type: string
-                                    format: date
-                                time:
-                                    type: string
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: object
-                                        properties:
-                                            id:
-                                                type: integer
-                                            date:
-                                                type: string
-                                                format: date
-                                            time:
-                                                type: string
-                                            doctor:
-                                                type: string
-                                            doctorAssigned:
-                                                type: string
-                                            calendarProvider:
-                                                type: string
-                                            calendarId:
-                                                type: string
-                                            calendarEventId:
-                                                type: string
-                                            slotDurationMin:
-                                                type: integer
-                '400':
-                    description: Invalid request payload.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '409':
-                    description: Slot conflict.
-                    content:
-                        application/json:
-                            schema:
-                                allOf:
-                                    - $ref: '#/components/schemas/ApiError'
-                                    - type: object
-                                      properties:
-                                          code:
-                                              type: string
-                                              enum: [slot_conflict]
-                '503':
-                    description: Calendar/store unavailable in blocked mode.
-                    content:
-                        application/json:
-                            schema:
-                                allOf:
-                                    - $ref: '#/components/schemas/ApiError'
-                                    - type: object
-                                      properties:
-                                          code:
-                                              type: string
-                                              enum:
-                                                  [
-                                                      calendar_unreachable,
-                                                      reschedule_store_failed,
-                                                      slot_lock_failed,
-                                                  ]
-
-    /api.php?resource=data:
-        get:
-            summary: Get All Data
-            description: Dump of the entire data store. Requires Admin authentication. Includes additive telemedicineMeta for operational triage.
-            tags: [System, Admin]
-            security:
-                - cookieAuth: []
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: object
-                                        properties:
-                                            telemedicineMeta:
-                                                $ref: '#/components/schemas/TelemedicineAdminMeta'
-                                        additionalProperties: true
-
-    /api.php?resource=telemedicine-intakes:
-        get:
-            summary: List Telemedicine Intakes for Admin Triage
-            description: Returns telemedicine intake records, summary and triage queue. Admin authentication required.
-            tags: [Telemedicine, Admin]
-            security:
-                - cookieAuth: []
-            parameters:
-                - in: query
-                  name: status
-                  schema:
-                      type: string
-                - in: query
-                  name: channel
-                  schema:
-                      type: string
-                      enum: [phone, secure_video]
-                - in: query
-                  name: suitability
-                  schema:
-                      type: string
-                      enum: [fit, review_required, unsuitable]
-                - in: query
-                  name: decision
-                  schema:
-                      type: string
-                      enum: [approve_remote, request_more_info, escalate_presential]
-                - in: query
-                  name: reviewOnly
-                  schema:
-                      type: boolean
-                - in: query
-                  name: includeResolved
-                  schema:
-                      type: boolean
-            responses:
-                '200':
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: object
-                                        properties:
-                                            summary:
-                                                $ref: '#/components/schemas/TelemedicineOpsSummary'
-                                            reviewQueue:
-                                                type: array
-                                                items:
-                                                    $ref: '#/components/schemas/TelemedicineReviewQueueItem'
-                                            intakes:
-                                                type: array
-                                                items:
-                                                    $ref: '#/components/schemas/TelemedicineIntakeAdminRecord'
-                                        additionalProperties: true
-        patch:
-            summary: Resolve Telemedicine Intake Review Decision
-            description: Persists triage decision for a telemedicine intake and syncs linked appointment metadata.
-            tags: [Telemedicine, Admin]
-            security:
-                - cookieAuth: []
-                - csrfToken: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/TelemedicineDecisionRequest'
-            responses:
-                '200':
-                    description: Decision persisted
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    ok:
-                                        type: boolean
-                                    data:
-                                        type: object
-                                        properties:
-                                            intake:
-                                                $ref: '#/components/schemas/TelemedicineIntakeAdminRecord'
-                                            appointment:
-                                                $ref: '#/components/schemas/Appointment'
-                                            summary:
-                                                $ref: '#/components/schemas/TelemedicineOpsSummary'
-                                            reviewQueueCount:
-                                                type: integer
-                                        additionalProperties: true
-                '400':
-                    description: Invalid intake ID or decision payload.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '404':
-                    description: Intake not found.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '503':
-                    description: Store unavailable.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-
-    /api.php?resource=telemedicine-policy-simulate:
-        post:
-            summary: Simulate Telemedicine Enforcement Policy (Admin)
-            description: Simulates telemedicine enforcement decision (`allowed/blocked`) without persisting data changes.
-            tags: [Telemedicine, Admin]
-            security:
-                - cookieAuth: []
-                - csrfToken: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/TelemedicinePolicySimulationRequest'
-            responses:
-                '200':
-                    description: Simulation result
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/TelemedicinePolicySimulationResponse'
-                '400':
-                    description: Invalid payload (not a telemedicine case)
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-                '404':
-                    description: Intake not found.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ApiError'
-
-    /api.php?resource=telemedicine-rollout-readiness:
-        get:
-            summary: Telemedicine Rollout Readiness Projection (Admin)
-            description: Projects blocking impact for rollout scenarios using current telemedicine intakes.
-            tags: [Telemedicine, Admin]
-            security:
-                - cookieAuth: []
-            responses:
-                '200':
-                    description: Readiness projection generated
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/TelemedicineRolloutReadinessResponse'
-
-    /api.php?resource=telemedicine-ops-diagnostics:
-        get:
-            summary: Telemedicine Ops Diagnostics (Admin)
-            description: Returns post-backfill integrity diagnostics with severity, triggered checks and remediation hints.
-            tags: [Telemedicine, Admin]
-            security:
-                - cookieAuth: []
-            responses:
-                '200':
-                    description: Diagnostics generated
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/TelemedicineOpsDiagnosticsResponse'
-
-    /api.php?resource=import:
-        post:
-            summary: Import Data
-            description: Import data into the store. Requires Admin authentication.
-            tags: [System, Admin]
-            security:
-                - cookieAuth: []
-                - csrfToken: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                appointments:
-                                    type: array
-                                callbacks:
-                                    type: array
-                                reviews:
-                                    type: array
-                                telemedicine_intakes:
-                                    type: array
-                                clinical_uploads:
-                                    type: array
-                                availability:
-                                    $ref: '#/components/schemas/Availability'
-            responses:
-                '200':
-                    description: Success
-
+  /openclaw/evolution:
+    post:
+      operationId: evolution
+      summary: Guardar nota de evolución clínica (alias)
+      description: |
+        Alias para el endpoint openclaw-evolution. Guarda nota de evolución SOAP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_id, text]
+              properties:
+                case_id: { type: string }
+                text: { type: string }
+      responses:
+        '200':
+          description: Evolución guardada

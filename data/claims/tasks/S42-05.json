@@ -1,8 +1,0 @@
-{
-  "agent": "antigravity",
-  "claimedAt": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")",
-  "expiresAt": "$(date -v+2H -u +"%Y-%m-%dT%H:%M:%S.000Z")",
-  "sprint": "🧭 Sprint 42 — Hardening, Code Quality y Performance",
-  "section": "42.1 Refactor de Controladores",
-  "size": "XL"
-}

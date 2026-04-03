@@ -1,2 +1,0 @@
-Historical placeholder for archived conflict branch listings.
-The active workflow no longer writes this file at repository root.
