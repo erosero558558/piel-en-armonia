@@ -8,8 +8,6 @@ require_once __DIR__ . '/models.php';
 
 class TicketPrinter
 {
-    private const PUBLIC_QUEUE_STATUS_BASE_URL = 'https://pielarmonia.com/es/software/turnero-clinicas/estado-turno/';
-
     private bool $enabled;
     private string $host;
     private int $port;
@@ -163,7 +161,7 @@ class TicketPrinter
             $safeCode = 'A-000';
         }
 
-        return self::PUBLIC_QUEUE_STATUS_BASE_URL . '?ticket=' . rawurlencode($safeCode);
+        return app_api_absolute_url('queue-status', ['ticket' => $safeCode]);
     }
 
     private function buildQrCodePayload(string $data): string

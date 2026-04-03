@@ -157,7 +157,7 @@ function run_chat_request(string $message): array
     ];
 
     return run_openclaw_request(static function (): void {
-        OpenclawController::chat([]);
+        OpenclawAiController::chat([]);
     });
 }
 
@@ -198,7 +198,7 @@ offline_assert_true(
 );
 
 $routerStatus = run_openclaw_request(static function (): void {
-    OpenclawController::routerStatus([]);
+    OpenclawSessionController::routerStatus([]);
 });
 offline_assert_same(200, $routerStatus['status'], 'router status returns 200');
 offline_assert_true(

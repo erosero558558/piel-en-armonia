@@ -15,7 +15,7 @@ final class OpenclawSmokeTest extends SmokeTestCase
     public function testOpenclawPatientFailsWithoutAuth(): void
     {
         $response = $this->captureResponse(
-            static fn () => \OpenclawController::patient([]),
+            static fn () => \OpenclawMedicalRecordsController::patient([]),
             'GET'
         );
 

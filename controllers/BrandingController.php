@@ -27,23 +27,16 @@ final class BrandingController
         $branding = $profile['branding'] ?? [];
         $theme = $branding['theme'] ?? [];
 
-        $manifestPath = __DIR__ . '/../manifest.json';
-        if (!file_exists($manifestPath)) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Base manifest not found']);
-            exit;
-        }
-
-        $manifest = json_decode(file_get_contents($manifestPath), true) ?? [];
-
-        if (!empty($branding['name'])) {
-            $manifest['name'] = $branding['name'];
-            $manifest['short_name'] = $branding['name'];
-        }
-
-        if (!empty($theme['primary_color'])) {
-            $manifest['theme_color'] = $theme['primary_color'];
-        }
+        $manifest = [
+            'name' => (string) ($branding['name'] ?? 'Aurora Derm'),
+            'short_name' => (string) ($branding['short_name'] ?? ($branding['name'] ?? 'Aurora')),
+            'start_url' => app_relative_url('/'),
+            'display' => 'standalone',
+            'background_color' => (string) ($theme['primary_color'] ?? '#0f172a'),
+            'theme_color' => (string) ($theme['primary_color'] ?? '#0f172a'),
+            'icons' => [],
+            'mode' => 'backend-only',
+        ];
 
         header('Content-Type: application/manifest+json; charset=utf-8');
         header('Cache-Control: public, max-age=60');

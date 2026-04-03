@@ -1822,7 +1822,7 @@ final class LeadOpsService
                 'name' => (string) ($appointment['name'] ?? 'Paciente'),
                 'doctorLabel' => (string) ($appointment['doctor'] ?? 'su especialista'),
                 'timeLabel' => (string) ($appointment['time'] ?? ''),
-                'rescheduleUrl' => AppConfig::BASE_URL . '/#citas',
+                'rescheduleUrl' => app_api_absolute_url('appointments'),
             ];
 
         $name = self::extractBirthdayFirstName((string) ($context['name'] ?? 'Paciente'));
@@ -1830,7 +1830,7 @@ final class LeadOpsService
         $time = self::firstNonEmptyString((string) ($context['timeLabel'] ?? ''), (string) ($appointment['time'] ?? ''));
         $rescheduleUrl = self::firstNonEmptyString(
             (string) ($context['rescheduleUrl'] ?? ''),
-            AppConfig::BASE_URL . '/#citas'
+            app_api_absolute_url('appointments')
         );
 
         return "Hola {$name}, le recordamos que manana tiene consulta con {$doctor} a las {$time}. "
@@ -1841,7 +1841,7 @@ final class LeadOpsService
     private static function buildPostConsultationFollowUpText(array $appointment): string
     {
         $name = self::extractBirthdayFirstName((string) ($appointment['name'] ?? 'Paciente'));
-        $portalUrl = AppConfig::BASE_URL . '/es/portal/';
+        $portalUrl = app_api_absolute_url('patient-summary');
 
         return "Hola {$name}, como se ha sentido despues de su consulta? "
             . "Si tiene dudas, escribanos por este medio. "

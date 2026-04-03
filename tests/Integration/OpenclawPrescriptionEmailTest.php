@@ -184,7 +184,7 @@ final class OpenclawPrescriptionEmailTest extends TestCase
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         try {
-            \OpenclawController::savePrescription([]);
+            \OpenclawPrescriptionController::savePrescription([]);
             self::fail('Expected TestingExitException');
         } catch (\TestingExitException $exception) {
             $payload = is_array($exception->payload) ? $exception->payload : [];

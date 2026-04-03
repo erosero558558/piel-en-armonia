@@ -36,8 +36,7 @@ class GiftCardController
             $giftCard = GiftCardService::issue($amountCents, $issuerId, $recipientEmail);
             
             // Format QR payload. Often a URL pointing to the gift card verification or redemption page
-            $baseUrl = $_ENV['APP_URL'] ?? 'https://pielarmonia.com';
-            $qrUrl = $baseUrl . '/es/gift-cards/redimir?code=' . urlencode($giftCard->code);
+            $qrUrl = app_api_absolute_url('gift-card-validate', ['code' => $giftCard->code]);
 
             echo json_encode([
                 "message" => "Gift card issued successfully",

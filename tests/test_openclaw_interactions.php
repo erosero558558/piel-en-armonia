@@ -99,7 +99,7 @@ function run_interaction_request(array $payload): array
     $mock_payload = $payload;
 
     try {
-        OpenclawController::checkInteractions([]);
+        OpenclawPrescriptionController::checkInteractions([]);
     } catch (OpenclawJsonResponseException $response) {
         return [
             'status' => $response->status,

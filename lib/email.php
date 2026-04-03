@@ -756,7 +756,7 @@ function normalize_prescription_email_items(array $prescription): array
 function build_post_consultation_followup_email_html(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
-    $portalUrl = AppConfig::BASE_URL . '/es/portal/';
+    $portalUrl = app_api_absolute_url('patient-summary');
     $name = htmlspecialchars($context['name'], ENT_QUOTES, 'UTF-8');
     $whatsapp = htmlspecialchars((string) ((read_turnero_clinic_profile()['branding']['whatsapp'] ?? AppConfig::WHATSAPP_NUMBER)), ENT_QUOTES, 'UTF-8');
 
@@ -783,7 +783,7 @@ function build_post_consultation_followup_email_html(array $appointment): string
 function build_post_consultation_followup_email_text(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
-    $portalUrl = AppConfig::BASE_URL . '/es/portal/';
+    $portalUrl = app_api_absolute_url('patient-summary');
 
     $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
     $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
@@ -928,7 +928,7 @@ function maybe_send_prescription_ready_email(array $store, array $prescription, 
         return false;
     }
 
-    $portalUrl = trim((string) ($options['portalUrl'] ?? (AppConfig::BASE_URL . '/es/portal/receta/')));
+    $portalUrl = trim((string) ($options['portalUrl'] ?? app_api_absolute_url('patient-portal-prescription')));
     $normalizedPrescription = $prescription;
     $normalizedPrescription['caseId'] = $caseId;
     $normalizedPrescription['medications'] = normalize_prescription_email_items($prescription);

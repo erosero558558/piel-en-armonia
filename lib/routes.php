@@ -110,24 +110,24 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'whatsapp-openclaw-ops', [WhatsappOpenclawController::class, 'ops']);
 
     // OpenClaw — Copiloto clínico (endpoints para openclaw-chat.js y Custom GPT Actions)
-    $router->add('GET', 'openclaw-patient', [OpenclawController::class, 'patient']);
-    $router->add('GET', 'openclaw-cie10-suggest', [OpenclawController::class, 'cie10Suggest']);
-    $router->add('GET', 'openclaw-protocol', [OpenclawController::class, 'protocol']);
-    $router->add('POST', 'openclaw-chat', [OpenclawController::class, 'chat']);
-    $router->add('POST', 'openclaw-save-diagnosis', [OpenclawController::class, 'saveDiagnosis']);
-    $router->add('POST', 'openclaw-save-evolution', [OpenclawController::class, 'saveEvolution']);
-    $router->add('GET', 'openclaw-prescription', [OpenclawController::class, 'getPrescriptionPdf']);
-    $router->add('POST', 'openclaw-prescription', [OpenclawController::class, 'savePrescription']);
-    $router->add('POST', 'openclaw-certificate', [OpenclawController::class, 'generateCertificate']);
-    $router->add('GET', 'openclaw-certificate', [OpenclawController::class, 'getCertificatePdf']);
-    $router->add('POST', 'openclaw-interactions', [OpenclawController::class, 'checkInteractions']);
-    $router->add('POST', 'openclaw-summarize', [OpenclawController::class, 'summarizeSession']);
-    $router->add('GET', 'openclaw-router-status', [OpenclawController::class, 'routerStatus']);
-    $router->add('GET', 'openclaw-next-patient', [OpenclawController::class, 'nextPatient']);
+    $router->add('GET', 'openclaw-patient', [OpenclawMedicalRecordsController::class, 'patient']);
+    $router->add('GET', 'openclaw-cie10-suggest', [OpenclawAiController::class, 'cie10Suggest']);
+    $router->add('GET', 'openclaw-protocol', [OpenclawAiController::class, 'protocol']);
+    $router->add('POST', 'openclaw-chat', [OpenclawAiController::class, 'chat']);
+    $router->add('POST', 'openclaw-save-diagnosis', [OpenclawMedicalRecordsController::class, 'saveDiagnosis']);
+    $router->add('POST', 'openclaw-save-evolution', [OpenclawMedicalRecordsController::class, 'saveEvolution']);
+    $router->add('GET', 'openclaw-prescription', [OpenclawPrescriptionController::class, 'getPrescriptionPdf']);
+    $router->add('POST', 'openclaw-prescription', [OpenclawPrescriptionController::class, 'savePrescription']);
+    $router->add('POST', 'openclaw-certificate', [OpenclawCertificateController::class, 'generateCertificate']);
+    $router->add('GET', 'openclaw-certificate', [OpenclawCertificateController::class, 'getCertificatePdf']);
+    $router->add('POST', 'openclaw-interactions', [OpenclawPrescriptionController::class, 'checkInteractions']);
+    $router->add('POST', 'openclaw-summarize', [OpenclawSessionController::class, 'summarizeSession']);
+    $router->add('GET', 'openclaw-router-status', [OpenclawSessionController::class, 'routerStatus']);
+    $router->add('GET', 'openclaw-next-patient', [OpenclawSessionController::class, 'nextPatient']);
     // OpenAPI drift fixes: previously zombie endpoints now routed
-    $router->add('POST', 'openclaw-save-chronic', [OpenclawController::class, 'saveChronicCondition']);
-    $router->add('POST', 'openclaw-close-telemedicine', [OpenclawController::class, 'closeTelemedicine']);
-    $router->add('POST', 'openclaw-fast-close', [OpenclawController::class, 'fastClose']);
+    $router->add('POST', 'openclaw-save-chronic', [OpenclawMedicalRecordsController::class, 'saveChronicCondition']);
+    $router->add('POST', 'openclaw-close-telemedicine', [OpenclawSessionController::class, 'closeTelemedicine']);
+    $router->add('POST', 'openclaw-fast-close', [OpenclawSessionController::class, 'fastClose']);
 
     // Certificados médicos — standalone (lista, crear, PDF)
     $router->add('GET', 'certificate', [CertificateController::class, 'index']);
@@ -172,17 +172,17 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'push-test', [PushController::class, 'test']);
 
     // OpenClaw — Clinical Copilot API (Custom GPT Actions)
-    $router->add('GET', 'openclaw-patient', [OpenclawController::class, 'patient']);
-    $router->add('POST', 'openclaw-chat', [OpenclawController::class, 'chat']);
-    $router->add('GET', 'openclaw-cie10', [OpenclawController::class, 'suggestCie10']);
-    $router->add('GET', 'openclaw-protocol', [OpenclawController::class, 'getTreatmentProtocol']);
-    $router->add('POST', 'openclaw-evolution', [OpenclawController::class, 'saveEvolutionNote']);
-    $router->add('POST', 'openclaw-prescription', [OpenclawController::class, 'savePrescription']);
-    $router->add('POST', 'openclaw-certificate', [OpenclawController::class, 'generateCertificate']);
-    $router->add('POST', 'openclaw-interactions', [OpenclawController::class, 'checkInteractions']);
-    $router->add('POST', 'openclaw-summarize', [OpenclawController::class, 'summarizeSession']);
-    $router->add('GET', 'openclaw-router-status', [OpenclawController::class, 'routerStatus']);
-    $router->add('GET', 'openclaw-next-patient', [OpenclawController::class, 'nextPatient']);
+    $router->add('GET', 'openclaw-patient', [OpenclawMedicalRecordsController::class, 'patient']);
+    $router->add('POST', 'openclaw-chat', [OpenclawAiController::class, 'chat']);
+    $router->add('GET', 'openclaw-cie10', [OpenclawAiController::class, 'suggestCie10']);
+    $router->add('GET', 'openclaw-protocol', [OpenclawAiController::class, 'getTreatmentProtocol']);
+    $router->add('POST', 'openclaw-evolution', [OpenclawMedicalRecordsController::class, 'saveEvolutionNote']);
+    $router->add('POST', 'openclaw-prescription', [OpenclawPrescriptionController::class, 'savePrescription']);
+    $router->add('POST', 'openclaw-certificate', [OpenclawCertificateController::class, 'generateCertificate']);
+    $router->add('POST', 'openclaw-interactions', [OpenclawPrescriptionController::class, 'checkInteractions']);
+    $router->add('POST', 'openclaw-summarize', [OpenclawSessionController::class, 'summarizeSession']);
+    $router->add('GET', 'openclaw-router-status', [OpenclawSessionController::class, 'routerStatus']);
+    $router->add('GET', 'openclaw-next-patient', [OpenclawSessionController::class, 'nextPatient']);
 
     // ── Patient Portal — authenticated data endpoints ──────────────────────
     $router->add('GET',  'patient-portal-dashboard',      [PatientPortalController::class, 'handle']);

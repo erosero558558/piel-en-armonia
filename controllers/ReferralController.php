@@ -32,7 +32,7 @@ class ReferralController
                 'data' => [
                     'patient_id' => $patientId,
                     'code' => $code,
-                    'share_url' => getenv('PIELARMONIA_BASE_URL') ? rtrim(getenv('PIELARMONIA_BASE_URL'), '/') . "/es/referidos/?ref=" . $code : "https://pielarmonia.com/es/referidos/?ref=" . $code
+                    'share_url' => app_absolute_url('/', ['ref' => $code])
                 ]
             ]);
         } catch (Exception $e) {
@@ -89,7 +89,7 @@ class ReferralController
                 'data' => [
                     'patient_id' => $patientId,
                     'stats' => $stats,
-                    'share_url' => getenv('PIELARMONIA_BASE_URL') ? rtrim(getenv('PIELARMONIA_BASE_URL'), '/') . "/es/referidos/?ref=" . $stats['code'] : "https://pielarmonia.com/es/referidos/?ref=" . $stats['code']
+                    'share_url' => app_absolute_url('/', ['ref' => (string) ($stats['code'] ?? '')])
                 ]
             ]);
         } catch (Exception $e) {

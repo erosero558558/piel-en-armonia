@@ -72,8 +72,7 @@ class FlowOsController
     public static function b2bReferralProgram(array $context): void
     {
         $tenantId = getenv('AURORADERM_TENANT_ID') ?: 'TENANT-001';
-        $baseUrl = getenv('PIELARMONIA_BASE_URL') ? rtrim(getenv('PIELARMONIA_BASE_URL'), '/') : 'https://pielarmonia.com';
-        $shareUrl = $baseUrl . '/es/software/turnero-clinicas/?ref=' . urlencode($tenantId);
+        $shareUrl = app_api_absolute_url('flow-os-b2b-referral', ['ref' => $tenantId]);
 
         // Simulated data for S6-16 verification
         json_response([
