@@ -1,7 +1,6 @@
 {
   "name": "aurora-derm",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev":              "php -S 127.0.0.1:8000 bin/local-stage-router.php",
     "lint":             "npm run lint:php && npm run test:routes",

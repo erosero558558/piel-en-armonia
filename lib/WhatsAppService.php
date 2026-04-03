@@ -41,7 +41,7 @@ class WhatsAppService
         $address = defined('AppConfig::ADDRESS') ? AppConfig::ADDRESS : 'Av. de los Shyris y Naciones Unidas';
 
         $directions = static::getInstructionsForService($service);
-        $portalUrl = app_api_absolute_url('patient-summary');
+        $portalUrl = $baseUrl . '/es/portal/';
 
         $text = "Hola, tu cita para *{$service}* con {$doctor} ha sido confirmada para el *{$date}* a las *{$time}* en {$clinicName}.\n\n";
         $text .= "📍 *Dirección:* {$address}\n\n";

@@ -2,10 +2,6 @@
 /**
  * bin/prune.js — Aurora Derm dead-code detector & remover
  *
- * Aprendido de todo lo que vivimos: agentes que creaban sin borrar,
- * sub-proyectos embebidos, versiones acumuladas, docs de coordinación,
- * PowerShell suelto, CSS duplicado, worktrees huérfanos.
- *
  * Uso:
  *   node bin/prune.js                → reporte completo (dry-run)
  *   node bin/prune.js --delete       → borra + auto-commit
@@ -20,13 +16,15 @@
  *   node bin/prune.js --only=wrongtype → JS en lib/, PHP en src/
  */
 
-import { execSync }   from 'node:child_process';
-import fs             from 'node:fs';
-import path           from 'node:path';
+'use strict';
 
-const ROOT  = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
+const { execSync }  = require('child_process');
+const fs            = require('fs');
+const path          = require('path');
+
+const ROOT  = path.resolve(__dirname, '..');
 const DRY   = !process.argv.includes('--delete');
-const ONLY  = (process.argv.find(a => a.startsWith('--only=')) ?? '').replace('--only=', '') || 'all';
+const ONLY  = (process.argv.find(a => a.startsWith('--only=')) || '').replace('--only=', '') || 'all';
 
 // ── colores ──────────────────────────────────────────────────────────────────
 const C = {
@@ -44,7 +42,9 @@ const abs   = p => path.join(ROOT, p);
 const read  = p => { try { return fs.readFileSync(abs(p), 'utf8'); } catch { return ''; } };
 const exist = p => fs.existsSync(abs(p));
 
-function walk(dir, ext = null, maxDepth = 4, _depth = 0) {
+function walk(dir, ext, maxDepth, _depth) {
+  if (maxDepth === undefined) maxDepth = 4;
+  if (_depth === undefined) _depth = 0;
   const full = abs(dir);
   if (!fs.existsSync(full)) return [];
   const skip = ['node_modules', '.git', 'vendor', '.generated'];
@@ -76,16 +76,17 @@ function section(title) {
   console.log('\n' + C.bold(C.cyan(`── ${title} ${'─'.repeat(pad)}`)));
 }
 
-function report(label, items, fmt = x => ({ file: x, note: '' })) {
+function report(label, items, fmt) {
+  if (!fmt) fmt = function(x) { return { file: x, note: '' }; };
   section(label);
   if (!items.length) { console.log(C.green('  ✓ Ninguno')); return []; }
   const toDelete = [];
   for (const item of items) {
-    const { file, note, reason } = fmt(item);
-    const noteStr = note  ? C.gray(` ← ${note}`) : '';
-    const reaStr  = reason? C.dim(` [${reason}]`) : '';
-    console.log(`  ${C.red('✗')} ${file}${noteStr}${reaStr}`);
-    toDelete.push(file);
+    const r = fmt(item);
+    const noteStr = r.note   ? C.gray(` ← ${r.note}`)     : '';
+    const reaStr  = r.reason ? C.dim(` [${r.reason}]`)    : '';
+    console.log(`  ${C.red('✗')} ${r.file}${noteStr}${reaStr}`);
+    toDelete.push(r.file);
   }
   console.log(C.yellow(`\n  ${items.length} detectado(s)`));
   return toDelete;
@@ -95,11 +96,14 @@ function report(label, items, fmt = x => ({ file: x, note: '' })) {
 // CHECK 1 — Controllers sin rutas activas
 // ════════════════════════════════════════════════════════════════════════════
 function checkOrphanControllers() {
-  const routes  = read('lib/routes.php');
-  const inRoutes = new Set([...routes.matchAll(/([A-Za-z]+(?:Controller|Facade))::/g)].map(m => m[1]));
+  const routes   = read('lib/routes.php');
+  const inRoutes = new Set();
+  let m;
+  const re = /([A-Za-z]+(?:Controller|Facade))::/g;
+  while ((m = re.exec(routes)) !== null) inRoutes.add(m[1]);
   return walk('controllers', '.php')
     .map(f => ({ file: f, cls: path.basename(f, '.php') }))
-    .filter(({ cls }) => !inRoutes.has(cls));
+    .filter(function(x) { return !inRoutes.has(x.cls); });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -113,32 +117,32 @@ function checkUnreferencedLib() {
     'figo-ai-bridge.php','figo-backend.php','figo-brain.php','figo-chat.php',
   ];
   const corpus = phpFiles.map(f => read(f)).join('\n');
-
-  // Solo archivos raíz de lib/ (los subdirectorios ya tienen sus propias referencias)
   const libRoot = fs.readdirSync(abs('lib'))
     .filter(f => f.endsWith('.php'))
     .map(f => `lib/${f}`);
-
-  return libRoot.filter(f => {
+  return libRoot.filter(function(f) {
     const cls   = path.basename(f, '.php');
-    const self  = (read(f).match(new RegExp(`\\b${cls}\\b`, 'g')) ?? []).length;
-    const total = (corpus.match(new RegExp(`\\b${cls}\\b`, 'g')) ?? []).length;
-    return total <= self; // solo se menciona dentro de sí mismo
+    const re    = new RegExp('\\b' + cls + '\\b', 'g');
+    const self  = (read(f).match(re) || []).length;
+    const total = (corpus.match(re) || []).length;
+    return total <= self;
   });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 3 — Tests de clases/servicios que ya no existen
+// CHECK 3 — Tests de clases que ya no existen
 // ════════════════════════════════════════════════════════════════════════════
 function checkStaleTests() {
   const stale = [];
   for (const f of walk('tests', '.php')) {
     const content = read(f);
-    const refs    = [...content.matchAll(/(?:use|new)\s+\\?([A-Za-z\\]+)/g)].map(m => m[1].split('\\').pop());
-    for (const cls of refs) {
+    const re = /(?:use|new)\s+\\?([A-Za-z\\]+)/g;
+    let m;
+    while ((m = re.exec(content)) !== null) {
+      const cls = m[1].split('\\').pop();
       if (/(Controller|Service|Facade|Repository)$/.test(cls)) {
         const onDisk = exist(`controllers/${cls}.php`) || exist(`lib/${cls}.php`) ||
-                       walk('lib', '.php').some(p => path.basename(p, '.php') === cls);
+          walk('lib', '.php').some(p => path.basename(p, '.php') === cls);
         if (!onDisk) { stale.push({ file: f, missing: cls }); break; }
       }
     }
@@ -147,7 +151,7 @@ function checkStaleTests() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 4 — Patrones de agentes (lo que más daño causó)
+// CHECK 4 — Patrones de agentes (causa raíz del desastre)
 // ════════════════════════════════════════════════════════════════════════════
 const AGENT_PATTERNS = [
   /turnero-surface-/i,
@@ -158,35 +162,40 @@ const AGENT_PATTERNS = [
   /AGENT_BOARD/i,
   /(sprint-\d+|s\d{2}-\d{2})\.(md|yaml|json)$/i,
   /agent-orchestrat/i,
-  /agent-handoff/i,
 ];
 
 function checkAgentFiles() {
   const tracked = execSync('git ls-files', { cwd: ROOT }).toString().trim().split('\n');
-  return tracked.filter(f =>
-    AGENT_PATTERNS.some(re => re.test(f)) &&
-    !f.startsWith('bin/') && !f.startsWith('.github/')
-  );
+  return tracked.filter(function(f) {
+    return AGENT_PATTERNS.some(re => re.test(f)) &&
+      !f.startsWith('bin/') && !f.startsWith('.github/');
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 5 — Sub-proyectos embebidos (el error más grave)
+// CHECK 5 — Sub-proyectos embebidos
 // ════════════════════════════════════════════════════════════════════════════
 const SUBPROJECT_SIGNALS = [
-  'package.json', 'composer.json', 'build.gradle.kts',
-  'AndroidManifest.xml', 'electron.js', 'main.mjs',
-  'docker-compose.yml', 'tsconfig.json', 'settings.gradle.kts',
+  'build.gradle.kts','AndroidManifest.xml','electron.js',
+  'main.mjs','tsconfig.json','settings.gradle.kts',
 ];
 
 function checkEmbeddedSubprojects() {
-  const IGNORE_ROOTS = [ROOT]; // el package.json raíz está bien
   const found = [];
   for (const signal of SUBPROJECT_SIGNALS) {
     for (const f of walk('.', null, 3)) {
-      const base = path.basename(f);
-      const dir  = path.dirname(f);
-      if (base === signal && dir !== '.' && !dir.startsWith('vendor') && !dir.startsWith('node_modules')) {
+      if (path.basename(f) === signal) {
+        const dir = path.dirname(f);
         if (!found.includes(dir)) found.push(dir);
+      }
+    }
+  }
+  // Also detect nested package.json (not root)
+  for (const f of walk('.', 'package.json', 3)) {
+    if (f !== 'package.json') {
+      const dir = path.dirname(f);
+      if (!found.includes(dir) && !dir.startsWith('node_modules') && !dir.startsWith('vendor')) {
+        found.push(dir);
       }
     }
   }
@@ -194,53 +203,48 @@ function checkEmbeddedSubprojects() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 6 — Versiones acumuladas (v1/v2/v3 cuando ya existe v-mayor)
+// CHECK 6 — Versiones acumuladas
 // ════════════════════════════════════════════════════════════════════════════
 function checkVersionAccumulation() {
   const tracked = execSync('git ls-files', { cwd: ROOT }).toString().trim().split('\n');
-  const versioned = tracked.filter(f => /[-_]v(\d+)[-_/.]/.test(f));
-
-  // Agrupar por base (sin versión)
-  const groups = {};
-  for (const f of versioned) {
+  const groups  = {};
+  for (const f of tracked) {
+    const m = f.match(/[-_]v(\d+)/);
+    if (!m) continue;
     const base = f.replace(/[-_]v\d+/, '');
     if (!groups[base]) groups[base] = [];
-    const match = f.match(/[-_]v(\d+)/);
-    if (match) groups[base].push({ file: f, v: parseInt(match[1]) });
+    groups[base].push({ file: f, v: parseInt(m[1]) });
   }
-
   const dead = [];
-  for (const [, versions] of Object.entries(groups)) {
+  for (const versions of Object.values(groups)) {
     if (versions.length < 2) continue;
-    const maxV = Math.max(...versions.map(x => x.v));
+    const maxV = Math.max.apply(null, versions.map(x => x.v));
     versions.filter(x => x.v < maxV).forEach(x => dead.push(x.file));
   }
   return dead;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 7 — Documentación de coordinación de agentes / ops spam
+// CHECK 7 — Docs de coordinación / PowerShell
 // ════════════════════════════════════════════════════════════════════════════
-const DOCS_SPAM_PATTERNS = [
+const DOCS_SPAM = [
   /^(BLOCKERS|LAUNCH|CALENDAR-CUTOVER|CHECKLIST|ESTADO_|GATE-|PLAN_ESTABILIDAD|MONITOR-|REPORTE-|VERIFICAR-|SMOKE-|CONFIGURAR-|BENCH-|PREPARAR-|DESPLIEGUE-|SERVIDOR-LOCAL|CONTRIBUTING|CRONS|SECURITY_AUDIT|GITHUB-ACTIONS-DEPLOY)\.md$/i,
-  /\.ps1$/,                    // PowerShell — esto no es Windows
-  /AGENT[S_-]/i,               // docs de agentes
+  /\.ps1$/,
+  /AGENT[S_-]/i,
   /governance\//,
   /verification\//,
 ];
 
 function checkDocSpam() {
   const tracked = execSync('git ls-files', { cwd: ROOT }).toString().trim().split('\n');
-  const KEEP_MD = new Set(['README.md']);
-  return tracked.filter(f => {
-    const base = path.basename(f);
-    if (KEEP_MD.has(base)) return false;
-    return DOCS_SPAM_PATTERNS.some(re => re.test(f));
+  const KEEP = new Set(['README.md','TASKS.md']);
+  return tracked.filter(function(f) {
+    return !KEEP.has(path.basename(f)) && DOCS_SPAM.some(re => re.test(f));
   });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 8 — Archivos basura / logs / output / temporales
+// CHECK 8 — Archivos basura
 // ════════════════════════════════════════════════════════════════════════════
 const JUNK_RE = [
   /\.(log|ps1|bak|tmp)$/,
@@ -255,128 +259,128 @@ function checkJunk() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 9 — Tipos de archivos en lugares incorrectos
+// CHECK 9 — Tipos incorrectos
 // ════════════════════════════════════════════════════════════════════════════
 function checkWrongType() {
   const wrong = [];
-  // JS en lib/ (PHP land)
-  for (const f of walk('lib', '.js')) wrong.push({ file: f, note: 'JS en directorio PHP' });
-  for (const f of walk('lib', '.ts')) wrong.push({ file: f, note: 'TS en directorio PHP' });
-  // PHP en src/ (JS land)
-  for (const f of walk('src', '.php')) wrong.push({ file: f, note: 'PHP en directorio JS/Astro' });
-  // PHP de test sueltos en raíz
-  const rootPhp = fs.existsSync(ROOT) ? fs.readdirSync(ROOT).filter(f => f.startsWith('test') && f.endsWith('.php')) : [];
-  rootPhp.forEach(f => wrong.push({ file: f, note: 'test PHP en raíz' }));
+  walk('lib', '.js').forEach(f => wrong.push({ file: f, note: 'JS en directorio PHP' }));
+  walk('lib', '.ts').forEach(f => wrong.push({ file: f, note: 'TS en directorio PHP' }));
+  if (fs.existsSync(abs('src'))) {
+    walk('src', '.php').forEach(f => wrong.push({ file: f, note: 'PHP en src/' }));
+  }
   return wrong;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 10 — Git worktrees huérfanos
+// CHECK 10 — Bin scripts que no tienen razón de existir post-limpieza
 // ════════════════════════════════════════════════════════════════════════════
-function checkStaleWorktrees() {
-  try {
-    const out   = execSync('git worktree list', { cwd: ROOT }).toString().trim().split('\n');
-    const stale = out.filter(line => line.includes('.codex-worktrees') || line.includes('(detached HEAD)'));
-    return stale.map(line => line.trim().split(/\s+/)[0]);
-  } catch { return []; }
+const DEAD_BIN_PATTERNS = [
+  /optimize-images/,
+  /generate-icons/,
+  /release-android/,
+  /deploy-public-v[2-9]/,   // versiones viejas de deploy
+  /expand-cie10/,
+  /extract-sections/,
+  /generate-csp-hashes/,
+  /generate_hash/,
+  /run-benchmark/,
+  /migrate-s\d/,
+  /backfill-/,
+  /validate-plan-operativo/,
+  /whatsapp-funnel-summary/,
+  /notify-director-blocker/,
+  /notify-lab-critical/,
+  /check-warnings/,
+  /run-phpunit\.js/,
+  /alert\.js/,
+];
+
+function checkDeadBinScripts() {
+  const binFiles = fs.readdirSync(abs('bin'))
+    .filter(f => !fs.statSync(abs(`bin/${f}`)).isDirectory())
+    .map(f => `bin/${f}`);
+  return binFiles.filter(f => DEAD_BIN_PATTERNS.some(re => re.test(path.basename(f))));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHECK 11 — Archivos duplicados / alias de features (mismo feature, dos nombres)
+// CHECK 11 — Git worktrees huérfanos
 // ════════════════════════════════════════════════════════════════════════════
-function checkDuplicateFeatureFiles() {
-  // Pares conocidos por experiencia: si ambos existen, eliminar el alias/antiguo
-  const KNOWN_PAIRS = [
-    ['queue-kiosk.html',    'kiosco-turnos.html'],
-    ['queue-display.html',  'sala-turnos.html'],
-    ['queue-operator.html', 'operador-turnos.html'],
-    ['kiosk.html',          'kiosco-turnos.html'],
-  ];
-  const dupes = [];
-  for (const [alias, canonical] of KNOWN_PAIRS) {
-    if (exist(alias) && exist(canonical)) dupes.push({ file: alias, note: `alias de ${canonical}` });
-    if (exist(alias) && !exist(canonical)) dupes.push({ file: alias, note: `huérfano — ${canonical} ya no existe` });
-  }
-  return dupes;
+function checkStaleWorktrees() {
+  try {
+    const lines = execSync('git worktree list', { cwd: ROOT }).toString().trim().split('\n');
+    return lines.filter(l => l.includes('.codex-worktrees') || (l.includes('(detached HEAD)') && l.includes(ROOT)));
+  } catch { return []; }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
 // MAIN
 // ════════════════════════════════════════════════════════════════════════════
-
-const TITLE = '🔍  Aurora Derm — Pruner v2';
-console.log('\n' + C.bold(TITLE));
+console.log('\n' + C.bold('🔍  Aurora Derm — Pruner v2'));
 console.log('─'.repeat(54));
-console.log(C.dim(`  Modo    : ${DRY ? 'dry-run  (sin cambios)' : C.red('⚠  DELETE MODE')}`));
-console.log(C.dim(`  Filtro  : ${ONLY === 'all' ? 'todos los checks' : `--only=${ONLY}`}`));
-console.log(C.dim(`  Proyecto: ${ROOT}`));
+console.log(C.dim('  Modo    : ' + (DRY ? 'dry-run  (sin cambios)' : C.red('⚠  DELETE MODE'))));
+console.log(C.dim('  Filtro  : ' + (ONLY === 'all' ? 'todos los checks' : '--only=' + ONLY)));
 
 const toDelete = [];
-const run = (key, label, fn, formatter) => {
+
+function run(key, label, fn, fmt) {
   if (ONLY !== 'all' && ONLY !== key) return;
-  const items = fn();
-  toDelete.push(...report(label, items, formatter));
-};
+  toDelete.push(...report(label, fn(), fmt));
+}
 
 run('ctrl',        'Controllers huérfanos (sin ruta activa)',
     checkOrphanControllers,
-    x => ({ file: x.file, note: `clase: ${x.cls}` }));
+    function(x) { return { file: x.file, note: 'clase: ' + x.cls }; });
 
 run('lib',         'Lib PHP sin referencias',
     checkUnreferencedLib,
-    x => ({ file: x }));
+    function(x) { return { file: x }; });
 
 run('tests',       'Tests de clases eliminadas',
     checkStaleTests,
-    x => ({ file: x.file, note: `clase inexistente: ${x.missing}` }));
+    function(x) { return { file: x.file, note: 'clase inexistente: ' + x.missing }; });
 
-run('agents',      '⚠  Patrones de agentes / orquestación (CAUSA RAÍZ)',
+run('agents',      '⚠  Patrones de agentes / orquestación (causa raíz)',
     checkAgentFiles,
-    x => ({ file: x, reason: 'generado por agente' }));
+    function(x) { return { file: x, reason: 'generado por agente' }; });
 
-run('subprojects', '⚠  Sub-proyectos embebidos (repos dentro del repo)',
+run('subprojects', '⚠  Sub-proyectos embebidos',
     checkEmbeddedSubprojects,
-    x => ({ file: x, note: 'tiene su propio package.json / composer.json / build.gradle' }));
+    function(x) { return { file: x, note: 'tiene su propio package.json / build.gradle' }; });
 
-run('versions',    'Versiones acumuladas (v1/v2/v3 cuando existe v-mayor)',
+run('versions',    'Versiones acumuladas (v-N cuando existe v-mayor)',
     checkVersionAccumulation,
-    x => ({ file: x, reason: 'versión obsoleta' }));
+    function(x) { return { file: x, reason: 'versión obsoleta' }; });
 
-run('docs',        'Docs de coordinación de agentes / PowerShell',
+run('docs',        'Docs de coordinación / PowerShell',
     checkDocSpam,
-    x => ({ file: x }));
+    function(x) { return { file: x }; });
 
 run('junk',        'Archivos basura (logs, output, temporales)',
     checkJunk,
-    x => ({ file: x }));
+    function(x) { return { file: x }; });
 
-run('wrongtype',   'Tipos de archivos en lugar incorrecto',
+run('wrongtype',   'Tipos en lugar incorrecto',
     checkWrongType,
-    x => ({ file: x.file, note: x.note }));
+    function(x) { return { file: x.file, note: x.note }; });
 
-run('dupes',       'Archivos duplicados / aliases del mismo feature',
-    checkDuplicateFeatureFiles,
-    x => ({ file: x.file, note: x.note }));
+run('bin',         'Scripts de bin/ obsoletos post-limpieza',
+    checkDeadBinScripts,
+    function(x) { return { file: x, note: 'no aplica a backend-only' }; });
 
-// worktrees: no se borran como archivos, se limpian con git worktree
+// worktrees
 if (ONLY === 'all' || ONLY === 'worktrees') {
   section('Git worktrees huérfanos');
   const wt = checkStaleWorktrees();
-  if (wt.length === 0) {
+  if (!wt.length) {
     console.log(C.green('  ✓ Ninguno'));
   } else {
-    for (const w of wt) console.log(`  ${C.red('✗')} ${w}`);
-    console.log(C.yellow(`\n  ${wt.length} detectado(s)`));
+    wt.forEach(w => console.log('  ' + C.red('✗') + ' ' + w));
+    console.log(C.yellow('\n  ' + wt.length + ' detectado(s)'));
     if (!DRY) {
-      for (const w of wt) {
-        try {
-          execSync(`git worktree remove --force "${w}"`, { cwd: ROOT, stdio: 'pipe' });
-          console.log(`  eliminado: ${w}`);
-        } catch {
-          fs.rmSync(w, { recursive: true, force: true });
-          console.log(`  eliminado (forzado): ${w}`);
-        }
-      }
+      wt.forEach(function(w) {
+        try { execSync(`git worktree remove --force "${w}"`, { cwd: ROOT, stdio: 'pipe' }); }
+        catch { fs.rmSync(w, { recursive: true, force: true }); }
+      });
       execSync('git worktree prune', { cwd: ROOT, stdio: 'pipe' });
     }
   }
@@ -386,35 +390,28 @@ if (ONLY === 'all' || ONLY === 'worktrees') {
 const unique = [...new Set(toDelete)];
 console.log('\n' + '═'.repeat(54));
 
-if (unique.length === 0) {
+if (!unique.length) {
   console.log(C.green(C.bold('\n  ✓ Proyecto limpio. Nada que borrar.\n')));
   process.exit(0);
 }
 
-console.log(C.bold(`\n  Total: ${C.red(unique.length)} archivo(s) detectado(s)\n`));
+console.log(C.bold('\n  Total: ' + C.red(unique.length) + ' archivo(s) detectado(s)\n'));
 
 if (DRY) {
-  console.log(C.yellow('  Dry-run activo. Para ejecutar el borrado:'));
-  console.log(C.bold('    node bin/prune.js --delete'));
-  console.log(C.dim('    # o: npm run prune:delete\n'));
+  console.log(C.yellow('  Dry-run. Para borrar:'));
+  console.log(C.bold('    npm run prune:delete\n'));
 } else {
   console.log(C.red(C.bold('  Borrando...\n')));
   let deleted = 0;
   for (const f of unique) {
-    if (exist(f)) {
-      gitRm(f);
-      console.log(`  ${C.red('✗')} ${f}`);
-      deleted++;
-    }
+    if (exist(f)) { gitRm(f); console.log('  ' + C.red('✗') + ' ' + f); deleted++; }
   }
   try {
     execSync('git add -A', { cwd: ROOT, stdio: 'pipe' });
-    execSync(
-      `HUSKY=0 git commit --no-verify -m "chore(prune): remove ${deleted} dead files [auto]"`,
-      { cwd: ROOT, stdio: 'pipe' }
-    );
-    console.log(C.green(`\n  ✓ ${deleted} archivo(s) eliminados y commiteados.`));
+    execSync('HUSKY=0 git commit --no-verify -m "chore(prune): remove ' + deleted + ' dead files [auto]"',
+             { cwd: ROOT, stdio: 'pipe' });
+    console.log(C.green('\n  ✓ ' + deleted + ' archivo(s) eliminados y commiteados.'));
   } catch {
-    console.log(C.yellow(`\n  ✓ ${deleted} archivo(s) eliminados. Sin cambios nuevos o commitea manualmente.`));
+    console.log(C.yellow('\n  ✓ ' + deleted + ' eliminados. Sin cambios nuevos o commitea manualmente.'));
   }
 }

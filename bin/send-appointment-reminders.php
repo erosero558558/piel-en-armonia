@@ -103,7 +103,7 @@ foreach ($appointments as $appt) {
     $apptWithWa = array_merge($appt, [
         'waConfirmLink'  => $waConfirmLink,
         'rescheduleUrl'  => $token
-            ? AppConfig::BASE_URL . '/?reschedule=' . rawurlencode($token)
+            ? rtrim(AppConfig::BASE_URL, '/') . '/es/reservar/?reschedule=' . rawurlencode($token)
             : '',
         'serviceLabel'   => $serviceLabel,
         'doctorLabel'    => $doctorLabel,

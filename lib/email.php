@@ -339,8 +339,8 @@ function build_appointment_email_context(array $appointment): array
         'rescheduleToken' => $rescheduleToken,
         'checkinToken' => $checkinToken,
         'rescheduleUrl' => $rescheduleToken !== ''
-            ? app_api_absolute_url('reschedule', ['token' => $rescheduleToken])
-            : app_api_absolute_url('appointments'),
+            ? rtrim(AppConfig::BASE_URL, '/') . '/es/reservar/?reschedule=' . rawurlencode($rescheduleToken)
+            : rtrim(AppConfig::BASE_URL, '/') . '/es/reservar/',
     ];
 }
 
@@ -756,7 +756,7 @@ function normalize_prescription_email_items(array $prescription): array
 function build_post_consultation_followup_email_html(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
-    $portalUrl = app_api_absolute_url('patient-summary');
+    $portalUrl = rtrim(AppConfig::BASE_URL, '/') . '/es/portal/';
     $name = htmlspecialchars($context['name'], ENT_QUOTES, 'UTF-8');
     $whatsapp = htmlspecialchars((string) ((read_turnero_clinic_profile()['branding']['whatsapp'] ?? AppConfig::WHATSAPP_NUMBER)), ENT_QUOTES, 'UTF-8');
 
@@ -783,7 +783,7 @@ function build_post_consultation_followup_email_html(array $appointment): string
 function build_post_consultation_followup_email_text(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
-    $portalUrl = app_api_absolute_url('patient-summary');
+    $portalUrl = rtrim(AppConfig::BASE_URL, '/') . '/es/portal/';
 
     $profile = function_exists('read_turnero_clinic_profile') ? read_turnero_clinic_profile() : [];
     $brandName = !empty($profile['branding']['name']) ? $profile['branding']['name'] : AppConfig::BRAND_NAME;
@@ -928,7 +928,7 @@ function maybe_send_prescription_ready_email(array $store, array $prescription, 
         return false;
     }
 
-    $portalUrl = trim((string) ($options['portalUrl'] ?? app_api_absolute_url('patient-portal-prescription')));
+    $portalUrl = trim((string) ($options['portalUrl'] ?? rtrim(AppConfig::BASE_URL, '/') . '/es/portal/recetas/'));
     $normalizedPrescription = $prescription;
     $normalizedPrescription['caseId'] = $caseId;
     $normalizedPrescription['medications'] = normalize_prescription_email_items($prescription);
@@ -1162,7 +1162,7 @@ function build_cancellation_email_html(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
     $name = htmlspecialchars($context['name'], ENT_QUOTES, 'UTF-8');
-    $bookingUrl = app_api_absolute_url('appointments');
+    $bookingUrl = rtrim(AppConfig::BASE_URL, '/') . '/es/reservar/';
 
     $content = '<h2 style="margin:0 0 20px;color:#ef4444;font-size:20px;">Cita Cancelada</h2>'
         . '<p style="margin:0 0 15px;line-height:1.6;color:#555;">Hola <strong>' . $name . '</strong>,</p>'
@@ -1194,7 +1194,7 @@ function build_cancellation_email_text(array $appointment): string
     $body .= "Tu cita ha sido cancelada.\n\n";
     $body .= "Detalles de la cita cancelada:\n";
     $body .= build_appointment_detail_text($context, false);
-    $body .= "Si deseas reprogramar, visita " . app_api_absolute_url('appointments') . " o escríbenos por WhatsApp: " . $whatsapp . ".\n\n";
+    $body .= "Si deseas reprogramar, visita " . rtrim(AppConfig::BASE_URL, '/') . "/es/reservar/ o escríbenos por WhatsApp: " . $whatsapp . ".\n\n";
     $body .= "Gracias por confiar en nosotros.\n\n";
     $body .= "- Equipo " . $brandName;
 
@@ -1457,7 +1457,7 @@ function maybe_send_gift_card_reminder_email($giftCard): bool
     }
     
     $body .= "Puedes usar este saldo en tus próximos tratamientos dermatológicos.\n";
-    $body .= "Visita " . app_api_absolute_url('appointments') . " o contáctanos para agendar.\n\n";
+    $body .= "Visita " . rtrim(AppConfig::BASE_URL, '/') . "/es/reservar/ o contáctanos para agendar.\n\n";
     $body .= "Saludos,\n" . $brandName . "\n";
     
     return send_mail_to_recipient($recipient, $subject, $body, false);
