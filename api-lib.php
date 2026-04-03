@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 /**
- * Shared helpers for lightweight JSON API persistence.
+ * Compatibility bootstrap restored after backend-only cleanup.
+ *
+ * This file intentionally loads the minimum shared runtime needed by the
+ * root entrypoints and legacy tests without hard-requiring subsystems that
+ * were partially pruned or are currently under refactor.
  */
 
-// Autoloader de Composer (para PHPMailer y otras dependencias)
 $autoloadFile = __DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 if (is_file($autoloadFile)) {
     try {
@@ -16,7 +19,6 @@ if (is_file($autoloadFile)) {
     }
 }
 
-// Permite aislar tests/CLI que necesitan evitar la config local del repo.
 $skipEnvFileRaw = getenv('AURORADERM_SKIP_ENV_FILE');
 if (!is_string($skipEnvFileRaw) || trim($skipEnvFileRaw) === '') {
     $skipEnvFileRaw = getenv('PIELARMONIA_SKIP_ENV_FILE');
@@ -24,7 +26,6 @@ if (!is_string($skipEnvFileRaw) || trim($skipEnvFileRaw) === '') {
 $skipEnvFile = is_string($skipEnvFileRaw)
     && in_array(strtolower(trim($skipEnvFileRaw)), ['1', 'true', 'yes', 'on'], true);
 
-// Cargar variables de entorno si existe env.php
 $envFile = __DIR__ . DIRECTORY_SEPARATOR . 'env.php';
 if (!$skipEnvFile && is_file($envFile)) {
     try {
@@ -34,7 +35,6 @@ if (!$skipEnvFile && is_file($envFile)) {
     }
 }
 
-// Cargar librerias modularizadas
 require_once __DIR__ . '/lib/common.php';
 require_once __DIR__ . '/lib/captcha.php';
 require_once __DIR__ . '/lib/logger.php';
@@ -43,36 +43,19 @@ require_once __DIR__ . '/lib/features.php';
 require_once __DIR__ . '/lib/validation.php';
 require_once __DIR__ . '/lib/http.php';
 require_once __DIR__ . '/lib/security.php';
-require_once __DIR__ . '/lib/LeadOpsService.php';
 require_once __DIR__ . '/lib/models.php';
 require_once __DIR__ . '/lib/business.php';
 require_once __DIR__ . '/lib/storage.php';
 require_once __DIR__ . '/lib/calendar/runtime.php';
 require_once __DIR__ . '/lib/backup.php';
-require_once __DIR__ . '/lib/public_sync.php';
 require_once __DIR__ . '/lib/audit.php';
 require_once __DIR__ . '/lib/figo_utils.php';
-
+require_once __DIR__ . '/lib/figo_queue.php';
+require_once __DIR__ . '/lib/ratelimit.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/email.php';
-require_once __DIR__ . '/lib/ratelimit.php';
 
-$eventSetupLoaded = false;
-$eventSetupFile = __DIR__ . '/lib/event_setup.php';
-if (
-    (!defined('TESTING_ENV') || TESTING_ENV !== true) &&
-    is_file($eventSetupFile) &&
-    PHP_VERSION_ID >= 70400
-) {
-    try {
-        require_once $eventSetupFile;
-        $eventSetupLoaded = function_exists('get_event_dispatcher');
-    } catch (Throwable $eventSetupError) {
-        error_log('Aurora Derm: event_setup disabled - ' . $eventSetupError->getMessage());
-    }
-}
-
-if (!$eventSetupLoaded && !function_exists('get_event_dispatcher')) {
+if (!function_exists('get_event_dispatcher')) {
     function get_event_dispatcher()
     {
         static $nullDispatcher = null;
@@ -88,6 +71,7 @@ if (!$eventSetupLoaded && !function_exists('get_event_dispatcher')) {
                 }
             };
         }
+
         return $nullDispatcher;
     }
 }

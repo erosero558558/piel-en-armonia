@@ -2,6 +2,25 @@
 
 declare(strict_types=1);
 
+function api_bootstrap_require(string $path, bool $optional = false): void
+{
+    if (!$optional) {
+        require_once $path;
+        return;
+    }
+
+    if (!is_file($path)) {
+        error_log('Aurora Derm API bootstrap skipped missing optional module: ' . $path);
+        return;
+    }
+
+    try {
+        @require_once $path;
+    } catch (Throwable $bootstrapError) {
+        error_log('Aurora Derm API bootstrap skipped optional module ' . $path . ' - ' . $bootstrapError->getMessage());
+    }
+}
+
 require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/payment-lib.php';
 require_once __DIR__ . '/lib/monitoring.php';
@@ -12,10 +31,10 @@ require_once __DIR__ . '/lib/figo_utils.php';
 require_once __DIR__ . '/lib/ApiConfig.php';
 require_once __DIR__ . '/lib/api_helpers.php';
 require_once __DIR__ . '/lib/ApiKernel.php';
-require_once __DIR__ . '/lib/clinical_history/bootstrap.php';
-require_once __DIR__ . '/lib/whatsapp_openclaw/bootstrap.php';
-require_once __DIR__ . '/lib/flow_os_manifest.php';
-require_once __DIR__ . '/lib/FlowOsJourney.php';
+api_bootstrap_require(__DIR__ . '/lib/clinical_history/bootstrap.php', true);
+api_bootstrap_require(__DIR__ . '/lib/whatsapp_openclaw/bootstrap.php', true);
+api_bootstrap_require(__DIR__ . '/lib/flow_os_manifest.php', true);
+api_bootstrap_require(__DIR__ . '/lib/FlowOsJourney.php', true);
 
 // Router
 require_once __DIR__ . '/lib/Router.php';

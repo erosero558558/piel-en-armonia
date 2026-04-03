@@ -6,7 +6,7 @@ class Router
 {
     private $routes = [];
 
-    public function add(string $method, string $resource, callable $handler, string $version = 'v1'): void
+    public function add(string $method, string $resource, $handler, string $version = 'v1'): void
     {
         $this->routes[$version][strtoupper($method)][$resource] = $handler;
     }

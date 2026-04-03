@@ -687,3 +687,64 @@ Cambia `[ ]` por `[x]` y pushea.
       _Riesgo_: evitar lost updates entre webhooks y writes de checkout
 - [ ] **RF-10** `[Codex]` P2 - alinear el gate crítico de pagos con package.json, docs y contratos Node
       _Valida_: `tests-node/critical-payments-gate-contract.test.js`
+- [ ] **RF-11** `[Codex]` P1 - hacer que `payment_intent.*` falle o reintente cuando `write_store()` no persiste
+      _Riesgo_: hoy el webhook responde `200` y audita éxito aunque el store quede sin cambios
+- [ ] **RF-12** `[Codex]` P1 - reconciliar pagos `public_checkout` con `checkout_orders` o garantizar confirmación backend
+      _Riesgo_: hoy `payment_intent.succeeded` ignora orders con `surface=public_checkout` y el repo no consume `checkout-confirm`
+- [ ] **RF-13** `[Codex]` P0 - restaurar el bootstrap de `PatientPortalController` sin depender de `ReferralService.php` ausente
+      _Ruta_: `GET patient-portal-payments` y el dashboard del portal no deben fatal al cargar
+- [ ] **RF-14** `[Codex]` P0 - reponer o rewire el dispatch del portal porque `lib/routes.php` apunta a `PatientPortalController::handle` inexistente
+      _Incluye_: `patient-portal-payments`, `patient-portal-dashboard`, `patient-portal-history` y demás rutas del portal
+- [ ] **RF-15** `[Codex]` P1 - alinear `payNowUrl` y `checkout_orders` con un consumidor real del portal
+      _Riesgo_: hoy `js/portal-payments.js` falta y no hay consumidor in-repo de `checkout-intent/confirm/submit/transfer-proof`
+- [ ] **RF-16** `[Codex]` P0 - restaurar el runtime documental del portal y reponer `DocumentVerificationService.php`
+      _Ruta_: `PatientPortalController`, `PortalHistoryService`, `PortalTreatmentPlanService`, `document-verify`
+- [ ] **RF-17** `[Codex]` P0 - restaurar o migrar `PatientPortalDocumentController` usado por servicios y tests del portal
+      _Incluye_: `defaultDocumentState`, `buildPortalDocumentPayload`, `resolveDocumentDoctor`, `documentVerify`
+- [ ] **RF-18** `[Codex]` P0 - reconciliar la API pública de `PatientPortalController` con rutas y contratos activos
+      _Incluye_: `buildPortalHistory`, `buildTreatmentPlanDetail`, `dashboard`, `history`, `plan`, `documentVerify`, `photoFile`, `consent`
+- [ ] **RF-19** `[Codex]` P1 - alinear la superficie auth del portal entre tests legacy y `PatientPortalAuthController`
+      _Incluye_: `start`, `complete`, `status` y compatibilidad con `patient-portal-auth-*`
+
+---
+
+## Bloque 37 — Auditoría runtime y compatibilidad crítica [Codex]
+
+- [ ] **RT-01** `[Codex]` Pasada de runtime/bootstrap sobre `api-lib`, `LeadOps` y controladores críticos
+      _Superficie_: `GET health`, `GET data`, `checkout-*`, `stripe-webhook`
+      _Entrega_: síntoma, impacto, ruta, repro mínima, causa probable y prueba faltante por finding
+- [ ] **RT-02** `[Codex]` Pasada de compatibilidad sobre imports legacy, archivos borrados y `require_once` rotos
+      _Incluye_: `AdminDataController`, `HealthController`, `PaymentController`, `ClinicProfileStore`
+      _Valida_: harnesses PHP de carga directa sin depender de PHPUnit
+- [ ] **RT-03** `[Codex]` Pasada de servicios extraídos con API incompleta, helpers perdidos o acoplamiento circular
+      _Incluye_: `LeadOpsService`, `SoftwareSubscriptionService` y helpers movidos fuera de su contexto
+- [ ] **RT-04** `[Codex]` Cierre del carril runtime: registrar pasada limpia `#1/#2` o escalar findings nuevos
+      _Escala_: todo hallazgo con remediación concreta sube a `RF-11+` en `Bloque 36`
+
+---
+
+## Bloque 38 — Auditoría contratos y visibilidad crítica [Codex]
+
+- [ ] **CT-01** `[Codex]` Auditar el contrato público y privado de `GET health`
+      _Valida_: `checks.turneroPilot`, `checks.auth`, `checks.calendar`, `checks.publicSync`
+      _Pruebas_: `tests-node/health-turnero-pilot-contract.test.js`, `tests/Integration/HealthVisibilityTest.php`
+- [ ] **CT-02** `[Codex]` Auditar el payload de `GET data` y sus métricas delegadas
+      _Incluye_: `appDownloads`, readiness de turnero, métricas admin y snapshots opcionales
+      _Pruebas_: `tests-node/admin-data-app-downloads-contract.test.js`, `tests-node/admin-data-turnero-clinic-profile-contract.test.js`
+- [ ] **CT-03** `[Codex]` Auditar visibilidad real de rutas y guards en `ApiKernel`/`routes`
+      _Incluye_: diferencias entre endpoints públicos, sesión admin/operator y CSRF en controladores críticos
+- [ ] **CT-04** `[Codex]` Cierre del carril contratos: registrar pasada limpia `#1/#2` o abrir tickets de compatibilidad
+      _Escala_: findings de corrección concreta van a `RF-11+`; drift sin fix inmediato queda documentado en este bloque
+
+---
+
+## Bloque 39 — Auditoría consistencia pagos y suscripciones [Codex]
+
+- [ ] **PS-01** `[Codex]` Auditar locking, idempotencia y orden de persistencia en checkout y webhooks Stripe
+      _Superficie_: `checkout-intent`, `checkout-confirm`, `checkout-submit`, `checkout-transfer-proof`, `stripe-webhook`
+- [ ] **PS-02** `[Codex]` Auditar la compatibilidad de `SoftwareSubscriptionService` con `clinic_profile`
+      _Incluye_: lifecycle de checkout, activación, invoice events, cancelación y trials
+- [ ] **PS-03** `[Codex]` Auditar estados divergentes entre `appointments`, store de pagos y perfil de clínica
+      _Riesgo_: lost updates, doble procesamiento, persistencia parcial y side effects fuera de lock
+- [ ] **PS-04** `[Codex]` Cierre del carril pagos/suscripciones: registrar pasada limpia `#1/#2` o promover findings nuevos
+      _Escala_: todo hallazgo accionable se agrega como `RF-11+` dentro de `Bloque 36`

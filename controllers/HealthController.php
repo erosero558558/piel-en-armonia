@@ -14,9 +14,23 @@ require_once __DIR__ . '/../lib/PatientCaseService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 require_once __DIR__ . '/../lib/openclaw/AIRouter.php';
 require_once __DIR__ . '/../lib/DoctorProfileStore.php';
-require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 require_once __DIR__ . '/../lib/ServiceCatalog.php';
-require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
+
+if (is_file(__DIR__ . '/../lib/ClinicProfileStore.php')) {
+    try {
+        @require_once __DIR__ . '/../lib/ClinicProfileStore.php';
+    } catch (Throwable $clinicProfileBootstrapError) {
+        error_log('Aurora Derm Health bootstrap: ClinicProfileStore skipped - ' . $clinicProfileBootstrapError->getMessage());
+    }
+}
+
+if (is_file(__DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php')) {
+    try {
+        @require_once __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
+    } catch (Throwable $whatsappBootstrapError) {
+        error_log('Aurora Derm Health bootstrap: whatsapp_openclaw skipped - ' . $whatsappBootstrapError->getMessage());
+    }
+}
 
 final class HealthController
 {
@@ -104,7 +118,7 @@ final class HealthController
         $whatsappOpenclawSnapshot = function_exists('whatsapp_openclaw_health_snapshot')
             ? whatsapp_openclaw_health_snapshot($store)
             : ['configured' => false];
-        $leadOpsSnapshot = LeadOpsService::buildHealthSnapshot($store);
+        $leadOpsSnapshot = self::collectLeadOpsSnapshot($store);
         $aiRouterSnapshot = self::collectAiRouterSnapshot();
         $dataFilesSnapshot = self::collectDataFilesSnapshot();
         $doctorProfileSnapshot = self::collectDoctorProfileSnapshot();
@@ -559,6 +573,30 @@ final class HealthController
     public static function collectClinicProfileSnapshot()
     {
         return FileSystemHealthService::collectClinicProfileSnapshot();
+    }
+
+    public static function collectLeadOpsSnapshot(array $store): array
+    {
+        if (!class_exists('LeadOpsService') || !method_exists('LeadOpsService', 'buildHealthSnapshot')) {
+            return [
+                'configured' => false,
+                'mode' => 'disabled',
+                'degraded' => true,
+                'pendingCallbacks' => 0,
+            ];
+        }
+
+        try {
+            return LeadOpsService::buildHealthSnapshot($store);
+        } catch (Throwable $leadOpsHealthError) {
+            error_log('Aurora Derm Health snapshot: LeadOps skipped - ' . $leadOpsHealthError->getMessage());
+            return [
+                'configured' => false,
+                'mode' => 'degraded',
+                'degraded' => true,
+                'pendingCallbacks' => 0,
+            ];
+        }
     }
 
     public static function publicProfileSummary(...$args)

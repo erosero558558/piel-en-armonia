@@ -4,6 +4,33 @@ declare(strict_types=1);
 
 final class FileSystemHealthService
 {
+public static function clinicProfileReadSupported(): bool
+    {
+        if (!function_exists('read_clinic_profile')) {
+            return false;
+        }
+
+        if (!class_exists('SoftwareSubscriptionService')) {
+            return false;
+        }
+
+        foreach ([
+            'normalizeSubscription',
+            'normalizeClinicProfileSubscription',
+            'normalizePlanKey',
+            'canManuallyEditPlan',
+            'applyManualPlanSelection',
+            'planLabel',
+            'derivePlanKeyFromClinicProfile',
+        ] as $method) {
+            if (!method_exists('SoftwareSubscriptionService', $method)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 public static function collectAuthSnapshot(): array
     {
         $recommendedMode = function_exists('operator_auth_recommended_mode')
@@ -83,12 +110,16 @@ public static function collectAuthSnapshot(): array
 
 public static function collectDoctorProfileSnapshot(): array
     {
-        $path = doctor_profile_config_path();
-        $profile = read_doctor_profile();
+        $path = function_exists('doctor_profile_config_path')
+            ? doctor_profile_config_path()
+            : rtrim(function_exists('data_dir_path') ? data_dir_path() : dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data', DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'doctor-profile.json';
+        $profile = function_exists('read_doctor_profile') ? read_doctor_profile() : [];
+        $valid = self::isValidJsonConfigFile($path);
 
         return [
-            'ok' => self::isValidJsonConfigFile($path),
-            'loaded' => self::isValidJsonConfigFile($path),
+            'ok' => $valid,
+            'loaded' => $valid,
             'path' => $path,
             'file_exists' => is_file($path),
             'name_present' => trim((string) ($profile['fullName'] ?? '')) !== '',
@@ -101,12 +132,16 @@ public static function collectDoctorProfileSnapshot(): array
 
 public static function collectClinicProfileSnapshot(): array
     {
-        $path = clinic_profile_config_path();
-        $profile = read_clinic_profile();
+        $path = function_exists('clinic_profile_config_path')
+            ? clinic_profile_config_path()
+            : rtrim(function_exists('data_dir_path') ? data_dir_path() : dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data', DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'clinic-profile.json';
+        $profile = self::clinicProfileReadSupported() ? read_clinic_profile() : [];
+        $valid = self::isValidJsonConfigFile($path);
 
         return [
-            'ok' => self::isValidJsonConfigFile($path),
-            'loaded' => self::isValidJsonConfigFile($path),
+            'ok' => $valid,
+            'loaded' => $valid,
             'path' => $path,
             'file_exists' => is_file($path),
             'name_present' => trim((string) ($profile['clinicName'] ?? '')) !== '',

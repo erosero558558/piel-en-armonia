@@ -95,3 +95,5 @@ data/follow-up-alerts.json
 data/ai-router-state.json
 data/uploads/
 data/hce-access-log.jsonl
+.phpunit.cache/
+coverage.xml

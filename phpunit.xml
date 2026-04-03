@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.0/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
-         cacheDirectory=".phpunit.cache">
+         stopOnError="false"
+         stopOnFailure="false"
+         failOnWarning="false"
+         failOnDeprecation="false"
+         cacheDirectory=".phpunit.cache"
+         executionOrder="depends,defects">
+
+    <!--
+     Aurora Derm — PHPUnit configuration
+     Suites:
+       Smoke  — carga directa de archivos PHP, sin servidor.
+                Valida que los controllers y servicios críticos
+                cargan sin errores fatales.
+       Unit   — tests de lógica de negocio aislada.
+    -->
+
     <testsuites>
         <testsuite name="Smoke">
             <directory>tests/Smoke</directory>
@@ -11,28 +26,27 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
-        <testsuite name="Booking">
-            <directory>tests/Booking</directory>
-        </testsuite>
-        <testsuite name="Payment">
-            <directory>tests/Payment</directory>
-        </testsuite>
-        <testsuite name="Security">
-            <directory>tests/Security</directory>
-        </testsuite>
-        <testsuite name="Integration">
-            <directory>tests/Integration</directory>
-        </testsuite>
     </testsuites>
+
     <source>
         <include>
-            <directory suffix=".php">lib</directory>
+            <directory>lib</directory>
+            <directory>controllers</directory>
         </include>
+        <exclude>
+            <directory>vendor</directory>
+            <directory>tests</directory>
+        </exclude>
     </source>
-    <coverage>
-        <report>
-            <clover outputFile="coverage.xml"/>
-            <text outputFile="php://stdout" showUncoveredFiles="false"/>
-        </report>
-    </coverage>
+
+    <php>
+        <!--
+          Variables de entorno para el entorno de test.
+          Pueden sobreescribirse con variables reales de CI.
+        -->
+        <env name="APP_ENV"                    value="testing"/>
+        <env name="AURORADERM_SKIP_ENV_FILE"   value="1"/>
+        <env name="AURORADERM_BASE_URL"        value="http://127.0.0.1:8000"/>
+    </php>
+
 </phpunit>

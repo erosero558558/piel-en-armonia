@@ -3,21 +3,21 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/payment/StripeWebhookService.php';
-require_once __DIR__ . '/../lib/payment/SoftwareSubscriptionService.php';
 require_once __DIR__ . '/../lib/payment/WhatsappCheckoutService.php';
-
-
-require_once __DIR__ . '/../lib/payment/StripeWebhookService.php';
-require_once __DIR__ . '/../lib/payment/SoftwareSubscriptionService.php';
-require_once __DIR__ . '/../lib/payment/WhatsappCheckoutService.php';
-
-
 require_once __DIR__ . '/../lib/storage.php';
 require_once __DIR__ . '/../lib/CheckoutOrderService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 require_once __DIR__ . '/../lib/ClinicProfileStore.php';
 require_once __DIR__ . '/../lib/SoftwareSubscriptionService.php';
-require_once __DIR__ . '/../lib/telemedicine/LegacyTelemedicineBridge.php';
+require_once __DIR__ . '/../lib/telemedicine/TelemedicineChannelMapper.php';
+$legacyTelemedicineBridgeFile = __DIR__ . '/../lib/telemedicine/LegacyTelemedicineBridge.php';
+if (is_file($legacyTelemedicineBridgeFile) && !class_exists('LegacyTelemedicineBridge', false)) {
+    try {
+        @require_once $legacyTelemedicineBridgeFile;
+    } catch (Throwable $legacyTelemedicineBootstrapError) {
+        error_log('Aurora Derm Payment bootstrap: LegacyTelemedicineBridge skipped - ' . $legacyTelemedicineBootstrapError->getMessage());
+    }
+}
 require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
 $whatsappOpenclawBootstrap = __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
 if (is_file($whatsappOpenclawBootstrap)) {
@@ -655,6 +655,13 @@ final class PaymentController
         }
 
         if (TelemedicineChannelMapper::isTelemedicineService($appointment['service'])) {
+            if (!class_exists('LegacyTelemedicineBridge', false)) {
+                json_response([
+                    'ok' => false,
+                    'error' => 'La telemedicina no esta disponible en este momento',
+                    'code' => 'telemedicine_bridge_unavailable',
+                ], 503);
+            }
             with_store_lock(static function () use ($appointment, $intent): array {
                 $freshStore = read_store();
                 $bridge = new LegacyTelemedicineBridge();

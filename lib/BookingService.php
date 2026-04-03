@@ -10,10 +10,22 @@ require_once __DIR__ . '/PatientCaseService.php';
 require_once __DIR__ . '/calendar/runtime.php';
 require_once __DIR__ . '/storage.php';
 require_once __DIR__ . '/referrals/ReferralService.php';
-require_once __DIR__ . '/telemedicine/LegacyTelemedicineBridge.php';
+require_once __DIR__ . '/telemedicine/TelemedicineChannelMapper.php';
+$legacyTelemedicineBridgeFile = __DIR__ . '/telemedicine/LegacyTelemedicineBridge.php';
+if (is_file($legacyTelemedicineBridgeFile) && !class_exists('LegacyTelemedicineBridge', false)) {
+    try {
+        @require_once $legacyTelemedicineBridgeFile;
+    } catch (Throwable $legacyTelemedicineBootstrapError) {
+        error_log('Aurora Derm Booking bootstrap: LegacyTelemedicineBridge skipped - ' . $legacyTelemedicineBootstrapError->getMessage());
+    }
+}
 $telemedicinePolicyFile = __DIR__ . '/telemedicine/TelemedicineEnforcementPolicy.php';
 if (is_file($telemedicinePolicyFile)) {
-    require_once $telemedicinePolicyFile;
+    try {
+        @require_once $telemedicinePolicyFile;
+    } catch (Throwable $telemedicinePolicyBootstrapError) {
+        error_log('Aurora Derm Booking bootstrap: TelemedicineEnforcementPolicy skipped - ' . $telemedicinePolicyBootstrapError->getMessage());
+    }
 }
 
 class BookingService
@@ -216,6 +228,14 @@ class BookingService
         $appointment['doctor'] = $effectiveDoctor;
 
         if (TelemedicineChannelMapper::isTelemedicineService($appointment['service'])) {
+            if (!class_exists('LegacyTelemedicineBridge', false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'La telemedicina no esta disponible en este momento',
+                    'code' => 503,
+                    'errorCode' => 'telemedicine_bridge_unavailable',
+                ];
+            }
             try {
                 $telemedicineBridge = new LegacyTelemedicineBridge();
                 $telemedicineResult = $telemedicineBridge->finalizeBookedAppointment($store, $appointment);

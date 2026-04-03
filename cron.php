@@ -320,26 +320,54 @@ function cron_task_reminders(array $payload): array
         return ['ok' => false, 'error' => 'Store corrupt or empty'];
     }
 
-    $appointmentReminderSummary = LeadOpsService::queueAppointmentReminders($store, [
-        'today' => $today,
-        'tomorrow' => $tomorrow,
-    ]);
+    try {
+        $appointmentReminderSummary = class_exists('LeadOpsService', false)
+            ? LeadOpsService::queueAppointmentReminders($store, [
+                'today' => $today,
+                'tomorrow' => $tomorrow,
+            ])
+            : ['queued' => 0, 'skipped' => 0, 'queueUnavailable' => 0];
+    } catch (Throwable $leadOpsReminderError) {
+        error_log('Aurora Derm cron: appointment reminders skipped - ' . $leadOpsReminderError->getMessage());
+        $appointmentReminderSummary = ['queued' => 0, 'skipped' => 0, 'queueUnavailable' => 0];
+    }
     $sent += (int) ($appointmentReminderSummary['queued'] ?? 0);
 
-    $appointmentPushReminderSummary = NotificationService::queueAppointmentPushReminders($store, [
-        'today' => $today,
-        'tomorrow' => $tomorrow,
-    ]);
+    try {
+        $appointmentPushReminderSummary = class_exists('NotificationService', false)
+            ? NotificationService::queueAppointmentPushReminders($store, [
+                'today' => $today,
+                'tomorrow' => $tomorrow,
+            ])
+            : ['queued' => 0, 'failed' => 0, 'notConfigured' => 0];
+    } catch (Throwable $pushReminderError) {
+        error_log('Aurora Derm cron: appointment push reminders skipped - ' . $pushReminderError->getMessage());
+        $appointmentPushReminderSummary = ['queued' => 0, 'failed' => 0, 'notConfigured' => 0];
+    }
     $sent += (int) ($appointmentPushReminderSummary['queued'] ?? 0);
 
-    $postConsultationSummary = LeadOpsService::queuePostConsultationFollowUps($store, [
-        'now' => (string) ($payload['now'] ?? local_date('c')),
-    ]);
+    try {
+        $postConsultationSummary = class_exists('LeadOpsService', false)
+            ? LeadOpsService::queuePostConsultationFollowUps($store, [
+                'now' => (string) ($payload['now'] ?? local_date('c')),
+            ])
+            : ['queued' => 0, 'queueUnavailable' => 0];
+    } catch (Throwable $postConsultationError) {
+        error_log('Aurora Derm cron: post consultation follow-ups skipped - ' . $postConsultationError->getMessage());
+        $postConsultationSummary = ['queued' => 0, 'queueUnavailable' => 0];
+    }
     $sent += (int) ($postConsultationSummary['queued'] ?? 0);
 
-    $medicationReminderSummary = LeadOpsService::queueMedicationTreatmentReminders($store, [
-        'now' => (string) ($payload['now'] ?? local_date('c')),
-    ]);
+    try {
+        $medicationReminderSummary = class_exists('LeadOpsService', false)
+            ? LeadOpsService::queueMedicationTreatmentReminders($store, [
+                'now' => (string) ($payload['now'] ?? local_date('c')),
+            ])
+            : ['queued' => 0, 'queueUnavailable' => 0];
+    } catch (Throwable $medicationReminderError) {
+        error_log('Aurora Derm cron: medication reminders skipped - ' . $medicationReminderError->getMessage());
+        $medicationReminderSummary = ['queued' => 0, 'queueUnavailable' => 0];
+    }
     $sent += (int) ($medicationReminderSummary['queued'] ?? 0);
 
     foreach ($store['appointments'] as &$appt) {
@@ -371,9 +399,16 @@ function cron_task_reminders(array $payload): array
     $failed += (int) ($postConsultationSummary['queueUnavailable'] ?? 0);
     $failed += (int) ($medicationReminderSummary['queueUnavailable'] ?? 0);
 
-    $birthdaySummary = LeadOpsService::queueBirthdayGreetings($store, [
-        'today' => $today,
-    ]);
+    try {
+        $birthdaySummary = class_exists('LeadOpsService', false)
+            ? LeadOpsService::queueBirthdayGreetings($store, [
+                'today' => $today,
+            ])
+            : ['queued' => 0];
+    } catch (Throwable $birthdayError) {
+        error_log('Aurora Derm cron: birthday greetings skipped - ' . $birthdayError->getMessage());
+        $birthdaySummary = ['queued' => 0];
+    }
 
     $softwareTrialSummary = cron_process_software_subscription_trial([
         'now' => (string) ($payload['now'] ?? local_date('c')),
