@@ -445,7 +445,7 @@ Cambia `[ ]` por `[x]` y pushea.
 
 ## Bloque 20 — Pantallas de turnero [Gemini]
 
-- [ ] **TK-01** `[Gemini]` `kiosco.html` + `js/kiosco.js` — pantalla táctil: ingresa documento → número de turno + tiempo
+- [x] **TK-01** `[Gemini]` `kiosco.html` + `js/kiosco.js` — pantalla táctil: ingresa documento → número de turno + tiempo
 - [ ] **TK-02** `[Gemini]` `sala.html` + `js/sala.js` — TV horizontal: turno llamado grande, polling 5s, failsafe offline
 - [ ] **TK-03** `[Gemini]` `operador.html` + `js/operador.js` — consola: botón llamar siguiente, lista de espera, urgencias
 - [ ] **TK-04** `[Gemini]` `turno-publico.html` — QR del ticket: estado en tiempo real sin login
