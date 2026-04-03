@@ -261,7 +261,7 @@ function app_backend_only_replacement_relative_url(string $path): string
         str_starts_with($normalized, '/es/portal'),
         str_starts_with($normalized, '/es/referidos') => app_api_relative_url('patient-summary'),
         str_starts_with($normalized, '/es/telemedicina'),
-        str_starts_with($normalized, '/en/telemedicine') => app_api_relative_url('telemedicine-preconsultation'),
+        str_starts_with($normalized, '/en/telemedicine') => app_api_relative_url('telemedicine-intakes'),
         str_starts_with($normalized, '/es/mi-turno'),
         str_starts_with($normalized, '/es/software/turnero-clinicas/estado-turno') => app_api_relative_url('queue-status'),
         str_starts_with($normalized, '/es/verificar-documento') => app_api_relative_url('document-verify'),

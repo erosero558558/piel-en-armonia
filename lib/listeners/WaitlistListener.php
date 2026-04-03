@@ -89,7 +89,7 @@ class WaitlistListener
         $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label($doctor) : $doctor;
         $serviceLabel = function_exists('get_service_label') ? get_service_label($service) : $service;
         $dateLabel = function_exists('format_date_label') ? format_date_label($date) : $date;
-        $url = app_api_absolute_url('appointments');
+        $url = rtrim(AppConfig::BASE_URL, '/') . '/es/reservar/';
 
         $body = "Hola 👋,\n";
         $body .= "Te informamos que se acaba de liberar un espacio en nuestra agenda:\n\n";
