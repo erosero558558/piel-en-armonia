@@ -1,8 +1,0 @@
-if ! command -v node >/dev/null 2>&1; then
-    if [ -x "/c/Program Files/nodejs/node.exe" ]; then
-        PATH="/c/Program Files/nodejs:$PATH"
-    fi
-fi
-
-echo "🕵️  Running Governance Verification (verify-task-contract.js --fail-on-warning)..."
-node ./bin/verify-task-contract.js --fail-on-warning

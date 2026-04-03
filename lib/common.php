@@ -67,18 +67,15 @@ function app_runtime_version(): string
 
     $versionSources = [
         __DIR__ . '/../index.php',
-        __DIR__ . '/../index.html',
-        __DIR__ . '/../script.js',
-        __DIR__ . '/../styles.css',
+        __DIR__ . '/../admin-auth.php',
         __DIR__ . '/../api.php',
+        __DIR__ . '/../cron.php',
         __DIR__ . '/../figo-chat.php'
     ];
 
     $versionGlobs = [
-        __DIR__ . '/../*.js',
-        __DIR__ . '/../*.css',
-        __DIR__ . '/../*.html',
-        __DIR__ . '/../js/*.js',
+        __DIR__ . '/../bin/*.js',
+        __DIR__ . '/../bin/*.php',
         __DIR__ . '/../lib/*.php',
         __DIR__ . '/../controllers/*.php'
     ];
@@ -125,6 +122,164 @@ function app_runtime_version(): string
 function app_brand_name(): string
 {
     return 'Aurora Derm';
+}
+
+function app_base_url(): string
+{
+    $configured = trim((string) app_env('AURORADERM_BASE_URL', app_env('PIELARMONIA_BASE_URL', '')));
+    if ($configured !== '') {
+        return rtrim($configured, '/');
+    }
+
+    $host = trim((string) ($_SERVER['HTTP_HOST'] ?? '127.0.0.1'));
+    $https = strtolower(trim((string) ($_SERVER['HTTPS'] ?? '')));
+    $forwardedProto = strtolower(trim((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')));
+    $scheme = ($https === 'on' || $https === '1' || $forwardedProto === 'https') ? 'https' : 'http';
+
+    return $scheme . '://' . ($host !== '' ? $host : '127.0.0.1');
+}
+
+function app_relative_url(string $path = '/', array $query = []): string
+{
+    $normalizedPath = '/' . ltrim(trim($path), '/');
+    if ($normalizedPath === '//') {
+        $normalizedPath = '/';
+    }
+
+    if ($query === []) {
+        return $normalizedPath;
+    }
+
+    return $normalizedPath . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+}
+
+function app_absolute_url(string $path = '/', array $query = []): string
+{
+    return rtrim(app_base_url(), '/') . app_relative_url($path, $query);
+}
+
+function app_api_relative_url(string $resource = '', array $query = []): string
+{
+    $resource = trim($resource);
+    if ($resource !== '') {
+        $query = ['resource' => $resource] + $query;
+    }
+
+    return app_relative_url('/api.php', $query);
+}
+
+function app_api_absolute_url(string $resource = '', array $query = []): string
+{
+    return app_absolute_url('/api.php', ($resource !== '' ? ['resource' => $resource] : []) + $query);
+}
+
+function app_backend_status_relative_url(array $query = []): string
+{
+    return app_relative_url('/admin-auth.php', ['action' => 'status'] + $query);
+}
+
+function app_backend_status_absolute_url(array $query = []): string
+{
+    return app_absolute_url('/admin-auth.php', ['action' => 'status'] + $query);
+}
+
+function app_backend_only_root_payload(): array
+{
+    return [
+        'ok' => true,
+        'service' => app_brand_name(),
+        'mode' => 'backend-only',
+        'version' => app_runtime_version(),
+        'health' => app_api_relative_url('health'),
+        'api' => app_relative_url('/api.php'),
+        'auth' => app_backend_status_relative_url(),
+        'timestamp' => gmdate('c'),
+    ];
+}
+
+function app_backend_only_removed_ui_exact_paths(): array
+{
+    return [
+        '/404.html',
+        '/500.html',
+        '/admin-openclaw-setup.html',
+        '/admin.html',
+        '/favicon.ico',
+        '/favicon.svg',
+        '/index.html',
+        '/kiosco-turnos.html',
+        '/kiosk-cie10-sandbox.html',
+        '/kiosk.html',
+        '/legacy.php',
+        '/manifest.json',
+        '/operador-turnos.html',
+        '/queue-display.html',
+        '/queue-kiosk.html',
+        '/queue-operator.html',
+        '/robots.txt',
+        '/sala-turnos.html',
+        '/sitemap.xml',
+        '/stats.html',
+        '/sw.js',
+    ];
+}
+
+function app_backend_only_removed_ui_prefixes(): array
+{
+    return [
+        '/app-downloads',
+        '/desktop-updates',
+        '/en',
+        '/es',
+        '/ninos',
+        '/servicios',
+    ];
+}
+
+function app_backend_only_replacement_relative_url(string $path): string
+{
+    $normalized = '/' . ltrim(trim($path), '/');
+    if ($normalized === '//') {
+        $normalized = '/';
+    }
+
+    return match (true) {
+        $normalized === '/admin.html' => app_backend_status_relative_url(),
+        str_starts_with($normalized, '/es/portal/historial') => app_api_relative_url('patient-portal-history'),
+        str_starts_with($normalized, '/es/portal/plan') => app_api_relative_url('patient-portal-plan'),
+        str_starts_with($normalized, '/es/portal/receta') => app_api_relative_url('patient-portal-prescription'),
+        str_starts_with($normalized, '/es/portal/fotos') => app_api_relative_url('patient-portal-photos'),
+        str_starts_with($normalized, '/es/portal/pagos'),
+        str_starts_with($normalized, '/es/pago') => app_api_relative_url('patient-portal-payments'),
+        str_starts_with($normalized, '/es/portal'),
+        str_starts_with($normalized, '/es/referidos') => app_api_relative_url('patient-summary'),
+        str_starts_with($normalized, '/es/telemedicina'),
+        str_starts_with($normalized, '/en/telemedicine') => app_api_relative_url('telemedicine-preconsultation'),
+        str_starts_with($normalized, '/es/mi-turno'),
+        str_starts_with($normalized, '/es/software/turnero-clinicas/estado-turno') => app_api_relative_url('queue-status'),
+        str_starts_with($normalized, '/es/verificar-documento') => app_api_relative_url('document-verify'),
+        default => app_api_relative_url('health'),
+    };
+}
+
+function app_backend_only_is_removed_ui_path(string $path): bool
+{
+    $normalized = '/' . ltrim(trim($path), '/');
+    if ($normalized === '//') {
+        $normalized = '/';
+    }
+
+    if (in_array($normalized, app_backend_only_removed_ui_exact_paths(), true)) {
+        return true;
+    }
+
+    foreach (app_backend_only_removed_ui_prefixes() as $prefix) {
+        if ($normalized === $prefix || str_starts_with($normalized, $prefix . '/')) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function app_env_names(string $name): array
