@@ -508,3 +508,158 @@ Cambia `[ ]` por `[x]` y pushea.
 - [ ] **ANIM-02** `[Gemini]` Animación de entrada para cards y listas (stagger 50ms por item)
 - [ ] **ANIM-03** `[Gemini]` Micro-animación en el turno llamado de la sala — número aparece con slide-up
 
+
+---
+
+## Bloque 25 — Branding e identidad visual [Gemini]
+
+- [ ] **BR-01** `[Gemini]` `js/aurora-branding.js` revisado — logo SVG inline, paleta, variables de marca accesibles desde JS
+      _UX_: `AuroraBrand.logo()`, `AuroraBrand.color('primary')`, `AuroraBrand.applyTheme(el)`
+- [ ] **BR-02** `[Gemini]` Favicon SVG + PNG generados desde el logo — `favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
+- [ ] **BR-03** `[Gemini]` `css/print.css` — hoja de estilos de impresión para recetas y certificados con membrete Aurora Derm
+      _Incluye_: logo, datos de contacto, pie de página legal, QR de verificación
+- [ ] **BR-04** `[Gemini]` `css/kiosco.css` — estilos específicos del kiosco táctil: botones grandes (min 48px), tipografía 20px+
+- [ ] **BR-05** `[Gemini]` `css/sala.css` — estilos de la pantalla TV: número de turno en 180px, alto contraste, sin cursor
+
+---
+
+## Bloque 26 — UI de pagos completa [Gemini]
+
+- [ ] **PG-01** `[Gemini]` `js/portal-payments.js` refactorizado — usa `api.js` + `fmt.js`, elimina fetch manual
+      _Pantalla_: lista de transacciones con badge de estado, total, botón descargar PDF
+- [ ] **PG-02** `[Gemini]` Modal de detalle de pago — breakdown de items, fecha, método, referencia
+- [ ] **PG-03** `[Gemini]` UI de pago con tarjeta (Stripe Element) en el portal
+      _API_: `POST payment-intent` → Stripe CardElement → `POST checkout-confirm`
+      _UX_: formulario sin redirección, loading state, manejo de error de tarjeta rechazada
+- [ ] **PG-04** `[Gemini]` UI de pago por transferencia — sube foto del comprobante, muestra cuenta destino
+      _API_: `POST transfer-proof`
+      _UX_: instrucciones paso a paso + drag&drop del comprobante
+- [ ] **PG-05** `[Gemini]` Comprobante de pago PDF inline — iframe embebido con el PDF generado por el API
+- [ ] **PG-06** `[Codex]` `PaymentController` — generar PDF de comprobante con datos del paciente y servicio
+- [ ] **PG-07** `[Gemini]` Badge de saldo pendiente en el portal inicio — alerta si hay facturas vencidas
+
+---
+
+## Bloque 27 — Onboarding del médico [Gemini + Codex]
+
+- [ ] **ON-01** `[Gemini]` `onboarding/paso1.html` — datos de la clínica: nombre, logo, dirección, teléfono, WhatsApp
+- [ ] **ON-02** `[Gemini]` `onboarding/paso2.html` — configurar horarios de atención y duración por servicio
+- [ ] **ON-03** `[Gemini]` `onboarding/paso3.html` — servicios disponibles: catálogo editable, precios
+- [ ] **ON-04** `[Gemini]` `onboarding/paso4.html` — integrar WhatsApp Business y correo de notificaciones
+- [ ] **ON-05** `[Gemini]` `onboarding/paso5.html` — resumen y primer paciente de prueba
+- [ ] **ON-06** `[Codex]` `GET clinic-profile` — retorna config completa de la clínica
+- [ ] **ON-07** `[Codex]` `POST clinic-profile` — guarda config inicial (nombre, logo, contacto, timezone)
+- [ ] **ON-08** `[Codex]` `POST clinic-hours` — guarda horarios de atención por día de la semana y por servicio
+
+---
+
+## Bloque 28 — Comunicaciones y plantillas [Gemini + Codex]
+
+- [ ] **CM-01** `[Gemini]` Vista previa de email de confirmación de cita en admin — renderiza el template real
+- [ ] **CM-02** `[Gemini]` Vista previa del WhatsApp de recordatorio en admin — simula el mensaje
+- [ ] **CM-03** `[Gemini]` Editor de plantillas de notificación en admin — variables `{{patient_name}}`, `{{date}}`
+      _API_: `GET notification-templates`, `POST notification-templates`
+- [ ] **CM-04** `[Codex]` `lib/EmailTemplateRenderer.php` — renderiza templates HTML con variables interpoladas
+- [ ] **CM-05** `[Codex]` `GET notification-templates` — obtiene plantillas activas (email + WhatsApp)
+- [ ] **CM-06** `[Codex]` `POST notification-templates` — guarda plantilla personalizada con validación de variables
+- [ ] **CM-07** `[Gemini]` Bandeja de mensajes recibidos (respuestas de WhatsApp) en admin
+      _API_: `GET whatsapp-inbox`
+      _UX_: lista cronológica, botón responder abre chat externo
+
+---
+
+## Bloque 29 — Reportes y exportación [Gemini + Codex]
+
+- [ ] **RP-01** `[Gemini]` Panel de reportes en admin — `#/reportes`
+      _Widgets_: citas del mes, ingresos, pacientes nuevos, servicios más solicitados
+- [ ] **RP-02** `[Gemini]` Gráfica de citas por semana — barras simples con Canvas API, sin librerías externas
+- [ ] **RP-03** `[Gemini]` Gráfica de ingresos por mes — línea de tendencia con Canvas API
+- [ ] **RP-04** `[Gemini]` Tabla de top servicios — ranking con porcentaje del total
+- [ ] **RP-05** `[Gemini]` Exportar reporte en CSV — botón que descarga datos del dashboard en `.csv`
+- [ ] **RP-06** `[Codex]` `GET reports-summary?from=&to=` — citas, ingresos, pacientes nuevos en rango de fechas
+- [ ] **RP-07** `[Codex]` `GET reports-services?from=&to=` — top servicios por volumen e ingreso
+- [ ] **RP-08** `[Codex]` `GET reports-export.csv?from=&to=` — exporta datos completos en CSV
+
+---
+
+## Bloque 30 — Gestión de pacientes [Gemini + Codex]
+
+- [ ] **PT-01** `[Gemini]` `admin#/pacientes` — lista paginada de pacientes con buscador
+      _API_: `GET patient-search?q=` + `GET patients?page=`
+      _UX_: tabla con nombre, celular, última visita, próxima cita, botón ver HCE
+- [ ] **PT-02** `[Gemini]` Ficha del paciente en admin — datos personales + métricas clínicas
+      _UX_: edad, alergias, condiciones crónicas, número de visitas, balance
+- [ ] **PT-03** `[Gemini]` Crear paciente nuevo en admin — formulario con validación inline
+      _API_: `POST patient-create`
+      _UX_: nombre, celular, email, fecha de nacimiento, género, alergias
+- [ ] **PT-04** `[Gemini]` Editar datos del paciente — mismo formulario en modo edición
+      _API_: `PATCH patient-update`
+- [ ] **PT-05** `[Codex]` `GET patients?page=&limit=` — lista paginada con cursor
+- [ ] **PT-06** `[Codex]` `POST patient-create` — crea paciente con deduplicación por celular/email
+- [ ] **PT-07** `[Codex]` `PATCH patient-update` — actualiza datos del paciente, versiona los cambios
+
+---
+
+## Bloque 31 — Inventario y catálogo [Gemini + Codex]
+
+- [ ] **IN-01** `[Gemini]` `admin#/catalogo` — lista de servicios con precio, duración, estado activo/inactivo
+      _API_: `GET services-catalog`
+      _UX_: tabla editable inline, reorder por drag
+- [ ] **IN-02** `[Gemini]` Formulario de nuevo servicio — nombre, precio, duración, categoría, descripción
+      _API_: `POST services-catalog`
+- [ ] **IN-03** `[Codex]` `GET services-catalog` — lista completa del catálogo con precios y disponibilidad
+- [ ] **IN-04** `[Codex]` `POST services-catalog` — crea nuevo servicio con validación de unicidad
+- [ ] **IN-05** `[Codex]` `PATCH services-catalog` — actualiza precio/duración/estado sin afectar citas futuras
+
+---
+
+## Bloque 32 — Consentimientos y legal [Gemini + Codex]
+
+- [ ] **LG-01** `[Gemini]` `admin#/consentimientos` — lista de plantillas de consentimiento activas
+      _UX_: tabla con nombre, versión, fecha, número de firmas, descargar PDF muestra
+- [ ] **LG-02** `[Gemini]` Editor de consentimiento en admin — textarea enriquecido con variables del paciente
+      _API_: `GET consent-template`, `POST consent-template`
+- [ ] **LG-03** `[Gemini]` UI de solicitar firma al paciente desde la HCE
+      _Flujo_: seleccionar template → enviar link por WhatsApp/email con un click
+      _API_: `POST send-consent-request`
+- [ ] **LG-04** `[Gemini]` Historial de consentimientos firmados — lista con fecha, IP, versión del documento
+- [ ] **LG-05** `[Codex]` `GET consent-template?service=` — template del consentimiento para un servicio
+- [ ] **LG-06** `[Codex]` `POST send-consent-request` — genera token único + envía link por WhatsApp al paciente
+- [ ] **LG-07** `[Codex]` Webhook de firma en `patient-portal-consent` — registra fecha, IP, user-agent, hash del doc
+
+---
+
+## Bloque 33 — Errores y estados de sistema [Gemini]
+
+- [ ] **ER-01** `[Gemini]` `404.html` — página no encontrada, con botón volver al inicio
+- [ ] **ER-02** `[Gemini]` `500.html` — error del servidor, con mensaje de reintento y contacto de soporte
+- [ ] **ER-03** `[Gemini]` Pantalla de mantenimiento `maintenance.html` — modo offline del sistema de turnos
+- [ ] **ER-04** `[Gemini]` Banner de desconexión en la sala y el kiosco — aparece si el polling falla 3 veces seguidas
+- [ ] **ER-05** `[Gemini]` Pantalla de sesión expirada en el portal — link para re-autenticarse
+
+---
+
+## Bloque 34 — Mobile y PWA [Gemini + Codex]
+
+- [ ] **MB-01** `[Gemini]` `manifest.json` del portal — `display: standalone`, iconos, splash screen, theme color
+- [ ] **MB-02** `[Gemini]` Service Worker del portal — cachea rutas estáticas del portal, funciona offline básico
+- [ ] **MB-03** `[Gemini]` Instalar en pantalla de inicio — banner nativo en Chrome/Safari cuando el portal se abre 3 veces
+- [ ] **MB-04** `[Gemini]` Gestos de deslizamiento en el portal mobile — swipe left/right entre secciones
+- [ ] **MB-05** `[Codex]` Push Notification server: `POST push-subscribe` guarda el endpoint del dispositivo
+- [ ] **MB-06** `[Codex]` `lib/PushService.php` — envía push al dispositivo cuando hay cita próxima o turno llamado
+
+---
+
+## Bloque 35 — Integración OpenAI / OpenClaw avanzada [Gemini + Codex]
+
+- [ ] **AI-01** `[Gemini]` Autocomplete de diagnóstico en la nota SOAP — dropdown cuando el médico escribe en campo A
+      _API_: `GET openclaw-cie10-suggest?q=` con debounce 400ms
+- [ ] **AI-02** `[Gemini]` Resumen automático de la consulta — botón en la HCE que llama al API y muestra en modal
+      _API_: `POST openclaw-chat` con contexto de la consulta actual
+- [ ] **AI-03** `[Gemini]` Sugerencias de seguimiento — panel en HCE que muestra: "Próximo control en X semanas", "Pedir laboratorios"
+      _API_: `GET openclaw-patient?patientId=`
+- [ ] **AI-04** `[Codex]` `GET openclaw-cie10-suggest?q=` — búsqueda eficiente en el catálogo CIE-10 por texto
+      _Target_: < 50ms de respuesta, caché de 1 hora
+- [ ] **AI-05** `[Codex]` Rate limit específico para `openclaw-chat`: máx 20 req/min por usuario admin
+- [ ] **AI-06** `[Gemini]` Historial de preguntas al copiloto por sesión — scroll up muestra preguntas anteriores de la misma consulta
+
