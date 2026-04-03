@@ -1,52 +1,19 @@
 {
   "name": "aurora-derm",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "php -S 0.0.0.0:8000 api.php",
-    "test": "php vendor/bin/phpunit --testsuite Smoke && npm run test:routes",
-    "test:routes": "node bin/check-route-integrity.js",
-    "test:node": "node --test tests-node/",
-    "test:php": "php vendor/bin/phpunit",
-    "test:e2e": "npx playwright test",
-    "test:admin": "npx playwright test tests/admin-ui-runtime-smoke.spec.js --workers=1",
-    "test:portal": "node --test tests-node/portal-patient-e2e.test.js",
-    "lint": "npm run lint:php && npm run lint:js",
-    "lint:php": "node bin/lint-php-syntax.js",
-    "lint:js": "eslint .",
-    "smoke": "node bin/smoke-prod.js",
-    "sitemap": "node bin/gen-sitemap.js",
-    "backup": "bash ops/backup.sh",
-    "ops:install-crons": "crontab -l 2>/dev/null | cat - ops/crontab.txt | crontab -",
-    "build:rollup": "npx rollup -c rollup.config.mjs",
-    "format": "prettier --write .",
-    "prepare": "husky"
-  },
-  "lint-staged": {
-    "*.php": "node bin/run-php-cs-fixer.js fix",
-    "*.{js,mjs,cjs,json,md}": "prettier --write",
-    "*.{js,mjs,cjs}": "eslint --fix"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.58.2",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@rollup/plugin-strip": "^3.0.4",
-    "@rollup/plugin-terser": "^1.0.0",
-    "astro": "^5.18.1",
-    "cssnano": "^7.1.2",
-    "eslint": "^10.0.3",
-    "eslint-plugin-playwright": "^2.7.0",
-    "globals": "^17.3.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
-    "prettier": "^3.8.1",
-    "purgecss": "^8.0.0",
-    "rollup": "^4.59.0",
-    "yaml": "^2.8.2"
-  },
-  "overrides": {
-    "devalue": "^5.6.4",
-    "svgo": "^4.0.1",
-    "flatted": "^3.4.1"
+    "dev":              "php -S 127.0.0.1:8000 bin/local-stage-router.php",
+    "lint":             "npm run lint:php && npm run test:routes",
+    "lint:php":         "node bin/lint-php-syntax.js",
+    "test":             "npm run lint && npm run test:php && npm run test:node",
+    "test:routes":      "node bin/check-route-integrity.js",
+    "test:php":         "php vendor/bin/phpunit",
+    "test:node":        "node --test tests-node/backend-only-smoke.test.js",
+    "smoke":            "node --test tests-node/backend-only-smoke.test.js",
+    "prune":            "node bin/prune.js",
+    "prune:delete":     "node bin/prune.js --delete",
+    "backup":           "bash ops/backup.sh",
+    "ops:install-crons":"crontab -l 2>/dev/null | cat - ops/crontab.txt | crontab -"
   }
 }
