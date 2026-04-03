@@ -131,10 +131,10 @@ function get_db_connection(?string $dbPath = null, bool $reset = false): ?PDO
     }
 
     // Try Environment Variables (MySQL)
-    $host = getenv('PIELARMONIA_DB_HOST');
-    $name = getenv('PIELARMONIA_DB_NAME');
-    $user = getenv('PIELARMONIA_DB_USER');
-    $pass = getenv('PIELARMONIA_DB_PASS');
+    $host = getenv('DB_HOST') ?: getenv('PIELARMONIA_DB_HOST');
+    $name = getenv('DB_NAME') ?: getenv('PIELARMONIA_DB_NAME');
+    $user = getenv('DB_USER') ?: getenv('PIELARMONIA_DB_USER');
+    $pass = getenv('DB_PASS') ?: getenv('PIELARMONIA_DB_PASS');
 
     if (is_string($host) && is_string($name) && is_string($user) && is_string($pass) &&
         $host !== '' && $name !== '' && $user !== '') {
@@ -148,7 +148,7 @@ function get_db_connection(?string $dbPath = null, bool $reset = false): ?PDO
             $connectionKey = 'mysql:' . $host . ':' . $name . ':' . $user;
             return $pdo;
         } catch (PDOException $e) {
-            error_log('Aurora Derm DB Connection Error: Could not connect to database.');
+            error_log('Aurora Derm DB Connection Error: Could not connect to database MySQL.');
             return null;
         }
     }
@@ -193,176 +193,22 @@ function close_db_connection(): void
 
 function ensure_db_schema(): void
 {
-    $pdo = get_db_connection();
-    if ($pdo === null) {
-        return;
-    }
-
-    $queries = [
-        "CREATE TABLE IF NOT EXISTS appointments (
-            id INTEGER PRIMARY KEY,
-            date TEXT NOT NULL,
-            time TEXT NOT NULL,
-            doctor TEXT,
-            service TEXT,
-            name TEXT,
-            email TEXT,
-            phone TEXT,
-            status TEXT DEFAULT 'confirmed',
-            paymentMethod TEXT,
-            paymentStatus TEXT,
-            paymentIntentId TEXT,
-            rescheduleToken TEXT,
-            json_data TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        "CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            rating INTEGER,
-            text TEXT,
-            date TEXT,
-            verified INTEGER DEFAULT 0,
-            json_data TEXT
-        )",
-        "CREATE TABLE IF NOT EXISTS callbacks (
-            id INTEGER PRIMARY KEY,
-            telefono TEXT,
-            preferencia TEXT,
-            fecha TEXT,
-            status TEXT DEFAULT 'pendiente',
-            json_data TEXT
-        )",
-        "CREATE TABLE IF NOT EXISTS availability (
-            date TEXT,
-            time TEXT,
-            doctor TEXT,
-            PRIMARY KEY (date, time, doctor)
-        )",
-        "CREATE TABLE IF NOT EXISTS queue_tickets (
-            id INTEGER PRIMARY KEY,
-            ticketCode TEXT NOT NULL,
-            dailySeq INTEGER NOT NULL,
-            queueType TEXT NOT NULL,
-            appointmentId INTEGER NULL,
-            patientInitials TEXT,
-            phoneLast4 TEXT,
-            priorityClass TEXT NOT NULL,
-            status TEXT NOT NULL,
-            assignedConsultorio INTEGER NULL,
-            createdAt TEXT NOT NULL,
-            calledAt TEXT NULL,
-            completedAt TEXT NULL,
-            createdSource TEXT NOT NULL,
-            json_data TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        "CREATE TABLE IF NOT EXISTS telemedicine_intakes (
-            id INTEGER PRIMARY KEY,
-            appointmentId INTEGER NULL,
-            channel TEXT NOT NULL,
-            legacyService TEXT NOT NULL,
-            requestedDate TEXT,
-            requestedTime TEXT,
-            doctor TEXT,
-            patientEmail TEXT,
-            patientPhone TEXT,
-            status TEXT NOT NULL,
-            suitability TEXT NOT NULL,
-            reviewRequired INTEGER NOT NULL DEFAULT 0,
-            paymentStatus TEXT,
-            json_data TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        "CREATE TABLE IF NOT EXISTS clinical_uploads (
-            id INTEGER PRIMARY KEY,
-            intakeId INTEGER NULL,
-            appointmentId INTEGER NULL,
-            kind TEXT NOT NULL,
-            storageMode TEXT NOT NULL,
-            privatePath TEXT,
-            legacyPublicPath TEXT,
-            mime TEXT,
-            size INTEGER,
-            sha256 TEXT,
-            originalName TEXT,
-            json_data TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        "CREATE TABLE IF NOT EXISTS kv_store (
-            key TEXT PRIMARY KEY,
-            value TEXT,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        "CREATE TABLE IF NOT EXISTS gift_cards (
-            id INTEGER PRIMARY KEY,
-            code TEXT UNIQUE NOT NULL,
-            amount_cents INTEGER NOT NULL,
-            balance_cents INTEGER NOT NULL,
-            issuer_id TEXT,
-            recipient_email TEXT,
-            status TEXT DEFAULT 'active',
-            issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            expires_at DATETIME
-        )",
-        "CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date)",
-        "CREATE INDEX IF NOT EXISTS idx_appointments_email ON appointments(email)",
-        "CREATE INDEX IF NOT EXISTS idx_appointments_rescheduleToken ON appointments(rescheduleToken)",
-        "CREATE INDEX IF NOT EXISTS idx_reviews_rating ON reviews(rating)",
-        "CREATE INDEX IF NOT EXISTS idx_queue_tickets_status ON queue_tickets(status)",
-        "CREATE INDEX IF NOT EXISTS idx_queue_tickets_createdAt ON queue_tickets(createdAt)",
-        "CREATE INDEX IF NOT EXISTS idx_queue_tickets_dailySeq ON queue_tickets(dailySeq)",
-        "CREATE INDEX IF NOT EXISTS idx_telemedicine_intakes_status ON telemedicine_intakes(status)",
-        "CREATE INDEX IF NOT EXISTS idx_telemedicine_intakes_appointmentId ON telemedicine_intakes(appointmentId)",
-        "CREATE INDEX IF NOT EXISTS idx_telemedicine_intakes_requestedDate ON telemedicine_intakes(requestedDate)",
-        "CREATE INDEX IF NOT EXISTS idx_telemedicine_intakes_patientEmail ON telemedicine_intakes(patientEmail)",
-        "CREATE INDEX IF NOT EXISTS idx_clinical_uploads_intakeId ON clinical_uploads(intakeId)",
-        "CREATE INDEX IF NOT EXISTS idx_clinical_uploads_appointmentId ON clinical_uploads(appointmentId)",
-        "CREATE INDEX IF NOT EXISTS idx_clinical_uploads_kind ON clinical_uploads(kind)",
-        "CREATE TABLE IF NOT EXISTS cron_failures (
-            id INTEGER PRIMARY KEY,
-            task_name TEXT,
-            payload TEXT,
-            attempt_count INTEGER DEFAULT 0,
-            next_retry_at DATETIME,
-            last_error TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        "CREATE INDEX IF NOT EXISTS idx_cron_failures_retry ON cron_failures(next_retry_at)",
-        "CREATE INDEX IF NOT EXISTS idx_gift_cards_code ON gift_cards(code)",
-        "CREATE INDEX IF NOT EXISTS idx_gift_cards_status ON gift_cards(status)",
-        "CREATE TABLE IF NOT EXISTS referrals (
-            id INTEGER PRIMARY KEY,
-            code TEXT UNIQUE NOT NULL,
-            patient_id TEXT NOT NULL,
-            clicks INTEGER DEFAULT 0,
-            conversions INTEGER DEFAULT 0,
-            status TEXT DEFAULT 'active',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        "CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(code)",
-        "CREATE INDEX IF NOT EXISTS idx_referrals_patient_id ON referrals(patient_id)",
-        "CREATE TABLE IF NOT EXISTS memberships (
-            id INTEGER PRIMARY KEY,
-            patient_id TEXT NOT NULL,
-            status TEXT DEFAULT 'active',
-            plan TEXT NOT NULL,
-            expires_at DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        "CREATE INDEX IF NOT EXISTS idx_memberships_patient_id ON memberships(patient_id)"
-    ];
-
-    foreach ($queries as $sql) {
-        try {
-            $pdo->exec($sql);
-        } catch (PDOException $e) {
-            error_log('Aurora Derm Schema Error: ' . $e->getMessage());
-        }
-    }
+    // EN LA ARQUITECTURA 2.0 (RELACIONAL):
+    // El esquema ya no se fuerza con 'json_data TEXT' como antes en SQLite.
+    // Usar 'database.sql' y poblar MySQL local en vez de autogenerar tablas flat.
 }
+
+/**
+ * Fetch a patient from the new MySQL normalized table
+ */
+function fetch_patient_by_id(string $patientId): ?array
+{
+    $pdo = get_db_connection();
+    if (!$pdo) return null;
+
+    $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? LIMIT 1");
+    $stmt->execute([$patientId]);
+    $result = $stmt->fetch();
+    return $result ?: null;
+}
+

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 final class CheckoutCartService
 {
-    public static
     function buildOfflineMethodOrder(array $payload, string $method): array
     {
         $safeMethod = strtolower(trim($method));
@@ -31,9 +30,7 @@ final class CheckoutCartService
         return $order;
     }
 
-    public static
 
-    public static
     function upsertOrder(array $store, array $order): array
     {
         $orders = isset($store['checkout_orders']) && is_array($store['checkout_orders'])
@@ -64,9 +61,7 @@ final class CheckoutCartService
         return $store;
     }
 
-    public static
 
-    public static
     function findOrder(array $store, string $orderId): ?array
     {
         $safeOrderId = trim($orderId);
@@ -89,9 +84,7 @@ final class CheckoutCartService
         return null;
     }
 
-    public static
 
-    public static
     function buildReceipt(array $order): array
     {
         $amountCents = (int) ($order['amountCents'] ?? 0);
@@ -133,9 +126,7 @@ final class CheckoutCartService
         ];
     }
 
-    public static
 
-    public static
     function buildAdminReviewMeta(array $store): array
     {
         $orders = isset($store['checkout_orders']) && is_array($store['checkout_orders'])
@@ -239,9 +230,7 @@ final class CheckoutCartService
         ];
     }
 
-    public static
 
-    public static
     function buildAdminAccountMeta(array $store): array
     {
         $orders = isset($store['checkout_orders']) && is_array($store['checkout_orders'])
@@ -481,9 +470,7 @@ final class CheckoutCartService
         ];
     }
 
-    private static
 
-    private static
     function normalizeOrderDraft(array $payload): array
     {
         $payerName = truncate_field(sanitize_xss(trim((string) ($payload['name'] ?? ''))), 150);
@@ -549,9 +536,7 @@ final class CheckoutCartService
         ];
     }
 
-    private static
 
-    private static
     function applyMembershipDiscount(int $amountCents, string $email, string $whatsapp, string $caseId): int
     {
         require_once __DIR__ . '/memberships/MembershipService.php';
@@ -585,9 +570,7 @@ final class CheckoutCartService
         return $amountCents;
     }
 
-    private static
 
-    private static
     function normalizeAmountCents($amountValue, $amountCentsValue): int
     {
         if ($amountCentsValue !== null && $amountCentsValue !== '') {
@@ -620,9 +603,7 @@ final class CheckoutCartService
         return $amountCents;
     }
 
-    private static
 
-    private static
     function generateOrderId(): string
     {
         try {
@@ -634,9 +615,7 @@ final class CheckoutCartService
         return 'co_' . $suffix;
     }
 
-    private static
 
-    private static
     function buildReceiptNumber(string $createdAt): string
     {
         $dateToken = preg_replace('/[^0-9]/', '', substr($createdAt, 0, 10));
@@ -653,18 +632,14 @@ final class CheckoutCartService
         return 'PAY-' . $dateToken . '-' . $suffix;
     }
 
-    private static
 
-    private static
     function formatCurrency(int $amountCents, string $currency): string
     {
         $prefix = strtoupper($currency) === 'USD' ? '$' : strtoupper($currency) . ' ';
         return $prefix . number_format($amountCents / 100, 2, '.', ',');
     }
 
-    private static
 
-    private static
     function bankData(): array
     {
         return [
@@ -674,9 +649,7 @@ final class CheckoutCartService
         ];
     }
 
-    private static
 
-    private static
     function paymentMethodLabel(string $method): string
     {
         $labels = [
@@ -688,9 +661,7 @@ final class CheckoutCartService
         return $labels[$method] ?? 'Pendiente';
     }
 
-    private static
 
-    private static
     function paymentStatusLabel(string $status, array $order = []): string
     {
         if (
@@ -713,9 +684,7 @@ final class CheckoutCartService
         return $labels[$status] ?? 'Pendiente';
     }
 
-    private static
 
-    private static
     function buildAccountPatientKey(array $order): string
     {
         $email = strtolower(trim((string) ($order['payerEmail'] ?? '')));
@@ -736,9 +705,7 @@ final class CheckoutCartService
         return 'order:' . trim((string) ($order['id'] ?? ''));
     }
 
-    private static
 
-    private static
     function resolveOrderActivityAt(array $order): string
     {
         foreach ([
@@ -756,9 +723,7 @@ final class CheckoutCartService
         return '';
     }
 
-    private static
 
-    private static
     function resolveOrderDueAt(array $order): string
     {
         $dueAt = self::normalizeIsoDateTime((string) ($order['dueAt'] ?? ''));
@@ -772,9 +737,7 @@ final class CheckoutCartService
         );
     }
 
-    private static
 
-    private static
     function buildDefaultDueAt(string $createdAt, string $method): string
     {
         $createdAt = self::normalizeIsoDateTime($createdAt);
@@ -795,9 +758,7 @@ final class CheckoutCartService
         );
     }
 
-    private static
 
-    private static
     function addMinutesToIso(string $value, int $minutes): string
     {
         try {
@@ -809,9 +770,7 @@ final class CheckoutCartService
         }
     }
 
-    private static
 
-    private static
     function addHoursToIso(string $value, int $hours): string
     {
         try {
@@ -823,9 +782,7 @@ final class CheckoutCartService
         }
     }
 
-    private static
 
-    private static
     function normalizeIsoDateTime(string $value): string
     {
         $trimmed = trim($value);
@@ -840,9 +797,7 @@ final class CheckoutCartService
         }
     }
 
-    private static
 
-    private static
     function isoTimestamp(string $value): int
     {
         $normalized = self::normalizeIsoDateTime($value);
@@ -857,9 +812,7 @@ final class CheckoutCartService
         }
     }
 
-    private static
 
-    private static
     function assertTransferOrder(array $order): void
     {
         $method = strtolower(trim((string) ($order['paymentMethod'] ?? '')));

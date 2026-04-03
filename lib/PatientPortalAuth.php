@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/storage.php';
+require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/whatsapp_openclaw/bootstrap.php';
 
 final class PatientPortalAuth
@@ -20,7 +21,7 @@ final class PatientPortalAuth
         return self::STORAGE_KEY;
     }
 
-    public static function startLogin(array $store, string $phone): array
+    public static function startLogin(string $phone): array
     {
         $phone = trim($phone);
         if ($phone === '') {
@@ -31,7 +32,7 @@ final class PatientPortalAuth
             return self::error('El formato de WhatsApp no es valido', 400, 'patient_portal_phone_invalid');
         }
 
-        $snapshot = self::resolvePatientSnapshot($store, $phone);
+        $snapshot = self::resolvePatientSnapshot($phone);
         if ($snapshot === []) {
             return self::error(
                 'No encontramos una cita o expediente asociado a ese WhatsApp.',
@@ -96,7 +97,7 @@ final class PatientPortalAuth
         ];
     }
 
-    public static function completeLogin(array $store, string $phone, string $code, string $challengeId = ''): array
+    public static function completeLogin(string $phone, string $code, string $challengeId = ''): array
     {
         $phone = trim($phone);
         $code = preg_replace('/\D+/', '', $code);
@@ -155,7 +156,7 @@ final class PatientPortalAuth
 
         self::deleteChallenge($lookupPhone);
 
-        $snapshot = self::resolvePatientSnapshot($store, $phone);
+        $snapshot = self::resolvePatientSnapshot($phone);
         if ($snapshot === []) {
             $snapshot = is_array($challenge['patient'] ?? null) ? $challenge['patient'] : [];
         }
@@ -203,7 +204,7 @@ final class PatientPortalAuth
         ];
     }
 
-    public static function readStatus(array $store, ?string $token): array
+    public static function readStatus(?string $token): array
     {
         $token = trim((string) $token);
         if ($token === '') {
@@ -216,7 +217,7 @@ final class PatientPortalAuth
             ];
         }
 
-        $session = self::authenticateSession($store, $token);
+        $session = self::authenticateSession($token);
         if (($session['ok'] ?? false) !== true) {
             return [
                 'ok' => true,
@@ -238,7 +239,7 @@ final class PatientPortalAuth
         ];
     }
 
-    public static function authenticateSession(array $store, ?string $token): array
+    public static function authenticateSession(?string $token): array
     {
         $token = trim((string) $token);
         if ($token === '') {
@@ -258,7 +259,7 @@ final class PatientPortalAuth
             );
         }
 
-        $snapshot = self::resolvePatientSnapshot($store, (string) ($claims['phone'] ?? ''));
+        $snapshot = self::resolvePatientSnapshot((string) ($claims['phone'] ?? ''));
         if ($snapshot === []) {
             $snapshot = [
                 'subject' => (string) ($claims['sub'] ?? ''),
@@ -283,7 +284,7 @@ final class PatientPortalAuth
             ],
         ];
     }
-    public static function authenticateDownloadToken(array $store, string $token): array
+    public static function authenticateDownloadToken(string $token): array
     {
         $token = trim($token);
         if ($token === '') {
@@ -299,7 +300,7 @@ final class PatientPortalAuth
             return self::error('El token no permite descarga.', 403, 'patient_portal_download_token_scope');
         }
 
-        $snapshot = self::resolvePatientSnapshot($store, (string) ($claims['phone'] ?? ''));
+        $snapshot = self::resolvePatientSnapshot((string) ($claims['phone'] ?? ''));
         if ($snapshot === []) {
             return self::error('Paciente no encontrado.', 404, 'patient_portal_download_patient_missing');
         }
@@ -361,50 +362,41 @@ final class PatientPortalAuth
         return '';
     }
 
-    private static function resolvePatientSnapshot(array $store, string $phone): array
+    private static function resolvePatientSnapshot(string $phone): array
     {
-        $appointment = self::findLatestAppointment($store, $phone);
-        $case = self::findLatestPatientCase($store, $phone);
-
-        if ($appointment === [] && $case === []) {
+        $lookupPhone = self::normalizePhoneForLookup($phone);
+        if ($lookupPhone === '') {
             return [];
         }
 
-        $summary = is_array($case['summary'] ?? null) ? $case['summary'] : [];
-        $resolvedPhone = self::firstNonEmptyString(
-            (string) ($appointment['phone'] ?? ''),
-            (string) ($summary['contactPhone'] ?? ''),
-            $phone
-        );
-        $lookupPhone = self::normalizePhoneForLookup($resolvedPhone);
-        $patientId = self::firstNonEmptyString(
-            (string) ($appointment['patientId'] ?? ''),
-            (string) ($case['patientId'] ?? ''),
-            $lookupPhone !== '' ? 'phone:' . $lookupPhone : ''
-        );
-        $patientCaseId = self::firstNonEmptyString(
-            (string) ($appointment['patientCaseId'] ?? ''),
-            (string) ($case['id'] ?? '')
-        );
-        $name = self::firstNonEmptyString(
-            trim((string) ($appointment['name'] ?? '')),
-            trim((string) ($summary['patientLabel'] ?? '')),
-            'Paciente Aurora Derm'
-        );
+        $pdo = get_db_connection();
+        if (!$pdo) {
+            return [];
+        }
+
+        $stmt = $pdo->prepare("SELECT id, first_name, last_name, email, phone FROM patients WHERE phone = ? LIMIT 1");
+        $stmt->execute([$lookupPhone]);
+        $row = $stmt->fetch();
+
+        if (!$row) {
+            return [];
+        }
+
+        $name = trim($row['first_name'] . ' ' . $row['last_name']);
+        if ($name === '') {
+            $name = 'Paciente Aurora Derm';
+        }
 
         return [
-            'subject' => $patientId !== '' ? $patientId : ('phone:' . $lookupPhone),
-            'patientId' => $patientId,
-            'patientCaseId' => $patientCaseId,
+            'subject' => $row['id'],
+            'patientId' => $row['id'],
+            'patientCaseId' => '',
             'name' => $name,
             'phone' => $lookupPhone,
-            'phoneMasked' => self::maskPhone($resolvedPhone),
-            'email' => self::firstNonEmptyString(
-                (string) ($appointment['email'] ?? ''),
-                (string) ($summary['contactEmail'] ?? '')
-            ),
-            'lastAppointmentId' => (int) ($appointment['id'] ?? 0),
-            'source' => $appointment !== [] ? 'appointment' : 'patient_case',
+            'phoneMasked' => self::maskPhone($lookupPhone),
+            'email' => (string) ($row['email'] ?? ''),
+            'lastAppointmentId' => 0,
+            'source' => 'mysql',
         ];
     }
 
@@ -419,84 +411,6 @@ final class PatientPortalAuth
             'lastAppointmentId' => (int) ($snapshot['lastAppointmentId'] ?? 0),
             'source' => (string) ($snapshot['source'] ?? ''),
         ];
-    }
-
-    private static function findLatestAppointment(array $store, string $phone): array
-    {
-        $matches = [];
-        foreach (($store['appointments'] ?? []) as $appointment) {
-            if (!is_array($appointment)) {
-                continue;
-            }
-            if (!self::phonesMatch((string) ($appointment['phone'] ?? ''), $phone)) {
-                continue;
-            }
-            $matches[] = $appointment;
-        }
-
-        usort($matches, static function (array $left, array $right): int {
-            return self::recordSortTimestamp($right) <=> self::recordSortTimestamp($left);
-        });
-
-        return $matches[0] ?? [];
-    }
-
-    private static function findLatestPatientCase(array $store, string $phone): array
-    {
-        $matches = [];
-        foreach (($store['patient_cases'] ?? []) as $case) {
-            if (!is_array($case)) {
-                continue;
-            }
-            $summary = is_array($case['summary'] ?? null) ? $case['summary'] : [];
-            $candidatePhones = [
-                (string) ($summary['contactPhone'] ?? ''),
-                (string) ($case['contactPhone'] ?? ''),
-                (string) ($summary['patientPhone'] ?? ''),
-            ];
-
-            $isMatch = false;
-            foreach ($candidatePhones as $candidatePhone) {
-                if (self::phonesMatch($candidatePhone, $phone)) {
-                    $isMatch = true;
-                    break;
-                }
-            }
-
-            if ($isMatch) {
-                $matches[] = $case;
-            }
-        }
-
-        usort($matches, static function (array $left, array $right): int {
-            return self::recordSortTimestamp($right) <=> self::recordSortTimestamp($left);
-        });
-
-        return $matches[0] ?? [];
-    }
-
-    private static function recordSortTimestamp(array $record): int
-    {
-        $candidates = [
-            (string) ($record['latestActivityAt'] ?? ''),
-            (string) ($record['dateBooked'] ?? ''),
-            trim((string) ($record['date'] ?? '') . ' ' . (string) ($record['time'] ?? '')),
-            (string) ($record['openedAt'] ?? ''),
-            (string) ($record['createdAt'] ?? ''),
-        ];
-
-        foreach ($candidates as $candidate) {
-            $candidate = trim($candidate);
-            if ($candidate === '') {
-                continue;
-            }
-            $timestamp = strtotime($candidate);
-            if ($timestamp !== false) {
-                return $timestamp;
-            }
-        }
-
-        return 0;
     }
 
     private static function buildOtpWhatsappMessage(array $snapshot, string $code): string

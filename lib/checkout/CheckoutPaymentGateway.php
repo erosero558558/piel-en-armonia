@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 final class CheckoutPaymentGateway
 {
-    public static
-    function buildCardIntentRequest(array $payload): array
+    public static function buildCardIntentRequest(array $payload): array
     {
         $order = CheckoutOrderService::normalizeOrderDraft($payload);
         $order['paymentMethod'] = 'card';
@@ -48,10 +47,7 @@ final class CheckoutPaymentGateway
         ];
     }
 
-    public static
-
-    public static
-    function attachCardIntent(array $order, array $intent): array
+    public static function attachCardIntent(array $order, array $intent): array
     {
         $order['paymentIntentId'] = trim((string) ($intent['id'] ?? ''));
         $order['paymentIntentStatus'] = trim((string) ($intent['status'] ?? ''));
@@ -59,10 +55,7 @@ final class CheckoutPaymentGateway
         return $order;
     }
 
-    public static
-
-    public static
-    function attachTransferProof(
+    public static function attachTransferProof(
         array $order,
         array $upload,
         array $payload = []
@@ -91,10 +84,7 @@ final class CheckoutPaymentGateway
         return $order;
     }
 
-    public static
-
-    public static
-    function verifyTransfer(array $order): array
+    public static function verifyTransfer(array $order): array
     {
         CheckoutOrderService::assertTransferOrder($order);
         $status = strtolower(trim((string) ($order['paymentStatus'] ?? '')));
@@ -116,10 +106,7 @@ final class CheckoutPaymentGateway
         return $order;
     }
 
-    public static
-
-    public static
-    function applyTransfer(array $order): array
+    public static function applyTransfer(array $order): array
     {
         CheckoutOrderService::assertTransferOrder($order);
         $status = strtolower(trim((string) ($order['paymentStatus'] ?? '')));
@@ -140,10 +127,7 @@ final class CheckoutPaymentGateway
         return $order;
     }
 
-    public static
-
-    public static
-    function confirmPaidCardOrder(array $order, array $intent): array
+    public static function confirmPaidCardOrder(array $order, array $intent): array
     {
         $paymentIntentId = trim((string) ($intent['id'] ?? ''));
         $status = trim((string) ($intent['status'] ?? ''));
@@ -175,7 +159,5 @@ final class CheckoutPaymentGateway
 
         return $order;
     }
-
-    public static
 
 }

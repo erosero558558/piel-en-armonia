@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class FigoSanitizer
 {
-    public static function FigoSanitizer::api_strip_utf8_bom(string $raw): string
+    public static function api_strip_utf8_bom(string $raw): string
     {
         if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
             return substr($raw, 3);
@@ -13,7 +13,7 @@ final class FigoSanitizer
         return $raw;
     }
 
-    public static function FigoSanitizer::api_mask_secret_value(string $value): string
+    public static function api_mask_secret_value(string $value): string
     {
         $value = trim($value);
         if ($value === '') {
@@ -28,7 +28,7 @@ final class FigoSanitizer
         return substr($value, 0, 6) . str_repeat('*', max(4, $length - 10)) . substr($value, -4);
     }
 
-    public static function FigoSanitizer::api_mask_figo_config(array $config): array
+    public static function api_mask_figo_config(array $config): array
     {
         $masked = [];
         foreach ($config as $key => $value) {
@@ -70,7 +70,7 @@ final class FigoSanitizer
         return $masked;
     }
 
-    public static function FigoSanitizer::api_parse_optional_bool($raw): ?bool
+    public static function api_parse_optional_bool($raw): ?bool
     {
         if (is_bool($raw)) {
             return $raw;
@@ -92,7 +92,7 @@ final class FigoSanitizer
         return null;
     }
 
-    public static function FigoSanitizer::api_validate_absolute_http_url(string $url, string $field): void
+    public static function api_validate_absolute_http_url(string $url, string $field): void
     {
         $url = trim($url);
         if ($url === '') {
@@ -111,7 +111,7 @@ final class FigoSanitizer
         }
     }
 
-    public static function FigoSanitizer::api_first_non_empty(array $values): string
+    public static function api_first_non_empty(array $values): string
     {
         foreach ($values as $value) {
             if (is_string($value) && trim($value) !== '') {
@@ -121,7 +121,7 @@ final class FigoSanitizer
         return '';
     }
 
-    public static function FigoSanitizer::api_parse_bool($raw, bool $default = false): bool
+    public static function api_parse_bool($raw, bool $default = false): bool
     {
         $parsed = FigoSanitizer::api_parse_optional_bool($raw);
         return $parsed !== null ? $parsed : $default;

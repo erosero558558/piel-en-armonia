@@ -12,10 +12,7 @@ final class PatientPortalAuthController
         $payload = require_json_body();
         $phone = trim((string) ($payload['phone'] ?? ($payload['whatsapp'] ?? '')));
 
-        $result = PatientPortalAuth::startLogin(
-            is_array($context['store'] ?? null) ? $context['store'] : [],
-            $phone
-        );
+        $result = PatientPortalAuth::startLogin($phone);
 
         self::emit($result);
     }
@@ -28,7 +25,6 @@ final class PatientPortalAuthController
         $challengeId = trim((string) ($payload['challengeId'] ?? ''));
 
         $result = PatientPortalAuth::completeLogin(
-            is_array($context['store'] ?? null) ? $context['store'] : [],
             $phone,
             $code,
             $challengeId
@@ -40,7 +36,6 @@ final class PatientPortalAuthController
     public static function status(array $context): void
     {
         $result = PatientPortalAuth::readStatus(
-            is_array($context['store'] ?? null) ? $context['store'] : [],
             PatientPortalAuth::bearerTokenFromRequest()
         );
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class FigoRouter
 {
-    public static function FigoRouter::api_resolve_figo_endpoint_for_health(): string
+    public static function api_resolve_figo_endpoint_for_health(): string
     {
         $envCandidates = [
             getenv('FIGO_CHAT_ENDPOINT'),
@@ -64,7 +64,7 @@ final class FigoRouter
         return '';
     }
 
-    public static function FigoRouter::api_is_figo_recursive_config(string $endpoint): bool
+    public static function api_is_figo_recursive_config(string $endpoint): bool
     {
         $endpoint = trim($endpoint);
         if ($endpoint === '') {
@@ -109,7 +109,7 @@ final class FigoRouter
         return $endpointPath === '/figo-chat.php';
     }
 
-    public static function FigoRouter::api_figo_config_candidate_paths(): array
+    public static function api_figo_config_candidate_paths(): array
     {
         $paths = [];
     
@@ -142,7 +142,7 @@ final class FigoRouter
         return $normalized;
     }
 
-    public static function FigoRouter::api_resolve_figo_config_path(): string
+    public static function api_resolve_figo_config_path(): string
     {
         $candidates = FigoRouter::api_figo_config_candidate_paths();
         foreach ($candidates as $candidate) {
@@ -154,7 +154,7 @@ final class FigoRouter
         return $candidates[0] ?? (dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'figo-config.json');
     }
 
-    public static function FigoRouter::api_read_figo_config_with_meta(): array
+    public static function api_read_figo_config_with_meta(): array
     {
         $path = FigoRouter::api_resolve_figo_config_path();
         if (!is_file($path)) {
@@ -191,7 +191,7 @@ final class FigoRouter
         ];
     }
 
-    public static function FigoRouter::api_merge_figo_config(array $existing, array $payload): array
+    public static function api_merge_figo_config(array $existing, array $payload): array
     {
         $next = $existing;
         $endpointTouched = false;
@@ -472,7 +472,7 @@ final class FigoRouter
         return $next;
     }
 
-    public static function FigoRouter::api_figo_read_config(): array
+    public static function api_figo_read_config(): array
     {
         static $cached = null;
         if (is_array($cached)) {
@@ -489,7 +489,7 @@ final class FigoRouter
         return $cached;
     }
 
-    public static function FigoRouter::api_figo_env_ai_endpoint(): string
+    public static function api_figo_env_ai_endpoint(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -505,7 +505,7 @@ final class FigoRouter
         ]);
     }
 
-    public static function FigoRouter::api_figo_env_ai_key(): string
+    public static function api_figo_env_ai_key(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -520,7 +520,7 @@ final class FigoRouter
         ]);
     }
 
-    public static function FigoRouter::api_figo_env_ai_key_header(): string
+    public static function api_figo_env_ai_key_header(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -537,7 +537,7 @@ final class FigoRouter
         return $header !== '' ? $header : 'Authorization';
     }
 
-    public static function FigoRouter::api_figo_env_ai_key_prefix(): string
+    public static function api_figo_env_ai_key_prefix(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -554,7 +554,7 @@ final class FigoRouter
         return $prefix !== '' ? $prefix : 'Bearer';
     }
 
-    public static function FigoRouter::api_figo_env_ai_timeout_seconds(): int
+    public static function api_figo_env_ai_timeout_seconds(): int
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -578,7 +578,7 @@ final class FigoRouter
         return $timeout;
     }
 
-    public static function FigoRouter::api_figo_env_ai_connect_timeout_seconds(): int
+    public static function api_figo_env_ai_connect_timeout_seconds(): int
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -606,7 +606,7 @@ final class FigoRouter
         return $connectTimeout;
     }
 
-    public static function FigoRouter::api_figo_env_ai_failfast_window_seconds(): int
+    public static function api_figo_env_ai_failfast_window_seconds(): int
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -633,7 +633,7 @@ final class FigoRouter
         return $window;
     }
 
-    public static function FigoRouter::api_figo_env_ai_max_tokens(): int
+    public static function api_figo_env_ai_max_tokens(): int
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -658,7 +658,7 @@ final class FigoRouter
         return $maxTokens;
     }
 
-    public static function FigoRouter::api_figo_env_ai_model(): string
+    public static function api_figo_env_ai_model(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -672,7 +672,7 @@ final class FigoRouter
         return $model !== '' ? $model : 'auto';
     }
 
-    public static function FigoRouter::api_figo_env_allow_local_fallback(): bool
+    public static function api_figo_env_allow_local_fallback(): bool
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
@@ -696,7 +696,7 @@ final class FigoRouter
         return FigoRouter::api_figo_env_ai_endpoint() === '';
     }
 
-    public static function FigoRouter::api_figo_env_provider_mode(): string
+    public static function api_figo_env_provider_mode(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $openclawNode = isset($fileConfig['openclaw']) && is_array($fileConfig['openclaw'])
@@ -714,7 +714,7 @@ final class FigoRouter
         return $mode;
     }
 
-    public static function FigoRouter::api_figo_env_gateway_endpoint(): string
+    public static function api_figo_env_gateway_endpoint(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $openclawNode = isset($fileConfig['openclaw']) && is_array($fileConfig['openclaw'])
@@ -734,7 +734,7 @@ final class FigoRouter
         ]);
     }
 
-    public static function FigoRouter::api_figo_env_gateway_api_key(): string
+    public static function api_figo_env_gateway_api_key(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $openclawNode = isset($fileConfig['openclaw']) && is_array($fileConfig['openclaw'])
@@ -753,7 +753,7 @@ final class FigoRouter
         ]);
     }
 
-    public static function FigoRouter::api_figo_env_gateway_model(): string
+    public static function api_figo_env_gateway_model(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $openclawNode = isset($fileConfig['openclaw']) && is_array($fileConfig['openclaw'])
@@ -773,7 +773,7 @@ final class FigoRouter
         return $model !== '' ? $model : 'auto';
     }
 
-    public static function FigoRouter::api_figo_env_gateway_key_header(): string
+    public static function api_figo_env_gateway_key_header(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $openclawNode = isset($fileConfig['openclaw']) && is_array($fileConfig['openclaw'])
@@ -794,7 +794,7 @@ final class FigoRouter
         return $header !== '' ? $header : 'Authorization';
     }
 
-    public static function FigoRouter::api_figo_env_gateway_key_prefix(): string
+    public static function api_figo_env_gateway_key_prefix(): string
     {
         $fileConfig = FigoRouter::api_figo_read_config();
         $openclawNode = isset($fileConfig['openclaw']) && is_array($fileConfig['openclaw'])

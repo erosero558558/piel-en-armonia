@@ -1,9 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/checkout/CheckoutPaymentGateway.php';
 require_once __DIR__ . '/checkout/CheckoutCartService.php';
-
-declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/validation.php';
@@ -40,7 +40,6 @@ final class CheckoutOrderService
         ];
     }
 
-    public static
 
     public static function buildCardIntentRequest(...$args)
     {

@@ -1,8 +1,7 @@
 <?php
+declare(strict_types=1);
 
 require_once __DIR__ . '/portal/PortalViewBuilderService.php';
-
-declare(strict_types=1);
 
 require_once __DIR__ . '/../../lib/api_helpers.php';
 require_once __DIR__ . '/../../payment-lib.php';
@@ -21,8 +20,7 @@ final class PortalHistoryService
         return PortalViewBuilderService::buildPortalHistory(...$args);
     }
 
-    public static
-    function findNextAppointment(array $store, array $snapshot, ?string $tenantId = null): array
+    public static function findNextAppointment(array $store, array $snapshot, ?string $tenantId = null): array
     {
         $matches = [];
         $now = time();
@@ -60,10 +58,8 @@ final class PortalHistoryService
     }
 
 
-    public static
 
-    public static
-    function findPendingSurvey(array $store, array $snapshot, array $patient, ?string $tenantId = null): ?array
+    public static function findPendingSurvey(array $store, array $snapshot, array $patient, ?string $tenantId = null): ?array
     {
         $patientId = trim((string) ($patient['documentNumber'] ?? ''));
         if ($patientId === '') {
@@ -114,7 +110,6 @@ final class PortalHistoryService
     }
 
 
-    public static
 
     public static function buildEvolutionSummary(...$args)
     {
@@ -131,8 +126,7 @@ final class PortalHistoryService
         return PortalViewBuilderService::buildPortalPhotoGallery(...$args);
     }
 
-    public static
-    function collectPatientCaseIds(array $store, array $snapshot, ?string $tenantId = null): array
+    public static function collectPatientCaseIds(array $store, array $snapshot, ?string $tenantId = null): array
     {
         $caseIds = [];
         $remember = static function (string $caseId) use (&$caseIds): void {
@@ -168,10 +162,8 @@ final class PortalHistoryService
     }
 
 
-    public static
 
-    public static
-    function patientCaseMatchesSnapshot(array $caseRecord, array $snapshot): bool
+    public static function patientCaseMatchesSnapshot(array $caseRecord, array $snapshot): bool
     {
         $caseId = trim((string) ($snapshot['patientCaseId'] ?? ''));
         if ($caseId !== '' && $caseId === trim((string) ($caseRecord['id'] ?? ''))) {
@@ -201,10 +193,8 @@ final class PortalHistoryService
     }
 
 
-    public static
 
-    public static
-    function resolveAppointmentCaseId(array $appointment, array $snapshot, ?string $tenantId = null): string
+    public static function resolveAppointmentCaseId(array $appointment, array $snapshot, ?string $tenantId = null): string
     {
         $caseId = trim((string) ($appointment['patientCaseId'] ?? ''));
         if ($caseId !== '') {
@@ -215,10 +205,8 @@ final class PortalHistoryService
     }
 
 
-    public static
 
-    public static
-    function shouldIncludeConsultationInHistory(string $status, ?int $timestamp, array $documents): bool
+    public static function shouldIncludeConsultationInHistory(string $status, ?int $timestamp, array $documents): bool
     {
         if ($status === 'completed') {
             return true;
@@ -232,10 +220,8 @@ final class PortalHistoryService
     }
 
 
-    public static
 
-    public static
-    function documentsHavePortalSignal(array $documents): bool
+    public static function documentsHavePortalSignal(array $documents): bool
     {
         foreach (['prescription', 'certificate'] as $type) {
             $status = (string) ($documents[$type]['status'] ?? '');
@@ -248,7 +234,6 @@ final class PortalHistoryService
     }
 
 
-    public static
 
     public static function buildDocumentsByCaseId(...$args)
     {
@@ -260,8 +245,7 @@ final class PortalHistoryService
         return PortalViewBuilderService::buildCasePhotoSummaryByCaseId(...$args);
     }
 
-    public static
-    function findPatientCaseRecord(array $store, string $caseId, ?string $tenantId = null): array
+    public static function findPatientCaseRecord(array $store, string $caseId, ?string $tenantId = null): array
     {
         foreach (($store['patient_cases'] ?? []) as $caseRecord) {
             if (!is_array($caseRecord)) {
@@ -277,10 +261,8 @@ final class PortalHistoryService
     }
 
 
-    public static
 
-    public static
-    function resolveCasePatient(array $store, string $caseId): array
+    public static function resolveCasePatient(array $store, string $caseId): array
     {
         if (
             $caseId !== ''
@@ -302,7 +284,6 @@ final class PortalHistoryService
     }
 
 
-    public static
 
     public static function buildCaseDateLabel(...$args)
     {
@@ -359,8 +340,7 @@ final class PortalHistoryService
         return PortalViewBuilderService::buildDocumentIssuedLabel(...$args);
     }
 
-    public static
-    function appointmentMatchesPatient(array $appointment, array $snapshot, ?string $tenantId = null): bool
+    public static function appointmentMatchesPatient(array $appointment, array $snapshot, ?string $tenantId = null): bool
     {
         $patientId = trim((string) ($snapshot['patientId'] ?? ''));
         if ($patientId !== '' && $patientId === trim((string) ($appointment['patientId'] ?? ''))) {
@@ -386,10 +366,8 @@ final class PortalHistoryService
     }
 
 
-    public static
 
-    public static
-    function hasPendingPrescriptionDraft(array $drafts): bool
+    public static function hasPendingPrescriptionDraft(array $drafts): bool
     {
         foreach ($drafts as $draft) {
             $documents = is_array($draft['documents'] ?? null) ? $draft['documents'] : [];

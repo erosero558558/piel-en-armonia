@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 final class PortalViewBuilderService
 {
-    public static
-    function buildPortalHistory(array $store, array $snapshot, array $patient, ?string $tenantId = null): array
+    public static function buildPortalHistory(array $store, array $snapshot, array $patient, ?string $tenantId = null): array
     {
         $caseIds = PortalHistoryService::collectPatientCaseIds($store, $snapshot, $tenantId);
         $documentsByCase = self::buildDocumentsByCaseId($store, $caseIds, $tenantId);
@@ -92,10 +91,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildEvolutionSummary(array $store, array $snapshot, ?string $tenantId = null): ?array
+    public static function buildEvolutionSummary(array $store, array $snapshot, ?string $tenantId = null): ?array
     {
         $caseIds = PortalHistoryService::collectPatientCaseIds($store, $snapshot, $tenantId);
         $caseMap = [];
@@ -180,10 +177,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildPatientRedFlags(array $store, array $snapshot, ?string $tenantId = null): array
+    public static function buildPatientRedFlags(array $store, array $snapshot, ?string $tenantId = null): array
     {
         $caseIds = PortalHistoryService::collectPatientCaseIds($store, $snapshot, $tenantId);
         $caseMap = [];
@@ -246,10 +241,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildPortalPhotoGallery(array $store, array $snapshot, ?string $tenantId = null): array
+    public static function buildPortalPhotoGallery(array $store, array $snapshot, ?string $tenantId = null): array
     {
         $caseIds = PortalHistoryService::collectPatientCaseIds($store, $snapshot, $tenantId);
         $caseMap = [];
@@ -339,10 +332,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildDocumentsByCaseId(array $store, array $caseIds, ?string $tenantId = null): array
+    public static function buildDocumentsByCaseId(array $store, array $caseIds, ?string $tenantId = null): array
     {
         $caseMap = [];
         foreach ($caseIds as $caseId) {
@@ -417,10 +408,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildCasePhotoSummaryByCaseId(array $store, array $caseIds, ?string $tenantId = null): array
+    public static function buildCasePhotoSummaryByCaseId(array $store, array $caseIds, ?string $tenantId = null): array
     {
         $caseMap = [];
         foreach ($caseIds as $caseId) {
@@ -469,10 +458,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildCaseDateLabel(string $value): string
+    public static function buildCaseDateLabel(string $value): string
     {
         $value = trim($value);
         if ($value === '') {
@@ -488,10 +475,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildPatientDisplayName(array $patient): string
+    public static function buildPatientDisplayName(array $patient): string
     {
         return self::firstNonEmptyString(
             trim((string) (($patient['firstName'] ?? '') . ' ' . ($patient['lastName'] ?? ''))),
@@ -501,10 +486,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function recordTimestamp(array $record): int
+    public static function recordTimestamp(array $record): int
     {
         $candidates = [
             (string) ($record['latestActivityAt'] ?? ''),
@@ -530,10 +513,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function appointmentTimestamp(array $appointment): ?int
+    public static function appointmentTimestamp(array $appointment): ?int
     {
         $date = trim((string) ($appointment['date'] ?? ''));
         $time = trim((string) ($appointment['time'] ?? ''));
@@ -546,10 +527,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function documentTimestamp(array $document, array $keys): int
+    public static function documentTimestamp(array $document, array $keys): int
     {
         foreach ($keys as $key) {
             $value = trim((string) ($document[$key] ?? ''));
@@ -567,10 +546,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildAppointmentSummary(array $appointment, array $patient, ?string $tenantId = null): array
+    public static function buildAppointmentSummary(array $appointment, array $patient, ?string $tenantId = null): array
     {
         $serviceId = trim((string) ($appointment['service'] ?? ''));
         $tenantId = trim((string) ($appointment['tenantId'] ?? ''));
@@ -623,10 +600,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildPortalNextControlEvent(array $appointmentSummary): array
+    public static function buildPortalNextControlEvent(array $appointmentSummary): array
     {
         $dateLabel = trim((string) ($appointmentSummary['dateLabel'] ?? ''));
         $timeLabel = trim((string) ($appointmentSummary['timeLabel'] ?? ''));
@@ -643,10 +618,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildHistoryConsultationFromAppointment(
+    public static function buildHistoryConsultationFromAppointment(
         array $store,
         array $appointment,
         array $patient,
@@ -691,10 +664,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildHistoryConsultationFromCase(
+    public static function buildHistoryConsultationFromCase(
         array $caseRecord,
         array $patient,
         string $caseId,
@@ -739,10 +710,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function buildDocumentIssuedLabel(string $issuedAt): string
+    public static function buildDocumentIssuedLabel(string $issuedAt): string
     {
         $issuedAt = trim($issuedAt);
         if ($issuedAt === '') {
@@ -758,10 +727,8 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
-    public static
-    function firstNonEmptyString(string ...$values): string
+    public static function firstNonEmptyString(string ...$values): string
     {
         foreach ($values as $value) {
             $value = trim($value);
@@ -774,6 +741,5 @@ final class PortalViewBuilderService
     }
 
 
-    public static
 
 }
