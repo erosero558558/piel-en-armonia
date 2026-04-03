@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-final class PatientCaseQueueService
+final class PatientCaseQueueService extends PatientCaseIdentityService
 {
-private function enrichQueueTicketsWithPatientCaseSnapshots(
+public function enrichQueueTicketsWithPatientCaseSnapshots(
         array $queueTickets,
         array $cases,
         array $timeline,
@@ -65,7 +65,7 @@ private function enrichQueueTicketsWithPatientCaseSnapshots(
         return $queueTickets;
     }
 
-private function attachPatientCaseSnapshotToTicket(
+public function attachPatientCaseSnapshotToTicket(
         array $ticket,
         array $case,
         array $timelineEvents,
@@ -104,7 +104,7 @@ private function attachPatientCaseSnapshotToTicket(
         return $ticket;
     }
 
-private function resolveQueueTicketReasonLabel(array $ticket, array $case): string
+public function resolveQueueTicketReasonLabel(array $ticket, array $case): string
     {
         $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
         $visitReasonLabel = trim((string) ($ticket['visitReasonLabel'] ?? ''));
@@ -132,7 +132,7 @@ private function resolveQueueTicketReasonLabel(array $ticket, array $case): stri
             : 'Consulta general';
     }
 
-private function buildQueueTicketAlerts(array $ticket, array $case, array $approvals): array
+public function buildQueueTicketAlerts(array $ticket, array $case, array $approvals): array
     {
         $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
         $alerts = [];

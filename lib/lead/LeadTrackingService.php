@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class LeadTrackingService
 {
-private static function recordFirstContactMetric(array $callback, string $contactedAt): void
+public static function recordFirstContactMetric(array $callback, string $contactedAt): void
     {
         if (!class_exists('Metrics')) {
             return;
@@ -23,7 +23,7 @@ private static function recordFirstContactMetric(array $callback, string $contac
         );
     }
 
-private static function minutesToFirstContact(array $callback, string $contactedAt): ?float
+public static function minutesToFirstContact(array $callback, string $contactedAt): ?float
     {
         $createdAt = LeadOpsService::timestampValue((string) ($callback['fecha'] ?? ''));
         $contactedTs = LeadOpsService::timestampValue($contactedAt);
@@ -38,7 +38,7 @@ private static function minutesToFirstContact(array $callback, string $contacted
      * @param list<float> $values
      */
 
-private static function average(array $values): float
+public static function average(array $values): float
     {
         if ($values === []) {
             return 0.0;
@@ -51,7 +51,7 @@ private static function average(array $values): float
      * @param list<float> $values
      */
 
-private static function percentile(array $values, float $percentile): float
+public static function percentile(array $values, float $percentile): float
     {
         if ($values === []) {
             return 0.0;
@@ -64,7 +64,7 @@ private static function percentile(array $values, float $percentile): float
         return (float) $values[$index];
     }
 
-private static function percentage(int $numerator, int $denominator): float
+public static function percentage(int $numerator, int $denominator): float
     {
         if ($denominator <= 0) {
             return 0.0;
@@ -73,7 +73,7 @@ private static function percentage(int $numerator, int $denominator): float
         return self::roundMetric(($numerator / $denominator) * 100);
     }
 
-private static function roundMetric(float $value): float
+public static function roundMetric(float $value): float
     {
         return round($value, 2);
     }

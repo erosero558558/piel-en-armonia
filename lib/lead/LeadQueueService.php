@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 final class LeadQueueService
 {
+    private const LEAD_ORIGIN_FIELDS = ['source', 'campaign', 'surface', 'service_intent'];
+
+    /** @var array{path:string,mtime:int,services:array<int,array<string,mixed>>}|null */
+    private static ?array $catalogCache = null;
+
 public static function enrichCallbacks(array $callbacks, array $store, ?array $funnelMetrics = null): array
     {
         $enriched = [];
@@ -353,7 +358,7 @@ public static function renderPrometheusMetrics(array $store): string
         return app_prometheus_alias_output($output);
     }
 
-private static function buildHeuristic(array $callback, array $store, ?array $funnelMetrics): array
+public static function buildHeuristic(array $callback, array $store, ?array $funnelMetrics): array
     {
         $preference = LeadOpsService::normalizeText((string) ($callback['preferencia'] ?? ''));
         $status = map_callback_status((string) ($callback['status'] ?? 'pendiente'));
@@ -424,7 +429,7 @@ private static function buildHeuristic(array $callback, array $store, ?array $fu
         ];
     }
 
-private static function resolveServiceHints(string $preference, ?array $funnelMetrics): array
+public static function resolveServiceHints(string $preference, ?array $funnelMetrics): array
     {
         $catalog = self::serviceCatalog();
         $funnelMap = self::funnelSignals($funnelMetrics);
@@ -479,7 +484,7 @@ private static function resolveServiceHints(string $preference, ?array $funnelMe
         ];
     }
 
-private static function serviceCatalog(): array
+public static function serviceCatalog(): array
     {
         $catalog = load_service_catalog_payload();
         $path = (string) ($catalog['path'] ?? '');
@@ -541,7 +546,7 @@ private static function serviceCatalog(): array
         ];
     }
 
-private static function funnelSignals(?array $funnelMetrics): array
+public static function funnelSignals(?array $funnelMetrics): array
     {
         $map = [];
         foreach ((array) ($funnelMetrics['serviceFunnel'] ?? []) as $row) {
@@ -563,7 +568,7 @@ private static function funnelSignals(?array $funnelMetrics): array
         return $map;
     }
 
-private static function servicePriorityBoost(array $service, array $signal): int
+public static function servicePriorityBoost(array $service, array $signal): int
     {
         $categoryWeight = self::serviceCategoryBaseWeight((string) ($service['category'] ?? ''));
         $confirmedBoost = min(2, (int) ($signal['bookingConfirmed'] ?? 0));
@@ -572,7 +577,7 @@ private static function servicePriorityBoost(array $service, array $signal): int
         return min(8, $categoryWeight + $confirmedBoost + $conversionBoost);
     }
 
-private static function serviceCategoryBaseWeight(string $category): int
+public static function serviceCategoryBaseWeight(string $category): int
     {
         $category = LeadOpsService::normalizeToken($category);
         if (str_contains($category, 'pediatric') || str_contains($category, 'children') || str_contains($category, 'ninos')) {
@@ -590,18 +595,22 @@ private static function serviceCategoryBaseWeight(string $category): int
         return 1;
     }
 
-private static function workerStatusPath(): string
+public static function workerStatusPath(): string
     {
-        return rtrim(data_dir_path(), '\\/') . DIRECTORY_SEPARATOR . 'leadops-worker-status.json';
+        $baseDir = function_exists('data_dir_path')
+            ? data_dir_path()
+            : dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data';
+
+        return rtrim($baseDir, '\\/') . DIRECTORY_SEPARATOR . 'leadops-worker-status.json';
     }
 
-private static function workerStaleAfterSeconds(): int
+public static function workerStaleAfterSeconds(): int
     {
         $raw = (int) getenv('PIELARMONIA_LEADOPS_WORKER_STALE_AFTER_SECONDS');
         return $raw > 0 ? $raw : 900;
     }
 
-private static function buildCallbackOriginContext(array $callback, array $store): array
+public static function buildCallbackOriginContext(array $callback, array $store): array
     {
         $case = self::findLeadOriginCaseContext($store, $callback);
         $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
@@ -640,7 +649,7 @@ private static function buildCallbackOriginContext(array $callback, array $store
         ];
     }
 
-private static function findLeadOriginCaseContext(array $store, array $callback): array
+public static function findLeadOriginCaseContext(array $store, array $callback): array
     {
         $callbacksCaseId = trim((string) ($callback['patientCaseId'] ?? ''));
         $callbackPatientId = trim((string) ($callback['patientId'] ?? ''));
@@ -699,7 +708,7 @@ private static function findLeadOriginCaseContext(array $store, array $callback)
         return $best;
     }
 
-private static function findLeadOriginAppointmentContext(array $store, array $callback, array $case): array
+public static function findLeadOriginAppointmentContext(array $store, array $callback, array $case): array
     {
         $caseId = LeadOpsService::firstNonEmptyString(
             trim((string) ($callback['patientCaseId'] ?? '')),

@@ -616,7 +616,7 @@ public static function dispatchPostConsultationSummary(array $session, array $dr
         }
     }
 
-private static function buildBirthdayGreetingCandidates(array $store): array
+public static function buildBirthdayGreetingCandidates(array $store): array
     {
         $draftsByKey = [];
         $uniqueDrafts = [];
@@ -700,7 +700,7 @@ private static function buildBirthdayGreetingCandidates(array $store): array
         return $candidates;
     }
 
-private static function buildBirthdayDraftIdentity(array $draft): string
+public static function buildBirthdayDraftIdentity(array $draft): string
     {
         return LeadOpsService::firstNonEmptyString(
             trim((string) ($draft['sessionId'] ?? '')),
@@ -709,7 +709,7 @@ private static function buildBirthdayDraftIdentity(array $draft): string
         );
     }
 
-private static function buildBirthdayGreetingCandidate(array $session, array $draft): array
+public static function buildBirthdayGreetingCandidate(array $session, array $draft): array
     {
         $patient = isset($session['patient']) && is_array($session['patient']) ? $session['patient'] : [];
         $draftPatient = isset($draft['patient']) && is_array($draft['patient']) ? $draft['patient'] : [];
@@ -765,7 +765,7 @@ private static function buildBirthdayGreetingCandidate(array $session, array $dr
         ];
     }
 
-private static function resolvePrescriptionReminderPatient(array $store, array $prescription): array
+public static function resolvePrescriptionReminderPatient(array $store, array $prescription): array
     {
         $caseId = trim((string) ($prescription['caseId'] ?? ''));
         $patientSnapshot = isset($prescription['patient']) && is_array($prescription['patient'])
@@ -790,7 +790,7 @@ private static function resolvePrescriptionReminderPatient(array $store, array $
         ];
     }
 
-private static function findPrescriptionAppointmentContext(array $store, string $caseId, string $appointmentId): array
+public static function findPrescriptionAppointmentContext(array $store, string $caseId, string $appointmentId): array
     {
         $appointments = isset($store['appointments']) && is_array($store['appointments'])
             ? array_values($store['appointments'])
@@ -833,7 +833,7 @@ private static function findPrescriptionAppointmentContext(array $store, string 
         return $best;
     }
 
-private static function buildMedicationReminderSchedule(DateTimeImmutable $issuedAt, int $durationDays): array
+public static function buildMedicationReminderSchedule(DateTimeImmutable $issuedAt, int $durationDays): array
     {
         $halfwayOffsetDays = max(0, (int) floor($durationDays / 2));
         $endOffsetDays = max(0, $durationDays - 1);
@@ -844,7 +844,7 @@ private static function buildMedicationReminderSchedule(DateTimeImmutable $issue
         ];
     }
 
-private static function parseMedicationDurationDays(string $duration): ?int
+public static function parseMedicationDurationDays(string $duration): ?int
     {
         $normalized = strtolower(trim($duration));
         if ($normalized === '') {
@@ -880,14 +880,14 @@ private static function parseMedicationDurationDays(string $duration): ?int
         return null;
     }
 
-private static function buildMedicationReminderLabel(array $medication): string
+public static function buildMedicationReminderLabel(array $medication): string
     {
         $name = trim((string) ($medication['medication'] ?? $medication['name'] ?? ''));
         $dose = trim((string) ($medication['dose'] ?? ''));
         return trim($name . ($dose !== '' ? ' ' . $dose : ''));
     }
 
-private static function buildMedicationTreatmentReminderText(array $patient, array $items): string
+public static function buildMedicationTreatmentReminderText(array $patient, array $items): string
     {
         $name = LeadOpsService::extractBirthdayFirstName((string) ($patient['name'] ?? 'Paciente'));
 
@@ -907,7 +907,7 @@ private static function buildMedicationTreatmentReminderText(array $patient, arr
             . "\nSi tiene dudas, responda a este mensaje.";
     }
 
-private static function buildBirthdayGreetingText(string $firstName): string
+public static function buildBirthdayGreetingText(string $firstName): string
     {
         $name = LeadOpsService::firstNonEmptyString($firstName, 'Paciente');
         return "Hola {$name}, hoy queremos saludarte por tu cumpleaños desde Aurora Derm. "
@@ -915,7 +915,7 @@ private static function buildBirthdayGreetingText(string $firstName): string
             . "Gracias por permitirnos acompanarte en el cuidado de tu piel.";
     }
 
-private static function buildAppointmentReminderText(array $appointment): string
+public static function buildAppointmentReminderText(array $appointment): string
     {
         $context = function_exists('build_appointment_email_context')
             ? build_appointment_email_context($appointment)
@@ -939,7 +939,7 @@ private static function buildAppointmentReminderText(array $appointment): string
             . "Si necesita reagendar, use este enlace: {$rescheduleUrl}";
     }
 
-private static function buildPostConsultationFollowUpText(array $appointment): string
+public static function buildPostConsultationFollowUpText(array $appointment): string
     {
         $name = LeadOpsService::extractBirthdayFirstName((string) ($appointment['name'] ?? 'Paciente'));
         $portalUrl = rtrim(AppConfig::BASE_URL, '/') . '/es/portal/';
@@ -949,7 +949,7 @@ private static function buildPostConsultationFollowUpText(array $appointment): s
             . "Tambien puede revisar su portal aqui: {$portalUrl}";
     }
 
-private static function buildAppointmentScheduledAt(array $appointment): ?DateTimeImmutable
+public static function buildAppointmentScheduledAt(array $appointment): ?DateTimeImmutable
     {
         $date = LeadOpsService::normalizeBirthdayDate((string) ($appointment['date'] ?? ''));
         $time = trim((string) ($appointment['time'] ?? ''));

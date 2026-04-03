@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-final class PatientCaseIdentityService
+class PatientCaseIdentityService
 {
-private function registerIdentityKeys(array &$index, string $tenantId, string $caseId, array $identityKeys): void
+public function registerIdentityKeys(array &$index, string $tenantId, string $caseId, array $identityKeys): void
     {
         foreach ($identityKeys as $identityKey) {
             $key = trim((string) $identityKey);
@@ -15,7 +15,7 @@ private function registerIdentityKeys(array &$index, string $tenantId, string $c
         }
     }
 
-private function buildAppointmentIdentityKeys(array $appointment): array
+public function buildAppointmentIdentityKeys(array $appointment): array
     {
         $keys = [];
         $digits = preg_replace('/\D+/', '', (string) ($appointment['phone'] ?? ''));
@@ -33,7 +33,7 @@ private function buildAppointmentIdentityKeys(array $appointment): array
         return array_values(array_unique($keys));
     }
 
-private function buildCaseIdentityKeys(array $case): array
+public function buildCaseIdentityKeys(array $case): array
     {
         $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
         $keys = [];
@@ -59,7 +59,7 @@ private function buildCaseIdentityKeys(array $case): array
         return array_values(array_unique($keys));
     }
 
-private function buildCallbackIdentityKeys(array $callback): array
+public function buildCallbackIdentityKeys(array $callback): array
     {
         $keys = [];
         $digits = preg_replace('/\D+/', '', (string) ($callback['telefono'] ?? ''));
@@ -69,7 +69,7 @@ private function buildCallbackIdentityKeys(array $callback): array
         return array_values(array_unique($keys));
     }
 
-private function buildDeterministicId(string $prefix, array $parts): string
+public function buildDeterministicId(string $prefix, array $parts): string
     {
         $seed = implode('|', array_map(static function ($value): string {
             return trim((string) $value);
@@ -78,12 +78,12 @@ private function buildDeterministicId(string $prefix, array $parts): string
         return $prefix . '_' . substr(hash('sha1', $seed), 0, 16);
     }
 
-private function buildEventId(string $tenantId, string $caseId, string $type, string $createdAt, string $salt): string
+public function buildEventId(string $tenantId, string $caseId, string $type, string $createdAt, string $salt): string
     {
         return $this->buildDeterministicId('pte', [$tenantId, $caseId, $type, $createdAt, $salt]);
     }
 
-private function resolveTenantId(array $store): string
+public function resolveTenantId(array $store): string
     {
         foreach (['appointments', 'callbacks', 'queue_tickets', 'queue_help_requests', 'patient_cases'] as $key) {
             $records = $store[$key] ?? [];
@@ -103,13 +103,13 @@ private function resolveTenantId(array $store): string
         return get_current_tenant_id();
     }
 
-private function resolveRecordTenantId(array $record, string $fallbackTenantId): string
+public function resolveRecordTenantId(array $record, string $fallbackTenantId): string
     {
         $tenantId = trim((string) ($record['tenantId'] ?? ''));
         return $tenantId !== '' ? $tenantId : $fallbackTenantId;
     }
 
-private function resolveCallbackCaseId(
+public function resolveCallbackCaseId(
         array $callback,
         string $tenantId,
         array $caseIdsByIdentity,
@@ -130,7 +130,7 @@ private function resolveCallbackCaseId(
         return '';
     }
 
-private function resolveAppointmentPatientId(array $appointment, string $tenantId): string
+public function resolveAppointmentPatientId(array $appointment, string $tenantId): string
     {
         $existing = trim((string) ($appointment['patientId'] ?? ''));
         if ($existing !== '') {
@@ -147,7 +147,7 @@ private function resolveAppointmentPatientId(array $appointment, string $tenantI
         return $this->buildDeterministicId('pt', [$tenantId, 'appointment-fallback', (string) $appointmentId]);
     }
 
-private function resolveCallbackPatientId(array $callback, string $tenantId): string
+public function resolveCallbackPatientId(array $callback, string $tenantId): string
     {
         $existing = trim((string) ($callback['patientId'] ?? ''));
         if ($existing !== '') {
@@ -164,7 +164,7 @@ private function resolveCallbackPatientId(array $callback, string $tenantId): st
         return $this->buildDeterministicId('pt', [$tenantId, 'callback-fallback', (string) $callbackId]);
     }
 
-private function normalizeApprovals(array $approvals, string $tenantId): array
+public function normalizeApprovals(array $approvals, string $tenantId): array
     {
         $normalized = [];
         foreach ($approvals as $approval) {
@@ -196,7 +196,7 @@ private function normalizeApprovals(array $approvals, string $tenantId): array
         return $normalized;
     }
 
-private function resolveOpenedAt(array $appointment): string
+public function resolveOpenedAt(array $appointment): string
     {
         $dateBooked = trim((string) ($appointment['dateBooked'] ?? ''));
         if ($dateBooked !== '') {
@@ -211,7 +211,7 @@ private function resolveOpenedAt(array $appointment): string
         return $scheduledStart !== '' ? $scheduledStart : local_date('c');
     }
 
-private function resolveTerminalAt(array $appointment, string $scheduledStart): string
+public function resolveTerminalAt(array $appointment, string $scheduledStart): string
     {
         foreach (['paymentPaidAt', 'reminderSentAt', 'dateBooked'] as $field) {
             $candidate = trim((string) ($appointment[$field] ?? ''));
@@ -223,7 +223,7 @@ private function resolveTerminalAt(array $appointment, string $scheduledStart): 
         return $scheduledStart !== '' ? $scheduledStart : local_date('c');
     }
 
-private function composeScheduledTimestamp(string $date, string $time): string
+public function composeScheduledTimestamp(string $date, string $time): string
     {
         $date = trim($date);
         $time = trim($time);
@@ -234,7 +234,7 @@ private function composeScheduledTimestamp(string $date, string $time): string
         return $date . 'T' . $time . ':00';
     }
 
-private function offsetTimestampMinutes(string $timestamp, int $minutes): string
+public function offsetTimestampMinutes(string $timestamp, int $minutes): string
     {
         $base = strtotime($timestamp);
         if ($base === false) {
@@ -243,7 +243,7 @@ private function offsetTimestampMinutes(string $timestamp, int $minutes): string
         return date('c', $base + ($minutes * 60));
     }
 
-private function deriveAppointmentCaseStatus(array $appointment): string
+public function deriveAppointmentCaseStatus(array $appointment): string
     {
         $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
         if ($status === 'cancelled') {
@@ -258,7 +258,7 @@ private function deriveAppointmentCaseStatus(array $appointment): string
         return 'booked';
     }
 
-private function resolveCaseId(
+public function resolveCaseId(
         string $existingCaseId,
         string $tenantId,
         string $seed,
@@ -288,7 +288,7 @@ private function resolveCaseId(
         return $this->buildDeterministicId('pc', [$tenantId, $type !== '' ? $type : 'record', $entityId]);
     }
 
-private function firstNonEmptyString(array $values): ?string
+public function firstNonEmptyString(array $values): ?string
     {
         foreach ($values as $value) {
             $value = trim((string) $value);
@@ -300,7 +300,7 @@ private function firstNonEmptyString(array $values): ?string
         return null;
     }
 
-private function normalizeTimestampValue(string $value, string $fallback): string
+public function normalizeTimestampValue(string $value, string $fallback): string
     {
         $value = trim($value);
         if ($value === '') {

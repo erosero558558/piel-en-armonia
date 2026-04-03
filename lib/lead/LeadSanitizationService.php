@@ -4,6 +4,18 @@ declare(strict_types=1);
 
 final class LeadSanitizationService
 {
+    private const OBJECTIVES = ['service_match', 'call_opening', 'whatsapp_draft'];
+    private const AI_STATUSES = ['idle', 'requested', 'completed', 'accepted', 'failed'];
+    private const OUTCOMES = ['', 'contactado', 'cita_cerrada', 'sin_respuesta', 'descartado'];
+    private const PRIORITY_BANDS = ['hot', 'warm', 'cold'];
+    private const WHATSAPP_TEMPLATE_KEYS = [
+        'no_show',
+        'rebooking_slot',
+        'pre_consult_incomplete',
+        'post_procedure',
+        'prescription_ready',
+    ];
+
 public static function normalizeLeadOrigin($value, array $context = []): array
     {
         $lead = is_array($value) ? $value : [];
@@ -126,7 +138,7 @@ public static function applyAiResult(array $callback, array $payload, array $sto
         ], $store, $funnelMetrics);
     }
 
-private static function extractBirthdayFirstName(string $value): string
+public static function extractBirthdayFirstName(string $value): string
     {
         $trimmed = trim($value);
         if ($trimmed === '') {
@@ -141,7 +153,7 @@ private static function extractBirthdayFirstName(string $value): string
         return trim((string) ($parts[0] ?? 'Paciente'));
     }
 
-private static function buildBirthdayLegalName(array $identity): string
+public static function buildBirthdayLegalName(array $identity): string
     {
         return trim(implode(' ', array_filter([
             trim((string) ($identity['primerNombre'] ?? '')),
@@ -151,7 +163,7 @@ private static function buildBirthdayLegalName(array $identity): string
         ])));
     }
 
-private static function buildBirthdayPatientKey(
+public static function buildBirthdayPatientKey(
         string $documentNumber,
         string $phone,
         string $birthDate,
@@ -177,7 +189,7 @@ private static function buildBirthdayPatientKey(
         return 'case:' . LeadOpsService::firstNonEmptyString($caseId, $sessionId, sha1($name . '|' . $birthDate));
     }
 
-private static function normalizeBirthdayPhone(string $value): string
+public static function normalizeBirthdayPhone(string $value): string
     {
         $digits = preg_replace('/\D+/', '', $value);
         if (!is_string($digits)) {
@@ -187,7 +199,7 @@ private static function normalizeBirthdayPhone(string $value): string
         return ltrim($digits, '0');
     }
 
-private static function normalizeBirthdayDate(string $value): string
+public static function normalizeBirthdayDate(string $value): string
     {
         $trimmed = trim($value);
         if ($trimmed === '') {
@@ -205,7 +217,7 @@ private static function normalizeBirthdayDate(string $value): string
         }
     }
 
-private static function normalizeAppointmentReminderTimestamp(string $value): ?DateTimeImmutable
+public static function normalizeAppointmentReminderTimestamp(string $value): ?DateTimeImmutable
     {
         $trimmed = trim($value);
         if ($trimmed === '') {
@@ -219,25 +231,25 @@ private static function normalizeAppointmentReminderTimestamp(string $value): ?D
         }
     }
 
-private static function normalizeObjective(string $objective): string
+public static function normalizeObjective(string $objective): string
     {
         $objective = self::normalizeToken($objective);
         return in_array($objective, self::OBJECTIVES, true) ? $objective : '';
     }
 
-private static function normalizeAiStatus(string $status): string
+public static function normalizeAiStatus(string $status): string
     {
         $status = self::normalizeToken($status);
         return in_array($status, self::AI_STATUSES, true) ? $status : 'idle';
     }
 
-private static function normalizeOutcome(string $outcome): string
+public static function normalizeOutcome(string $outcome): string
     {
         $outcome = self::normalizeToken($outcome);
         return in_array($outcome, self::OUTCOMES, true) ? $outcome : '';
     }
 
-private static function normalizeWhatsappTemplateKey(string $value): string
+public static function normalizeWhatsappTemplateKey(string $value): string
     {
         $value = self::normalizeToken($value);
         return in_array($value, self::WHATSAPP_TEMPLATE_KEYS, true)
@@ -245,13 +257,13 @@ private static function normalizeWhatsappTemplateKey(string $value): string
             : '';
     }
 
-private static function normalizePriorityBand(string $band): string
+public static function normalizePriorityBand(string $band): string
     {
         $band = self::normalizeToken($band);
         return in_array($band, self::PRIORITY_BANDS, true) ? $band : 'cold';
     }
 
-private static function normalizeTimestamp(string $value): string
+public static function normalizeTimestamp(string $value): string
     {
         $value = trim($value);
         if ($value === '') {
@@ -261,7 +273,7 @@ private static function normalizeTimestamp(string $value): string
         return strtotime($value) === false ? '' : $value;
     }
 
-private static function sanitizeList($values, int $limit, int $maxLength): array
+public static function sanitizeList($values, int $limit, int $maxLength): array
     {
         $list = [];
         foreach ((array) $values as $value) {
@@ -277,7 +289,7 @@ private static function sanitizeList($values, int $limit, int $maxLength): array
         return array_values(array_unique($list));
     }
 
-private static function resolveLeadOriginValue(array $keys, array ...$sources): string
+public static function resolveLeadOriginValue(array $keys, array ...$sources): string
     {
         foreach ($sources as $source) {
             foreach ($keys as $key) {
@@ -295,7 +307,7 @@ private static function resolveLeadOriginValue(array $keys, array ...$sources): 
         return '';
     }
 
-private static function inferLeadOriginSource(string $surface, string $serviceIntent): string
+public static function inferLeadOriginSource(string $surface, string $serviceIntent): string
     {
         if ($surface === 'unknown') {
             $surface = '';
@@ -316,7 +328,7 @@ private static function inferLeadOriginSource(string $surface, string $serviceIn
         return 'unknown';
     }
 
-private static function inferLeadOriginSurface(string $source): string
+public static function inferLeadOriginSurface(string $source): string
     {
         if ($source === 'unknown') {
             $source = '';
@@ -334,14 +346,14 @@ private static function inferLeadOriginSurface(string $source): string
         return 'unknown';
     }
 
-private static function extractTokens(string $value): array
+public static function extractTokens(string $value): array
     {
         $normalized = self::normalizeText($value);
         $parts = preg_split('/[^a-z0-9]+/', $normalized) ?: [];
         return array_values(array_filter($parts, static fn (string $token): bool => strlen($token) >= 4));
     }
 
-private static function normalizeText(string $value): string
+public static function normalizeText(string $value): string
     {
         $value = trim($value);
         $value = function_exists('mb_strtolower')
@@ -358,18 +370,18 @@ private static function normalizeText(string $value): string
         return $value;
     }
 
-private static function normalizeToken(string $value): string
+public static function normalizeToken(string $value): string
     {
         return trim(preg_replace('/[^a-z0-9_\\-]+/', '-', self::normalizeText($value)) ?? '', '-');
     }
 
-private static function normalizeLeadOriginToken(string $value, string $fallback = 'unknown'): string
+public static function normalizeLeadOriginToken(string $value, string $fallback = 'unknown'): string
     {
         $normalized = trim(preg_replace('/[^a-z0-9]+/', '_', self::normalizeText($value)) ?? '', '_');
         return $normalized !== '' ? $normalized : $fallback;
     }
 
-private static function normalizeComparablePhone(string $value): string
+public static function normalizeComparablePhone(string $value): string
     {
         $digits = preg_replace('/\D+/', '', $value);
         if (!is_string($digits)) {

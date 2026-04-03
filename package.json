@@ -7,7 +7,7 @@
     "lint:php":         "node bin/lint-php-syntax.js",
     "test":             "npm run lint && npm run test:php",
     "test:routes":      "node bin/check-route-integrity.js",
-    "test:php":         "php vendor/bin/phpunit --testsuite Smoke 2>&1 || echo 'PHPUnit no disponible — ejecuta composer install primero'",
+    "test:php":         "if [ -f vendor/bin/phpunit ]; then php vendor/bin/phpunit --testsuite Smoke; else php bin/runtime-smoke.php; fi",
     "test:smoke":       "SMOKE_URL=http://127.0.0.1:8000 node --test tests-node/backend-only-smoke.test.js",
     "tasks":            "node bin/tasks.js",
     "tasks:g":          "node bin/tasks.js next gemini",

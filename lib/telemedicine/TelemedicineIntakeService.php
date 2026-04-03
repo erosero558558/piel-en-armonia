@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../audit.php';
-require_once __DIR__ . '/../LeadOpsService.php';
+require_once __DIR__ . '/../lead/LeadSanitizationService.php';
 require_once __DIR__ . '/../metrics.php';
 require_once __DIR__ . '/TelemedicineChannelMapper.php';
 require_once __DIR__ . '/TelemedicineRepository.php';
@@ -470,7 +470,7 @@ final class TelemedicineIntakeService
     private function buildBaseIntake(array $appointment, string $channel, ?array $existing): array
     {
         $base = is_array($existing) ? $existing : [];
-        $origin = LeadOpsService::normalizeLeadOrigin([
+        $origin = LeadSanitizationService::normalizeLeadOrigin([
             'source' => trim((string) ($appointment['source'] ?? 'booking_public')),
             'campaign' => (string) ($appointment['campaign'] ?? ''),
             'surface' => (string) ($appointment['surface'] ?? $channel),

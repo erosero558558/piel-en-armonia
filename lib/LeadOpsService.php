@@ -14,6 +14,18 @@ require_once __DIR__ . '/email.php';
 
 final class LeadOpsService
 {
+    private const OBJECTIVES = ['service_match', 'call_opening', 'whatsapp_draft'];
+    private const AI_STATUSES = ['idle', 'requested', 'completed', 'accepted', 'failed'];
+    private const OUTCOMES = ['', 'contactado', 'cita_cerrada', 'sin_respuesta', 'descartado'];
+    private const PRIORITY_BANDS = ['hot', 'warm', 'cold'];
+    private const WHATSAPP_TEMPLATE_KEYS = [
+        'no_show',
+        'rebooking_slot',
+        'pre_consult_incomplete',
+        'post_procedure',
+        'prescription_ready',
+    ];
+
     public static function allowedObjectives(): array
     {
         return self::OBJECTIVES;
@@ -372,7 +384,7 @@ final class LeadOpsService
         return LeadSanitizationService::normalizeBirthdayDate(...$args);
     }
 
-    private static function firstNonEmptyString(string ...$values): string
+    public static function firstNonEmptyString(string ...$values): string
     {
         foreach ($values as $value) {
             $trimmed = trim($value);
@@ -384,7 +396,7 @@ final class LeadOpsService
         return '';
     }
 
-    private static function maskPhone(string $phone): string
+    public static function maskPhone(string $phone): string
     {
         $digits = preg_replace('/\D+/', '', $phone);
         if (!is_string($digits) || $digits === '') {
@@ -464,13 +476,13 @@ final class LeadOpsService
         return LeadSanitizationService::normalizeLeadOriginToken(...$args);
     }
 
-    private static function timestampValue(string $value): int
+    public static function timestampValue(string $value): int
     {
         $timestamp = strtotime($value);
         return $timestamp === false ? 0 : $timestamp;
     }
 
-    private static function clampInt(int $value, int $min, int $max): int
+    public static function clampInt(int $value, int $min, int $max): int
     {
         return max($min, min($max, $value));
     }

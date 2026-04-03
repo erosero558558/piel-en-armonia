@@ -2,92 +2,37 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/flow/FlowOsMetricsService.php';
+
+
 require_once __DIR__ . '/../lib/FlowOsJourney.php';
 require_once __DIR__ . '/../lib/PatientCaseService.php';
 
-class FlowOsController
+final class FlowOsController
 {
-    public static function manifest(array $context): void
+    public static function manifest(...$args)
     {
-        json_response([
-            'ok' => true,
-            'data' => flow_os_manifest(),
-        ]);
+        return FlowOsMetricsService::manifest(...$args);
     }
 
-    public static function journeyPreview(array $context): void
+    public static function journeyPreview(...$args)
     {
-        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
-        $store = (new PatientCaseService())->hydrateStore($store);
-        $queryStage = trim((string) ($_GET['stage'] ?? ''));
-        $caseId = trim((string) ($_GET['caseId'] ?? ''));
-        $previewContext = [
-            'stage' => $queryStage,
-            'redFlagDetected' => self::toBool($_GET['redFlagDetected'] ?? null),
-            'missingIdentity' => self::toBool($_GET['missingIdentity'] ?? null),
-            'missedFollowup' => self::toBool($_GET['missedFollowup'] ?? null),
-        ];
-        $preview = $caseId !== ''
-            ? flow_os_build_case_journey_preview($store, $caseId, $previewContext)
-            : flow_os_build_store_journey_preview($store, $previewContext);
-
-        json_response([
-            'ok' => true,
-            'data' => [
-                'episodeId' => $caseId !== '' ? $caseId : trim((string) ($_GET['episodeId'] ?? 'demo-001')),
-                'journey' => $preview,
-            ],
-        ]);
+        return FlowOsMetricsService::journeyPreview(...$args);
     }
 
-    public static function toBool($value): bool
+    public static function toBool(...$args)
     {
-        if (is_bool($value)) {
-            return $value;
-        }
-
-        $normalized = strtolower(trim((string) $value));
-        return in_array($normalized, ['1', 'true', 'yes', 'si', 'on'], true);
+        return FlowOsMetricsService::toBool(...$args);
     }
 
-    public static function revenueDashboard(array $context): void
+    public static function revenueDashboard(...$args)
     {
-        if (!function_exists('operator_auth_is_superadmin') || !operator_auth_is_superadmin()) {
-            json_response(['ok' => false, 'error' => 'Forbidden: Superadmin access required'], 403);
-            return;
-        }
-
-        json_response([
-            'ok' => true,
-            'data' => [
-                'mrr' => 12500,
-                'churnRate' => 1.2,
-                'activeClinics' => 15,
-                'trialConversion' => 45.5,
-                'summary' => 'Métricas agregadas globales de subscripción SaaS Flow OS.'
-            ],
-        ]);
+        return FlowOsMetricsService::revenueDashboard(...$args);
     }
 
-    public static function b2bReferralProgram(array $context): void
+    public static function b2bReferralProgram(...$args)
     {
-        $tenantId = getenv('AURORADERM_TENANT_ID') ?: 'TENANT-001';
-        $shareUrl = app_api_absolute_url('flow-os-b2b-referral', ['ref' => $tenantId]);
-
-        // Simulated data for S6-16 verification
-        json_response([
-            'ok' => true,
-            'data' => [
-                'tenantId' => $tenantId,
-                'shareUrl' => $shareUrl,
-                'stats' => [
-                    'clicks' => 14,
-                    'conversions' => 2,
-                    'freeMonthsEarned' => 2,
-                    'pendingFollowUps' => 3
-                ]
-            ],
-        ]);
+        return FlowOsMetricsService::b2bReferralProgram(...$args);
     }
 
     public static function handle(array $context): void

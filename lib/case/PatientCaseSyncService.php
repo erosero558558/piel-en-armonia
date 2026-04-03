@@ -2,9 +2,19 @@
 
 declare(strict_types=1);
 
-final class PatientCaseSyncService
+require_once __DIR__ . '/PatientCaseIdentityService.php';
+require_once __DIR__ . '/PatientCaseQueueService.php';
+
+class PatientCaseSyncService extends PatientCaseIdentityService
 {
-public function hydrateStore(array $store): array
+    private PatientCaseQueueService $queue;
+
+    public function __construct()
+    {
+        $this->queue = new PatientCaseQueueService();
+    }
+
+    public function hydrateStore(array $store): array
     {
         $tenantId = $this->resolveTenantId($store);
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? array_values($store['appointments']) : [];
@@ -515,7 +525,7 @@ public function hydrateStore(array $store): array
             }
         }
 
-        $queueTickets = $this->enrichQueueTicketsWithPatientCaseSnapshots(
+        $queueTickets = $this->queue->enrichQueueTicketsWithPatientCaseSnapshots(
             $queueTickets,
             $cases,
             $timeline,
