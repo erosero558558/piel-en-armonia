@@ -7,6 +7,11 @@ require_once __DIR__ . '/../lib/payment/SoftwareSubscriptionService.php';
 require_once __DIR__ . '/../lib/payment/WhatsappCheckoutService.php';
 
 
+require_once __DIR__ . '/../lib/payment/StripeWebhookService.php';
+require_once __DIR__ . '/../lib/payment/SoftwareSubscriptionService.php';
+require_once __DIR__ . '/../lib/payment/WhatsappCheckoutService.php';
+
+
 require_once __DIR__ . '/../lib/storage.php';
 require_once __DIR__ . '/../lib/CheckoutOrderService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
@@ -2290,5 +2295,4 @@ public static function handle(array $context): void
                 json_response(['ok' => false, 'error' => 'Not found in controller dispatch: ' . $key], 404);
         }
     }
-
 }
