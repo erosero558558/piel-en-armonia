@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/checkout/CheckoutPaymentGateway.php';
+require_once __DIR__ . '/checkout/CheckoutCartService.php';
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
@@ -8,16 +11,8 @@ require_once __DIR__ . '/ClinicConfig.php';
 
 final class CheckoutOrderService
 {
-    private const BANK_NAME = 'Banco Pichincha';
-    private const BANK_ACCOUNT = 'Cuenta de Ahorros: 2200160272';
-    private const BANK_OWNER = 'Titular: Rosero Caiza Javier Alejandro';
-    private const MIN_AMOUNT_CENTS = 100;
-    private const MAX_AMOUNT_CENTS = 500000;
-    private const CARD_PENDING_DUE_MINUTES = 60;
-    private const OFFLINE_PAYMENT_DUE_HOURS = 72;
-    private const DUE_SOON_WINDOW_HOURS = 72;
-
-    public static function publicConfig(): array
+    public static
+    function publicConfig(): array
     {
         return [
             'currency' => strtoupper(payment_currency()),
@@ -45,953 +40,155 @@ final class CheckoutOrderService
         ];
     }
 
-    public static function buildCardIntentRequest(array $payload): array
+    public static
+
+    public static function buildCardIntentRequest(...$args)
     {
-        $order = self::normalizeOrderDraft($payload);
-        $order['paymentMethod'] = 'card';
-        $order['paymentStatus'] = 'pending_gateway';
-        $order['paymentProvider'] = 'stripe';
-        if (trim((string) ($order['dueAt'] ?? '')) === '') {
-            $order['dueAt'] = self::buildDefaultDueAt(
-                (string) ($order['createdAt'] ?? local_date('c')),
-                'card'
-            );
-        }
-
-        $idempotencySeed = implode('|', [
-            $order['id'],
-            $order['concept'],
-            (string) $order['amountCents'],
-            $order['payerEmail'],
-            $order['payerWhatsapp'],
-        ]);
-
-        return [
-            'order' => $order,
-            'idempotencyKey' => payment_build_idempotency_key('checkout-card', $idempotencySeed),
-            'stripePayload' => [
-                'amountCents' => (int) $order['amountCents'],
-                'currency' => (string) $order['currency'],
-                'concept' => (string) $order['concept'],
-                'payerName' => (string) $order['payerName'],
-                'payerEmail' => (string) $order['payerEmail'],
-                'payerWhatsapp' => (string) $order['payerWhatsapp'],
-                'description' => 'Pago Aurora Derm - ' . (string) $order['concept'],
-                'metadata' => [
-                    'site' => 'pielarmonia.com',
-                    'surface' => 'public_checkout',
-                    'order_id' => (string) $order['id'],
-                    'receipt_number' => (string) $order['receiptNumber'],
-                    'concept' => (string) $order['concept'],
-                ],
-            ],
-        ];
+        return CheckoutPaymentGateway::buildCardIntentRequest(...$args);
     }
 
-    public static function attachCardIntent(array $order, array $intent): array
+    public static function attachCardIntent(...$args)
     {
-        $order['paymentIntentId'] = trim((string) ($intent['id'] ?? ''));
-        $order['paymentIntentStatus'] = trim((string) ($intent['status'] ?? ''));
-        $order['updatedAt'] = local_date('c');
-        return $order;
+        return CheckoutPaymentGateway::attachCardIntent(...$args);
     }
 
-    public static function attachTransferProof(
-        array $order,
-        array $upload,
-        array $payload = []
-    ): array {
-        self::assertTransferOrder($order);
-
-        $transferReference = truncate_field(
-            sanitize_xss(
-                trim((string) ($payload['transferReference'] ?? $order['transferReference'] ?? ''))
-            ),
-            100
-        );
-
-        $order['transferReference'] = $transferReference;
-        $order['transferProofPath'] = trim((string) ($upload['path'] ?? ''));
-        $order['transferProofUrl'] = trim((string) ($upload['url'] ?? ''));
-        $order['transferProofName'] = truncate_field(
-            sanitize_xss(trim((string) ($upload['name'] ?? $upload['originalName'] ?? ''))),
-            200
-        );
-        $order['transferProofMime'] = trim((string) ($upload['mime'] ?? ''));
-        $order['transferProofSize'] = (int) ($upload['size'] ?? 0);
-        $order['transferProofUploadedAt'] = local_date('c');
-        $order['updatedAt'] = local_date('c');
-
-        return $order;
+    public static function attachTransferProof(...$args)
+    {
+        return CheckoutPaymentGateway::attachTransferProof(...$args);
     }
 
-    public static function verifyTransfer(array $order): array
+    public static function verifyTransfer(...$args)
     {
-        self::assertTransferOrder($order);
-        $status = strtolower(trim((string) ($order['paymentStatus'] ?? '')));
-
-        if ($status === 'verified_transfer' || $status === 'applied') {
-            return $order;
-        }
-        if ($status !== 'pending_transfer') {
-            throw new InvalidArgumentException('Solo se pueden verificar transferencias pendientes.');
-        }
-        if (trim((string) ($order['transferProofUrl'] ?? '')) === '' && trim((string) ($order['transferProofPath'] ?? '')) === '') {
-            throw new InvalidArgumentException('Todavia no hay comprobante cargado para esta transferencia.');
-        }
-
-        $order['paymentStatus'] = 'verified_transfer';
-        $order['transferVerifiedAt'] = local_date('c');
-        $order['updatedAt'] = local_date('c');
-
-        return $order;
+        return CheckoutPaymentGateway::verifyTransfer(...$args);
     }
 
-    public static function applyTransfer(array $order): array
+    public static function applyTransfer(...$args)
     {
-        self::assertTransferOrder($order);
-        $status = strtolower(trim((string) ($order['paymentStatus'] ?? '')));
-
-        if ($status === 'applied') {
-            return $order;
-        }
-        if ($status !== 'verified_transfer') {
-            throw new InvalidArgumentException('La transferencia debe estar verificada antes de aplicarse.');
-        }
-
-        $appliedAt = local_date('c');
-        $order['paymentStatus'] = 'applied';
-        $order['paymentPaidAt'] = $appliedAt;
-        $order['transferAppliedAt'] = $appliedAt;
-        $order['updatedAt'] = $appliedAt;
-
-        return $order;
+        return CheckoutPaymentGateway::applyTransfer(...$args);
     }
 
-    public static function buildOfflineMethodOrder(array $payload, string $method): array
+    public static function buildOfflineMethodOrder(...$args)
     {
-        $safeMethod = strtolower(trim($method));
-        if (!in_array($safeMethod, ['transfer', 'cash'], true)) {
-            throw new InvalidArgumentException('Metodo de pago no soportado.');
-        }
-
-        $order = self::normalizeOrderDraft($payload);
-        $order['paymentMethod'] = $safeMethod;
-        $order['paymentProvider'] = $safeMethod === 'transfer' ? 'manual_transfer' : 'cash_desk';
-        $order['paymentStatus'] = $safeMethod === 'transfer' ? 'pending_transfer' : 'pending_cash';
-        if (trim((string) ($order['dueAt'] ?? '')) === '') {
-            $order['dueAt'] = self::buildDefaultDueAt(
-                (string) ($order['createdAt'] ?? local_date('c')),
-                $safeMethod
-            );
-        }
-        $order['transferReference'] = truncate_field(
-            sanitize_xss(trim((string) ($payload['transferReference'] ?? ''))),
-            100
-        );
-        $order['updatedAt'] = local_date('c');
-
-        return $order;
+        return CheckoutCartService::buildOfflineMethodOrder(...$args);
     }
 
-    public static function confirmPaidCardOrder(array $order, array $intent): array
+    public static function confirmPaidCardOrder(...$args)
     {
-        $paymentIntentId = trim((string) ($intent['id'] ?? ''));
-        $status = trim((string) ($intent['status'] ?? ''));
-        $amount = (int) ($intent['amount_received'] ?? ($intent['amount'] ?? 0));
-        $currency = strtoupper(trim((string) ($intent['currency'] ?? payment_currency())));
-        $metadata = isset($intent['metadata']) && is_array($intent['metadata']) ? $intent['metadata'] : [];
-        $metadataOrderId = trim((string) ($metadata['order_id'] ?? ''));
-
-        if ($paymentIntentId === '' || $order['paymentIntentId'] === '' || !hash_equals((string) $order['paymentIntentId'], $paymentIntentId)) {
-            throw new InvalidArgumentException('El pago confirmado no coincide con el checkout activo.');
-        }
-        if (!in_array($status, ['succeeded', 'requires_capture'], true)) {
-            throw new InvalidArgumentException('Stripe todavia no confirma el cobro.');
-        }
-        if ($amount < (int) $order['amountCents']) {
-            throw new InvalidArgumentException('El monto recibido no coincide con el checkout.');
-        }
-        if ($currency !== strtoupper((string) $order['currency'])) {
-            throw new InvalidArgumentException('La moneda confirmada no coincide con el checkout.');
-        }
-        if ($metadataOrderId !== '' && !hash_equals((string) $order['id'], $metadataOrderId)) {
-            throw new InvalidArgumentException('El pago confirmado pertenece a otro checkout.');
-        }
-
-        $order['paymentStatus'] = 'paid';
-        $order['paymentIntentStatus'] = $status;
-        $order['paymentPaidAt'] = local_date('c');
-        $order['updatedAt'] = local_date('c');
-
-        return $order;
+        return CheckoutPaymentGateway::confirmPaidCardOrder(...$args);
     }
 
-    public static function upsertOrder(array $store, array $order): array
+    public static function upsertOrder(...$args)
     {
-        $orders = isset($store['checkout_orders']) && is_array($store['checkout_orders'])
-            ? $store['checkout_orders']
-            : [];
-        $orderId = trim((string) ($order['id'] ?? ''));
-        $replaced = false;
-
-        foreach ($orders as $index => $existing) {
-            if (!is_array($existing)) {
-                continue;
-            }
-            if ((string) ($existing['id'] ?? '') !== $orderId) {
-                continue;
-            }
-            $orders[$index] = $order;
-            $replaced = true;
-            break;
-        }
-
-        if (!$replaced) {
-            $orders[] = $order;
-        }
-
-        $store['checkout_orders'] = array_values($orders);
-        $store['updatedAt'] = local_date('c');
-
-        return $store;
+        return CheckoutCartService::upsertOrder(...$args);
     }
 
-    public static function findOrder(array $store, string $orderId): ?array
+    public static function findOrder(...$args)
     {
-        $safeOrderId = trim($orderId);
-        if ($safeOrderId === '') {
-            return null;
-        }
-
-        $orders = isset($store['checkout_orders']) && is_array($store['checkout_orders'])
-            ? $store['checkout_orders']
-            : [];
-        foreach ($orders as $order) {
-            if (!is_array($order)) {
-                continue;
-            }
-            if ((string) ($order['id'] ?? '') === $safeOrderId) {
-                return $order;
-            }
-        }
-
-        return null;
+        return CheckoutCartService::findOrder(...$args);
     }
 
-    public static function buildReceipt(array $order): array
+    public static function buildReceipt(...$args)
     {
-        $amountCents = (int) ($order['amountCents'] ?? 0);
-        $currency = strtoupper(trim((string) ($order['currency'] ?? payment_currency())));
-        $method = strtolower(trim((string) ($order['paymentMethod'] ?? '')));
-        $status = strtolower(trim((string) ($order['paymentStatus'] ?? 'pending')));
-        $issuedAt = trim((string) ($order['paymentPaidAt'] ?? ($order['createdAt'] ?? local_date('c'))));
-
-        return [
-            'orderId' => (string) ($order['id'] ?? ''),
-            'receiptNumber' => (string) ($order['receiptNumber'] ?? ''),
-            'concept' => (string) ($order['concept'] ?? ''),
-            'amountCents' => $amountCents,
-            'amountLabel' => self::formatCurrency($amountCents, $currency),
-            'currency' => $currency,
-            'paymentMethod' => $method,
-            'paymentMethodLabel' => self::paymentMethodLabel($method),
-            'paymentStatus' => $status,
-            'paymentStatusLabel' => self::paymentStatusLabel($status, $order),
-            'dueAt' => self::resolveOrderDueAt($order),
-            'payer' => [
-                'name' => (string) ($order['payerName'] ?? ''),
-                'email' => (string) ($order['payerEmail'] ?? ''),
-                'whatsapp' => (string) ($order['payerWhatsapp'] ?? ''),
-            ],
-            'transferReference' => (string) ($order['transferReference'] ?? ''),
-            'transferProofUrl' => (string) ($order['transferProofUrl'] ?? ''),
-            'transferProofName' => (string) ($order['transferProofName'] ?? ''),
-            'transferProofUploadedAt' => (string) ($order['transferProofUploadedAt'] ?? ''),
-            'transferVerifiedAt' => (string) ($order['transferVerifiedAt'] ?? ''),
-            'transferAppliedAt' => (string) ($order['transferAppliedAt'] ?? ''),
-            'paymentIntentId' => (string) ($order['paymentIntentId'] ?? ''),
-            'issuedAt' => $issuedAt,
-            'bank' => self::bankData(),
-            'support' => [
-                'whatsappPhone' => ClinicConfig::getWhatsappNumber(),
-                'whatsappHref' => 'https://wa.me/' . ClinicConfig::getWhatsappNumber(),
-            ],
-        ];
+        return CheckoutCartService::buildReceipt(...$args);
     }
 
-    public static function buildAdminReviewMeta(array $store): array
+    public static function buildAdminReviewMeta(...$args)
     {
-        $orders = isset($store['checkout_orders']) && is_array($store['checkout_orders'])
-            ? $store['checkout_orders']
-            : [];
-        $queue = [];
-        $pendingCount = 0;
-        $verifiedCount = 0;
-        $appliedCount = 0;
-        $missingProofCount = 0;
-
-        foreach ($orders as $order) {
-            if (!is_array($order)) {
-                continue;
-            }
-
-            $method = strtolower(trim((string) ($order['paymentMethod'] ?? '')));
-            if ($method !== 'transfer') {
-                continue;
-            }
-
-            $status = strtolower(trim((string) ($order['paymentStatus'] ?? '')));
-            $hasProof = trim((string) ($order['transferProofUrl'] ?? '')) !== ''
-                || trim((string) ($order['transferProofPath'] ?? '')) !== '';
-
-            if ($status === 'pending_transfer') {
-                if ($hasProof) {
-                    $pendingCount += 1;
-                } else {
-                    $missingProofCount += 1;
-                }
-            } elseif ($status === 'verified_transfer') {
-                $verifiedCount += 1;
-            } elseif ($status === 'applied') {
-                $appliedCount += 1;
-            }
-
-            if (!$hasProof && $status === 'pending_transfer') {
-                continue;
-            }
-            if (!in_array($status, ['pending_transfer', 'verified_transfer', 'applied'], true)) {
-                continue;
-            }
-
-            $receipt = self::buildReceipt($order);
-            $queue[] = [
-                'id' => (string) ($order['id'] ?? ''),
-                'receiptNumber' => (string) ($order['receiptNumber'] ?? ''),
-                'concept' => (string) ($order['concept'] ?? ''),
-                'amountLabel' => (string) ($receipt['amountLabel'] ?? ''),
-                'paymentStatus' => $status,
-                'paymentStatusLabel' => (string) ($receipt['paymentStatusLabel'] ?? ''),
-                'dueAt' => self::resolveOrderDueAt($order),
-                'payerName' => (string) ($order['payerName'] ?? ''),
-                'payerWhatsapp' => (string) ($order['payerWhatsapp'] ?? ''),
-                'payerEmail' => (string) ($order['payerEmail'] ?? ''),
-                'transferReference' => (string) ($order['transferReference'] ?? ''),
-                'transferProofUrl' => (string) ($order['transferProofUrl'] ?? ''),
-                'transferProofName' => (string) ($order['transferProofName'] ?? ''),
-                'transferProofUploadedAt' => (string) ($order['transferProofUploadedAt'] ?? ''),
-                'transferVerifiedAt' => (string) ($order['transferVerifiedAt'] ?? ''),
-                'transferAppliedAt' => (string) ($order['transferAppliedAt'] ?? ''),
-                'createdAt' => (string) ($order['createdAt'] ?? ''),
-                'updatedAt' => (string) ($order['updatedAt'] ?? ''),
-                'canVerify' => $status === 'pending_transfer' && $hasProof,
-                'canApply' => $status === 'verified_transfer',
-            ];
-        }
-
-        usort($queue, static function (array $left, array $right): int {
-            $priority = static function (string $status): int {
-                return match ($status) {
-                    'pending_transfer' => 0,
-                    'verified_transfer' => 1,
-                    'applied' => 2,
-                    default => 3,
-                };
-            };
-
-            $leftPriority = $priority((string) ($left['paymentStatus'] ?? ''));
-            $rightPriority = $priority((string) ($right['paymentStatus'] ?? ''));
-            if ($leftPriority !== $rightPriority) {
-                return $leftPriority <=> $rightPriority;
-            }
-
-            return strcmp(
-                (string) ($right['updatedAt'] ?? $right['createdAt'] ?? ''),
-                (string) ($left['updatedAt'] ?? $left['createdAt'] ?? '')
-            );
-        });
-
-        return [
-            'summary' => [
-                'pendingCount' => $pendingCount,
-                'verifiedCount' => $verifiedCount,
-                'appliedCount' => $appliedCount,
-                'missingProofCount' => $missingProofCount,
-                'queueCount' => count($queue),
-            ],
-            'queue' => $queue,
-        ];
+        return CheckoutCartService::buildAdminReviewMeta(...$args);
     }
 
-    public static function buildAdminAccountMeta(array $store): array
+    public static function buildAdminAccountMeta(...$args)
     {
-        $orders = isset($store['checkout_orders']) && is_array($store['checkout_orders'])
-            ? $store['checkout_orders']
-            : [];
-        $currency = strtoupper(payment_currency());
-        $patients = [];
-        $outstandingCount = 0;
-        $reconciliatingCount = 0;
-        $dueSoonCount = 0;
-        $overdueCount = 0;
-        $outstandingBalanceCents = 0;
-        $reconciliatingBalanceCents = 0;
-        $settledBalanceCents = 0;
-        $now = new \DateTimeImmutable(local_date('c'));
-        $dueSoonWindowTs = $now->modify('+' . self::DUE_SOON_WINDOW_HOURS . ' hours')->getTimestamp();
-
-        foreach ($orders as $order) {
-            if (!is_array($order)) {
-                continue;
-            }
-
-            $amountCents = (int) ($order['amountCents'] ?? 0);
-            if ($amountCents <= 0) {
-                continue;
-            }
-
-            $patientKey = self::buildAccountPatientKey($order);
-            $status = strtolower(trim((string) ($order['paymentStatus'] ?? 'pending')));
-            $receipt = self::buildReceipt($order);
-            $dueAt = self::resolveOrderDueAt($order);
-            $dueTs = self::isoTimestamp($dueAt);
-            $activityAt = self::resolveOrderActivityAt($order);
-            $activityTs = self::isoTimestamp($activityAt);
-            $statusBucket = match ($status) {
-                'paid', 'applied' => 'settled',
-                'verified_transfer' => 'reconciliating',
-                default => 'outstanding',
-            };
-            $dueState = 'none';
-
-            if ($statusBucket === 'outstanding') {
-                $outstandingCount += 1;
-                $outstandingBalanceCents += $amountCents;
-                if ($dueTs > 0) {
-                    if ($dueTs <= $now->getTimestamp()) {
-                        $dueState = 'overdue';
-                        $overdueCount += 1;
-                    } elseif ($dueTs <= $dueSoonWindowTs) {
-                        $dueState = 'due_soon';
-                        $dueSoonCount += 1;
-                    } else {
-                        $dueState = 'scheduled';
-                    }
-                }
-            } elseif ($statusBucket === 'reconciliating') {
-                $reconciliatingCount += 1;
-                $reconciliatingBalanceCents += $amountCents;
-            } else {
-                $settledBalanceCents += $amountCents;
-            }
-
-            if (!isset($patients[$patientKey])) {
-                $patients[$patientKey] = [
-                    'id' => 'acct_' . substr(sha1($patientKey), 0, 12),
-                    'patientKey' => $patientKey,
-                    'patientName' => (string) ($order['payerName'] ?? ''),
-                    'patientEmail' => (string) ($order['payerEmail'] ?? ''),
-                    'patientWhatsapp' => (string) ($order['payerWhatsapp'] ?? ''),
-                    'orderCount' => 0,
-                    'outstandingCount' => 0,
-                    'reconciliatingCount' => 0,
-                    'settledCount' => 0,
-                    'dueSoonCount' => 0,
-                    'overdueCount' => 0,
-                    'outstandingBalanceCents' => 0,
-                    'reconciliatingBalanceCents' => 0,
-                    'settledBalanceCents' => 0,
-                    'nextDueAt' => '',
-                    'lastActivityAt' => '',
-                    'lastActivityTs' => 0,
-                    'orders' => [],
-                ];
-            }
-
-            $patient = &$patients[$patientKey];
-            $patient['orderCount'] += 1;
-            if ($activityTs > (int) ($patient['lastActivityTs'] ?? 0)) {
-                $patient['lastActivityTs'] = $activityTs;
-                $patient['lastActivityAt'] = $activityAt;
-            }
-
-            if ($statusBucket === 'outstanding') {
-                $patient['outstandingCount'] += 1;
-                $patient['outstandingBalanceCents'] += $amountCents;
-                if ($dueState === 'due_soon') {
-                    $patient['dueSoonCount'] += 1;
-                } elseif ($dueState === 'overdue') {
-                    $patient['overdueCount'] += 1;
-                }
-                if (
-                    $dueTs > 0 &&
-                    (
-                        (string) ($patient['nextDueAt'] ?? '') === '' ||
-                        $dueTs < self::isoTimestamp((string) ($patient['nextDueAt'] ?? ''))
-                    )
-                ) {
-                    $patient['nextDueAt'] = $dueAt;
-                }
-            } elseif ($statusBucket === 'reconciliating') {
-                $patient['reconciliatingCount'] += 1;
-                $patient['reconciliatingBalanceCents'] += $amountCents;
-            } else {
-                $patient['settledCount'] += 1;
-                $patient['settledBalanceCents'] += $amountCents;
-            }
-
-            $patient['orders'][] = [
-                'id' => (string) ($order['id'] ?? ''),
-                'receiptNumber' => (string) ($order['receiptNumber'] ?? ''),
-                'concept' => (string) ($order['concept'] ?? ''),
-                'amountCents' => $amountCents,
-                'amountLabel' => (string) ($receipt['amountLabel'] ?? ''),
-                'paymentMethod' => (string) ($receipt['paymentMethod'] ?? ''),
-                'paymentMethodLabel' => (string) ($receipt['paymentMethodLabel'] ?? ''),
-                'paymentStatus' => $status,
-                'paymentStatusLabel' => (string) ($receipt['paymentStatusLabel'] ?? ''),
-                'statusBucket' => $statusBucket,
-                'dueAt' => $dueAt,
-                'dueState' => $dueState,
-                'issuedAt' => (string) ($receipt['issuedAt'] ?? ''),
-                'createdAt' => (string) ($order['createdAt'] ?? ''),
-                'updatedAt' => (string) ($order['updatedAt'] ?? ''),
-                'activityAt' => $activityAt,
-                'transferReference' => (string) ($order['transferReference'] ?? ''),
-            ];
-            unset($patient);
-        }
-
-        $patientList = array_values($patients);
-        foreach ($patientList as &$patient) {
-            usort($patient['orders'], static function (array $left, array $right): int {
-                $statusWeight = static function (string $bucket): int {
-                    return match ($bucket) {
-                        'outstanding' => 0,
-                        'reconciliating' => 1,
-                        'settled' => 2,
-                        default => 3,
-                    };
-                };
-
-                $leftWeight = $statusWeight((string) ($left['statusBucket'] ?? ''));
-                $rightWeight = $statusWeight((string) ($right['statusBucket'] ?? ''));
-                if ($leftWeight !== $rightWeight) {
-                    return $leftWeight <=> $rightWeight;
-                }
-
-                $leftDueTs = self::isoTimestamp((string) ($left['dueAt'] ?? ''));
-                $rightDueTs = self::isoTimestamp((string) ($right['dueAt'] ?? ''));
-                if ($leftWeight === 0 && $leftDueTs !== $rightDueTs) {
-                    if ($leftDueTs === 0) {
-                        return 1;
-                    }
-                    if ($rightDueTs === 0) {
-                        return -1;
-                    }
-                    return $leftDueTs <=> $rightDueTs;
-                }
-
-                return self::isoTimestamp((string) ($right['activityAt'] ?? ''))
-                    <=> self::isoTimestamp((string) ($left['activityAt'] ?? ''));
-            });
-
-            $patient['outstandingBalanceLabel'] = self::formatCurrency(
-                (int) ($patient['outstandingBalanceCents'] ?? 0),
-                $currency
-            );
-            $patient['reconciliatingBalanceLabel'] = self::formatCurrency(
-                (int) ($patient['reconciliatingBalanceCents'] ?? 0),
-                $currency
-            );
-            $patient['settledBalanceLabel'] = self::formatCurrency(
-                (int) ($patient['settledBalanceCents'] ?? 0),
-                $currency
-            );
-            unset($patient['lastActivityTs']);
-        }
-        unset($patient);
-
-        usort($patientList, static function (array $left, array $right): int {
-            $leftOutstanding = (int) ($left['outstandingBalanceCents'] ?? 0);
-            $rightOutstanding = (int) ($right['outstandingBalanceCents'] ?? 0);
-            if ($leftOutstanding !== $rightOutstanding) {
-                return $rightOutstanding <=> $leftOutstanding;
-            }
-
-            $leftDueTs = self::isoTimestamp((string) ($left['nextDueAt'] ?? ''));
-            $rightDueTs = self::isoTimestamp((string) ($right['nextDueAt'] ?? ''));
-            if ($leftDueTs !== $rightDueTs) {
-                if ($leftDueTs === 0) {
-                    return 1;
-                }
-                if ($rightDueTs === 0) {
-                    return -1;
-                }
-                return $leftDueTs <=> $rightDueTs;
-            }
-
-            return self::isoTimestamp((string) ($right['lastActivityAt'] ?? ''))
-                <=> self::isoTimestamp((string) ($left['lastActivityAt'] ?? ''));
-        });
-
-        return [
-            'summary' => [
-                'patientCount' => count($patientList),
-                'outstandingCount' => $outstandingCount,
-                'reconciliatingCount' => $reconciliatingCount,
-                'dueSoonCount' => $dueSoonCount,
-                'overdueCount' => $overdueCount,
-                'outstandingBalanceCents' => $outstandingBalanceCents,
-                'outstandingBalanceLabel' => self::formatCurrency(
-                    $outstandingBalanceCents,
-                    $currency
-                ),
-                'reconciliatingBalanceCents' => $reconciliatingBalanceCents,
-                'reconciliatingBalanceLabel' => self::formatCurrency(
-                    $reconciliatingBalanceCents,
-                    $currency
-                ),
-                'settledBalanceCents' => $settledBalanceCents,
-                'settledBalanceLabel' => self::formatCurrency(
-                    $settledBalanceCents,
-                    $currency
-                ),
-            ],
-            'patients' => $patientList,
-        ];
+        return CheckoutCartService::buildAdminAccountMeta(...$args);
     }
 
-    private static function normalizeOrderDraft(array $payload): array
+    public static function normalizeOrderDraft(...$args)
     {
-        $payerName = truncate_field(sanitize_xss(trim((string) ($payload['name'] ?? ''))), 150);
-        $payerEmail = truncate_field(trim((string) ($payload['email'] ?? '')), 254);
-        $payerWhatsapp = truncate_field(sanitize_phone((string) ($payload['whatsapp'] ?? '')), 20);
-        $concept = truncate_field(sanitize_xss(trim((string) ($payload['concept'] ?? ''))), 160);
-        $notes = truncate_field(sanitize_xss(trim((string) ($payload['notes'] ?? ''))), 300);
-        $createdAt = local_date('c');
-
-        if ($payerName === '') {
-            throw new InvalidArgumentException('El nombre del paciente o responsable es obligatorio.');
-        }
-        if ($concept === '') {
-            throw new InvalidArgumentException('El concepto del cobro es obligatorio.');
-        }
-        if ($payerEmail !== '' && !validate_email($payerEmail)) {
-            throw new InvalidArgumentException('El correo no tiene un formato valido.');
-        }
-        if ($payerEmail === '' && $payerWhatsapp === '') {
-            throw new InvalidArgumentException('Necesitamos un correo o WhatsApp para emitir el recibo digital.');
-        }
-
-        return [
-            'id' => self::generateOrderId(),
-            'tenantId' => get_current_tenant_id(),
-            'receiptNumber' => self::buildReceiptNumber($createdAt),
-            'sourceRoute' => app_api_relative_url('patient-portal-payments'),
-            'concept' => $concept,
-            'notes' => $notes,
-            'amountCents' => self::applyMembershipDiscount(
-                self::normalizeAmountCents(
-                    $payload['amount'] ?? '',
-                    $payload['amountCents'] ?? null
-                ),
-                $payerEmail,
-                $payerWhatsapp,
-                trim((string)($payload['patientCaseId'] ?? ''))
-            ),
-            'currency' => strtoupper(payment_currency()),
-            'dueAt' => self::normalizeIsoDateTime(
-                trim((string) ($payload['dueAt'] ?? ''))
-            ),
-            'payerName' => $payerName,
-            'payerEmail' => $payerEmail,
-            'payerWhatsapp' => $payerWhatsapp,
-            'paymentMethod' => '',
-            'paymentStatus' => 'pending',
-            'paymentProvider' => '',
-            'paymentIntentId' => '',
-            'paymentIntentStatus' => '',
-            'paymentPaidAt' => '',
-            'transferReference' => '',
-            'transferProofPath' => '',
-            'transferProofUrl' => '',
-            'transferProofName' => '',
-            'transferProofMime' => '',
-            'transferProofSize' => 0,
-            'transferProofUploadedAt' => '',
-            'transferVerifiedAt' => '',
-            'transferAppliedAt' => '',
-            'createdAt' => $createdAt,
-            'updatedAt' => $createdAt,
-        ];
+        return CheckoutCartService::normalizeOrderDraft(...$args);
     }
 
-    private static function applyMembershipDiscount(int $amountCents, string $email, string $whatsapp, string $caseId): int
+    public static function applyMembershipDiscount(...$args)
     {
-        require_once __DIR__ . '/memberships/MembershipService.php';
-        $membershipSvc = new MembershipService();
-        $membership = null;
-
-        // Try checking by caseId if provided, or common patient ID formats.
-        $candidates = array_filter([
-            $caseId,
-            trim($email) !== '' ? 'email:' . strtolower(trim($email)) : '',
-            trim($whatsapp) !== '' ? 'wa:' . trim($whatsapp) : '',
-        ], fn($v) => $v !== '');
-
-        foreach ($candidates as $candidate) {
-            $membership = $membershipSvc->getStatus($candidate);
-            if ($membership !== null) {
-                break;
-            }
-        }
-
-        if ($membership !== null && isset($membership['status']) && $membership['status'] === 'active') {
-            // Plan discount, default 15%
-            $discountPercent = 15;
-            if (isset($membership['plan']) && strtolower($membership['plan']) === 'gold') {
-                $discountPercent = 20;
-            }
-            $discountMultiplier = 1 - ($discountPercent / 100);
-            return (int) round($amountCents * $discountMultiplier);
-        }
-
-        return $amountCents;
+        return CheckoutCartService::applyMembershipDiscount(...$args);
     }
 
-    private static function normalizeAmountCents($amountValue, $amountCentsValue): int
+    public static function normalizeAmountCents(...$args)
     {
-        if ($amountCentsValue !== null && $amountCentsValue !== '') {
-            $amountCents = (int) round((float) $amountCentsValue);
-        } else {
-            $rawAmount = trim((string) $amountValue);
-            if ($rawAmount === '') {
-                throw new InvalidArgumentException('El monto es obligatorio.');
-            }
-
-            $sanitized = preg_replace('/[^0-9.,]/', '', $rawAmount);
-            if (!is_string($sanitized) || trim($sanitized) === '') {
-                throw new InvalidArgumentException('El monto no tiene un formato valido.');
-            }
-
-            if (strpos($sanitized, ',') !== false && strpos($sanitized, '.') === false) {
-                $sanitized = str_replace(',', '.', $sanitized);
-            } else {
-                $sanitized = str_replace(',', '', $sanitized);
-            }
-
-            $amount = (float) $sanitized;
-            $amountCents = (int) round($amount * 100);
-        }
-
-        if ($amountCents < self::MIN_AMOUNT_CENTS || $amountCents > self::MAX_AMOUNT_CENTS) {
-            throw new InvalidArgumentException('El monto debe estar entre $1.00 y $5,000.00.');
-        }
-
-        return $amountCents;
+        return CheckoutCartService::normalizeAmountCents(...$args);
     }
 
-    private static function generateOrderId(): string
+    public static function generateOrderId()
     {
-        try {
-            $suffix = bin2hex(random_bytes(8));
-        } catch (Throwable $error) {
-            $suffix = substr(hash('sha256', (string) microtime(true)), 0, 16);
-        }
-
-        return 'co_' . $suffix;
+        return CheckoutCartService::generateOrderId();
     }
 
-    private static function buildReceiptNumber(string $createdAt): string
+    public static function buildReceiptNumber(...$args)
     {
-        $dateToken = preg_replace('/[^0-9]/', '', substr($createdAt, 0, 10));
-        if (!is_string($dateToken) || $dateToken === '') {
-            $dateToken = local_date('Ymd');
-        }
-
-        try {
-            $suffix = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
-        } catch (Throwable $error) {
-            $suffix = strtoupper(substr(hash('sha256', (string) microtime(true)), 0, 6));
-        }
-
-        return 'PAY-' . $dateToken . '-' . $suffix;
+        return CheckoutCartService::buildReceiptNumber(...$args);
     }
 
-    private static function formatCurrency(int $amountCents, string $currency): string
+    public static function formatCurrency(...$args)
     {
-        $prefix = strtoupper($currency) === 'USD' ? '$' : strtoupper($currency) . ' ';
-        return $prefix . number_format($amountCents / 100, 2, '.', ',');
+        return CheckoutCartService::formatCurrency(...$args);
     }
 
-    private static function bankData(): array
+    public static function bankData()
     {
-        return [
-            'bankName' => self::BANK_NAME,
-            'account' => self::BANK_ACCOUNT,
-            'owner' => self::BANK_OWNER,
-        ];
+        return CheckoutCartService::bankData();
     }
 
-    private static function paymentMethodLabel(string $method): string
+    public static function paymentMethodLabel(...$args)
     {
-        $labels = [
-            'card' => 'Tarjeta',
-            'transfer' => 'Transferencia',
-            'cash' => 'Efectivo en consultorio',
-        ];
-
-        return $labels[$method] ?? 'Pendiente';
+        return CheckoutCartService::paymentMethodLabel(...$args);
     }
 
-    private static function paymentStatusLabel(string $status, array $order = []): string
+    public static function paymentStatusLabel(...$args)
     {
-        if (
-            $status === 'pending_transfer' &&
-            trim((string) ($order['transferProofUploadedAt'] ?? '')) !== ''
-        ) {
-            return 'Pendiente de verificacion';
-        }
-
-        $labels = [
-            'paid' => 'Pagado',
-            'pending_gateway' => 'Esperando confirmacion de Stripe',
-            'pending_transfer' => 'Pendiente de transferencia',
-            'pending_cash' => 'Pendiente de pago en consultorio',
-            'verified_transfer' => 'Verificado',
-            'applied' => 'Aplicado',
-            'failed' => 'Fallido',
-        ];
-
-        return $labels[$status] ?? 'Pendiente';
+        return CheckoutCartService::paymentStatusLabel(...$args);
     }
 
-    private static function buildAccountPatientKey(array $order): string
+    public static function buildAccountPatientKey(...$args)
     {
-        $email = strtolower(trim((string) ($order['payerEmail'] ?? '')));
-        if ($email !== '') {
-            return 'email:' . $email;
-        }
-
-        $whatsapp = trim((string) ($order['payerWhatsapp'] ?? ''));
-        if ($whatsapp !== '') {
-            return 'wa:' . $whatsapp;
-        }
-
-        $name = strtolower(trim((string) ($order['payerName'] ?? '')));
-        if ($name !== '') {
-            return 'name:' . $name;
-        }
-
-        return 'order:' . trim((string) ($order['id'] ?? ''));
+        return CheckoutCartService::buildAccountPatientKey(...$args);
     }
 
-    private static function resolveOrderActivityAt(array $order): string
+    public static function resolveOrderActivityAt(...$args)
     {
-        foreach ([
-            (string) ($order['transferAppliedAt'] ?? ''),
-            (string) ($order['paymentPaidAt'] ?? ''),
-            (string) ($order['transferVerifiedAt'] ?? ''),
-            (string) ($order['updatedAt'] ?? ''),
-            (string) ($order['createdAt'] ?? ''),
-        ] as $candidate) {
-            if (trim($candidate) !== '') {
-                return trim($candidate);
-            }
-        }
-
-        return '';
+        return CheckoutCartService::resolveOrderActivityAt(...$args);
     }
 
-    private static function resolveOrderDueAt(array $order): string
+    public static function resolveOrderDueAt(...$args)
     {
-        $dueAt = self::normalizeIsoDateTime((string) ($order['dueAt'] ?? ''));
-        if ($dueAt !== '') {
-            return $dueAt;
-        }
-
-        return self::buildDefaultDueAt(
-            (string) ($order['createdAt'] ?? local_date('c')),
-            strtolower(trim((string) ($order['paymentMethod'] ?? '')))
-        );
+        return CheckoutCartService::resolveOrderDueAt(...$args);
     }
 
-    private static function buildDefaultDueAt(string $createdAt, string $method): string
+    public static function buildDefaultDueAt(...$args)
     {
-        $createdAt = self::normalizeIsoDateTime($createdAt);
-        if ($createdAt === '') {
-            $createdAt = local_date('c');
-        }
-
-        if ($method === 'card') {
-            return self::addMinutesToIso(
-                $createdAt,
-                self::CARD_PENDING_DUE_MINUTES
-            );
-        }
-
-        return self::addHoursToIso(
-            $createdAt,
-            self::OFFLINE_PAYMENT_DUE_HOURS
-        );
+        return CheckoutCartService::buildDefaultDueAt(...$args);
     }
 
-    private static function addMinutesToIso(string $value, int $minutes): string
+    public static function addMinutesToIso(...$args)
     {
-        try {
-            return (new \DateTimeImmutable($value))
-                ->modify('+' . max(1, $minutes) . ' minutes')
-                ->format('c');
-        } catch (\Throwable $error) {
-            return '';
-        }
+        return CheckoutCartService::addMinutesToIso(...$args);
     }
 
-    private static function addHoursToIso(string $value, int $hours): string
+    public static function addHoursToIso(...$args)
     {
-        try {
-            return (new \DateTimeImmutable($value))
-                ->modify('+' . max(1, $hours) . ' hours')
-                ->format('c');
-        } catch (\Throwable $error) {
-            return '';
-        }
+        return CheckoutCartService::addHoursToIso(...$args);
     }
 
-    private static function normalizeIsoDateTime(string $value): string
+    public static function normalizeIsoDateTime(...$args)
     {
-        $trimmed = trim($value);
-        if ($trimmed === '') {
-            return '';
-        }
-
-        try {
-            return (new \DateTimeImmutable($trimmed))->format('c');
-        } catch (\Throwable $error) {
-            return '';
-        }
+        return CheckoutCartService::normalizeIsoDateTime(...$args);
     }
 
-    private static function isoTimestamp(string $value): int
+    public static function isoTimestamp(...$args)
     {
-        $normalized = self::normalizeIsoDateTime($value);
-        if ($normalized === '') {
-            return 0;
-        }
-
-        try {
-            return (new \DateTimeImmutable($normalized))->getTimestamp();
-        } catch (\Throwable $error) {
-            return 0;
-        }
+        return CheckoutCartService::isoTimestamp(...$args);
     }
 
-    private static function assertTransferOrder(array $order): void
+    public static function assertTransferOrder(...$args)
     {
-        $method = strtolower(trim((string) ($order['paymentMethod'] ?? '')));
-        if ($method !== 'transfer') {
-            throw new InvalidArgumentException('El checkout indicado no usa transferencia bancaria.');
-        }
+        return CheckoutCartService::assertTransferOrder(...$args);
     }
 }

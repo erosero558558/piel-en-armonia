@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/queue/QueueAssignmentService.php';
+require_once __DIR__ . '/queue/QueueLatencyService.php';
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
@@ -12,22 +15,10 @@ require_once __DIR__ . '/queue/TicketFactory.php';
 require_once __DIR__ . '/queue/TicketPriorityPolicy.php';
 require_once __DIR__ . '/queue/QueueSummaryBuilder.php';
 
-class QueueService
+final class QueueService
 {
-    private const STATUS_WAITING = 'waiting';
-    private const STATUS_CALLED = 'called';
-    private const STATUS_COMPLETED = 'completed';
-    private const STATUS_NO_SHOW = 'no_show';
-    private const STATUS_CANCELLED = 'cancelled';
-
-    private const ACTIVE_APPOINTMENT_STATUSES = ['confirmed', 'pending'];
-
-    private TicketFactory $ticketFactory;
-    private TicketPriorityPolicy $priorityPolicy;
-    private QueueSummaryBuilder $summaryBuilder;
-    private PatientCaseService $patientCaseService;
-
-    public function __construct(
+    public
+    function __construct(
         ?TicketFactory $ticketFactory = null,
         ?TicketPriorityPolicy $priorityPolicy = null,
         ?QueueSummaryBuilder $summaryBuilder = null,
@@ -39,7 +30,10 @@ class QueueService
         $this->patientCaseService = $patientCaseService ?? new PatientCaseService();
     }
 
-    public function getQueueState(array $store): array
+    public
+
+    public
+    function getQueueState(array $store): array
     {
         $store = $this->normalizeStore($store);
         $store = $this->priorityPolicy->refreshWaitingAppointmentPriorities($store);
@@ -51,7 +45,10 @@ class QueueService
         );
     }
 
-    public function createWalkInTicket(array $store, array $payload, string $createdSource = 'kiosk'): array
+    public
+
+    public
+    function createWalkInTicket(array $store, array $payload, string $createdSource = 'kiosk'): array
     {
         $store = $this->normalizeStore($store);
         if ($this->ticketFactory->resolveInitials($payload) === '') {
@@ -86,7 +83,10 @@ class QueueService
         ];
     }
 
-    public function checkInAppointment(array $store, array $payload, string $createdSource = 'kiosk'): array
+    public
+
+    public
+    function checkInAppointment(array $store, array $payload, string $createdSource = 'kiosk'): array
     {
         $store = $this->normalizeStore($store);
         $appointment = null;
@@ -200,615 +200,48 @@ class QueueService
         ];
     }
 
-    public function createHelpRequest(array $store, array $payload): array
+    public
+
+    public static function createHelpRequest(...$args)
     {
-        $store = $this->normalizeStore($store);
-        $reason = strtolower(trim((string) ($payload['reason'] ?? 'general')));
-        if ($reason === '') {
-            $reason = 'general';
-        }
-
-        $ticketId = isset($payload['ticketId']) ? (int) $payload['ticketId'] : (isset($payload['ticket_id']) ? (int) $payload['ticket_id'] : 0);
-        $ticket = $this->findTicketForHelpRequest($store, $payload, $ticketId);
-        $ticketId = is_array($ticket) ? (int) ($ticket['id'] ?? 0) : $ticketId;
-        $openRequest = $this->findOpenHelpRequest(
-            $store['queue_help_requests'] ?? [],
-            $ticketId,
-            $reason,
-            (string) ($payload['sessionId'] ?? ($payload['session_id'] ?? ''))
-        );
-        if (is_array($openRequest)) {
-            $store = $this->hydratePatientFlowStore($store);
-            $openRequest = $this->findHelpRequestRecord($store, (int) ($openRequest['id'] ?? 0)) ?? $openRequest;
-            return [
-                'ok' => true,
-                'store' => $store,
-                'helpRequest' => $openRequest,
-                'replay' => true,
-            ];
-        }
-
-        $nowIso = local_date('c');
-        $request = normalize_queue_help_request([
-            'id' => $this->nextHelpRequestId($store['queue_help_requests'] ?? []),
-            'source' => $payload['source'] ?? 'kiosk',
-            'reason' => $reason,
-            'status' => 'pending',
-            'message' => $payload['message'] ?? '',
-            'intent' => $payload['intent'] ?? '',
-            'sessionId' => $payload['sessionId'] ?? ($payload['session_id'] ?? ''),
-            'ticketId' => $ticketId > 0 ? $ticketId : null,
-            'ticketCode' => $payload['ticketCode'] ?? ($ticket['ticketCode'] ?? ''),
-            'patientInitials' => $payload['patientInitials'] ?? ($ticket['patientInitials'] ?? ''),
-            'createdAt' => $nowIso,
-            'updatedAt' => $nowIso,
-            'context' => isset($payload['context']) && is_array($payload['context']) ? $payload['context'] : [],
-        ]);
-
-        $store['queue_help_requests'][] = $request;
-        $store['updatedAt'] = $nowIso;
-        $store = $this->syncTicketAssistanceFlags($store);
-        $store = $this->hydratePatientFlowStore($store);
-        $request = $this->findHelpRequestRecord($store, (int) ($request['id'] ?? 0)) ?? $request;
-
-        Metrics::increment('queue_help_requests_total', [
-            'reason' => $reason,
-            'source' => (string) ($request['source'] ?? 'kiosk'),
-            'status' => 'pending',
-        ]);
-
-        return [
-            'ok' => true,
-            'store' => $store,
-            'helpRequest' => $request,
-            'replay' => false,
-        ];
+        return QueueLatencyService::createHelpRequest(...$args);
     }
 
-    public function patchHelpRequest(array $store, array $payload): array
+    public static function patchHelpRequest(...$args)
     {
-        $store = $this->normalizeStore($store);
-        $requestId = isset($payload['id']) ? (int) $payload['id'] : 0;
-        $ticketId = isset($payload['ticketId']) ? (int) $payload['ticketId'] : (isset($payload['ticket_id']) ? (int) $payload['ticket_id'] : 0);
-        $status = strtolower(trim((string) ($payload['status'] ?? '')));
-        if (!in_array($status, ['pending', 'attending', 'resolved'], true)) {
-            return [
-                'ok' => false,
-                'error' => 'Estado de apoyo no soportado',
-                'status' => 400,
-                'errorCode' => 'queue_bad_request',
-            ];
-        }
-
-        $found = false;
-        $updatedRequest = null;
-        $previousRequest = null;
-        $nowIso = local_date('c');
-        $contextPatch = isset($payload['context']) && is_array($payload['context'])
-            ? $payload['context']
-            : [];
-        foreach ($store['queue_help_requests'] as $idx => $request) {
-            if (!is_array($request)) {
-                continue;
-            }
-            $matchesById = $requestId > 0 && (int) ($request['id'] ?? 0) === $requestId;
-            $matchesByTicket = $requestId <= 0 && $ticketId > 0 && (int) ($request['ticketId'] ?? 0) === $ticketId && in_array((string) ($request['status'] ?? ''), ['pending', 'attending'], true);
-            if (!$matchesById && !$matchesByTicket) {
-                continue;
-            }
-
-            $previousRequest = normalize_queue_help_request($request);
-            $request['status'] = $status;
-            $request['updatedAt'] = $nowIso;
-            if ($status === 'attending') {
-                $request['attendedAt'] = $nowIso;
-            }
-            if ($status === 'resolved') {
-                $request['resolvedAt'] = $nowIso;
-            }
-            if ($contextPatch !== []) {
-                $request['context'] = $this->mergeHelpRequestContext(
-                    isset($request['context']) && is_array($request['context'])
-                        ? $request['context']
-                        : [],
-                    $contextPatch
-                );
-            }
-
-            $store['queue_help_requests'][$idx] = normalize_queue_help_request($request);
-            $updatedRequest = $store['queue_help_requests'][$idx];
-            $found = true;
-            if ($requestId > 0) {
-                break;
-            }
-        }
-
-        if (!$found || !is_array($updatedRequest)) {
-            return [
-                'ok' => false,
-                'error' => 'Solicitud de apoyo no encontrada',
-                'status' => 404,
-                'errorCode' => 'queue_help_request_not_found',
-            ];
-        }
-
-        $store['updatedAt'] = $nowIso;
-        $store = $this->syncTicketAssistanceFlags($store);
-        $store = $this->hydratePatientFlowStore($store);
-        $updatedRequest = $this->findHelpRequestRecord($store, (int) ($updatedRequest['id'] ?? 0)) ?? $updatedRequest;
-        if (
-            is_array($previousRequest) &&
-            $this->shouldRecordHelpRequestResolution($previousRequest, $updatedRequest)
-        ) {
-            QueueAssistantMetricsStore::recordHelpRequestResolution($updatedRequest);
-        }
-
-        Metrics::increment('queue_help_requests_total', [
-            'reason' => (string) ($updatedRequest['reason'] ?? 'general'),
-            'source' => (string) ($updatedRequest['source'] ?? 'kiosk'),
-            'status' => $status,
-        ]);
-
-        return [
-            'ok' => true,
-            'store' => $store,
-            'helpRequest' => $updatedRequest,
-        ];
+        return QueueLatencyService::patchHelpRequest(...$args);
     }
 
-    public function callNext(array $store, int $consultorio): array
+    public static function callNext(...$args)
     {
-        if (!in_array($consultorio, [1, 2], true)) {
-            return [
-                'ok' => false,
-                'error' => 'Consultorio invalido',
-                'status' => 400,
-                'errorCode' => 'queue_bad_request',
-            ];
-        }
-
-        $store = $this->normalizeStore($store);
-        $store = $this->priorityPolicy->refreshWaitingAppointmentPriorities($store);
-
-        $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'] ?? [], $consultorio);
-        if (is_array($busyTicket)) {
-            $ticketCode = (string) ($busyTicket['ticketCode'] ?? '--');
-            return [
-                'ok' => false,
-                'error' => "Consultorio {$consultorio} ocupado por {$ticketCode}. Libera o completa ese turno antes de llamar otro.",
-                'status' => 409,
-                'errorCode' => 'queue_consultorio_busy',
-            ];
-        }
-
-        $waiting = array_values(array_filter($store['queue_tickets'], static function ($ticket): bool {
-            return is_array($ticket) && (($ticket['status'] ?? '') === self::STATUS_WAITING);
-        }));
-        $waiting = $this->priorityPolicy->sortWaitingTickets($waiting);
-        if ($waiting === []) {
-            return [
-                'ok' => false,
-                'error' => 'No hay turnos en espera',
-                'status' => 404,
-                'errorCode' => 'queue_empty',
-            ];
-        }
-
-        $selectedId = (int) ($waiting[0]['id'] ?? 0);
-        if ($selectedId <= 0) {
-            return [
-                'ok' => false,
-                'error' => 'Ticket invalido',
-                'status' => 409,
-                'errorCode' => 'queue_ticket_invalid',
-            ];
-        }
-
-        $updatedTicket = null;
-        $nowIso = local_date('c');
-        foreach ($store['queue_tickets'] as $idx => $ticket) {
-            if (!is_array($ticket) || (int) ($ticket['id'] ?? 0) !== $selectedId) {
-                continue;
-            }
-            if (($ticket['status'] ?? '') === self::STATUS_WAITING) {
-                $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
-                QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
-            }
-            $ticket['status'] = self::STATUS_CALLED;
-            $ticket['assignedConsultorio'] = $consultorio;
-            $ticket['calledAt'] = $nowIso;
-            $ticket['completedAt'] = '';
-            $store['queue_tickets'][$idx] = normalize_queue_ticket($ticket);
-            $updatedTicket = $store['queue_tickets'][$idx];
-            break;
-        }
-
-        if (!is_array($updatedTicket)) {
-            return [
-                'ok' => false,
-                'error' => 'No se pudo actualizar el turno',
-                'status' => 409,
-                'errorCode' => 'queue_update_failed',
-            ];
-        }
-
-        $store['updatedAt'] = $nowIso;
-        $store = $this->hydratePatientFlowStore($store);
-        $updatedTicket = $this->findTicketRecord($store, (int) ($updatedTicket['id'] ?? 0)) ?? $updatedTicket;
-        return [
-            'ok' => true,
-            'store' => $store,
-            'ticket' => $updatedTicket,
-        ];
+        return QueueAssignmentService::callNext(...$args);
     }
 
-    public function patchTicket(array $store, array $payload): array
+    public static function patchTicket(...$args)
     {
-        $store = $this->normalizeStore($store);
-        $ticketId = isset($payload['id']) ? (int) $payload['id'] : 0;
-        if ($ticketId <= 0) {
-            return [
-                'ok' => false,
-                'error' => 'id de ticket invalido',
-                'status' => 400,
-                'errorCode' => 'queue_bad_request',
-            ];
-        }
-
-        $action = strtolower(trim((string) ($payload['action'] ?? '')));
-        $status = strtolower(trim((string) ($payload['status'] ?? '')));
-        $consultorio = $this->normalizeConsultorio($payload['consultorio'] ?? ($payload['assignedConsultorio'] ?? null));
-        $nowIso = local_date('c');
-
-        if (in_array($action, ['atender_apoyo', 'resolver_apoyo'], true)) {
-            $helpStatus = $action === 'atender_apoyo' ? 'attending' : 'resolved';
-            $helpResult = $this->patchHelpRequest($store, [
-                'ticketId' => $ticketId,
-                'status' => $helpStatus,
-            ]);
-            if (($helpResult['ok'] ?? false) !== true) {
-                return $helpResult;
-            }
-
-            return [
-                'ok' => true,
-                'store' => $helpResult['store'] ?? $store,
-                'ticket' => $this->findTicketRecord(
-                    is_array($helpResult['store'] ?? null)
-                        ? $helpResult['store']
-                        : $store,
-                    $ticketId
-                ),
-                'helpRequest' => $helpResult['helpRequest'] ?? null,
-            ];
-        }
-
-        $found = false;
-        $updated = null;
-        foreach ($store['queue_tickets'] as $idx => $ticket) {
-            if (!is_array($ticket) || (int) ($ticket['id'] ?? 0) !== $ticketId) {
-                continue;
-            }
-            $found = true;
-            $currentStatus = (string) ($ticket['status'] ?? self::STATUS_WAITING);
-
-            if ($action !== '') {
-                switch ($action) {
-                    case 're-llamar':
-                    case 'rellamar':
-                    case 'recall':
-                    case 'llamar':
-                        if ($this->isTerminalStatus($currentStatus)) {
-                            return [
-                                'ok' => false,
-                                'error' => 'No puedes re-llamar un ticket en estado terminal',
-                                'status' => 409,
-                                'errorCode' => 'queue_transition_invalid',
-                            ];
-                        }
-                        if ($currentStatus === self::STATUS_WAITING) {
-                            $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
-                            QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
-                        }
-                        $targetConsultorio = $consultorio ?? $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
-                        if ($targetConsultorio !== null) {
-                            $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'], $targetConsultorio, $ticketId);
-                            if (is_array($busyTicket)) {
-                                $busyCode = (string) ($busyTicket['ticketCode'] ?? '--');
-                                return [
-                                    'ok' => false,
-                                    'error' => "Consultorio {$targetConsultorio} ocupado por {$busyCode}",
-                                    'status' => 409,
-                                    'errorCode' => 'queue_consultorio_busy',
-                                ];
-                            }
-                            $ticket['assignedConsultorio'] = $targetConsultorio;
-                        }
-                        $ticket['status'] = self::STATUS_CALLED;
-                        $ticket['calledAt'] = $nowIso;
-                        $ticket['completedAt'] = '';
-                        break;
-                    case 'completar':
-                    case 'complete':
-                    case 'completed':
-                        if ($currentStatus === self::STATUS_WAITING) {
-                            $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
-                            QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
-                        }
-                        if ($currentStatus !== self::STATUS_COMPLETED) {
-                            QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), substr($nowIso, 11, 2), null);
-                        }
-                        $ticket['status'] = self::STATUS_COMPLETED;
-                        $ticket['completedAt'] = $nowIso;
-                        break;
-                    case 'no_show':
-                    case 'noshow':
-                        $ticket['status'] = self::STATUS_NO_SHOW;
-                        $ticket['completedAt'] = $nowIso;
-                        break;
-                    case 'cancelar':
-                    case 'cancel':
-                    case 'cancelled':
-                        $ticket['status'] = self::STATUS_CANCELLED;
-                        $ticket['completedAt'] = $nowIso;
-                        break;
-                    case 'liberar':
-                    case 'release':
-                        $ticket['status'] = self::STATUS_WAITING;
-                        $ticket['assignedConsultorio'] = null;
-                        $ticket['calledAt'] = '';
-                        $ticket['completedAt'] = '';
-                        break;
-                    case 'reasignar':
-                    case 'reassign':
-                        if ($consultorio === null) {
-                            return [
-                                'ok' => false,
-                                'error' => 'Consultorio invalido para reasignar',
-                                'status' => 400,
-                                'errorCode' => 'queue_bad_request',
-                            ];
-                        }
-                        $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'], $consultorio, $ticketId);
-                        if (is_array($busyTicket)) {
-                            $busyCode = (string) ($busyTicket['ticketCode'] ?? '--');
-                            return [
-                                'ok' => false,
-                                'error' => "Consultorio {$consultorio} ocupado por {$busyCode}",
-                                'status' => 409,
-                                'errorCode' => 'queue_consultorio_busy',
-                            ];
-                        }
-                        $ticket['assignedConsultorio'] = $consultorio;
-                        break;
-                    default:
-                        return [
-                            'ok' => false,
-                            'error' => 'Accion no soportada',
-                            'status' => 400,
-                            'errorCode' => 'queue_bad_request',
-                        ];
-                }
-            } elseif ($status !== '') {
-                if (!in_array($status, [
-                    self::STATUS_WAITING,
-                    self::STATUS_CALLED,
-                    self::STATUS_COMPLETED,
-                    self::STATUS_NO_SHOW,
-                    self::STATUS_CANCELLED,
-                ], true)) {
-                    return [
-                        'ok' => false,
-                        'error' => 'Estado no soportado',
-                        'status' => 400,
-                        'errorCode' => 'queue_bad_request',
-                    ];
-                }
-
-                $ticket['status'] = $status;
-                if ($status === self::STATUS_CALLED) {
-                    if ($currentStatus === self::STATUS_WAITING) {
-                        $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
-                        QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
-                    }
-                    $targetConsultorio = $consultorio ?? $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
-                    if ($targetConsultorio !== null) {
-                        $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'], $targetConsultorio, $ticketId);
-                        if (is_array($busyTicket)) {
-                            $busyCode = (string) ($busyTicket['ticketCode'] ?? '--');
-                            return [
-                                'ok' => false,
-                                'error' => "Consultorio {$targetConsultorio} ocupado por {$busyCode}",
-                                'status' => 409,
-                                'errorCode' => 'queue_consultorio_busy',
-                            ];
-                        }
-                        $ticket['assignedConsultorio'] = $targetConsultorio;
-                    }
-                    $ticket['calledAt'] = $nowIso;
-                    $ticket['completedAt'] = '';
-                } elseif ($status === self::STATUS_WAITING) {
-                    $ticket['assignedConsultorio'] = null;
-                    $ticket['calledAt'] = '';
-                    $ticket['completedAt'] = '';
-                }
-                if (in_array($status, [self::STATUS_COMPLETED, self::STATUS_NO_SHOW, self::STATUS_CANCELLED], true)) {
-                    if ($status === self::STATUS_COMPLETED && $currentStatus !== self::STATUS_COMPLETED) {
-                        QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), substr($nowIso, 11, 2), null);
-                    }
-                    if ($status === self::STATUS_COMPLETED && $currentStatus === self::STATUS_WAITING) {
-                        $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
-                        QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
-                    }
-                    $ticket['completedAt'] = $nowIso;
-                }
-            } else {
-                return [
-                    'ok' => false,
-                    'error' => 'Debes enviar action o status',
-                    'status' => 400,
-                    'errorCode' => 'queue_bad_request',
-                ];
-            }
-
-            $store['queue_tickets'][$idx] = normalize_queue_ticket($ticket);
-            $updated = $store['queue_tickets'][$idx];
-            break;
-        }
-
-        if (!$found || !is_array($updated)) {
-            return [
-                'ok' => false,
-                'error' => 'Ticket no encontrado',
-                'status' => 404,
-                'errorCode' => 'queue_ticket_not_found',
-            ];
-        }
-
-        $store['updatedAt'] = $nowIso;
-        $store = $this->hydratePatientFlowStore($store);
-        $updated = $this->findTicketRecord($store, (int) ($updated['id'] ?? 0)) ?? $updated;
-        return [
-            'ok' => true,
-            'store' => $store,
-            'ticket' => $updated,
-        ];
+        return QueueAssignmentService::patchTicket(...$args);
     }
 
-    public function findTicketById(array $store, int $ticketId): ?array
+    public static function findTicketById(...$args)
     {
-        $store = $this->hydratePatientFlowStore($this->normalizeStore($store));
-        foreach ($this->normalizeTickets($store['queue_tickets'] ?? []) as $ticket) {
-            if ((int) ($ticket['id'] ?? 0) === $ticketId) {
-                return $ticket;
-            }
-        }
-        return null;
+        return QueueAssignmentService::findTicketById(...$args);
     }
 
-    public function getPublicTicketStatus(array $store, string $ticketCode): array
+    public static function getPublicTicketStatus(...$args)
     {
-        $normalizedCode = strtoupper(trim($ticketCode));
-        if ($normalizedCode === '' || preg_match('/^[A-Z]-\d{3,4}$/', $normalizedCode) !== 1) {
-            return [
-                'ok' => false,
-                'error' => 'Codigo de ticket invalido',
-                'status' => 400,
-                'errorCode' => 'queue_bad_request',
-            ];
-        }
-
-        $store = $this->normalizeStore($store);
-        $store = $this->priorityPolicy->refreshWaitingAppointmentPriorities($store);
-        $store = $this->hydratePatientFlowStore($store);
-
-        $ticket = $this->findTicketByCode($store, $normalizedCode);
-        if (!is_array($ticket)) {
-            return [
-                'ok' => false,
-                'error' => 'Ticket no encontrado',
-                'status' => 404,
-                'errorCode' => 'queue_ticket_not_found',
-            ];
-        }
-
-        $tickets = $this->normalizeTickets($store['queue_tickets'] ?? []);
-        $waiting = [];
-        $called = [];
-        foreach ($tickets as $candidate) {
-            $status = (string) ($candidate['status'] ?? '');
-            if ($status === self::STATUS_WAITING) {
-                $waiting[] = $candidate;
-            } elseif ($status === self::STATUS_CALLED) {
-                $called[] = $candidate;
-            }
-        }
-        $waiting = $this->priorityPolicy->sortWaitingTickets($waiting);
-        $called = $this->priorityPolicy->sortCalledTickets($called);
-        $waitingEstimates = $this->summaryBuilder->buildWaitingEstimates($waiting, $called);
-
-        $position = null;
-        $estimatedWaitMin = null;
-        foreach ($waitingEstimates as $estimate) {
-            if ((string) ($estimate['ticketCode'] ?? '') !== $normalizedCode) {
-                continue;
-            }
-            $position = (int) ($estimate['position'] ?? 0);
-            $estimatedWaitMin = max(0, (int) ($estimate['estimatedWaitMin'] ?? 0));
-            break;
-        }
-        if ($position === null) {
-            foreach ($waiting as $index => $candidate) {
-                if ((string) ($candidate['ticketCode'] ?? '') !== $normalizedCode) {
-                    continue;
-                }
-                $position = $index + 1;
-                break;
-            }
-        }
-
-        $queueState = $this->summaryBuilder->buildQueueState(
-            $tickets,
-            $store['queue_help_requests'] ?? [],
-            local_date('c')
-        );
-        $queueData = is_array($queueState['data'] ?? null) ? $queueState['data'] : [];
-
-        return [
-            'ok' => true,
-            'data' => [
-                'ticket' => [
-                    'id' => (int) ($ticket['id'] ?? 0),
-                    'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
-                    'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
-                    'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
-                    'priorityClass' => (string) ($ticket['priorityClass'] ?? 'walk_in'),
-                    'visitReason' => (string) ($ticket['visitReason'] ?? ''),
-                    'visitReasonLabel' => (string) ($ticket['visitReasonLabel'] ?? ''),
-                    'status' => (string) ($ticket['status'] ?? self::STATUS_WAITING),
-                    'assignedConsultorio' => isset($ticket['assignedConsultorio'])
-                        ? ($ticket['assignedConsultorio'] === null ? null : (int) $ticket['assignedConsultorio'])
-                        : null,
-                    'createdAt' => (string) ($ticket['createdAt'] ?? ''),
-                    'calledAt' => (string) ($ticket['calledAt'] ?? ''),
-                    'completedAt' => (string) ($ticket['completedAt'] ?? ''),
-                    'specialPriority' => (bool) ($ticket['specialPriority'] ?? false),
-                    'lateArrival' => (bool) ($ticket['lateArrival'] ?? false),
-                ],
-                'position' => $position,
-                'aheadCount' => $position === null ? null : max(0, $position - 1),
-                'estimatedWaitMin' => $estimatedWaitMin,
-                'updatedAt' => (string) ($queueData['updatedAt'] ?? local_date('c')),
-                'waitingCount' => max(0, (int) ($queueData['waitingCount'] ?? 0)),
-                'calledCount' => max(0, (int) ($queueData['calledCount'] ?? 0)),
-                'activeConsultorios' => max(1, (int) ($queueData['activeConsultorios'] ?? 1)),
-                'delayReason' => (string) ($queueData['delayReason'] ?? ''),
-                'callingNow' => array_values(
-                    array_filter(
-                        is_array($queueData['callingNow'] ?? null) ? $queueData['callingNow'] : [],
-                        static fn ($entry): bool => is_array($entry)
-                    )
-                ),
-                'nextTickets' => array_slice(
-                    array_values(
-                        array_filter(
-                            is_array($queueData['nextTickets'] ?? null) ? $queueData['nextTickets'] : [],
-                            static fn ($entry): bool => is_array($entry)
-                        )
-                    ),
-                    0,
-                    5
-                ),
-            ],
-        ];
+        return QueueAssignmentService::getPublicTicketStatus(...$args);
     }
 
-    public function buildAdminSummary(array $store): array
+    public
+    function buildAdminSummary(array $store): array
     {
         return $this->summaryBuilder->buildAdminSummary($this->getQueueState($store));
     }
 
-    private function normalizeStore(array $store): array
+    private
+
+    private
+    function normalizeStore(array $store): array
     {
         $store = normalize_store_payload($store);
         $store['queue_tickets'] = $this->normalizeTickets($store['queue_tickets'] ?? []);
@@ -817,7 +250,10 @@ class QueueService
         return $store;
     }
 
-    private function normalizeTickets(array $rawTickets): array
+    private
+
+    private
+    function normalizeTickets(array $rawTickets): array
     {
         $tickets = [];
         foreach ($rawTickets as $ticket) {
@@ -829,7 +265,10 @@ class QueueService
         return $tickets;
     }
 
-    private function normalizeHelpRequests(array $rawRequests): array
+    private
+
+    private
+    function normalizeHelpRequests(array $rawRequests): array
     {
         $requests = [];
         foreach ($rawRequests as $request) {
@@ -851,110 +290,25 @@ class QueueService
         return $requests;
     }
 
-    private function syncTicketAssistanceFlags(array $store): array
+    private
+
+    public static function syncTicketAssistanceFlags(...$args)
     {
-        $activeByTicketId = [];
-        foreach ($store['queue_help_requests'] ?? [] as $request) {
-            if (!is_array($request)) {
-                continue;
-            }
-            $ticketId = (int) ($request['ticketId'] ?? 0);
-            if ($ticketId <= 0) {
-                continue;
-            }
-            $status = (string) ($request['status'] ?? '');
-            if (!in_array($status, ['pending', 'attending'], true)) {
-                continue;
-            }
-            if (!isset($activeByTicketId[$ticketId])) {
-                $activeByTicketId[$ticketId] = $request;
-            }
-        }
-
-        foreach ($store['queue_tickets'] as $idx => $ticket) {
-            if (!is_array($ticket)) {
-                continue;
-            }
-            $ticketId = (int) ($ticket['id'] ?? 0);
-            $activeRequest = $activeByTicketId[$ticketId] ?? null;
-            if (is_array($activeRequest)) {
-                $ticket['needsAssistance'] = true;
-                $ticket['assistanceRequestStatus'] = (string) ($activeRequest['status'] ?? 'pending');
-                $ticket['activeHelpRequestId'] = (int) ($activeRequest['id'] ?? 0);
-                $ticket['assistanceReason'] = (string) ($activeRequest['reason'] ?? '');
-                if ((string) ($activeRequest['reason'] ?? '') === 'special_priority') {
-                    $ticket['specialPriority'] = true;
-                }
-                if ((string) ($activeRequest['reason'] ?? '') === 'late_arrival') {
-                    $ticket['lateArrival'] = true;
-                }
-                if (in_array((string) ($activeRequest['reason'] ?? ''), ['printer_issue', 'reprint_requested'], true)) {
-                    $ticket['reprintRequestedAt'] = (string) ($activeRequest['createdAt'] ?? local_date('c'));
-                }
-            } else {
-                $ticket['needsAssistance'] = false;
-                $ticket['assistanceRequestStatus'] = '';
-                $ticket['activeHelpRequestId'] = null;
-                $ticket['assistanceReason'] = (string) ($ticket['assistanceReason'] ?? '');
-            }
-
-            $store['queue_tickets'][$idx] = normalize_queue_ticket($ticket);
-        }
-
-        return $store;
+        return QueueLatencyService::syncTicketAssistanceFlags(...$args);
     }
 
-    private function nextHelpRequestId(array $requests): int
+    public static function nextHelpRequestId(...$args)
     {
-        $maxId = 0;
-        foreach ($requests as $request) {
-            if (!is_array($request)) {
-                continue;
-            }
-            $maxId = max($maxId, (int) ($request['id'] ?? 0));
-        }
-
-        return $maxId + 1;
+        return QueueLatencyService::nextHelpRequestId(...$args);
     }
 
-    private function findTicketForHelpRequest(array $store, array $payload, int $ticketId): ?array
+    public static function findTicketForHelpRequest(...$args)
     {
-        if ($ticketId > 0) {
-            $ticket = $this->findTicketById($store, $ticketId);
-            if (is_array($ticket)) {
-                return $ticket;
-            }
-        }
-
-        $ticketCode = trim((string) ($payload['ticketCode'] ?? ($payload['ticket_code'] ?? '')));
-        if ($ticketCode !== '') {
-            foreach ($store['queue_tickets'] ?? [] as $ticket) {
-                if (!is_array($ticket)) {
-                    continue;
-                }
-                if ((string) ($ticket['ticketCode'] ?? '') === $ticketCode) {
-                    return normalize_queue_ticket($ticket);
-                }
-            }
-        }
-
-        $patientInitials = strtoupper(trim((string) ($payload['patientInitials'] ?? ($payload['patient_initials'] ?? ''))));
-        if ($patientInitials !== '') {
-            $tickets = array_reverse($store['queue_tickets'] ?? []);
-            foreach ($tickets as $ticket) {
-                if (!is_array($ticket)) {
-                    continue;
-                }
-                if (strtoupper((string) ($ticket['patientInitials'] ?? '')) === $patientInitials) {
-                    return normalize_queue_ticket($ticket);
-                }
-            }
-        }
-
-        return null;
+        return QueueLatencyService::findTicketForHelpRequest(...$args);
     }
 
-    private function findTicketByCode(array $store, string $ticketCode): ?array
+    private
+    function findTicketByCode(array $store, string $ticketCode): ?array
     {
         $normalizedCode = strtoupper(trim($ticketCode));
         if ($normalizedCode === '') {
@@ -970,35 +324,15 @@ class QueueService
         return null;
     }
 
-    private function findOpenHelpRequest(
-        array $requests,
-        int $ticketId,
-        string $reason,
-        string $sessionId = ''
-    ): ?array {
-        foreach ($requests as $request) {
-            if (!is_array($request)) {
-                continue;
-            }
-            $status = (string) ($request['status'] ?? '');
-            if (!in_array($status, ['pending', 'attending'], true)) {
-                continue;
-            }
-            $sameTicket = $ticketId > 0 && (int) ($request['ticketId'] ?? 0) === $ticketId;
-            $sameSession = $sessionId !== '' && (string) ($request['sessionId'] ?? '') === $sessionId;
-            if (!$sameTicket && !$sameSession) {
-                continue;
-            }
-            if ((string) ($request['reason'] ?? '') !== $reason) {
-                continue;
-            }
-            return normalize_queue_help_request($request);
-        }
+    private
 
-        return null;
+    public static function findOpenHelpRequest(...$args)
+    {
+        return QueueLatencyService::findOpenHelpRequest(...$args);
     }
 
-    private function normalizeHour(string $hour): string
+    private
+    function normalizeHour(string $hour): string
     {
         $hour = trim($hour);
         if ($hour === '') {
@@ -1015,12 +349,18 @@ class QueueService
         return str_pad((string) $hh, 2, '0', STR_PAD_LEFT) . ':' . str_pad((string) $mm, 2, '0', STR_PAD_LEFT);
     }
 
-    private function hydratePatientFlowStore(array $store): array
+    private
+
+    private
+    function hydratePatientFlowStore(array $store): array
     {
         return $this->patientCaseService->hydrateStore($store);
     }
 
-    private function findTicketRecord(array $store, int $ticketId): ?array
+    private
+
+    private
+    function findTicketRecord(array $store, int $ticketId): ?array
     {
         if ($ticketId <= 0) {
             return null;
@@ -1041,7 +381,10 @@ class QueueService
         return null;
     }
 
-    private function findHelpRequestRecord(array $store, int $requestId): ?array
+    private
+
+    private
+    function findHelpRequestRecord(array $store, int $requestId): ?array
     {
         if ($requestId <= 0) {
             return null;
@@ -1062,64 +405,25 @@ class QueueService
         return null;
     }
 
-    private function mergeHelpRequestContext(array $current, array $patch): array
+    private
+
+    public static function mergeHelpRequestContext(...$args)
     {
-        return array_replace_recursive($current, $patch);
+        return QueueLatencyService::mergeHelpRequestContext(...$args);
     }
 
-    private function shouldRecordHelpRequestResolution(array $previousRequest, array $updatedRequest): bool
+    public static function shouldRecordHelpRequestResolution(...$args)
     {
-        $updatedStatus = strtolower(trim((string) ($updatedRequest['status'] ?? '')));
-        if ($updatedStatus !== 'resolved') {
-            return false;
-        }
-
-        $updatedOutcome = $this->readHelpRequestContextValue(
-            isset($updatedRequest['context']) && is_array($updatedRequest['context'])
-                ? $updatedRequest['context']
-                : [],
-            ['resolutionOutcome', 'resolution_outcome', 'reviewOutcome', 'review_outcome']
-        );
-        if ($updatedOutcome === '') {
-            return false;
-        }
-
-        $previousStatus = strtolower(trim((string) ($previousRequest['status'] ?? '')));
-        if ($previousStatus !== 'resolved') {
-            return true;
-        }
-
-        $previousOutcome = $this->readHelpRequestContextValue(
-            isset($previousRequest['context']) && is_array($previousRequest['context'])
-                ? $previousRequest['context']
-                : [],
-            ['resolutionOutcome', 'resolution_outcome', 'reviewOutcome', 'review_outcome']
-        );
-
-        return $previousOutcome === '' && $updatedOutcome !== '';
+        return QueueLatencyService::shouldRecordHelpRequestResolution(...$args);
     }
 
-    /**
-     * @param array<string, mixed> $context
-     * @param array<int, string> $keys
-     */
-    private function readHelpRequestContextValue(array $context, array $keys): string
+    public static function readHelpRequestContextValue(...$args)
     {
-        foreach ($keys as $key) {
-            $value = $context[$key] ?? null;
-            if ($value === null) {
-                continue;
-            }
-            $normalized = trim((string) $value);
-            if ($normalized !== '') {
-                return $normalized;
-            }
-        }
-
-        return '';
+        return QueueLatencyService::readHelpRequestContextValue(...$args);
     }
 
-    private function resolveCheckinTokenFromPayload(array $payload): string
+    private
+    function resolveCheckinTokenFromPayload(array $payload): string
     {
         foreach (['checkinToken', 'checkin_token', 'qrToken', 'qr_token', 'qrData', 'qr_data'] as $key) {
             $candidate = trim((string) ($payload[$key] ?? ''));
@@ -1131,7 +435,10 @@ class QueueService
         return '';
     }
 
-    private function findAppointment(array $appointments, string $phoneLast4, string $date, string $time): ?array
+    private
+
+    private
+    function findAppointment(array $appointments, string $phoneLast4, string $date, string $time): ?array
     {
         foreach ($appointments as $appointment) {
             if (!is_array($appointment)) {
@@ -1159,7 +466,10 @@ class QueueService
         return null;
     }
 
-    private function findAppointmentByCheckinToken(array $appointments, string $checkinToken): ?array
+    private
+
+    private
+    function findAppointmentByCheckinToken(array $appointments, string $checkinToken): ?array
     {
         $expectedToken = strtoupper(trim($checkinToken));
         if ($expectedToken === '') {
@@ -1187,7 +497,10 @@ class QueueService
         return null;
     }
 
-    private function findActiveTicketByAppointment(array $tickets, int $appointmentId): ?array
+    private
+
+    private
+    function findActiveTicketByAppointment(array $tickets, int $appointmentId): ?array
     {
         foreach ($tickets as $ticket) {
             if (!is_array($ticket) || (int) ($ticket['appointmentId'] ?? 0) !== $appointmentId) {
@@ -1201,12 +514,18 @@ class QueueService
         return null;
     }
 
-    private function isTerminalStatus(string $status): bool
+    private
+
+    private
+    function isTerminalStatus(string $status): bool
     {
         return in_array($status, [self::STATUS_COMPLETED, self::STATUS_NO_SHOW, self::STATUS_CANCELLED], true);
     }
 
-    private function findActiveCalledByConsultorio(array $tickets, int $consultorio, int $excludeTicketId = 0): ?array
+    private
+
+    private
+    function findActiveCalledByConsultorio(array $tickets, int $consultorio, int $excludeTicketId = 0): ?array
     {
         foreach ($tickets as $ticket) {
             if (!is_array($ticket)) {
@@ -1226,7 +545,10 @@ class QueueService
         return null;
     }
 
-    private function normalizeConsultorio($value): ?int
+    private
+
+    private
+    function normalizeConsultorio($value): ?int
     {
         if ($value === null || $value === '') {
             return null;
