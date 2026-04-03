@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/appointment/AppointmentIdempotencyService.php';
+require_once __DIR__ . '/../lib/appointment/AppointmentRescheduleService.php';
+
+
 require_once __DIR__ . '/../lib/BookingService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
-class AppointmentController
+final class AppointmentController
 {
-    // Q43-03: Doctor slugs centralizados en get_valid_booking_doctor_values() — lib/models.php
-    private const ALLOWED_SERVICES = ['consulta', 'telefono', 'video', 'acne', 'cancer', 'laser', 'rejuvenecimiento'];
-
     public static function index(array $context): void
     {
         // GET /appointments (Admin)
@@ -478,189 +479,14 @@ class AppointmentController
         ]);
     }
 
-    public static function checkReschedule(array $context): void
+    public static function checkReschedule(...$args)
     {
-        // GET /reschedule
-        $store = $context['store'];
-        $token = trim((string) ($_GET['token'] ?? ''));
-        if ($token === '' || strlen($token) < 16) {
-            json_response([
-                'ok' => false,
-                'error' => 'Token invalido',
-                'code' => 'invalid_token'
-            ], 400);
-        }
-
-        $found = null;
-        foreach ($store['appointments'] as $appt) {
-            if (($appt['rescheduleToken'] ?? '') === $token && ($appt['status'] ?? '') !== 'cancelled') {
-                $found = $appt;
-                break;
-            }
-        }
-
-        if (!$found) {
-            json_response(['ok' => false, 'error' => 'Cita no encontrada o cancelada'], 404);
-        }
-
-        $changes = (int) ($found['rescheduleCount'] ?? 0);
-        if ($changes >= 2) {
-             json_response(['ok' => false, 'error' => 'Has alcanzado el límite máximo de 2 reprogramaciones'], 403);
-        }
-
-        $now = time();
-        $dateStr = (string) ($found['date'] ?? '');
-        $timeStr = (string) ($found['time'] ?? '');
-        $apptTime = strtotime($dateStr . ' ' . $timeStr);
-        if ($dateStr !== '' && $timeStr !== '' && $apptTime !== false) {
-            if (($apptTime - $now) < 86400) {
-                 json_response(['ok' => false, 'error' => 'No puedes reprogramar con menos de 24 horas de anticipación'], 403);
-            }
-        }
-
-        json_response([
-            'ok' => true,
-            'data' => [
-                'id' => $found['id'],
-                'service' => $found['service'] ?? '',
-                'doctor' => $found['doctor'] ?? '',
-                'date' => $found['date'] ?? '',
-                'time' => $found['time'] ?? '',
-                'name' => $found['name'] ?? '',
-                'status' => $found['status'] ?? ''
-            ]
-        ]);
+        return AppointmentRescheduleService::checkReschedule(...$args);
     }
 
-    public static function processReschedule(array $context): void
+    public static function processReschedule(...$args)
     {
-        // PATCH /reschedule
-        require_rate_limit('reschedule', 5, 60);
-        $payload = require_json_body();
-        $token = trim((string) ($payload['token'] ?? ''));
-        $newDate = trim((string) ($payload['date'] ?? ''));
-        $newTime = trim((string) ($payload['time'] ?? ''));
-
-        $bookingService = new BookingService();
-        $runReschedule = static function () use ($bookingService, $token, $newDate, $newTime): array {
-            $lockResult = with_store_lock(function () use ($bookingService, $token, $newDate, $newTime) {
-                $freshStore = read_store();
-                $rescheduleResult = $bookingService->reschedule($freshStore, $token, $newDate, $newTime);
-
-                if (($rescheduleResult['ok'] ?? false) === true) {
-                    if (!write_store($rescheduleResult['store'], false)) {
-                        // Rollback: revert google calendar changes
-                        $appointment = $rescheduleResult['data'] ?? [];
-                        $previousCalendarState = null;
-                        if (isset($rescheduleResult['meta']['previousCalendarState']) && is_array($rescheduleResult['meta']['previousCalendarState'])) {
-                            $previousCalendarState = $rescheduleResult['meta']['previousCalendarState'];
-                        }
-
-                        $calendarBooking = CalendarBookingService::fromEnv();
-                        if ($calendarBooking->isGoogleActive() && is_array($previousCalendarState)) {
-                            $previousDate = trim((string) ($previousCalendarState['date'] ?? ''));
-                            $previousTime = trim((string) ($previousCalendarState['time'] ?? ''));
-                            $previousDoctor = trim((string) ($previousCalendarState['doctor'] ?? ($appointment['doctor'] ?? '')));
-                            if (
-                                preg_match('/^\d{4}-\d{2}-\d{2}$/', $previousDate) &&
-                                preg_match('/^\d{2}:\d{2}$/', $previousTime)
-                            ) {
-                                $rollbackResult = $calendarBooking->patchCalendarEvent(
-                                    $appointment,
-                                    $previousDate,
-                                    $previousTime,
-                                    $previousDoctor !== '' ? $previousDoctor : null
-                                );
-                                if (($rollbackResult['ok'] ?? false) !== true) {
-                                    audit_log_event('calendar.error', [
-                                        'operation' => 'events_patch_rollback',
-                                        'reason' => (string) ($rollbackResult['error'] ?? 'rollback_failed'),
-                                        'appointmentId' => (int) ($appointment['id'] ?? 0),
-                                    ]);
-                                }
-                            }
-                        }
-                        return [
-                            'ok' => false,
-                            'error' => 'No se pudo guardar la reprogramacion en este momento',
-                            'code' => 503,
-                            'errorCode' => 'reschedule_store_failed'
-                        ];
-                    }
-                }
-                return $rescheduleResult;
-            });
-
-            if (($lockResult['ok'] ?? false) !== true) {
-                return [
-                   'ok' => false,
-                   'error' => (string) ($lockResult['error'] ?? 'Store lock failed'),
-                   'code' => (int) ($lockResult['code'] ?? 503),
-                ];
-            }
-            return is_array($lockResult['result']) ? $lockResult['result'] : ['ok' => false, 'code' => 500];
-        };
-
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate) && preg_match('/^\d{2}:\d{2}$/', $newTime)) {
-            $lockResult = CalendarBookingService::withSlotLock($newDate, $newTime, $runReschedule);
-            if (($lockResult['ok'] ?? false) !== true) {
-                json_response([
-                    'ok' => false,
-                    'error' => (string) ($lockResult['error'] ?? 'No se pudo reprogramar en este momento'),
-                    'code' => (string) ($lockResult['code'] ?? 'slot_lock_failed'),
-                ], (int) ($lockResult['status'] ?? 409));
-            }
-            $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : [
-                'ok' => false,
-                'error' => 'Respuesta invalida del proceso de reprogramacion',
-                'code' => 500,
-            ];
-        } else {
-            $result = $runReschedule();
-        }
-
-        if (!$result['ok']) {
-            $statusCode = (int) ($result['code'] ?? 500);
-            $errorCode = isset($result['errorCode']) ? trim((string) $result['errorCode']) : '';
-            if ($errorCode === '') {
-                $errorCode = self::inferErrorCode($statusCode, (string) ($result['error'] ?? ''));
-            }
-            $errorCode = self::normalizeConflictErrorCode($statusCode, $errorCode);
-            $errorPayload = [
-                'ok' => false,
-                'error' => $result['error'],
-                'code' => $errorCode,
-            ];
-            json_response($errorPayload, $statusCode);
-        }
-
-        $appointment = $result['data'];
-
-        // Redundant checks removed
-        if (!isset($appointment['slotDurationMin']) || (int) $appointment['slotDurationMin'] <= 0) {
-            $calendarBooking = CalendarBookingService::fromEnv();
-            $appointment['slotDurationMin'] = $calendarBooking->getDurationMin((string) ($appointment['service'] ?? 'consulta'));
-        }
-
-        $rescheduleEvent = self::dispatchEventSafely('BookingRescheduled', $appointment);
-        if ($rescheduleEvent === null) {
-            maybe_send_reschedule_email($appointment);
-        }
-
-        json_response([
-            'ok' => true,
-            'data' => [
-                'id' => $appointment['id'],
-                'date' => $newDate,
-                'time' => $newTime,
-                'doctor' => $appointment['doctor'] ?? '',
-                'doctorAssigned' => $appointment['doctorAssigned'] ?? '',
-                'calendarProvider' => $appointment['calendarProvider'] ?? '',
-                'calendarId' => $appointment['calendarId'] ?? '',
-                'calendarEventId' => $appointment['calendarEventId'] ?? '',
-                'slotDurationMin' => (int) ($appointment['slotDurationMin'] ?? 0),
-            ]
-        ]);
+        return AppointmentRescheduleService::processReschedule(...$args);
     }
 
     public static function dispatchEventSafely(string $eventClass, array $appointment): ?object
@@ -684,114 +510,29 @@ class AppointmentController
         }
     }
 
-    public static function resolveIdempotencyKey(array $payload): string
+    public static function resolveIdempotencyKey(...$args)
     {
-        $candidate = '';
-        if (isset($_SERVER['HTTP_IDEMPOTENCY_KEY'])) {
-            $candidate = (string) $_SERVER['HTTP_IDEMPOTENCY_KEY'];
-        } elseif (isset($_SERVER['HTTP_X_IDEMPOTENCY_KEY'])) {
-            $candidate = (string) $_SERVER['HTTP_X_IDEMPOTENCY_KEY'];
-        } elseif (isset($payload['idempotencyKey'])) {
-            $candidate = (string) $payload['idempotencyKey'];
-        }
-
-        return self::normalizeIdempotencyKey($candidate);
+        return AppointmentIdempotencyService::resolveIdempotencyKey(...$args);
     }
 
-    public static function normalizeIdempotencyKey(string $raw): string
+    public static function normalizeIdempotencyKey(...$args)
     {
-        $raw = trim($raw);
-        if ($raw === '') {
-            return '';
-        }
-
-        $safe = preg_replace('/[^A-Za-z0-9._:-]/', '', $raw);
-        if (!is_string($safe)) {
-            return '';
-        }
-
-        $safe = trim($safe);
-        if ($safe === '' || strlen($safe) < 8) {
-            return '';
-        }
-
-        if (strlen($safe) > 128) {
-            $safe = substr($safe, 0, 128);
-        }
-
-        return $safe;
+        return AppointmentIdempotencyService::normalizeIdempotencyKey(...$args);
     }
 
-    public static function buildIdempotencyFingerprint(array $payload): string
+    public static function buildIdempotencyFingerprint(...$args)
     {
-        $normalized = [
-            strtolower(trim((string) ($payload['service'] ?? ''))),
-            strtolower(trim((string) ($payload['doctor'] ?? ''))),
-            trim((string) ($payload['date'] ?? '')),
-            trim((string) ($payload['time'] ?? '')),
-            trim((string) ($payload['name'] ?? '')),
-            strtolower(trim((string) ($payload['email'] ?? ''))),
-            preg_replace('/\D+/', '', (string) ($payload['phone'] ?? '')) ?: '',
-            strtolower(trim((string) ($payload['paymentMethod'] ?? ''))),
-            trim((string) ($payload['paymentIntentId'] ?? '')),
-            trim((string) ($payload['transferReference'] ?? '')),
-        ];
-
-        return hash('sha256', implode('|', $normalized));
+        return AppointmentIdempotencyService::buildIdempotencyFingerprint(...$args);
     }
 
-    public static function findAppointmentByIdempotencyKey(array $store, string $idempotencyKey): ?array
+    public static function findAppointmentByIdempotencyKey(...$args)
     {
-        $appointments = isset($store['appointments']) && is_array($store['appointments'])
-            ? $store['appointments']
-            : [];
-        for ($i = count($appointments) - 1; $i >= 0; $i--) {
-            $appointment = $appointments[$i];
-            if (!is_array($appointment)) {
-                continue;
-            }
-            $storedKey = trim((string) ($appointment['idempotencyKey'] ?? ''));
-            if ($storedKey === '' || !hash_equals($storedKey, $idempotencyKey)) {
-                continue;
-            }
-            if (($appointment['status'] ?? '') === 'cancelled') {
-                continue;
-            }
-            return $appointment;
-        }
-        return null;
+        return AppointmentIdempotencyService::findAppointmentByIdempotencyKey(...$args);
     }
 
-    public static function emitIdempotencyObservability(
-        string $outcome,
-        string $idempotencyKey,
-        string $fingerprint,
-        array $appointment = []
-    ): void {
-        $normalizedOutcome = strtolower(trim($outcome));
-        if (!in_array($normalizedOutcome, ['new', 'replay', 'conflict'], true)) {
-            $normalizedOutcome = 'unknown';
-        }
-
-        if (class_exists('Metrics')) {
-            Metrics::increment('booking_idempotency_events_total', [
-                'outcome' => $normalizedOutcome,
-            ]);
-        }
-
-        if (function_exists('audit_log_event')) {
-            $keyHash = hash('sha256', $idempotencyKey);
-            audit_log_event('booking.idempotency.' . $normalizedOutcome, [
-                'outcome' => $normalizedOutcome,
-                'idempotencyKeyHash' => $keyHash,
-                'idempotencyFingerprint' => $fingerprint !== '' ? substr($fingerprint, 0, 24) : '',
-                'appointmentId' => (int) ($appointment['id'] ?? 0),
-                'doctor' => (string) ($appointment['doctor'] ?? ''),
-                'service' => (string) ($appointment['service'] ?? ''),
-                'date' => (string) ($appointment['date'] ?? ''),
-                'time' => (string) ($appointment['time'] ?? ''),
-            ]);
-        }
+    public static function emitIdempotencyObservability(...$args)
+    {
+        return AppointmentIdempotencyService::emitIdempotencyObservability(...$args);
     }
 
     public static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void

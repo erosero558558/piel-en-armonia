@@ -663,3 +663,27 @@ Cambia `[ ]` por `[x]` y pushea.
 - [ ] **AI-05** `[Codex]` Rate limit específico para `openclaw-chat`: máx 20 req/min por usuario admin
 - [ ] **AI-06** `[Gemini]` Historial de preguntas al copiloto por sesión — scroll up muestra preguntas anteriores de la misma consulta
 
+---
+
+## Bloque 36 — Auditoría refactor crítico [Codex]
+
+- [ ] **RF-01** `[Codex]` P0 - restaurar el bootstrap de api-lib y LeadOps sin depender de LeadScoringService borrado
+      _Valida_: `tests-node/health-turnero-pilot-contract.test.js`, `tests-node/admin-data-app-downloads-contract.test.js`
+- [ ] **RF-02** `[Codex]` P0 - reparar la carga de AdminDataController y reemplazar QueueSurfaceStatusStore borrado
+      _Ruta_: `GET data` debe volver a cargar sin fatal
+- [ ] **RF-03** `[Codex]` P0 - reparar la carga de HealthController y resolver el módulo faltante InternalConsoleReadiness
+      _Ruta_: `GET health` debe volver a responder JSON
+- [ ] **RF-04** `[Codex]` P0 - limpiar imports legacy de PaymentController hacia módulos ya eliminados
+      _Valida_: `tests/Integration/CheckoutPaymentControllerTest.php`
+- [ ] **RF-05** `[Codex]` P0 - reconstruir la API interna de SoftwareSubscriptionService o compatibilizar a sus consumidores
+      _Incluye_: `normalizePlanKey`, `buildCheckoutPayload`, `beginCheckout`, `activateFromCheckoutSession`, `applyInvoiceEvent`, `cancelFromStripeEvent`
+- [ ] **RF-06** `[Codex]` P0 - rewire de ClinicProfileStore y ClinicProfileController al servicio de suscripciones vigente
+      _Incluye_: `normalizeSubscription`, `normalizeClinicProfileSubscription`, `shouldAutoStartTrial`, `startTrial`
+- [ ] **RF-07** `[Codex]` P1 - desacoplar CalendarHealthService de la comparación de timestamps en HealthController
+      _Valida_: `GET data` y `GET health` con snapshots de calendario que tengan success/error
+- [ ] **RF-08** `[Codex]` P1 - reconciliar el contrato público de GET health para turneroPilot, auth, calendar y publicSync
+      _Valida_: `tests-node/health-turnero-pilot-contract.test.js` y `tests/Integration/HealthVisibilityTest.php`
+- [ ] **RF-09** `[Codex]` P1 - envolver con store lock las mutaciones de webhook payment_intent.succeeded y payment_intent.payment_failed
+      _Riesgo_: evitar lost updates entre webhooks y writes de checkout
+- [ ] **RF-10** `[Codex]` P2 - alinear el gate crítico de pagos con package.json, docs y contratos Node
+      _Valida_: `tests-node/critical-payments-gate-contract.test.js`
