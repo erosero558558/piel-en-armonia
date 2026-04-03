@@ -950,8 +950,12 @@ function operator_auth_build_helper_url(array $challenge): string
     return $base . '/resolve?' . $query;
 }
 
-function operator_auth_sanitize_return_to(?string $raw, string $fallback = '/admin.html'): string
+function operator_auth_sanitize_return_to(?string $raw, string $fallback = ''): string
 {
+    if ($fallback === '') {
+        $fallback = app_backend_status_relative_url();
+    }
+
     $value = trim((string) $raw);
     if ($value === '' || preg_match('/[\r\n]/', $value) === 1) {
         return $fallback;
@@ -1340,7 +1344,7 @@ function operator_auth_create_web_broker_attempt(array $input = []): array
         'codeVerifier' => operator_auth_random_base64url(48, 'operator-auth-broker-pkce'),
         'returnTo' => operator_auth_sanitize_return_to(
             isset($input['returnTo']) ? (string) $input['returnTo'] : '',
-            '/admin.html'
+            app_backend_status_relative_url()
         ),
         'createdAt' => operator_auth_now_iso(),
         'expiresAt' => operator_auth_now_iso(time() + operator_auth_challenge_ttl_seconds()),
@@ -2021,7 +2025,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
 function operator_auth_callback_result(string $returnTo, bool $authenticated, string $status, string $error = '', array $extra = []): array
 {
     return array_merge([
-        'redirectTo' => operator_auth_sanitize_return_to($returnTo, '/admin.html'),
+        'redirectTo' => operator_auth_sanitize_return_to($returnTo, app_backend_status_relative_url()),
         'authenticated' => $authenticated,
         'status' => $status,
         'error' => $error,
@@ -2033,7 +2037,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
     $pending = operator_auth_pending_web_state();
     $returnTo = operator_auth_sanitize_return_to(
         is_array($pending) ? (string) ($pending['returnTo'] ?? '') : '',
-        '/admin.html'
+        app_backend_status_relative_url()
     );
 
     $finishWithFlash = static function (string $status, string $error, array $extra = []) use ($returnTo): array {

@@ -592,8 +592,14 @@ final class SoftwareSubscriptionService
         }
         $customerEmail = trim((string) AppConfig::getAdminEmail());
         $baseUrl = rtrim((string) AppConfig::BASE_URL, '/');
-        $successUrl = $baseUrl . '/admin.html#settings?billing=success&plan=' . rawurlencode($safePlanKey);
-        $cancelUrl = $baseUrl . '/admin.html#settings?billing=cancel&plan=' . rawurlencode($safePlanKey);
+        $successUrl = app_backend_status_absolute_url([
+            'billing' => 'success',
+            'plan' => $safePlanKey,
+        ]);
+        $cancelUrl = app_backend_status_absolute_url([
+            'billing' => 'cancel',
+            'plan' => $safePlanKey,
+        ]);
         $seed = implode('|', [
             $clinicName,
             $safePlanKey,

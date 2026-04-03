@@ -257,7 +257,7 @@ final class CalendarOAuthReauth
             'title' => 'Google Calendar reautorizado',
             'message' => $message,
             'tone' => (($validation['ok'] ?? false) === true) ? 'success' : 'warning',
-            'redirectUrl' => rtrim(operator_auth_server_base_url(), '/') . '/admin.html?calendarReauth=ok',
+            'redirectUrl' => app_backend_status_absolute_url(['calendarReauth' => 'ok']),
             'challenge' => self::publicPayload($updated),
         ];
     }
@@ -318,7 +318,7 @@ final class CalendarOAuthReauth
             'title' => $title,
             'message' => $message,
             'tone' => $tone,
-            'redirectUrl' => rtrim(operator_auth_server_base_url(), '/') . '/admin.html?calendarReauth=' . rawurlencode($status),
+            'redirectUrl' => app_backend_status_absolute_url(['calendarReauth' => $status]),
         ];
     }
 
@@ -343,7 +343,7 @@ final class CalendarOAuthReauth
             'title' => $title,
             'message' => $message,
             'tone' => 'danger',
-            'redirectUrl' => rtrim(operator_auth_server_base_url(), '/') . '/admin.html?calendarReauth=error',
+            'redirectUrl' => app_backend_status_absolute_url(['calendarReauth' => 'error']),
             'challenge' => self::publicPayload($updated),
         ];
     }
