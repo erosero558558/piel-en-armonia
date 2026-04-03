@@ -245,6 +245,156 @@
 
 ---
 
+## Bloque 9 — Portal: servicios PHP internos
+
+> El `PatientPortalController.php` ya existe. Estos tickets crean los servicios que necesita.
+
+- [ ] **S-01** `[Codex]` `lib/portal/PortalBillingService.php` — lista de pagos del paciente con estado (pagado/pendiente)
+      _Persistencia_: lee de la tabla de pagos/órdenes. Retorna array normalizado por fecha DESC
+- [ ] **S-02** `[Codex]` `lib/portal/PortalHistoryService.php` — historial clínico del paciente para el portal
+      _Retorna_: episodios con documentos adjuntos, fotos, diagnósticos — ordenado por fecha DESC
+- [ ] **S-03** `[Codex]` `lib/portal/PortalTreatmentPlanService.php` — plan de tratamiento activo del paciente
+      _Retorna_: plan vigente, sesiones completadas, próximas sesiones, indicaciones
+- [ ] **S-04** `[Codex]` `lib/DocumentVerificationService.php` restaurado — verificar documentos por token QR
+      _Endpoint_: `GET document-verify?token=` — retorna `{ ok, document, issuedAt, patient }`
+- [ ] **S-05** `[Codex]` `lib/portal/PortalConsentService.php` — obtener y registrar firma de consentimiento
+      _Flujo_: `GET patient-portal-consent` devuelve PDF+estado; `POST` guarda firma + timestamp + IP
+- [ ] **S-06** `[Codex]` `lib/portal/PortalPhotoService.php` — fotos clínicas visibles al paciente
+      _Lógica_: filtra por `isPortalVisiblePhoto()`, agrupa por `bodyZone`, retorna URLs firmadas
+- [ ] **S-07** `[Codex]` `lib/portal/PortalSummaryService.php` — perfil del paciente: alergias, condiciones crónicas, medicación
+      _Endpoint_: `GET patient-summary` — fuente: `ClinicalHistoryService` + datos personales
+
+---
+
+## Bloque 10 — Historia clínica: flujo completo
+
+- [ ] **HC-01** `[Codex]` Endpoint `GET clinical-anamnesis?patientId=` — retorna anamnesis estructurada del paciente
+- [ ] **HC-02** `[Codex]` `POST clinical-anamnesis` — guardar/actualizar anamnesis (alergias, antecedentes, medicamentos)
+- [ ] **HC-03** `[Codex]` `GET clinical-evolution?caseId=` — lista de notas SOAP del caso, ordenadas por fecha
+- [ ] **HC-04** `[Codex]` Lógica de versioning en evoluciones — cada PATCH guarda versión anterior, nunca overwrite
+- [ ] **HC-05** `[Codex]` `GET care-plan-pdf?caseId=` — genera PDF del plan de tratamiento del episodio
+- [ ] **HC-06** `[Gemini]` UI de anamnesis en admin — formulario de alergias, antecedentes, medicamentos
+      _API_: `GET clinical-anamnesis`, `POST clinical-anamnesis`
+      _UX_: campos agrupados: medicamentos / alergias / antecedentes familiares / condiciones crónicas
+- [ ] **HC-07** `[Gemini]` Timeline de evoluciones en HCE — vista cronológica de notas SOAP
+      _API_: `GET clinical-evolution`
+      _UX_: cada nota muestra S/O/A/P colapsables, fecha, médico firmante
+- [ ] **HC-08** `[Gemini]` Panel de diagnóstico en HCE — CIE-10 principal + secundarios del episodio
+      _API_: `GET clinical-history-review`, `GET openclaw-cie10-suggest`
+      _UX_: input con autocomplete de CIE-10, chips para diagnósticos seleccionados
+
+---
+
+## Bloque 11 — OpenClaw: flujo clínico completo
+
+- [ ] **OC-01** `[Codex]` `POST openclaw-save-chronic` — guardar condición crónica detectada en sesión
+      _Integración_: `OpenclawMedicalRecordsController::saveChronicCondition()` ya existe en routes
+- [ ] **OC-02** `[Codex]` `POST openclaw-fast-close` — cerrar sesión rápida sin resumen completo
+      _Caso de uso_: consulta express, solo diagnóstico + recetar sin evolución detallada
+- [ ] **OC-03** `[Codex]` `POST openclaw-close-telemedicine` — cerrar sesión telemedicina + generar PDF de resumen
+- [ ] **OC-04** `[Codex]` `GET openclaw-next-patient` — retorna el próximo paciente en la cola del médico hoy
+      _Lógica_: primer turno con estado `waiting` + cita programada para hoy
+- [ ] **OC-05** `[Gemini]` UI "Próximo paciente" en admin — card con nombre, servicio, tiempo de espera
+      _API_: `GET openclaw-next-patient`
+      _UX_: botón "Llamar" que dispara `POST queue-call-next` directamente
+- [ ] **OC-06** `[Gemini]` UI de verificación de interacciones en receta
+      _API_: `POST openclaw-interactions`
+      _UX_: lista de medicamentos con badge de alerta si hay interacción moderada/severa
+- [ ] **OC-07** `[Gemini]` Historial de recetas del paciente en admin HCE
+      _API_: `GET openclaw-prescription?patientId=`
+      _UX_: lista de recetas por fecha, botón ver PDF + botón clonar receta
+
+---
+
+## Bloque 12 — Fotos clínicas: flujo completo
+
+- [ ] **F-01** `[Codex]` `POST clinical-media-upload` — validar mime (jpg/png/heic/webp), max 10MB, guardar en `data/clinical-media/`
+- [ ] **F-02** `[Codex]` `GET media-flow-queue` — retorna uploads pendientes de revisión por el médico
+- [ ] **F-03** `[Codex]` `POST media-flow-proposal-generate` — generar propuesta de publicación (seleccionar fotos para before/after)
+- [ ] **F-04** `[Codex]` `POST media-flow-publication-state` — aprobar/rechazar publicación pública de foto de caso
+- [ ] **F-05** `[Codex]` `GET media-flow-private-asset?id=` — servir archivo binario de foto clínica con auth
+- [ ] **F-06** `[Gemini]` UI de galería médica en HCE — fotos clínicas por episodio, agrupadas por zona corporal
+      _API_: `GET clinical-history-gallery`
+      _UX_: grid de thumbnails, click → lightbox, etiqueta de zona y fecha
+- [ ] **F-07** `[Gemini]` UI de bandeja de revisión de fotos en admin
+      _API_: `GET media-flow-queue`, `POST media-flow-proposal-review`
+      _UX_: lista de uploads pendientes, aprobar/rechazar visibilidad al paciente
+
+---
+
+## Bloque 13 — Telemedicina
+
+- [ ] **TM-01** `[Codex]` `GET telemedicine-intakes` — lista de intakes pendientes de aprobación
+- [ ] **TM-02** `[Codex]` `PATCH telemedicine-intakes` — aprobar/rechazar intake, generar link de sala
+- [ ] **TM-03** `[Codex]` `GET telemedicine-ops-diagnostics` — estado operativo del servicio de telemedicina
+- [ ] **TM-04** `[Codex]` `GET telemedicine-rollout-readiness` — verifica que el clínico tiene cámara/mic configurados
+- [ ] **TM-05** `[Gemini]` UI de sala de espera virtual para el paciente
+      _API_: `GET queue-public-ticket?id=` (modo telemedicina)
+      _UX_: contador de espera, botón "Unirse a la consulta" cuando es el turno
+- [ ] **TM-06** `[Gemini]` UI de sala de teleconsulta para el médico en admin
+      _API_: `PATCH telemedicine-intakes` + video embed
+      _UX_: video del paciente + panel lateral con HCE + OpenClaw
+- [ ] **TM-07** `[Gemini]` Formulario de pre-consulta para el paciente (antes de la teleconsulta)
+      _API_: `POST flow-os-intake`
+      _UX_: motivo de consulta, foto de la lesión, lista de medicamentos actuales
+
+---
+
+## Bloque 14 — Citas: flujo completo
+
+- [ ] **AP-01** `[Codex]` `GET appointments?fecha=&status=` — filtrado por fecha y estado (scheduled/completed/cancelled)
+- [ ] **AP-02** `[Codex]` `PATCH appointments` — actualizar estado de cita (confirmar, completar, cancelar, no-show)
+- [ ] **AP-03** `[Codex]` `GET booked-slots?service=&fecha=` — slots ocupados para un servicio ese día
+- [ ] **AP-04** `[Codex]` `GET reschedule?token=` — validar token de reagendamiento + retornar slot actual y disponibles
+- [ ] **AP-05** `[Codex]` `PATCH reschedule` — confirmar nuevo slot, invalidar token anterior
+- [ ] **AP-06** `[Gemini]` UI de calendario de citas del día en admin
+      _API_: `GET appointments?fecha=hoy`
+      _UX_: vista de timeline por hora (8am-7pm), cada cita es un bloque color-coded por servicio
+- [ ] **AP-07** `[Gemini]` UI de modal de detalle de cita en admin
+      _UX_: nombre paciente, servicio, hora, botones: Ver HCE / Llamar / Marcar completado / Cancelar
+- [ ] **AP-08** `[Gemini]` Vista de semana en el calendario del admin
+      _API_: `GET appointments` con rango de fechas
+      _UX_: 7 columnas, drag-to-reschedule (MVP: click para mover)
+- [ ] **AP-09** `[Gemini]` Página de reagendamiento para el paciente (link del email)
+      _API_: `GET reschedule?token=`, `GET availability`, `PATCH reschedule`
+      _UX_: muestra la cita actual, calendario de slots disponibles, confirma con un click
+
+---
+
+## Bloque 15 — UX y diseño del sistema
+
+- [ ] **UX-01** `[Gemini]` Sistema de diseño base — `css/tokens.css` con colores, tipografía, espaciado Aurora Derm
+      _Valores_: paleta clínica (blanco, verde salud, gris cálido), fuente Inter
+- [ ] **UX-02** `[Gemini]` Componentes base — `css/components.css`: botón, input, card, badge, modal, toast
+      _Regla_: sin clases utilitarias, solo semántica: `.btn-primary`, `.card`, `.badge-success`
+- [ ] **UX-03** `[Gemini]` Sistema de iconos — SVG inline en `js/icons.js`, referencia por nombre
+      _Set inicial_: calendar, user, pill, stethoscope, camera, file-pdf, check, alert, phone, queue
+- [ ] **UX-04** `[Gemini]` Loading states — skeletons en todas las pantallas que hacen fetch
+      _Patrón_: `<div class="skeleton">` mientras carga, reemplazar con datos
+- [ ] **UX-05** `[Gemini]` Toast de notificaciones — `js/toast.js` — `showToast(msg, type)` global
+      _Tipos_: `success`, `error`, `warning`, `info` — auto-dismiss 4s
+- [ ] **UX-06** `[Gemini]` Modal reutilizable — `js/modal.js` — `openModal(html)` / `closeModal()`
+- [ ] **UX-07** `[Gemini]` Estado vacío (empty states) en todas las listas
+      _UX_: cuando no hay citas / turnos / historial → ícono + mensaje + CTA relevante
+- [ ] **UX-08** `[Gemini]` Responsive: todas las pantallas de admin funcionan en tablet (768px)
+      _Reglas_: nav lateral colapsa a hamburger, tablas → cards en móvil
+- [ ] **UX-09** `[Gemini]` Modo oscuro en admin — toggle en la nav, preferencia guardada en `localStorage`
+- [ ] **UX-10** `[Gemini]` Print CSS para recetas y certificados — `@media print` limpio, sin nav/header
+
+---
+
+## Bloque 16 — API y documentación
+
+- [ ] **DOC-01** `[Codex]` `docs/openapi.yaml` actualizado — solo los endpoints que existen en `routes.php` post-limpieza
+- [ ] **DOC-02** `[Codex]` `docs/API.md` reescrito — tabla de endpoints con método, ruta, auth requerida, respuesta ejemplo
+- [ ] **DOC-03** `[Codex]` `docs/ARCHITECTURE.md` reescrito — diagrama del flujo real: request → api.php → autoloader → controller → service
+- [ ] **DOC-04** `[Codex]` Colección de Postman/Bruno exportada en `docs/aurora-derm.json`
+      _Cubre_: auth flows, queue, appointments, openclaw, portal
+- [ ] **DOC-05** `[Gemini]` `docs/SCREENS.md` — capturas o wireframes de cada pantalla con su endpoint correspondiente
+      _Objetivo_: que cualquier desarrollador entienda qué hace cada pantalla en 30 segundos
+
+---
+
 ## Reglas
 
 1. **Un commit por ticket** — `feat(T-01): kiosco checkin UI`
