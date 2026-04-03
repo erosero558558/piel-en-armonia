@@ -285,7 +285,7 @@ class FigoBrain
             case 'booking':
                 return "¡Maravillosa elección! Estás a un paso de la mejor versión de tu piel. 🌟\n\n" .
                        "Nuestra agenda online está abierta 24/7 para ti:\n\n" .
-                       "👉 **[Solicitar disponibilidad]( " . app_api_absolute_url('appointments') . " )**\n\n" .
+                       "👉 **[Solicitar disponibilidad](" . app_api_absolute_url('appointments') . ")**\n\n" .
                        "El proceso es simple: Eliges servicio, doctor y tu hora ideal. ¡Te esperamos!";
 
             case 'payment':
@@ -365,7 +365,7 @@ class FigoBrain
                 return "💻 **Dermatología Online:** Calidad médica sin salir de casa.\n\n" .
                        "Ideal para segundas opiniones, acné o revisiones. Recibes tu diagnóstico y receta digital válida.\n" .
                        "Valor: **{$pOnline}**.\n\n" .
-                       "Puedes agendar seleccionando 'Videoconsulta' en la web.";
+                       "Puedes solicitar una videoconsulta desde el endpoint de agenda.";
 
             case 'contact':
                 return "Estamos a un mensaje de distancia. 📱\n\n" .

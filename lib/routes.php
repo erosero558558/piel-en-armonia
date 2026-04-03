@@ -133,18 +133,8 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'certificate', [CertificateController::class, 'index']);
     $router->add('POST', 'certificate', [CertificateController::class, 'store']);
 
-    $router->add('GET', 'reviews', [ReviewController::class, 'index']);
-    $router->add('POST', 'reviews', [ReviewController::class, 'store']);
-
-
     $router->add('GET', 'availability', [AvailabilityController::class, 'index']);
     $router->add('POST', 'availability', [AvailabilityController::class, 'update']);
-    $router->add('POST', 'admin-agent-session-start', [AdminAgentController::class, 'start']);
-    $router->add('POST', 'admin-agent-turn', [AdminAgentController::class, 'turn']);
-    $router->add('GET', 'admin-agent-status', [AdminAgentController::class, 'status']);
-    $router->add('GET', 'admin-agent-events', [AdminAgentController::class, 'events']);
-    $router->add('POST', 'admin-agent-approve', [AdminAgentController::class, 'approve']);
-    $router->add('POST', 'admin-agent-cancel', [AdminAgentController::class, 'cancel']);
 
     $router->add('GET', 'booked-slots', [AppointmentController::class, 'bookedSlots']);
     $router->add('POST', 'funnel-event', [AnalyticsController::class, 'recordEvent']);
@@ -164,25 +154,12 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'content', [ContentController::class, 'get']);
     $router->add('GET', 'services-catalog', [ServiceCatalogController::class, 'index']);
-    $router->add('GET', 'service-priorities', [ServicePriorityController::class, 'index']);
 
     $router->add('GET', 'push-config', [PushController::class, 'config']);
     $router->add('POST', 'push-subscribe', [PushController::class, 'subscribe']);
     $router->add('POST', 'push-unsubscribe', [PushController::class, 'unsubscribe']);
     $router->add('POST', 'push-test', [PushController::class, 'test']);
 
-    // OpenClaw — Clinical Copilot API (Custom GPT Actions)
-    $router->add('GET', 'openclaw-patient', [OpenclawMedicalRecordsController::class, 'patient']);
-    $router->add('POST', 'openclaw-chat', [OpenclawAiController::class, 'chat']);
-    $router->add('GET', 'openclaw-cie10', [OpenclawAiController::class, 'suggestCie10']);
-    $router->add('GET', 'openclaw-protocol', [OpenclawAiController::class, 'getTreatmentProtocol']);
-    $router->add('POST', 'openclaw-evolution', [OpenclawMedicalRecordsController::class, 'saveEvolutionNote']);
-    $router->add('POST', 'openclaw-prescription', [OpenclawPrescriptionController::class, 'savePrescription']);
-    $router->add('POST', 'openclaw-certificate', [OpenclawCertificateController::class, 'generateCertificate']);
-    $router->add('POST', 'openclaw-interactions', [OpenclawPrescriptionController::class, 'checkInteractions']);
-    $router->add('POST', 'openclaw-summarize', [OpenclawSessionController::class, 'summarizeSession']);
-    $router->add('GET', 'openclaw-router-status', [OpenclawSessionController::class, 'routerStatus']);
-    $router->add('GET', 'openclaw-next-patient', [OpenclawSessionController::class, 'nextPatient']);
 
     // ── Patient Portal — authenticated data endpoints ──────────────────────
     $router->add('GET',  'patient-portal-dashboard',      [PatientPortalController::class, 'handle']);

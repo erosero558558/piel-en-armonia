@@ -1,54 +1,30 @@
-# ── Piel en Armonía – Configuración Apache ──────────────
-
-# Desactivar listado de directorios
 Options -Indexes
-DirectoryIndex index.php index.html
+DirectoryIndex index.php
 
-# ── Forzar HTTPS ─────────────────────────────────────────
 RewriteEngine On
-RewriteCond %{HTTPS} !=on
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# ── Migración canónica pública ES/EN (301) ─────────────
-# Las rutas legacy sobreviven solo como redirects; ya no dependen de archivos HTML físicos.
-RewriteRule ^$ /es/ [R=301,L]
-RewriteRule ^index\.html$ /es/ [R=301,L,NC]
+RewriteCond %{REQUEST_URI} ^/(?:404\.html|500\.html|admin-openclaw-setup\.html|admin-v3\.css|admin\.js|admin\.html|favicon\.ico|favicon\.svg|index\.html|kiosco-turnos\.html|kiosk-cie10-sandbox\.html|kiosk\.html|manifest\.json|operador-turnos\.html|queue-display\.html|queue-kiosk\.css|queue-kiosk\.html|queue-ops\.css|queue-operator\.html|robots\.txt|sala-turnos\.html|sitemap\.xml|stats\.html|sw\.js)$ [NC,OR]
+RewriteCond %{REQUEST_URI} ^/(?:_astro|app-downloads|desktop-updates|en|es|images|js|ninos|servicios)(?:/|$) [NC]
+RewriteRule ^ - [G,L]
 
-# Landing y legales legacy
-RewriteRule ^telemedicina(?:\.html)?$ /es/telemedicina/ [R=301,L,NC]
-RewriteRule ^terminos\.html$ /es/legal/terminos/ [R=301,L,NC]
-RewriteRule ^privacidad\.html$ /es/legal/privacidad/ [R=301,L,NC]
-RewriteRule ^cookies\.html$ /es/legal/cookies/ [R=301,L,NC]
-RewriteRule ^aviso-medico\.html$ /es/legal/aviso-medico/ [R=301,L,NC]
-
-# Servicios legacy -> canónica /es/servicios/*
-RewriteRule ^servicios/acne(?:\.html)?/?$ /es/servicios/acne-rosacea/ [R=301,L,NC]
-RewriteRule ^servicios/laser(?:\.html)?/?$ /es/servicios/laser-dermatologico/ [R=301,L,NC]
-RewriteRule ^servicios/([a-z0-9-]+)\.html$ /es/servicios/$1/ [R=301,L,NC]
-RewriteRule ^servicios/([a-z0-9-]+)/?$ /es/servicios/$1/ [R=301,L,NC]
-
-# Ruta pediátrica legacy
-RewriteRule ^ninos/([a-z0-9-]+)\.html$ /es/servicios/$1/ [R=301,L,NC]
-RewriteRule ^ninos/([a-z0-9-]+)/?$ /es/servicios/$1/ [R=301,L,NC]
-
-# Fallback para páginas públicas legacy en raíz (mantiene query params)
-RewriteRule ^(?!admin$|operador-turnos$|kiosco-turnos$|sala-turnos$|stats$)([a-z0-9-]+)\.html$ /es/$1/ [R=301,L,NC]
-
-# ── Cabeceras de seguridad ───────────────────────────────
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
-    Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
-    Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
-    Header always set Cross-Origin-Resource-Policy "same-site"
-    Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://images.unsplash.com https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self'"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+    Header always set Content-Security-Policy "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     Header always set X-XSS-Protection "1; mode=block"
+
+    <FilesMatch "^(api|admin-auth|backup-receiver|check-ai-response|cron|figo-ai-bridge|figo-backend|figo-chat|hosting-runtime|index|payment-lib|verify-backup)\.php$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
 </IfModule>
 
-# ── Proteger archivos sensibles ──────────────────────────
-<FilesMatch "(^\.ht|env\.php|env\.example\.php|\.gitignore|\.json$|\.log$|\.md$)">
+<FilesMatch "(^\.|README\.md|DEPLOYMENT\.md|package(-lock)?\.json|composer\.(json|lock)|phpunit\.xml|playwright\.config\.js|rollup\.config\.mjs|.*\.(log|md|ps1))$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -58,68 +34,6 @@ RewriteRule ^(?!admin$|operador-turnos$|kiosco-turnos$|sala-turnos$|stats$)([a-z
     </IfModule>
 </FilesMatch>
 
-# ── Compresión gzip ──────────────────────────────────────
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html
-    AddOutputFilterByType DEFLATE text/css
-    AddOutputFilterByType DEFLATE text/javascript
-    AddOutputFilterByType DEFLATE application/javascript
-    AddOutputFilterByType DEFLATE application/json
-    AddOutputFilterByType DEFLATE application/xml
-    AddOutputFilterByType DEFLATE text/xml
-    AddOutputFilterByType DEFLATE image/svg+xml
-</IfModule>
-
-# Brotli cuando el modulo esta disponible (preferible a gzip)
-<IfModule mod_brotli.c>
-    AddOutputFilterByType BROTLI_COMPRESS text/html
-    AddOutputFilterByType BROTLI_COMPRESS text/css
-    AddOutputFilterByType BROTLI_COMPRESS text/javascript
-    AddOutputFilterByType BROTLI_COMPRESS application/javascript
-    AddOutputFilterByType BROTLI_COMPRESS application/json
-    AddOutputFilterByType BROTLI_COMPRESS application/xml
-    AddOutputFilterByType BROTLI_COMPRESS text/xml
-    AddOutputFilterByType BROTLI_COMPRESS image/svg+xml
-</IfModule>
-
-<IfModule mod_headers.c>
-    Header append Vary "Accept-Encoding"
-</IfModule>
-
-# ── Caché de estáticos ───────────────────────────────────
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresByType image/jpeg "access plus 1 month"
-    ExpiresByType image/png "access plus 1 month"
-    ExpiresByType image/webp "access plus 1 month"
-    ExpiresByType image/svg+xml "access plus 1 month"
-    ExpiresByType image/x-icon "access plus 1 year"
-    ExpiresByType text/css "access plus 1 week"
-    ExpiresByType application/javascript "access plus 1 week"
-    ExpiresByType text/html "access plus 1 day"
-</IfModule>
-
-# Cache-Control explicito por tipo de recurso
-<IfModule mod_headers.c>
-    <FilesMatch "\.(css|js)$">
-        Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
-    </FilesMatch>
-
-    <FilesMatch "\.(jpg|jpeg|png|webp|avif|svg|ico)$">
-        Header set Cache-Control "public, max-age=2592000"
-    </FilesMatch>
-
-    <FilesMatch "\.(woff|woff2|ttf|otf)$">
-        Header set Cache-Control "public, max-age=31536000, immutable"
-    </FilesMatch>
-
-    <FilesMatch "\.html$">
-        Header set Cache-Control "public, max-age=300, stale-while-revalidate=60"
-    </FilesMatch>
-
-    <FilesMatch "^(api|figo-chat|figo-backend|admin-auth|backup-receiver)\.php$">
-        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-        Header set Pragma "no-cache"
-        Header set Expires "0"
-    </FilesMatch>
-</IfModule>
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]

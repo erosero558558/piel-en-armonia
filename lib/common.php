@@ -203,6 +203,8 @@ function app_backend_only_removed_ui_exact_paths(): array
         '/404.html',
         '/500.html',
         '/admin-openclaw-setup.html',
+        '/admin-v3.css',
+        '/admin.js',
         '/admin.html',
         '/favicon.ico',
         '/favicon.svg',
@@ -214,7 +216,9 @@ function app_backend_only_removed_ui_exact_paths(): array
         '/manifest.json',
         '/operador-turnos.html',
         '/queue-display.html',
+        '/queue-kiosk.css',
         '/queue-kiosk.html',
+        '/queue-ops.css',
         '/queue-operator.html',
         '/robots.txt',
         '/sala-turnos.html',
@@ -227,10 +231,13 @@ function app_backend_only_removed_ui_exact_paths(): array
 function app_backend_only_removed_ui_prefixes(): array
 {
     return [
+        '/_astro',
         '/app-downloads',
         '/desktop-updates',
         '/en',
         '/es',
+        '/images',
+        '/js',
         '/ninos',
         '/servicios',
     ];

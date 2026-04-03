@@ -21,107 +21,46 @@ http://pielarmonia.com, http://aurora-derm.com, http://127.0.0.1, http://localho
 		format console
 	}
 
-	@publicHost host pielarmonia.com www.pielarmonia.com aurora-derm.com www.aurora-derm.com
 	header {
 		X-Content-Type-Options "nosniff"
-		X-Frame-Options "SAMEORIGIN"
-		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		Cross-Origin-Opener-Policy "same-origin"
-		Cross-Origin-Resource-Policy "same-site"
-		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://images.unsplash.com https://www.google-analytics.com https://*.stripe.com https://cloudflareinsights.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://cloudflareinsights.com https://browser.sentry-cdn.com https://*.ingest.sentry.io https://sentry.io https://wa.me https://api.whatsapp.com; worker-src 'self' blob:; form-action 'self' https://aurora-derm.com https://pielarmonia.com"
+		Cross-Origin-Resource-Policy "same-origin"
+		Content-Security-Policy "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 		X-XSS-Protection "1; mode=block"
-	}
-	header @publicHost Strict-Transport-Security "max-age=31536000; includeSubDomains"
-
-	@dynamicNoStore path /api.php /figo-chat.php /figo-backend.php /figo-ai-bridge.php /admin-auth.php /backup-receiver.php /cron.php /verify-backup.php /check-ai-response.php
-	header @dynamicNoStore Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-	header @dynamicNoStore Pragma "no-cache"
-	header @dynamicNoStore Expires "0"
-
-	@staticScripts path_regexp staticScripts \.(?:css|js)$
-	header @staticScripts Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
-
-	@staticImages path_regexp staticImages \.(?:avif|gif|ico|jpe?g|png|svg|webp)$
-	header @staticImages Cache-Control "public, max-age=2592000"
-
-	@staticFonts path_regexp staticFonts \.(?:woff2?|ttf|otf)$
-	header @staticFonts Cache-Control "public, max-age=31536000, immutable"
-
-	@staticHtml path_regexp staticHtml \.html$
-	header @staticHtml Cache-Control "public, max-age=300, stale-while-revalidate=60"
-
-	@blockedFiles path /.editorconfig /.gitattributes /.gitignore /.htaccess /.lighthouserc.json /.php-cs-fixer.cache /.php-cs-fixer.dist.php /.prettierignore /.prettierrc /AGENT_BOARD.yaml /AGENT_HANDOFFS.yaml /AGENT_JOBS.yaml /AGENT_SIGNALS.yaml /AGENTS.md /CLAUDE.md /JULES_TASKS.md /KIMI_TASKS.md /README.md /SERVIDOR-LOCAL.md /composer.json /composer.lock /env.example.php /env.php /eslint.config.js /governance-policy.json /package-lock.json /package.json /phpunit.xml /playwright.config.js /psalm.xml /rollup.config.mjs /api-lib.php /api-router.php /figo-brain.php /payment-lib.php
-	@blockedRootArtifacts path_regexp blockedRootArtifacts ^/(?:[^/]+\.(?:log|md|ps1)|Dockerfile|docker-compose(?:\.[^/]+)?\.yml)$
-	@blockedDirs path_regexp blockedDirs ^/(?:\.claude|\.codex|\.git|\.github|\.husky|\.vscode|bin|components|content|controllers|data|docs|grafana|k8s|lib|node_modules|release|scripts|src|templates|tests|tools|vendor|verification)(?:/.*)?$
-	@hostingRuntimeLocal {
-		path /__hosting/runtime /hosting-runtime.php
-		remote_ip 127.0.0.1/32 ::1/128
-	}
-	@hostingRuntimeBlocked {
-		path /__hosting/runtime /hosting-runtime.php
-		not remote_ip 127.0.0.1/32 ::1/128
 	}
 
 	@health path /healthz
-	@root path /
-	@legacyIndex path /index.html
-	@appDownloadsCenter path /app-downloads /app-downloads/
-	@telemedicina path_regexp telemedicina ^/telemedicina(?:\.html)?/?$
-	header @telemedicina Permissions-Policy "camera=(self), microphone=(self), geolocation=()"
-	@terminos path /terminos.html
-	@privacidad path /privacidad.html
-	@cookies path /cookies.html
-	@avisoMedico path /aviso-medico.html
-	@servicioAcne path_regexp servicioAcne ^/servicios/acne(?:\.html)?/?$
-	@servicioLaser path_regexp servicioLaser ^/servicios/laser(?:\.html)?/?$
-	@servicioHtml path_regexp servicioHtml ^/servicios/([a-z0-9-]+)\.html$
-	@servicioDir path_regexp servicioDir ^/servicios/([a-z0-9-]+)/?$
-	@ninosHtml path_regexp ninosHtml ^/ninos/([a-z0-9-]+)\.html$
-	@ninosDir path_regexp ninosDir ^/ninos/([a-z0-9-]+)/?$
-	@legacyRoot {
-		path_regexp legacyRoot ^/([a-z0-9-]+)\.html$
-		not path /admin.html /operador-turnos.html /kiosco-turnos.html /sala-turnos.html /stats.html
+	@removedUi path_regexp removedUi ^/(?:404\.html|500\.html|_astro(?:/.*)?|admin-openclaw-setup\.html|admin-v3\.css|admin\.js|admin\.html|app-downloads(?:/.*)?|desktop-updates(?:/.*)?|en(?:/.*)?|es(?:/.*)?|favicon\.ico|favicon\.svg|images(?:/.*)?|index\.html|js(?:/.*)?|kiosco-turnos\.html|kiosk-cie10-sandbox\.html|kiosk\.html|manifest\.json|ninos(?:/.*)?|operador-turnos\.html|queue-display\.html|queue-kiosk\.css|queue-kiosk\.html|queue-ops\.css|queue-operator\.html|robots\.txt|sala-turnos\.html|servicios(?:/.*)?|sitemap\.xml|stats\.html|sw\.js)$
+	@blocked path_regexp blocked ^/(?:\..*|.*\.(?:log|md|ps1)|AGENTS\.md|composer\.(?:json|lock)|package(?:-lock)?\.json|phpunit\.xml|playwright\.config\.js|rollup\.config\.mjs)$
+	@directPhp path_regexp directPhp ^/(?:admin-auth|api|backup-receiver|check-ai-response|cron|figo-ai-bridge|figo-backend|figo-chat|hosting-runtime|payment-lib|verify-backup)\.php$
+
+	handle @health {
+		respond "ok" 200
 	}
-	@publicPhp path /index.php /api.php /admin-auth.php /figo-chat.php /figo-backend.php /figo-ai-bridge.php /backup-receiver.php /cron.php /hosting-runtime.php /legacy.php /verify-backup.php /check-ai-response.php /app-downloads/index.php
 
-	# OpenClaw REST API bridge — /api/openclaw/* se reescribe a api.php
-	@openclawApi path_regexp openclawApi ^/api/openclaw(?:/.*)?$
+	handle @blocked {
+		respond 403
+	}
 
-	route {
-		respond @health "ok" 200
-		respond @blockedFiles 403
-		respond @blockedRootArtifacts 403
-		respond @blockedDirs 403
-		respond @hostingRuntimeBlocked 403
-		rewrite @hostingRuntimeLocal /hosting-runtime.php
-		rewrite @openclawApi /api.php
+	handle @removedUi {
+		header Content-Type "application/json; charset=UTF-8"
+		header Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+		respond "{\"ok\":false,\"code\":\"ui_surface_removed\",\"error\":\"This UI surface was removed. Aurora Derm now runs in backend-only mode.\"}" 410
+	}
 
-		redir @root https://pielarmonia.com/es/{?query} permanent
-		redir @legacyIndex https://pielarmonia.com/es/{?query} permanent
-		rewrite @appDownloadsCenter /app-downloads/index.php
-		redir @telemedicina https://pielarmonia.com/es/telemedicina/{?query} permanent
-		redir @terminos https://pielarmonia.com/es/legal/terminos/{?query} permanent
-		redir @privacidad https://pielarmonia.com/es/legal/privacidad/{?query} permanent
-		redir @cookies https://pielarmonia.com/es/legal/cookies/{?query} permanent
-		redir @avisoMedico https://pielarmonia.com/es/legal/aviso-medico/{?query} permanent
-		redir @servicioAcne https://pielarmonia.com/es/servicios/acne-rosacea/{?query} permanent
-		redir @servicioLaser https://pielarmonia.com/es/servicios/laser-dermatologico/{?query} permanent
-		redir @servicioHtml https://pielarmonia.com/es/servicios/{re.servicioHtml.1}/{?query} permanent
-		redir @servicioDir https://pielarmonia.com/es/servicios/{re.servicioDir.1}/{?query} permanent
-		redir @ninosHtml https://pielarmonia.com/es/servicios/{re.ninosHtml.1}/{?query} permanent
-		redir @ninosDir https://pielarmonia.com/es/servicios/{re.ninosDir.1}/{?query} permanent
-		redir @legacyRoot https://pielarmonia.com/es/{re.legacyRoot.1}/{?query} permanent
-
-		php_fastcgi @publicPhp 127.0.0.1:9000 {
-			try_files {path} =404
+	handle @directPhp {
+		php_fastcgi 127.0.0.1:9000 {
 			capture_stderr
 		}
-		php_fastcgi @openclawApi 127.0.0.1:9000 {
-			try_files {path} =404
+	}
+
+	handle {
+		rewrite * /index.php
+		php_fastcgi 127.0.0.1:9000 {
 			capture_stderr
 		}
-
-		file_server
 	}
 }

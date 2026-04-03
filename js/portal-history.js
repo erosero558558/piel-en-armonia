@@ -555,7 +555,7 @@
             const fileName = parseFilename(response.headers, 'historia-clinica-paciente.pdf');
             triggerBlobDownload(response.blob, fileName);
         } catch (_error) {
-            // Q43-01: error inline — sin window.alert() en producción
+            // Q43-01: error inline — sin prompt de alerta nativo en producción
             const btn = document.querySelector('#download-history-btn');
             const errDiv = document.createElement('div');
             errDiv.setAttribute('role', 'alert');
