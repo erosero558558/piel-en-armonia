@@ -1,264 +1,258 @@
 # Aurora Derm — Tareas activas
 
 > Filosofía: cada ticket es una cosa. Una pantalla, un endpoint, un comportamiento.
-> Sin subtareas de coordinación. Sin docs de handoff. Sin claims.
 > Se hace, se commitea, se cierra.
 
----
+## División de trabajo
 
-## Bloque 0 — Infraestructura backend (prereqs)
-
-- [ ] **B-01** `index.php` responde el contrato JSON del README (`ok`, `service`, `mode`, `health`, `api`)
-- [ ] **B-02** `npm run test:routes` pasa sin errores — todos los endpoints de `routes.php` resuelven su controller
-- [ ] **B-03** `tests-node/backend-only-smoke.test.js` existe y prueba: `health`, `queue-state`, `figo-config`, `operator-auth-status`
-- [ ] **B-04** `.htaccess` — rutas UI heredadas (`/es/*`, `/admin.html`, `sw.js`, `manifest.json`) responden `410 Gone`
-- [ ] **B-05** `lib/ratelimit.php` integrado en `api.php` — máx 120 req/min por IP en endpoints públicos
-- [ ] **B-06** Headers de seguridad en todas las respuestas: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`
-- [ ] **B-07** `env.example.php` actualizado — lista todas las variables requeridas con descripción de cada una
-- [ ] **B-08** `cron.php` revisado — verificar que todos los jobs siguen siendo válidos post-limpieza
-- [ ] **B-09** `composer.json` — auditar dependencias, eliminar las que ya no se usan (`composer why <pkg>`)
+| Agente | Responsabilidad |
+|---|---|
+| **[Gemini]** | UI — HTML, CSS, JS vanilla. Pantallas, interacciones, diseño |
+| **[Codex]** | Backend — PHP, controladores, servicios, tests, rutas, base de datos |
 
 ---
 
-## Bloque 1 — Sistema de turnos (UI nueva)
+## Bloque 0 — Infraestructura backend
 
-El backend está completo. Tres pantallas, una por archivo.
+- [ ] **B-01** `[Codex]` `index.php` responde el contrato JSON: `ok`, `service`, `mode`, `health`, `api`
+- [ ] **B-02** `[Codex]` `npm run test:routes` pasa en CI sin errores
+- [ ] **B-03** `[Codex]` `tests-node/backend-only-smoke.test.js` verifica: health, queue-state, figo-config, auth-status
+- [ ] **B-04** `[Codex]` `.htaccess` — rutas UI heredadas (`/es/*`, `/admin.html`, `sw.js`) responden `410 Gone`
+- [ ] **B-05** `[Codex]` `lib/ratelimit.php` activo en `api.php` — máx 120 req/min por IP en endpoints públicos
+- [ ] **B-06** `[Codex]` Headers de seguridad en todas las respuestas: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`
+- [ ] **B-07** `[Codex]` `env.example.php` — lista todas las variables requeridas con descripción
+- [ ] **B-08** `[Codex]` `cron.php` revisado — verificar que todos los jobs son válidos post-limpieza
+- [ ] **B-09** `[Codex]` `composer.json` — auditar dependencias, eliminar las que ya no se usan
 
-- [ ] **T-01** `kiosco.html` — Kiosco de llegada del paciente
+---
+
+## Bloque 1 — Sistema de turnos
+
+- [ ] **T-01** `[Gemini]` `kiosco.html` + `js/kiosco.js` — Pantalla de llegada del paciente
       _API_: `POST queue-checkin` → `POST queue-ticket`
-      _UX_: toca pantalla → ingresa documento → recibe número de turno + tiempo estimado
-      _Regla_: 1 HTML, 1 JS (`js/kiosco.js`), funciona en tablet táctil
+      _UX_: toca pantalla → ingresa documento → ve número + tiempo estimado
 
-- [ ] **T-02** `sala.html` — Pantalla de sala de espera (TV horizontal)
-      _API_: `GET queue-state` polling cada 5s
-      _UX_: muestra turnos llamados + en espera, el número en pantalla grande
-      _Regla_: funciona sin interacción, se recupera sola si el servidor cae
+- [ ] **T-02** `[Gemini]` `sala.html` + `js/sala.js` — Pantalla de sala de espera (TV)
+      _API_: `GET queue-state` polling 5s
+      _UX_: número llamado en grande, lista de espera, se recupera sola si el server cae
 
-- [ ] **T-03** `operador.html` — Consola de recepción
-      _API_: `POST queue-call-next`, `PATCH queue-ticket`, `POST queue-reprint`, `POST queue-help-request`
-      _Auth_: PIN de operador via `admin-auth.php`
-      _UX_: botón grande "Llamar siguiente", lista de espera, manejo de urgencias
+- [ ] **T-03** `[Gemini]` `operador.html` + `js/operador.js` — Consola de recepción
+      _API_: `POST queue-call-next`, `PATCH queue-ticket`, `POST queue-reprint`
+      _Auth_: PIN via `admin-auth.php`
+      _UX_: botón grande "Llamar siguiente", lista de espera, urgencias
 
-- [ ] **T-04** Notificación WhatsApp al paciente cuando es llamado a consulta
-      _API_: `lib/WhatsAppService.php` ya existe — integrar con `queue-call-next`
+- [ ] **T-04** `[Codex]` WhatsApp al paciente cuando es llamado a consulta
+      _Lib_: `lib/WhatsAppService.php` — integrar en `QueueController::callNext()`
       _Mensaje_: "Tu turno #X ha sido llamado. Dirígete al consultorio."
 
-- [ ] **T-05** Impresión del ticket en el kiosco
-      _Lib_: `lib/TicketPrinter.php` ya existe
-      _Integrar_: al crear ticket en T-01, disparar impresión automática
+- [ ] **T-05** `[Codex]` Impresión automática del ticket al hacer checkin
+      _Lib_: `lib/TicketPrinter.php` — disparar en `QueueController::ticket()`
 
-- [ ] **T-06** `GET queue-public-ticket` — QR en el ticket con link al estado del turno
-      _UX_: el paciente escanea el QR y ve su turno en tiempo real en su celular (sin login)
+- [ ] **T-06** `[Gemini]` QR en el ticket — página pública que muestra estado del turno en celular
+      _API_: `GET queue-public-ticket?id=`
+      _UX_: página sin login, muestra "Tu turno: #X — Estado: En espera"
 
-- [ ] **T-07** Estadísticas del día en consola del operador
-      _API_: `GET queue-state` — mostrar: atendidos, en espera, tiempo promedio
+- [ ] **T-07** `[Gemini]` Estadísticas del día visibles en la consola del operador
+      _API_: `GET queue-state` — atendidos, en espera, tiempo promedio
       _Depende de_: T-03
 
 ---
 
-## Bloque 2 — Dashboard médico (UI nueva)
+## Bloque 2 — Dashboard médico
 
-- [ ] **A-01** `admin.html` — Shell del dashboard: navegación lateral, área de contenido principal
-      _Regla_: HTML + CSS + JS vanilla, sin build step, sin frameworks
+- [ ] **A-01** `[Gemini]` `admin.html` — Shell del dashboard médico
+      _Estructura_: nav lateral + área principal + barra de estado
+      _Regla_: HTML + CSS + JS vanilla, sin build step
 
-- [ ] **A-02** Panel de citas del día en admin
-      _API_: `GET appointments` (filtrado por fecha=hoy + status=scheduled)
-      _UX_: lista de pacientes del día, click → abre historia clínica
+- [ ] **A-02** `[Gemini]` Panel de citas del día
+      _API_: `GET appointments?fecha=hoy&status=scheduled`
+      _UX_: lista de pacientes, click → abre HCE
+      _Depende de_: A-01
 
-- [ ] **A-03** Buscador de pacientes en admin
+- [ ] **A-03** `[Gemini]` Buscador de pacientes
       _API_: `GET patient-search?q=`
-      _UX_: campo de búsqueda con debounce 300ms, resultados en dropdown
+      _UX_: debounce 300ms, dropdown de resultados
+      _Depende de_: A-01
 
-- [ ] **A-04** Historia clínica (HCE) en admin
+- [ ] **A-04** `[Gemini]` Vista de historia clínica (HCE)
       _API_: `GET clinical-history-session`, `GET clinical-record`, `GET clinical-evolution`
-      _UX_: timeline de consultas del paciente, acordeón por episodio
+      _UX_: timeline por episodio, acordeón
+      _Depende de_: A-01
 
-- [ ] **A-05** OpenClaw copiloto en admin
+- [ ] **A-05** `[Gemini]` OpenClaw copiloto clínico
       _API_: `POST openclaw-chat`, `GET openclaw-patient`, `GET openclaw-cie10-suggest`
-      _UX_: panel lateral con chat, muestra sugerencias de CIE-10 mientras escribe el diagnóstico
+      _UX_: panel lateral con chat, sugerencias CIE-10 mientras escribe
+      _Depende de_: A-01
 
-- [ ] **A-06** Crear / editar receta médica en admin
+- [ ] **A-06** `[Gemini]` Crear / editar receta en admin
       _API_: `POST openclaw-prescription`, `GET openclaw-interactions`
-      _UX_: formulario de medicamentos con check automático de interacciones
+      _UX_: formulario + check automático de interacciones
+      _Depende de_: A-01
 
-- [ ] **A-07** Generar certificado médico en admin
-      _API_: `POST openclaw-certificate`, `GET openclaw-certificate` (PDF)
+- [ ] **A-07** `[Gemini]` Generar certificado médico
+      _API_: `POST openclaw-certificate`, `GET openclaw-certificate`
       _UX_: formulario + preview del PDF inline
+      _Depende de_: A-01
 
-- [ ] **A-08** Evolución clínica — registrar nota SOAP en admin
+- [ ] **A-08** `[Gemini]` Nota SOAP — evolución clínica
       _API_: `POST clinical-evolution`, `POST openclaw-save-evolution`
       _UX_: 4 campos (S, O, A, P), guardado automático cada 30s
+      _Depende de_: A-04
 
-- [ ] **A-09** Gestión de disponibilidad en admin
+- [ ] **A-09** `[Gemini]` Gestión de disponibilidad
       _API_: `GET availability`, `POST availability`
-      _UX_: grilla semanal, click para bloquear/liberar horarios
+      _UX_: grilla semanal, click para bloquear/liberar
 
-- [ ] **A-10** Panel de callbacks y leads en admin
+- [ ] **A-10** `[Gemini]` Panel de callbacks y leads
       _API_: `GET callbacks`, `GET lead-ai-queue`
-      _UX_: lista de pacientes que pidieron que los llamen, marcar como contactado
+      _UX_: lista, marcar como contactado
 
-- [ ] **A-11** Gestión de telemedicina en admin
+- [ ] **A-11** `[Gemini]` Panel de telemedicina
       _API_: `GET telemedicine-intakes`, `PATCH telemedicine-intakes`
-      _UX_: lista de intakes pendientes, aprobar/rechazar
+      _UX_: lista de intakes, aprobar/rechazar
 
-- [ ] **A-12** Upload de fotos clínicas en HCE
-      _API_: `POST clinical-media-upload`, `GET media-flow-queue`
-      _UX_: drag & drop, preview antes de subir, tag del área anatómica
+- [ ] **A-12** `[Gemini]` Upload de fotos clínicas en HCE
+      _API_: `POST clinical-media-upload`
+      _UX_: drag & drop, preview, tag de área anatómica
+      _Depende de_: A-04
 
 ---
 
-## Bloque 3 — Portal del paciente (UI nueva)
+## Bloque 3 — Portal del paciente
 
-- [ ] **P-01** `portal/login.html` — Login por código enviado al email
+- [ ] **P-01** `[Gemini]` `portal/login.html` — Login por código de email
       _API_: `POST patient-portal-auth-start` → `POST patient-portal-auth-complete`
-      _UX_: ingresa email → recibe código 6 dígitos → ingresa código → entra
 
-- [ ] **P-02** `portal/inicio.html` — Dashboard del paciente
+- [ ] **P-02** `[Gemini]` `portal/inicio.html` — Dashboard del paciente
       _API_: `GET patient-portal-dashboard`
-      _Muestra_: próxima cita, último diagnóstico, documentos pendientes, saldo
+      _Muestra_: próxima cita, último diagnóstico, documentos pendientes
 
-- [ ] **P-03** `portal/historia.html` — Historia clínica del paciente
+- [ ] **P-03** `[Gemini]` `portal/historia.html` — Historia clínica
       _API_: `GET patient-portal-history`, `GET patient-portal-history-pdf`
-      _UX_: timeline de consultas, botón descargar PDF
 
-- [ ] **P-04** `portal/pagos.html` — Historial y estado de pagos
+- [ ] **P-04** `[Gemini]` `portal/pagos.html` — Historial de pagos
       _API_: `GET patient-portal-payments`
-      _UX_: lista de facturas, badge de estado (pagado / pendiente), descargar comprobante
 
-- [ ] **P-05** `portal/receta.html` — Ver y descargar receta
+- [ ] **P-05** `[Gemini]` `portal/receta.html` — Ver y descargar receta
       _API_: `GET patient-portal-prescription`
-      _UX_: receta en pantalla, botón descargar PDF, QR de verificación
 
-- [ ] **P-06** `portal/plan.html` — Plan de tratamiento activo
+- [ ] **P-06** `[Gemini]` `portal/plan.html` — Plan de tratamiento
       _API_: `GET patient-portal-plan`
-      _UX_: progreso del plan, próximas sesiones, indicaciones
 
-- [ ] **P-07** `portal/consentimiento.html` — Leer y firmar consentimiento
+- [ ] **P-07** `[Gemini]` `portal/consentimiento.html` — Leer y firmar consentimiento
       _API_: `GET patient-portal-consent`, `POST patient-portal-consent`
-      _UX_: documento legible, firma con checkbox + nombre, genera PDF
 
-- [ ] **P-08** `portal/fotos.html` — Fotos del tratamiento (antes/después)
+- [ ] **P-08** `[Gemini]` `portal/fotos.html` — Galería de fotos antes/después
       _API_: `GET patient-portal-photos`, `POST patient-portal-photo-upload`
-      _UX_: galería por episodio, subir foto desde celular
 
-- [ ] **P-09** Agendar / reagendar cita desde el portal
-      _API_: `GET availability`, `POST appointments`, `GET reschedule`, `PATCH reschedule`
-      _UX_: calendario de disponibilidad, selecciona hora, confirma
+- [ ] **P-09** `[Gemini]` Agendar / reagendar desde el portal
+      _API_: `GET availability`, `POST appointments`, `PATCH reschedule`
 
-- [ ] **P-10** Configuración de push notifications en el portal
+- [ ] **P-10** `[Gemini]` Config de notificaciones push
       _API_: `GET push-preferences`, `POST push-preferences`
-      _UX_: toggles: recordatorio de cita, turno llamado, receta lista
 
-- [ ] **P-11** Ver resumen del paciente (hoja de perfil)
+- [ ] **P-11** `[Gemini]` Resumen del perfil del paciente
       _API_: `GET patient-summary`
-      _UX_: datos personales, alergias, condiciones crónicas, medicación actual
 
 ---
 
 ## Bloque 4 — Sitio público
 
-- [ ] **W-01** Decidir stack del sitio público — HTML puro o Astro
-      _Criterio_: si el sitio cambia contenido frecuentemente → Astro; si es estático → HTML puro
+> Stack decidido: **HTML/JS vanilla** — sin Astro, sin build step.
 
-- [ ] **W-02** `index.html` (o Astro) — Landing principal
-      _Contenido_: servicios, quiénes somos, booking CTA, contacto WhatsApp
+- [ ] **W-01** `[Gemini]` `index.html` — Landing principal
+      _Contenido_: servicios, quiénes somos, booking CTA, WhatsApp
 
-- [ ] **W-03** Página de servicios — una por especialidad (acné, cancer de piel, laser, etc.)
-      _SEO_: cada servicio tiene su URL y título único
+- [ ] **W-02** `[Gemini]` Páginas de servicios (una por especialidad)
+      _SEO_: URL y título único por servicio
 
-- [ ] **W-04** Formulario de booking público
+- [ ] **W-03** `[Gemini]` Formulario de booking público
       _API_: `GET services-catalog`, `GET availability`, `POST appointments`
-      _UX_: selecciona servicio → fecha → hora → confirma con email
 
-- [ ] **W-05** Página de precios y membresías
-      _Contenido_: tabla de servicios con precios, planes, CTA booking
+- [ ] **W-04** `[Gemini]` Página de precios
+      _Contenido_: tabla de servicios con precios, CTA booking
 
-- [ ] **W-06** Blog / artículos de salud dermatológica
-      _Fuente_: `GET content` (ya existe en el API)
-      _SEO_: cada artículo tiene su URL, meta description, structured data
+- [ ] **W-05** `[Gemini]` Blog — lista y artículo individual
+      _API_: `GET content`
 
-- [ ] **W-07** Telemedicina — landing pública
-      _Contenido_: cómo funciona, requerimientos técnicos, CTA agendar teleconsulta
+- [ ] **W-06** `[Gemini]` Landing de telemedicina
+      _Contenido_: cómo funciona, requisitos, CTA agendar teleconsulta
 
-- [ ] **W-08** Página legal — términos y política de privacidad
-      _Requerimiento_: enlace en footer, actualizable sin deploy
+- [ ] **W-07** `[Gemini]` Página legal — términos y política de privacidad
 
 ---
 
-## Bloque 5 — Notificaciones y comunicaciones
+## Bloque 5 — Notificaciones
 
-- [ ] **N-01** Email de confirmación al agendar cita
-      _Lib_: `lib/email.php` ya existe
-      _Trigger_: `POST appointments` exitoso → enviar email al paciente
+- [ ] **N-01** `[Codex]` Email de confirmación al agendar cita
+      _Trigger_: `POST appointments` exitoso → `lib/email.php`
 
-- [ ] **N-02** Recordatorio de cita 24h antes por email
-      _Trigger_: `cron.php` — buscar citas de mañana y enviar email
+- [ ] **N-02** `[Codex]` Recordatorio por email 24h antes
+      _Trigger_: `cron.php` — citas del día siguiente
 
-- [ ] **N-03** WhatsApp de confirmación al agendar
-      _Lib_: `lib/WhatsAppService.php` ya existe
-      _Mensaje_: "Tu cita para [servicio] está confirmada para [fecha] a las [hora]."
+- [ ] **N-03** `[Codex]` WhatsApp de confirmación de cita
+      _Trigger_: `POST appointments` exitoso → `lib/WhatsAppService.php`
 
-- [ ] **N-04** WhatsApp de recordatorio 2h antes de la cita
+- [ ] **N-04** `[Codex]` WhatsApp de recordatorio 2h antes
       _Trigger_: `cron.php` + WhatsApp
 
-- [ ] **N-05** Push notification cuando la receta está lista
-      _Lib_: `lib/PushService.php` ya existe
-      _Trigger_: `POST openclaw-prescription` exitoso → push al paciente
+- [ ] **N-05** `[Codex]` Push cuando la receta está lista
+      _Trigger_: `POST openclaw-prescription` → `lib/PushService.php`
 
-- [ ] **N-06** Push notification cuando el consentimiento está pendiente de firma
+- [ ] **N-06** `[Codex]` Push cuando hay consentimiento pendiente de firma
       _Trigger_: doctor solicita consentimiento → push al paciente
 
 ---
 
 ## Bloque 6 — Pagos y checkout
 
-- [ ] **C-01** Checkout con Stripe desde el booking público
+- [ ] **C-01** `[Gemini]` UI de checkout con Stripe
       _API_: `POST payment-intent`, `POST checkout-confirm`
-      _UX_: formulario Card Element de Stripe, sin redirecciones
+      _UX_: formulario Card Element, sin redirecciones
 
-- [ ] **C-02** Pago con transferencia bancaria
-      _API_: `POST transfer-proof` (upload de comprobante)
-      _UX_: sube foto del comprobante → queda en revisión
+- [ ] **C-02** `[Gemini]` UI de pago por transferencia
+      _API_: `POST transfer-proof`
+      _UX_: sube foto del comprobante
 
-- [ ] **C-03** Webhook de Stripe en producción
-      _API_: `POST stripe-webhook` — verificar firma, actualizar estado del pago en DB
+- [ ] **C-03** `[Codex]` Webhook de Stripe en producción
+      _API_: `POST stripe-webhook` — verificar firma, actualizar estado en DB
 
-- [ ] **C-04** Comprobante de pago descargable (PDF)
-      _API_: desde `patient-portal-payments` → generar PDF del pago
-      _Depende de_: P-04
-
----
-
-## Bloque 7 — Testing y calidad
-
-- [ ] **Q-01** `tests/Unit/RoutesIntegrityTest.php` — verifica que todos los controllers de `routes.php` existen en disco
-- [ ] **Q-02** `tests/Unit/ApiContractTest.php` — verifica que `GET /` retorna el contrato JSON correcto
-- [ ] **Q-03** `tests/Integration/QueueFlowTest.php` — flujo completo: checkin → ticket → call-next → close
-- [ ] **Q-04** `tests/Integration/PatientPortalAuthTest.php` — flujo: auth-start → auth-complete → protected endpoint
-- [ ] **Q-05** `tests/Integration/OpenclawChatTest.php` — `POST openclaw-chat` con mock de figo engine
-- [ ] **Q-06** `tests/Integration/PaymentWebhookTest.php` — simula webhook de Stripe, verifica actualización de estado
-- [ ] **Q-07** `npm run prune` en CI — el workflow de GitHub Actions falla si prune detecta archivos muertos
-- [ ] **Q-08** `npm run test:routes` en CI — el workflow falla si un controller referenciado no existe en disco
+- [ ] **C-04** `[Gemini]` Comprobante de pago descargable (PDF inline)
+      _API_: desde `patient-portal-payments`
 
 ---
 
-## Bloque 8 — DevOps y deploy
+## Bloque 7 — Testing
 
-- [ ] **D-01** `.github/workflows/ci.yml` limpio — solo: lint-php + test:routes + test:php
-- [ ] **D-02** `.github/workflows/deploy.yml` — deploy a producción (cPanel/rsync) solo desde `main`
-- [ ] **D-03** `ops/backup.sh` — verificar que el backup diario funciona post-limpieza
-- [ ] **D-04** `Dockerfile` revisado — imagen PHP 8.x mínima, sin assets de frontend
-- [ ] **D-05** `ops/nginx.conf` — configurar para servir `kiosco.html`, `sala.html`, `operador.html` correctamente
+- [ ] **Q-01** `[Codex]` `tests/Unit/RoutesIntegrityTest.php` — todos los controllers de `routes.php` existen en disco
+- [ ] **Q-02** `[Codex]` `tests/Unit/ApiContractTest.php` — `GET /` retorna el contrato JSON
+- [ ] **Q-03** `[Codex]` `tests/Integration/QueueFlowTest.php` — checkin → ticket → call-next → close
+- [ ] **Q-04** `[Codex]` `tests/Integration/PatientPortalAuthTest.php` — auth-start → auth-complete → endpoint protegido
+- [ ] **Q-05** `[Codex]` `tests/Integration/OpenclawChatTest.php` — POST openclaw-chat con mock figo
+- [ ] **Q-06** `[Codex]` `tests/Integration/PaymentWebhookTest.php` — simula webhook Stripe
+- [ ] **Q-07** `[Codex]` CI: `npm run prune` falla el build si detecta archivos muertos
+- [ ] **Q-08** `[Codex]` CI: `npm run test:routes` falla si un controller referenciado no existe
+
+---
+
+## Bloque 8 — DevOps
+
+- [ ] **D-01** `[Codex]` `.github/workflows/ci.yml` limpio — lint-php + test:routes + test:php
+- [ ] **D-02** `[Codex]` `.github/workflows/deploy.yml` — deploy a producción solo desde `main`
+- [ ] **D-03** `[Codex]` `ops/backup.sh` — verificar que funciona post-limpieza
+- [ ] **D-04** `[Codex]` `Dockerfile` — imagen PHP 8.x mínima, sin assets de frontend
+- [ ] **D-05** `[Codex]` `ops/nginx.conf` — servir `kiosco.html`, `sala.html`, `operador.html`
 
 ---
 
 ## Reglas
 
 1. **Un commit por ticket** — `feat(T-01): kiosco checkin UI`
-2. **`npm run prune` antes de pushear** — si detecta algo, bórralo primero
-3. **`npm run test:routes` después de tocar `routes.php`**
-4. **Sin TODOs en el código** — si algo no está listo no entra
-5. **Sin crear archivos nuevos de documentación** — todo va aquí o en el README
+2. **`[Gemini]` toma la UI** — HTML, CSS, JS de cada pantalla
+3. **`[Codex]` toma el backend** — PHP, controllers, services, tests, CI
+4. **`npm run prune` antes de pushear** — si detecta algo, bórralo primero
+5. **`npm run test:routes` después de tocar `routes.php`**
+6. **Sin TODO en el código** — si no está listo, no entra
 
 ---
 
