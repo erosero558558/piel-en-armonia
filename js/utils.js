@@ -335,3 +335,13 @@ export function setCookieConsent(status) {
         // noop
     }
 }
+
+// Exponer utilidades para legacy closures
+window.AuroraUtils = {
+    escapeHtml,
+    waitMs,
+    formatDate,
+    debounce,
+    isConstrainedNetworkConnection,
+    showToast
+};

@@ -21,15 +21,6 @@
         document.head.appendChild(style);
     }
 
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
-    }
-
     function readSession() {
         return portalShell && typeof portalShell.getSession === 'function'
             ? portalShell.getSession()
@@ -174,9 +165,9 @@
             <a
                 class="portal-history-export-link"
                 data-portal-history-export-link
-                href="${escapeHtml(downloadUrl)}"
-                download="${escapeHtml(fileName)}"
-            >${escapeHtml(label)}</a>
+                href="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(downloadUrl)}"
+                download="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(fileName)}"
+            >${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(label)}</a>
         `;
     }
 
@@ -286,13 +277,13 @@
         const icon = String(safeItem.icon || type).trim() || type;
 
         return `
-            <article class="portal-history-event" data-portal-history-event data-event-type="${escapeHtml(type)}" data-event-tone="${escapeHtml(tone)}">
+            <article class="portal-history-event" data-portal-history-event data-event-type="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(type)}" data-event-tone="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(tone)}">
                 <span class="portal-history-event__icon" aria-hidden="true">
                     ${renderEventIcon(icon)}
                 </span>
                 <div class="portal-history-event__body">
-                    <strong class="portal-history-event__title" data-portal-history-event-label>${escapeHtml(label)}</strong>
-                    ${meta ? `<small class="portal-history-event__meta">${escapeHtml(meta)}</small>` : ''}
+                    <strong class="portal-history-event__title" data-portal-history-event-label>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(label)}</strong>
+                    ${meta ? `<small class="portal-history-event__meta">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(meta)}</small>` : ''}
                 </div>
             </article>
         `;
@@ -323,18 +314,18 @@
         const fileName = String(safeItem.fileName || '').trim();
 
         return `
-            <article class="portal-timeline-document lg-surface--dark portal-glass-card" data-status="${escapeHtml(status)}">
+            <article class="portal-timeline-document lg-surface--dark portal-glass-card" data-status="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(status)}">
                 <div class="portal-timeline-document__header">
                     <div class="portal-timeline-document__copy">
-                        <strong>${escapeHtml(title)}</strong>
-                        <small>${escapeHtml(description)}</small>
+                        <strong>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(title)}</strong>
+                        <small>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(description)}</small>
                     </div>
-                    <span class="${statusChipClass(status)}">${escapeHtml(safeItem.statusLabel || 'No emitido')}</span>
+                    <span class="${statusChipClass(status)}">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.statusLabel || 'No emitido')}</span>
                 </div>
-                ${issuedAtLabel ? `<span class="portal-timeline-document__meta">${escapeHtml(issuedAtLabel)}</span>` : ''}
+                ${issuedAtLabel ? `<span class="portal-timeline-document__meta">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(issuedAtLabel)}</span>` : ''}
                 ${
                     status === 'available' && downloadUrl
-                        ? `<a class="portal-timeline-document__action btn btn-secondary glass-pill" data-portal-document-link data-document-type="${escapeHtml(safeItem.type || '')}" href="${escapeHtml(downloadUrl)}" download="${escapeHtml(fileName || 'documento-aurora-derm.pdf')}">Descargar PDF</a>`
+                        ? `<a class="portal-timeline-document__action btn btn-secondary glass-pill" data-portal-document-link data-document-type="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.type || '')}" href="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(downloadUrl)}" download="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(fileName || 'documento-aurora-derm.pdf')}">Descargar PDF</a>`
                         : ''
                 }
             </article>
@@ -356,7 +347,7 @@
         // Diagnóstico real del servidor únicamente — sin fallback dummy (Q43-02)
         const diagnosisLabel = String(safeItem.diagnosis || '').trim();
         const diagnosisBadgeHtml = diagnosisLabel
-            ? `<span class="lg-diagnosis-badge">${escapeHtml(diagnosisLabel)}</span>`
+            ? `<span class="lg-diagnosis-badge">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(diagnosisLabel)}</span>`
             : '';
         
         // Píldoras médicas estandarizadas (Dummy safe data for visual integrity)
@@ -366,7 +357,7 @@
             ? meds.map(m => `
             <span class="lg-medication-pill">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect x="4" y="8" width="16" height="8" rx="4"></rect><line x1="12" y1="8" x2="12" y2="16"></line></svg>
-                ${escapeHtml(m.name)} <small style="opacity:0.6; margin-left:4px;">${escapeHtml(m.dosage)}</small>
+                ${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(m.name)} <small style="opacity:0.6; margin-left:4px;">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(m.dosage)}</small>
             </span>
         `).join('')
             : '<span style="font-size:0.85rem; color:rgba(255,255,255,0.35);">Sin medicamentos activos registrados</span>';
@@ -377,7 +368,7 @@
             : [];
         const photoMarkup = photos.length > 0 ? `
             <div class="lg-history-photo-gallery">
-                ${photos.map(p => `<img src="${escapeHtml(p)}" class="lg-history-photo" loading="lazy" alt="Foto clínica de consulta">`).join('')}
+                ${photos.map(p => `<img src="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(p)}" class="lg-history-photo" loading="lazy" alt="Foto clínica de consulta">`).join('')}
             </div>
         ` : '';
 
@@ -390,18 +381,18 @@
                 </svg>
 
                 <div class="portal-timeline-content">
-                    <span class="portal-timeline-date">${escapeHtml(safeItem.dateLabel || 'Fecha por confirmar')}</span>
+                    <span class="portal-timeline-date">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.dateLabel || 'Fecha por confirmar')}</span>
                     <div class="portal-timeline-meta">
-                        <span class="${statusChipClass(safeItem.status || 'completed')}">${escapeHtml(safeItem.statusLabel || 'Consulta registrada')}</span>
-                        ${timeLabel ? `<span class="portal-inline-label portal-inline-label--muted">${escapeHtml(timeLabel)}</span>` : ''}
+                        <span class="${statusChipClass(safeItem.status || 'completed')}">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.statusLabel || 'Consulta registrada')}</span>
+                        ${timeLabel ? `<span class="portal-inline-label portal-inline-label--muted">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(timeLabel)}</span>` : ''}
                     </div>
                     
                     ${diagnosisBadgeHtml}
-                    <p class="portal-timeline-reason" style="margin-top: 4px; margin-bottom: 4px;">${escapeHtml(serviceName)}</p>
+                    <p class="portal-timeline-reason" style="margin-top: 4px; margin-bottom: 4px;">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(serviceName)}</p>
                     
                     <div class="portal-timeline-doctor" style="color: var(--reborn-color-muted); font-size: 0.85em;">
-                        <span>${escapeHtml(doctorName)}</span>
-                        ${locationLabel ? `<span>· ${escapeHtml(locationLabel)}</span>` : ''}
+                        <span>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(doctorName)}</span>
+                        ${locationLabel ? `<span>· ${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(locationLabel)}</span>` : ''}
                     </div>
                     
                     <div class="portal-timeline-content-body-wrap episode-collapsible">

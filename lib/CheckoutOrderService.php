@@ -688,7 +688,7 @@ final class CheckoutOrderService
             'id' => self::generateOrderId(),
             'tenantId' => get_current_tenant_id(),
             'receiptNumber' => self::buildReceiptNumber($createdAt),
-            'sourceRoute' => '/es/pago/',
+            'sourceRoute' => app_api_relative_url('patient-portal-payments'),
             'concept' => $concept,
             'notes' => $notes,
             'amountCents' => self::applyMembershipDiscount(

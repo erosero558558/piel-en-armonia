@@ -285,7 +285,7 @@ class FigoBrain
             case 'booking':
                 return "¡Maravillosa elección! Estás a un paso de la mejor versión de tu piel. 🌟\n\n" .
                        "Nuestra agenda online está abierta 24/7 para ti:\n\n" .
-                       "👉 **[Reservar mi Cita Ahora](https://pielarmonia.com/#citas)**\n\n" .
+                       "👉 **[Solicitar disponibilidad]( " . app_api_absolute_url('appointments') . " )**\n\n" .
                        "El proceso es simple: Eliges servicio, doctor y tu hora ideal. ¡Te esperamos!";
 
             case 'payment':
@@ -393,8 +393,8 @@ class FigoBrain
 
             default:
                 return "Entiendo. Para guiarte con la precisión que mereces, te sugiero:\n\n" .
-                       "1. **[Explorar Servicios](https://pielarmonia.com/#servicios)**\n" .
-                       "2. **[Ver Disponibilidad](https://pielarmonia.com/#citas)**\n" .
+                       "1. **[Estado del servicio](" . app_api_absolute_url('health') . ")**\n" .
+                       "2. **[Ver disponibilidad](" . app_api_absolute_url('appointments') . ")**\n" .
                        "3. **[Contactar por WhatsApp](https://wa.me/" . ClinicConfig::getWhatsappNumber() . ")**\n\n" .
                        "¿Te gustaría información sobre precios o ubicación?";
         }
@@ -496,4 +496,3 @@ class FigoBrain
         ];
     }
 }
-

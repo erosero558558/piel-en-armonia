@@ -199,7 +199,7 @@ function cron_queue_software_trial_reminder(array $clinicProfile, array $lifecyc
         : 'pronto';
     $planLabel = trim((string) ($lifecycle['planLabel'] ?? 'Pro'));
     $daysRemaining = max(0, (int) ($lifecycle['daysRemaining'] ?? 0));
-    $renewUrl = rtrim((string) (AppConfig::BASE_URL ?? ''), '/') . '/admin.html#settings';
+    $renewUrl = app_backend_status_absolute_url(['section' => 'subscription']);
     $text = "Hola, {$clinicName}. Tu trial de *{$planLabel}* en Flow OS termina {$trialEndsLabel}. ";
     $text .= $daysRemaining > 0
         ? "Te quedan {$daysRemaining} dias para renovar y no bajar a Free.\n\n"

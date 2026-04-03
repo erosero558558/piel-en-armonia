@@ -549,7 +549,7 @@ final class TelemedicineOpsSnapshot
             'hasNewLesion' => (bool) ($preConsultation['hasNewLesion'] ?? false),
             'submittedAt' => (string) ($preConsultation['updatedAt'] ?? $preConsultation['submittedAt'] ?? ''),
             'roomUrl' => (int) ($intake['linkedAppointmentId'] ?? 0) > 0
-                ? '/es/telemedicina/sala/index.html?id=' . (int) $intake['linkedAppointmentId']
+                ? '/api.php?resource=telemedicine-preconsultation&id=' . (int) $intake['linkedAppointmentId']
                 : '',
         ];
     }

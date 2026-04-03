@@ -27,15 +27,6 @@
         },
     });
 
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
-    }
-
     function readSession() {
         return sessionStore && typeof sessionStore.read === 'function' ? sessionStore.read() : null;
     }

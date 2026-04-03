@@ -339,8 +339,8 @@ function build_appointment_email_context(array $appointment): array
         'rescheduleToken' => $rescheduleToken,
         'checkinToken' => $checkinToken,
         'rescheduleUrl' => $rescheduleToken !== ''
-            ? AppConfig::BASE_URL . '/?reschedule=' . rawurlencode($rescheduleToken)
-            : AppConfig::BASE_URL . '/#citas',
+            ? app_api_absolute_url('reschedule', ['token' => $rescheduleToken])
+            : app_api_absolute_url('appointments'),
     ];
 }
 
@@ -1162,7 +1162,7 @@ function build_cancellation_email_html(array $appointment): string
 {
     $context = build_appointment_email_context($appointment);
     $name = htmlspecialchars($context['name'], ENT_QUOTES, 'UTF-8');
-    $bookingUrl = AppConfig::BASE_URL . '/#citas';
+    $bookingUrl = app_api_absolute_url('appointments');
 
     $content = '<h2 style="margin:0 0 20px;color:#ef4444;font-size:20px;">Cita Cancelada</h2>'
         . '<p style="margin:0 0 15px;line-height:1.6;color:#555;">Hola <strong>' . $name . '</strong>,</p>'
@@ -1194,7 +1194,7 @@ function build_cancellation_email_text(array $appointment): string
     $body .= "Tu cita ha sido cancelada.\n\n";
     $body .= "Detalles de la cita cancelada:\n";
     $body .= build_appointment_detail_text($context, false);
-    $body .= "Si deseas reprogramar, visita " . AppConfig::BASE_URL . "/#citas o escríbenos por WhatsApp: " . $whatsapp . ".\n\n";
+    $body .= "Si deseas reprogramar, visita " . app_api_absolute_url('appointments') . " o escríbenos por WhatsApp: " . $whatsapp . ".\n\n";
     $body .= "Gracias por confiar en nosotros.\n\n";
     $body .= "- Equipo " . $brandName;
 
@@ -1457,7 +1457,7 @@ function maybe_send_gift_card_reminder_email($giftCard): bool
     }
     
     $body .= "Puedes usar este saldo en tus próximos tratamientos dermatológicos.\n";
-    $body .= "Visita " . AppConfig::BASE_URL . "/#citas o contáctanos para agendar.\n\n";
+    $body .= "Visita " . app_api_absolute_url('appointments') . " o contáctanos para agendar.\n\n";
     $body .= "Saludos,\n" . $brandName . "\n";
     
     return send_mail_to_recipient($recipient, $subject, $body, false);

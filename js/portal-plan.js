@@ -21,15 +21,6 @@
         document.head.appendChild(style);
     }
 
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
-    }
-
     function readSession() {
         return portalShell && typeof portalShell.getSession === 'function'
             ? portalShell.getSession()
@@ -173,19 +164,19 @@
             <div class="portal-plan-hero-grid">
                 <article class="portal-plan-hero-card portal-plan-hero-card--wide" data-portal-plan-hero-card>
                     <span class="portal-inline-label">Diagnóstico base</span>
-                    <strong data-portal-plan-diagnosis>${escapeHtml(safePlan.diagnosis || 'Plan activo')}</strong>
-                    <small data-portal-plan-follow-up>${escapeHtml(safePlan.followUpFrequency || 'A requerimiento')}</small>
+                    <strong data-portal-plan-diagnosis>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safePlan.diagnosis || 'Plan activo')}</strong>
+                    <small data-portal-plan-follow-up>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safePlan.followUpFrequency || 'A requerimiento')}</small>
                     <div class="portal-plan-hero-card__progress">
                         <div class="portal-plan-card__progress-labels">
-                            <span data-portal-plan-progress>${escapeHtml(safePlan.progressLabel || '0 de 0 sesiones')}</span>
-                            <span>${escapeHtml(safePlan.adherenceLabel || `${adherencePercent}%`)}</span>
+                            <span data-portal-plan-progress>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safePlan.progressLabel || '0 de 0 sesiones')}</span>
+                            <span>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safePlan.adherenceLabel || `${adherencePercent}%`)}</span>
                         </div>
                         <div class="portal-plan-card__progress-track" aria-hidden="true">
                             <span style="width:${adherencePercent}%"></span>
                         </div>
                     </div>
                     <div class="portal-plan-hero-card__banner" data-portal-plan-banner>
-                        ${escapeHtml(
+                        ${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(
                             [safePlan.scheduledSessionsLabel, safePlan.unscheduledSessions > 0 ? safePlan.unscheduledSessionsLabel : '']
                                 .filter(Boolean)
                                 .join(' · ')
@@ -194,13 +185,13 @@
                 </article>
                 <article class="portal-plan-hero-card">
                     <span class="portal-inline-label portal-inline-label--muted">Adherencia</span>
-                    <strong data-portal-plan-adherence>${escapeHtml(safePlan.adherenceLabel || `${adherencePercent}%`)}</strong>
+                    <strong data-portal-plan-adherence>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safePlan.adherenceLabel || `${adherencePercent}%`)}</strong>
                     <small>Basada en sesiones realizadas versus planificadas.</small>
                 </article>
                 <article class="portal-plan-hero-card">
                     <span class="portal-inline-label portal-inline-label--muted">Última actualización</span>
-                    <strong data-portal-plan-generated>${escapeHtml(safePlan.generatedAtLabel || 'Plan reciente')}</strong>
-                    <small>${escapeHtml(safePlan.timelineLabel || '')}</small>
+                    <strong data-portal-plan-generated>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safePlan.generatedAtLabel || 'Plan reciente')}</strong>
+                    <small>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safePlan.timelineLabel || '')}</small>
                 </article>
             </div>
         `;
@@ -220,7 +211,7 @@
         ].filter(Boolean);
 
         return `
-            <article class="portal-plan-timeline-card" data-portal-plan-timeline-card data-tone="${escapeHtml(
+            <article class="portal-plan-timeline-card" data-portal-plan-timeline-card data-tone="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(
                 safeItem.tone || 'idle'
             )}">
                 <div class="portal-plan-timeline-card__row">
@@ -228,24 +219,24 @@
                     <div>
                         <div class="portal-plan-timeline-card__header">
                             <div class="portal-plan-timeline-card__meta">
-                                <span class="portal-inline-label">${escapeHtml(safeItem.label || 'Sesión')}</span>
-                                <strong data-portal-plan-session-label>${escapeHtml(safeItem.statusLabel || 'Hito')}</strong>
-                                <small data-portal-plan-session-meta>${escapeHtml(
+                                <span class="portal-inline-label">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.label || 'Sesión')}</span>
+                                <strong data-portal-plan-session-label>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.statusLabel || 'Hito')}</strong>
+                                <small data-portal-plan-session-meta>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(
                                     metaParts.join(' · ') || 'Sin fecha confirmada todavía.'
                                 )}</small>
                                 ${
                                     auxiliaryParts.length > 0
-                                        ? `<small data-portal-plan-session-aux>${escapeHtml(auxiliaryParts.join(' · '))}</small>`
+                                        ? `<small data-portal-plan-session-aux>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(auxiliaryParts.join(' · '))}</small>`
                                         : ''
                                 }
                             </div>
-                            <span class="portal-status-chip portal-status-chip--${escapeHtml(
+                            <span class="portal-status-chip portal-status-chip--${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(
                                 safeItem.tone || 'idle'
-                            )}">${escapeHtml(safeItem.status || 'pending')}</span>
+                            )}">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.status || 'pending')}</span>
                         </div>
                         ${
                             safeItem.preparation
-                                ? `<p>${escapeHtml(safeItem.preparation)}</p>`
+                                ? `<p>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.preparation)}</p>`
                                 : '<p>Todavía no hay una fecha confirmada para esta sesión.</p>'
                         }
                         ${
@@ -253,12 +244,12 @@
                                 ? `<div class="portal-plan-timeline-card__actions">
                                     ${
                                         safeItem.rescheduleUrl
-                                            ? `<a class="btn btn-secondary" href="${escapeHtml(safeItem.rescheduleUrl)}">Reagendar</a>`
+                                            ? `<a class="btn btn-secondary" href="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.rescheduleUrl)}">Reagendar</a>`
                                             : ''
                                     }
                                     ${
                                         safeItem.whatsappUrl
-                                            ? `<a class="btn btn-secondary" href="${escapeHtml(safeItem.whatsappUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`
+                                            ? `<a class="btn btn-secondary" href="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeItem.whatsappUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`
                                             : ''
                                     }
                                 </div>`
@@ -295,7 +286,7 @@
                     <article class="portal-plan-next-item" data-portal-plan-next-item>
                         <span class="portal-plan-next-item__dot" aria-hidden="true"></span>
                         <div>
-                            <strong>${escapeHtml(label)}</strong>
+                            <strong>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(label)}</strong>
                         </div>
                     </article>
                 `;
@@ -309,9 +300,9 @@
         if (safeMeds.length === 0) return '';
         
         return safeMeds.map(med => {
-            const name = escapeHtml(med.medicationName || 'Medicamento recetado');
-            const qty = med.quantity ? `<span style="opacity:0.7"> · ${escapeHtml(med.quantity)} unidad(es)</span>` : '';
-            const desc = escapeHtml(med.dosageInstructions || 'Sigue las indicaciones médicas publicadas.');
+            const name = (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(med.medicationName || 'Medicamento recetado');
+            const qty = med.quantity ? `<span style="opacity:0.7"> · ${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(med.quantity)} unidad(es)</span>` : '';
+            const desc = (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(med.dosageInstructions || 'Sigue las indicaciones médicas publicadas.');
             return `
                 <article class="portal-plan-next-item" style="align-items:flex-start;">
                     <span class="portal-plan-next-item__dot" aria-hidden="true" style="margin-top:5px; background:var(--color-gold-500);"></span>
@@ -336,18 +327,18 @@
                 : null;
         const tasksHtml = renderTaskList(safePlan.tasks);
         const medsHtml = renderMedicationsList(safePlan.medications);
-        const worsening = safePlan.worseningInstructions ? escapeHtml(safePlan.worseningInstructions) : '';
+        const worsening = safePlan.worseningInstructions ? (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safePlan.worseningInstructions) : '';
 
         return `
             <div class="portal-plan-hero-grid">
                 <article class="portal-plan-next-card portal-plan-next-card--wide" data-portal-plan-next-card>
                     <span class="portal-inline-label">Próxima sesión</span>
-                    <strong data-portal-plan-next-session>${escapeHtml(
+                    <strong data-portal-plan-next-session>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(
                         nextSession
                             ? `${nextSession.dateLabel || ''} ${nextSession.timeLabel || ''}`.trim() || 'Por confirmar'
                             : 'Por confirmar'
                     )}</strong>
-                    <small>${escapeHtml(
+                    <small>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(
                         nextSession
                             ? [nextSession.serviceName, nextSession.doctorName, nextSession.locationLabel]
                                 .filter(Boolean)
@@ -359,12 +350,12 @@
                             ? `<div class="portal-plan-timeline-card__actions">
                                 ${
                                     nextSession.rescheduleUrl
-                                        ? `<a class="btn btn-secondary" href="${escapeHtml(nextSession.rescheduleUrl)}">Reagendar</a>`
+                                        ? `<a class="btn btn-secondary" href="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(nextSession.rescheduleUrl)}">Reagendar</a>`
                                         : ''
                                 }
                                 ${
                                     nextSession.whatsappUrl
-                                        ? `<a class="btn btn-secondary" href="${escapeHtml(nextSession.whatsappUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`
+                                        ? `<a class="btn btn-secondary" href="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(nextSession.whatsappUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`
                                         : ''
                                 }
                             </div>`
@@ -381,13 +372,13 @@
                 }
                 <article class="portal-plan-next-card">
                     <span class="portal-inline-label portal-inline-label--muted">Tratamiento</span>
-                    <strong data-portal-plan-treatments>${escapeHtml(
+                    <strong data-portal-plan-treatments>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(
                         safePlan.treatmentsText || 'Seguimiento activo publicado por tu especialista.'
                     )}</strong>
                 </article>
                 <article class="portal-plan-next-card">
                     <span class="portal-inline-label portal-inline-label--muted">Objetivos</span>
-                    <strong data-portal-plan-goals>${escapeHtml(
+                    <strong data-portal-plan-goals>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(
                         safePlan.goalsText || 'Mantener el avance y cumplir los controles programados.'
                     )}</strong>
                 </article>

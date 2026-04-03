@@ -76,9 +76,9 @@
         } catch (err) {
             console.error('Failed to load payments:', err);
             container.innerHTML = `
-                <div style="padding: 24px; text-align: center; color: rgba(255,255,255,0.6); font-size: 0.9rem;">
+                <div class="rb-error-state">
                     <p>Ocurrió un error al cargar tu historial financiero.</p>
-                    <button onclick="window.location.reload()" class="rb-btn-action rb-btn-action--secondary" style="margin-top:12px;">Reintentar</button>
+                    <button onclick="window.location.reload()" class="rb-btn-action rb-btn-action--secondary">Reintentar</button>
                 </div>
             `;
         }
@@ -97,13 +97,15 @@
                 `Hola Aurora Derm, tengo un saldo pendiente de ${dueFormatted} y deseo liquidarlo.`
             );
             summaryHtml = `
-                <div role="alert" style="margin-bottom:20px;padding:16px 18px;background:rgba(239,68,68,0.13);border:1px solid rgba(239,68,68,0.35);border-radius:14px;display:flex;align-items:center;gap:14px;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <div style="flex:1;">
-                        <strong style="color:#fca5a5;font-size:0.95rem;">Tienes un saldo pendiente de ${dueFormatted}</strong>
-                        <p style="margin:4px 0 0;font-size:0.82rem;color:rgba(255,255,255,0.5);">Puedes coordinarlo directamente con nuestra clínica.</p>
+                <div class="rb-alert-banner--danger" role="alert">
+                    <div class="rb-alert-banner__icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     </div>
-                    <a href="https://wa.me/593987866885?text=${wtext}" target="_blank" rel="noopener" style="padding:8px 14px;background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#fca5a5;font-size:0.82rem;white-space:nowrap;text-decoration:none;">Pagar ahora</a>
+                    <div class="rb-alert-banner__content">
+                        <strong class="rb-alert-banner__title">Tienes un saldo pendiente de ${dueFormatted}</strong>
+                        <p class="rb-alert-banner__text">Puedes coordinarlo directamente con nuestra clínica.</p>
+                    </div>
+                    <a href="https://wa.me/593987866885?text=${wtext}" target="_blank" rel="noopener" class="rb-alert-banner__action">Pagar ahora</a>
                 </div>`;
         }
 
@@ -111,13 +113,15 @@
             container.innerHTML =
                 summaryHtml +
                 `
-                <div style="padding: 32px 16px; text-align: center;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" style="margin-bottom:16px;">
-                        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                        <line x1="2" y1="10" x2="22" y2="10"></line>
-                    </svg>
-                    <h3 style="color:#fff; font-size:1.1rem; margin-bottom:8px;">No hay pagos registrados</h3>
-                    <p style="color:rgba(255,255,255,0.5); font-size:0.9rem; line-height:1.4;">Tus próximos abonos por atenciones o procedimientos aparecerán aquí.</p>
+                <div class="rb-empty-state">
+                    <div class="rb-empty-state__icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5">
+                            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                            <line x1="2" y1="10" x2="22" y2="10"></line>
+                        </svg>
+                    </div>
+                    <h3 class="rb-empty-state__title">No hay pagos registrados</h3>
+                    <p class="rb-empty-state__text">Tus próximos abonos por atenciones o procedimientos aparecerán aquí.</p>
                 </div>
             `;
             return;
@@ -159,7 +163,7 @@
                     
                     <div class="rb-payment-card__amount-group">
                         <strong class="rb-payment-card__amount">${isPending ? dueLabel : payment.amountLabel}</strong>
-                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:2px;">
+                        <span class="rb-payment-card__amount-caption">
                             ${isPending ? `Abonado: ${payment.amountLabel}` : 'Total liquidado'}
                         </span>
                     </div>

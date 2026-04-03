@@ -22,15 +22,6 @@
         document.head.appendChild(style);
     }
 
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
-    }
-
     function readSession() {
         return portalShell && typeof portalShell.getSession === 'function'
             ? portalShell.getSession()
@@ -154,17 +145,17 @@
             <div class="portal-photo-summary-grid">
                 <article class="portal-photo-summary-card" data-portal-photos-total-card>
                     <span class="portal-inline-label portal-inline-label--muted">Fotos visibles</span>
-                    <strong data-portal-photos-total>${escapeHtml(totalPhotos)}</strong>
+                    <strong data-portal-photos-total>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(totalPhotos)}</strong>
                     <small>Solo las capturas compartidas contigo en el portal.</small>
                 </article>
                 <article class="portal-photo-summary-card" data-portal-photos-zones-card>
                     <span class="portal-inline-label portal-inline-label--muted">Zonas</span>
-                    <strong data-portal-photos-zones>${escapeHtml(bodyZoneCount)}</strong>
+                    <strong data-portal-photos-zones>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(bodyZoneCount)}</strong>
                     <small>Áreas con seguimiento clínico visible.</small>
                 </article>
                 <article class="portal-photo-summary-card portal-photo-summary-card--wide" data-portal-photos-latest-card>
                     <span class="portal-inline-label portal-inline-label--muted">Última actualización</span>
-                    <strong data-portal-photos-latest>${escapeHtml(latestCreatedAtLabel)}</strong>
+                    <strong data-portal-photos-latest>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(latestCreatedAtLabel)}</strong>
                     <small>La tarjeta se renueva cuando el equipo comparte nuevas fotos contigo.</small>
                 </article>
             </div>
@@ -188,20 +179,20 @@
                     <img
                         class="portal-photo-card__image"
                         data-portal-photo-image
-                        data-photo-url="${escapeHtml(imageUrl)}"
-                        alt="${escapeHtml(alt)}"
+                        data-photo-url="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(imageUrl)}"
+                        alt="${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(alt)}"
                     />
                 </div>
                 <div class="portal-photo-card__meta">
                     <div class="portal-photo-card__chips">
                         ${
                             roleLabel
-                                ? `<span class="portal-timeline-chip portal-photo-chip">${escapeHtml(roleLabel)}</span>`
+                                ? `<span class="portal-timeline-chip portal-photo-chip">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(roleLabel)}</span>`
                                 : ''
                         }
                     </div>
-                    <strong data-portal-photo-file-name>${escapeHtml(fileName)}</strong>
-                    <small data-portal-photo-date>${escapeHtml(createdAtLabel)}</small>
+                    <strong data-portal-photo-file-name>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(fileName)}</strong>
+                    <small data-portal-photo-date>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(createdAtLabel)}</small>
                 </div>
             </article>
         `;
@@ -234,12 +225,12 @@
                     <section class="portal-photo-group" data-portal-photo-group>
                         <div class="portal-photo-group__header">
                             <div>
-                                <span class="portal-inline-label">${escapeHtml(safeGroup.bodyZoneLabel || 'Seguimiento general')}</span>
-                                <h3>${escapeHtml(safeGroup.bodyZoneLabel || 'Seguimiento general')}</h3>
+                                <span class="portal-inline-label">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeGroup.bodyZoneLabel || 'Seguimiento general')}</span>
+                                <h3>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeGroup.bodyZoneLabel || 'Seguimiento general')}</h3>
                             </div>
                             <div class="portal-photo-group__meta">
-                                <strong data-portal-photo-group-count>${escapeHtml(safeGroup.photoCount || items.length)}</strong>
-                                <small>${escapeHtml(safeGroup.latestCreatedAtLabel || '')}</small>
+                                <strong data-portal-photo-group-count>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeGroup.photoCount || items.length)}</strong>
+                                <small>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(safeGroup.latestCreatedAtLabel || '')}</small>
                             </div>
                         </div>
                         <div class="portal-photo-grid">

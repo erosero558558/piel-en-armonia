@@ -255,15 +255,6 @@ Contexto del paciente se te dará como sistema de contexto.`,
       .replace(/^(.+)$/, '<p>$1</p>');
   }
 
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   function normalizeMedicationEntry(entry) {
     if (typeof entry === 'string') {
       const label = entry.trim();
@@ -401,11 +392,11 @@ Contexto del paciente se te dará como sistema de contexto.`,
       const severity = String(interaction.severity || 'medium').trim().toUpperCase();
       return `
         <li class="oc-alert-item">
-          <strong>${escapeHtml(proposedMedication)}</strong>
+          <strong>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(proposedMedication)}</strong>
           <span>con</span>
-          <strong>${escapeHtml(activeMedication)}</strong>
-          <span class="oc-alert-severity">${escapeHtml(severity)}</span>
-          <div class="oc-alert-description">${escapeHtml(description)}</div>
+          <strong>${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(activeMedication)}</strong>
+          <span class="oc-alert-severity">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(severity)}</span>
+          <div class="oc-alert-description">${(window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(description)}</div>
         </li>`;
     }).join('');
 

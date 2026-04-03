@@ -331,7 +331,7 @@ function clinic_profile_public_services_snapshot(array $catalogServices): array
             'priceFrom' => is_numeric($service['base_price_usd'] ?? null)
                 ? (float) $service['base_price_usd']
                 : (is_numeric($service['price_from'] ?? null) ? (float) $service['price_from'] : null),
-            'href' => '/es/servicios/' . $slug . '/',
+            'href' => '',
             'doctorProfile' => array_values(array_filter(array_map(
                 static fn ($doctorId): string => service_catalog_normalize_token((string) $doctorId),
                 is_array($service['doctor_profile'] ?? null) ? $service['doctor_profile'] : []

@@ -151,7 +151,7 @@ class IntakeController
                 'type' => 'public_intake_created',
                 'title' => 'Preconsulta digital recibida',
                 'payload' => [
-                    'sourcePath' => '/es/pre-consulta/',
+                    'sourcePath' => app_api_relative_url('telemedicine-preconsultation'),
                     'patientLabel' => $nombre,
                     'contactPhone' => $whatsapp,
                     'skinType' => $tipoPiel,

@@ -1,15 +1,6 @@
 (function () {
     'use strict';
 
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
     function normalizeList(value) {
         return Array.isArray(value) ? value : [];
     }
@@ -421,19 +412,19 @@
         banner.setAttribute('aria-label', copy.title);
         banner.innerHTML =
             '<p class="cookie-text">' +
-            escapeHtml(copy.body) +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(copy.body) +
             '</p>' +
             '<div class="cookie-actions">' +
             '<button type="button" class="btn btn-secondary cookie-btn" id="cookieRejectBtn">' +
-            escapeHtml(copy.reject) +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(copy.reject) +
             '</button>' +
             '<button type="button" class="btn btn-primary cookie-btn" id="cookieAcceptBtn">' +
-            escapeHtml(copy.accept) +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(copy.accept) +
             '</button>' +
             '<a href="' +
-            escapeHtml(getCookiesHref(locale)) +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(getCookiesHref(locale)) +
             '" class="cookie-link">' +
-            escapeHtml(copy.more) +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(copy.more) +
             '</a>' +
             '</div>';
         document.body.appendChild(banner);
@@ -2070,7 +2061,7 @@
             item && typeof item === 'object' && item.cover ? item.cover : {};
         var tags = normalizeList(item.tags)
             .map(function (tag) {
-                return '<span>' + escapeHtml(tag) + '</span>';
+                return '<span>' + (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(tag) + '</span>';
             })
             .join('');
         var comparePairs = normalizeList(item.comparePairs);
@@ -2092,17 +2083,17 @@
                         return (
                             '<figure>' +
                             '<img src="' +
-                            escapeHtml(before.url || '') +
+                            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(before.url || '') +
                             '" alt="' +
-                            escapeHtml(before.alt || '') +
+                            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(before.alt || '') +
                             '" loading="lazy" decoding="async" />' +
                             '<figcaption>Before</figcaption>' +
                             '</figure>' +
                             '<figure>' +
                             '<img src="' +
-                            escapeHtml(after.url || '') +
+                            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(after.url || '') +
                             '" alt="' +
-                            escapeHtml(after.alt || '') +
+                            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(after.alt || '') +
                             '" loading="lazy" decoding="async" />' +
                             '<figcaption>After</figcaption>' +
                             '</figure>'
@@ -2114,31 +2105,31 @@
 
         return (
             '<article class="v6-case-stories__card" data-v6-case-story="' +
-            escapeHtml(item.slug || item.storyId || '') +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(item.slug || item.storyId || '') +
             '">' +
             '<figure class="v6-case-stories__cover">' +
             '<img src="' +
-            escapeHtml(cover.url || '') +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(cover.url || '') +
             '" alt="' +
-            escapeHtml(cover.alt || item.title || '') +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(cover.alt || item.title || '') +
             '" loading="lazy" decoding="async" />' +
             '</figure>' +
             '<div class="v6-case-stories__meta">' +
             '<p>' +
-            escapeHtml(item.category || '') +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(item.category || '') +
             '</p>' +
             '<h3>' +
-            escapeHtml(item.title || '') +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(item.title || '') +
             '</h3>' +
             '<p>' +
-            escapeHtml(item.summary || item.deck || '') +
+            (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(item.summary || item.deck || '') +
             '</p>' +
             (tags
                 ? '<div class="v6-case-stories__tags">' + tags + '</div>'
                 : '') +
             compareMarkup +
             (item.disclaimer
-                ? '<small>' + escapeHtml(item.disclaimer) + '</small>'
+                ? '<small>' + (window.AuroraUtils ? window.AuroraUtils.escapeHtml : (x=>x))(item.disclaimer) + '</small>'
                 : '') +
             '</div>' +
             '</article>'
