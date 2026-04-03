@@ -409,3 +409,102 @@
 ## Cómo marcar una tarea
 
 Cambia `[ ]` por `[x]` y pushea.
+
+---
+
+## Bloque 17 — Sistema de diseño ✅ completado
+
+- [x] **UX-01** `[Gemini]` `css/tokens.css` — colores clínicos, Inter, espaciado 4px, sombras, dark mode, reset
+- [x] **UX-02** `[Gemini]` `css/components.css` — btn, input, card, badge, table, avatar, modal, toast, skeleton, empty-state, responsive, print
+- [x] **UX-03** `[Gemini]` `js/icons.js` — 40+ SVGs inline sin deps externas
+- [x] **UX-05** `[Gemini]` `js/toast.js` — `showToast(msg, type, duration)` — auto-dismiss, pause on hover
+- [x] **UX-06** `[Gemini]` `js/modal.js` — `openModal / closeModal / confirmModal → Promise<bool>`, focus trap
+
+---
+
+## Bloque 18 — JS utilities [Gemini]
+
+- [ ] **JS-01** `[Gemini]` `js/api.js` — cliente HTTP: `apiGet(resource)`, `apiPost(resource, body)` → `{ ok, data, error }`
+- [ ] **JS-02** `[Gemini]` `js/auth.js` — sesión admin: `getSession()`, `logout()`, `requireAuth()` → redirige a login
+- [ ] **JS-03** `[Gemini]` `js/router.js` — SPA hash router: `router.on('#/citas', fn)`, `router.navigate('#/turnero')`
+- [ ] **JS-04** `[Gemini]` `js/skeleton.js` — `Skeleton.show(el)` / `Skeleton.hide(el)` para cualquier contenedor
+- [ ] **JS-05** `[Gemini]` `js/storage.js` — localStorage con TTL: `Storage.set(k, v, ms)` / `Storage.get(k)`
+- [ ] **JS-06** `[Gemini]` `js/debounce.js` — `debounce(fn, ms)` global para inputs de búsqueda
+- [ ] **JS-07** `[Gemini]` `js/format.js` — `formatDate`, `formatTime`, `formatCurrency`, `formatPhone`, `initials`
+- [ ] **JS-08** `[Gemini]` `js/poll.js` — polling reactivo con backoff: `createPoller(fn, ms) → { start, stop, refresh }`
+
+---
+
+## Bloque 19 — Portal del paciente: JS client [Gemini]
+
+- [ ] **JP-01** `[Gemini]` `js/portal-api.js` — cliente HTTP del portal con header `X-Portal-Token`
+- [ ] **JP-02** `[Gemini]` `js/portal-auth.js` — login por código: `startAuth(email)` → `completeAuth(email, code)` → token
+- [ ] **JP-03** `[Gemini]` `js/portal-nav.js` — navegación del portal: barra inferior mobile + sidebar desktop
+
+---
+
+## Bloque 20 — Pantallas de turnero [Gemini]
+
+- [ ] **TK-01** `[Gemini]` `kiosco.html` + `js/kiosco.js` — pantalla táctil: ingresa documento → número de turno + tiempo
+- [ ] **TK-02** `[Gemini]` `sala.html` + `js/sala.js` — TV horizontal: turno llamado grande, polling 5s, failsafe offline
+- [ ] **TK-03** `[Gemini]` `operador.html` + `js/operador.js` — consola: botón llamar siguiente, lista de espera, urgencias
+- [ ] **TK-04** `[Gemini]` `turno-publico.html` — QR del ticket: estado en tiempo real sin login
+
+---
+
+## Bloque 21 — Pantallas de admin [Gemini]
+
+- [ ] **AD-01** `[Gemini]` `admin.html` — shell del dashboard: nav lateral + router + topbar con perfil y dark mode toggle
+- [ ] **AD-02** `[Gemini]` Vista de citas del día en admin — timeline por hora 8am-7pm, click → modal detalle
+- [ ] **AD-03** `[Gemini]` Buscador de pacientes — input con debounce 300ms, dropdown de resultados
+- [ ] **AD-04** `[Gemini]` Historia clínica (HCE) en admin — timeline de episodios, acordeón SOAP, fotos
+- [ ] **AD-05** `[Gemini]` Chat OpenClaw en admin — panel lateral, streaming de respuesta, sugerencias CIE-10
+- [ ] **AD-06** `[Gemini]` Formulario de receta en admin — medicamentos con check de interacciones badge
+- [ ] **AD-07** `[Gemini]` Certificado médico en admin — formulario + preview PDF inline
+- [ ] **AD-08** `[Gemini]` Nota SOAP en admin — 4 campos con autosave 30s y contador de caracteres
+- [ ] **AD-09** `[Gemini]` Galería de fotos clínicas en admin — grid por zona corporal, lightbox, upload drag&drop
+- [ ] **AD-10** `[Gemini]` Panel de estado del sistema en admin — `GET health`, DB, cron, disk, latencia
+- [ ] **AD-11** `[Gemini]` Disponibilidad médica en admin — grilla semanal, click para bloquear/liberar horarios
+- [ ] **AD-12** `[Gemini]` Panel de telemedicina en admin — intakes pendientes, aprobar/rechazar, link de sala
+
+---
+
+## Bloque 22 — Pantallas del portal del paciente [Gemini]
+
+- [ ] **PP-01** `[Gemini]` `portal/login.html` — email → código 6 dígitos → entra
+- [ ] **PP-02** `[Gemini]` `portal/inicio.html` — próxima cita, último diagnóstico, documentos pendientes, saldo
+- [ ] **PP-03** `[Gemini]` `portal/historia.html` — timeline de consultas, descarga PDF
+- [ ] **PP-04** `[Gemini]` `portal/receta.html` — receta renderizada, descarga PDF, QR de verificación
+- [ ] **PP-05** `[Gemini]` `portal/pagos.html` — historial de pagos, badges de estado, comprobante
+- [ ] **PP-06** `[Gemini]` `portal/plan.html` — plan de tratamiento, sesiones completadas, próximas
+- [ ] **PP-07** `[Gemini]` `portal/consentimiento.html` — documento + firma checkbox + nombre
+- [ ] **PP-08** `[Gemini]` `portal/fotos.html` — galería antes/después por episodio, upload desde celular
+- [ ] **PP-09** `[Gemini]` `portal/reagendar.html` — vista cita actual + calendario disponibilidad + confirmar
+
+---
+
+## Bloque 23 — Sitio público [Gemini]
+
+- [ ] **WB-01** `[Gemini]` `index.html` — landing principal: hero, servicios, CTA booking, WhatsApp flotante
+- [ ] **WB-02** `[Gemini]` `servicios/index.html` — grid de servicios con cards, link a cada especialidad
+- [ ] **WB-03** `[Gemini]` `servicios/acne.html` — página de servicio individual con SEO, descripción, CTA
+- [ ] **WB-04** `[Gemini]` `agendar/index.html` — booking público: servicio → fecha → hora → confirmar con email
+- [ ] **WB-05** `[Gemini]` `precios/index.html` — tabla de precios con comparativo de planes
+- [ ] **WB-06** `[Gemini]` `telemedicina/index.html` — landing teleconsulta: cómo funciona, requisitos, CTA
+- [ ] **WB-07** `[Gemini]` `legal/index.html` — términos y política de privacidad
+
+---
+
+## Bloque 24 — UX pulido y accesibilidad [Gemini]
+
+- [ ] **A11Y-01** `[Gemini]` Todos los formularios con `aria-label`, `aria-required`, `aria-describedby` para errores
+- [ ] **A11Y-02** `[Gemini]` Focus visible en todos los elementos interactivos (outline accesible, no `outline:none`)
+- [ ] **A11Y-03** `[Gemini]` Contraste mínimo WCAG AA en todos los textos sobre fondo de color
+- [ ] **A11Y-04** `[Gemini]` Navegación por teclado completa en el admin (Tab, Escape, Enter para modales)
+- [ ] **PERF-01** `[Gemini]` Lazy loading de secciones del admin que no son visibles al inicio
+- [ ] **PERF-02** `[Gemini]` Service Worker en el kiosco y sala — funciona offline si el servidor se cae
+- [ ] **PERF-03** `[Gemini]` Preload de la fuente Inter en todas las pantallas del admin y portal
+- [ ] **ANIM-01** `[Gemini]` Transición page-swap en el router del admin (fade 150ms entre secciones)
+- [ ] **ANIM-02** `[Gemini]` Animación de entrada para cards y listas (stagger 50ms por item)
+- [ ] **ANIM-03** `[Gemini]` Micro-animación en el turno llamado de la sala — número aparece con slide-up
+
