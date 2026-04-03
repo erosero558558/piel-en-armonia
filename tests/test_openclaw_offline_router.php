@@ -98,6 +98,8 @@ register_shutdown_function(static function () use ($testDataDir): void {
 });
 
 require_once __DIR__ . '/../controllers/OpenclawController.php';
+require_once __DIR__ . '/../controllers/OpenclawAiController.php';
+require_once __DIR__ . '/../controllers/OpenclawSessionController.php';
 
 function offline_assert_true(bool $condition, string $message): void
 {

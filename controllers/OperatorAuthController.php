@@ -9,8 +9,8 @@ class OperatorAuthController
     public static function redirectOperatorAuthResult(array $result): void
     {
         $location = operator_auth_sanitize_return_to(
-            (string) ($result['redirectTo'] ?? '/admin.html'),
-            '/admin.html'
+            (string) ($result['redirectTo'] ?? app_backend_status_relative_url()),
+            app_backend_status_relative_url()
         );
 
         if (defined('TESTING_ENV')) {
@@ -84,7 +84,7 @@ class OperatorAuthController
             $title = (string) ($result['title'] ?? 'Autenticacion del administrador');
             $message = (string) ($result['message'] ?? 'No se pudo completar la autenticacion.');
             $tone = (string) ($result['tone'] ?? 'info');
-            $redirectUrl = (string) ($result['redirectUrl'] ?? (rtrim(operator_auth_server_base_url(), '/') . '/admin.html'));
+            $redirectUrl = (string) ($result['redirectUrl'] ?? app_backend_status_absolute_url());
 
             http_response_code($status);
             header('Content-Type: text/html; charset=utf-8');

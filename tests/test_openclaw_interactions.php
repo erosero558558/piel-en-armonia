@@ -61,6 +61,7 @@ function mutate_store(callable $callback): array
 }
 
 require_once __DIR__ . '/../controllers/OpenclawController.php';
+require_once __DIR__ . '/../controllers/OpenclawPrescriptionController.php';
 
 function interaction_assert_true(bool $condition, string $message): void
 {
