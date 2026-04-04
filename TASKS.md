@@ -877,7 +877,7 @@ Cambia `[ ]` por `[x]` y pushea.
 - [ ] **EJ-09** `[Codex]` P2 — `composer install` sin errores. PHPUnit Smoke pasa.
 - [ ] **EJ-10** `[Codex]` P2 — Smoke suite: Certificate, Queue, ClinicalHistory con 0 errores fatales
 - [ ] **EJ-V01** `[Codex]` P1 — Verificar `POST /clinical-evolution` en runtime. Criterio: HTTP 200 + fila en SQLite
-- [ ] **EJ-20** `[Gemini]` P0 — `kiosco.html` flujo real: cédula → `POST queue-checkin` → número → reset 30s
+- [x] **EJ-20** `[Gemini]` P0 — `kiosco.html` flujo real: cédula → `POST queue-checkin` → número → reset 30s
 - [ ] **EJ-21** `[Gemini]` P0 — `sala.html` datos reales de `GET queue-state` (depende EJ-01)
 - [ ] **EJ-22** `[Gemini]` P0 — `recepcion.html` acciones reales (depende EJ-03)
 - [ ] **EJ-23** `[Gemini]` P1 — `estado-turno.html` móvil sin login, auto-refresh 15s
