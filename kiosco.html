@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Kiosco de registro de llegada — Aurora Derm">
+  <title>Kiosco — Aurora Derm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <style>
+    /* ── Kiosco: táctil, pantalla vertical 768×1024 mínimo ── */
+    :root {
+      --kiosco-bg: linear-gradient(160deg, #0A3D24 0%, #1FAD65 60%, #34C47A 100%);
+      --kiosco-card: rgba(255,255,255,0.97);
+      --kiosco-input-h: 72px;
+      --kiosco-btn-h: 80px;
+      --kiosco-font: 'Inter', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100vh;
+      font-family: var(--kiosco-font);
+      -webkit-font-smoothing: antialiased;
+      background: var(--kiosco-bg);
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      gap: 20px;
+    }
+
+    /* ── Header ── */
+    .kiosco-header {
+      text-align: center;
+      color: white;
+    }
+
+    .kiosco-logo {
+      width: 64px;
+      height: 64px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .kiosco-title {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: white;
+      line-height: 1.1;
+    }
+
+    .kiosco-subtitle {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.75);
+      margin-top: 6px;
+      font-weight: 400;
+    }
+
+    /* ── Card principal ── */
+    .kiosco-card {
+      background: var(--kiosco-card);
+      border-radius: 24px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 32px 64px rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.15);
+    }
+
+    /* ── PANTALLAS ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Pantalla 1: Bienvenida / opciones ── */
+    .welcome-options {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    .option-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      border: 2px solid var(--color-border, #E2E6EC);
+      border-radius: 16px;
+      background: white;
+      cursor: pointer;
+      transition: border-color 200ms, background 200ms, transform 100ms;
+      text-align: left;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .option-btn:hover, .option-btn:active {
+      border-color: #1FAD65;
+      background: #EDFAF4;
+      transform: scale(0.99);
+    }
+
+    .option-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 24px;
+    }
+
+    .option-icon.green { background: #EDFAF4; }
+    .option-icon.blue  { background: #EFF6FF; }
+
+    .option-label {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.2;
+    }
+
+    .option-desc {
+      font-size: 0.85rem;
+      color: #6B7280;
+      margin-top: 2px;
+    }
+
+    /* ── Pantalla 2: Ingresar documento ── */
+    .screen-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #111827;
+      line-height: 1.2;
+    }
+
+    .screen-subtitle {
+      font-size: 0.95rem;
+      color: #6B7280;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .doc-input {
+      width: 100%;
+      height: var(--kiosco-input-h);
+      border: 2.5px solid #E2E6EC;
+      border-radius: 14px;
+      font-size: 1.6rem;
+      font-weight: 700;
+      font-family: inherit;
+      text-align: center;
+      letter-spacing: 0.08em;
+      color: #111827;
+      background: white;
+      outline: none;
+      margin-top: 24px;
+      transition: border-color 200ms, box-shadow 200ms;
+    }
+
+    .doc-input::placeholder { color: #D1D5DB; font-weight: 400; letter-spacing: 0; font-size: 1.1rem; }
+    .doc-input:focus { border-color: #1FAD65; box-shadow: 0 0 0 4px rgba(31,173,101,0.15); }
+    .doc-input.error { border-color: #DC2626; box-shadow: 0 0 0 4px rgba(220,38,38,0.12); }
+
+    /* ── Teclado numérico ── */
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .numpad-key {
+      height: 68px;
+      border: 2px solid #E2E6EC;
+      border-radius: 14px;
+      background: white;
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #111827;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 150ms, transform 100ms, border-color 150ms;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .numpad-key:hover, .numpad-key:active {
+      background: #F3F4F6;
+      border-color: #9CA3AF;
+      transform: scale(0.96);
+    }
+
+    .numpad-key.del { color: #6B7280; }
+    .numpad-key.empty { border-color: transparent; background: transparent; pointer-events: none; }
+
+    /* ── Botón principal ── */
+    .kiosco-btn {
+      width: 100%;
+      height: var(--kiosco-btn-h);
+      background: #1FAD65;
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 200ms, transform 100ms, box-shadow 200ms;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(31,173,101,0.35);
+    }
+
+    .kiosco-btn:hover   { background: #178F52; box-shadow: 0 6px 20px rgba(31,173,101,0.4); }
+    .kiosco-btn:active  { transform: scale(0.98); }
+    .kiosco-btn:disabled { background: #D1D5DB; box-shadow: none; cursor: not-allowed; }
+    .kiosco-btn.loading { pointer-events: none; }
+
+    .btn-back {
+      width: 100%;
+      height: 52px;
+      background: transparent;
+      border: 2px solid #E2E6EC;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #6B7280;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 150ms, border-color 150ms;
+    }
+    .btn-back:hover { background: #F9FAFB; border-color: #D1D5DB; }
+
+    /* ── Pantalla 3: Éxito — Turno asignado ── */
+    .ticket-display {
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    .ticket-number {
+      font-size: 7rem;
+      font-weight: 800;
+      color: #1FAD65;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .ticket-label {
+      font-size: 1rem;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 8px;
+    }
+
+    .ticket-eta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #FFFBEB;
+      border: 1.5px solid #FDE68A;
+      border-radius: 40px;
+      padding: 8px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #D97706;
+      margin-top: 20px;
+    }
+
+    .ticket-patient {
+      background: #F9FAFB;
+      border-radius: 14px;
+      padding: 14px 20px;
+      margin-top: 20px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .patient-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #EDFAF4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1FAD65;
+      font-size: 1.2rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .patient-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .patient-service {
+      font-size: 0.85rem;
+      color: #6B7280;
+      margin-top: 2px;
+    }
+
+    /* ── Pantalla de error ── */
+    .error-icon {
+      width: 64px;
+      height: 64px;
+      background: #FEF2F2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      color: #DC2626;
+      font-size: 2rem;
+    }
+
+    /* ── Ayuda / footer ── */
+    .kiosco-help {
+      text-align: center;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.85rem;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Auto-reset banner ── */
+    .reset-banner {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 24px;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity 300ms;
+    }
+    .reset-banner.visible { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="kiosco-header">
+    <div class="kiosco-logo" aria-hidden="true">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="14" fill="rgba(255,255,255,0.2)"/>
+        <path d="M18 10v8l5 3" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="18" cy="18" r="7" stroke="white" stroke-width="2"/>
+      </svg>
+    </div>
+    <h1 class="kiosco-title">Aurora Derm</h1>
+    <p class="kiosco-subtitle" id="kiosco-clock">Cargando hora...</p>
+  </div>
+
+  <!-- Card -->
+  <div class="kiosco-card" role="main">
+
+    <!-- Pantalla 1: Bienvenida -->
+    <div class="screen active" id="screen-welcome" aria-label="Pantalla de bienvenida">
+      <h2 class="screen-title">¡Bienvenido!</h2>
+      <p class="screen-subtitle">¿Tienes cita o vienes por primera vez?</p>
+      <div class="welcome-options">
+        <button class="option-btn" id="btn-tiene-cita" onclick="mostrarBusqueda('cita')">
+          <div class="option-icon green" aria-hidden="true">📅</div>
+          <div>
+            <div class="option-label">Tengo cita</div>
+            <div class="option-desc">Registra tu llegada con tu número de documento</div>
+          </div>
+        </button>
+        <button class="option-btn" id="btn-sin-cita" onclick="mostrarBusqueda('walk-in')">
+          <div class="option-icon blue" aria-hidden="true">🚶</div>
+          <div>
+            <div class="option-label">Vengo sin cita</div>
+            <div class="option-desc">Ingresa a la lista de espera</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Pantalla 2: Ingresar documento -->
+    <div class="screen" id="screen-documento" aria-label="Ingresa tu número de documento">
+      <h2 class="screen-title" id="doc-screen-title">Ingresa tu número de documento</h2>
+      <p class="screen-subtitle" id="doc-screen-subtitle">Cédula, pasaporte o número de seguro</p>
+
+      <input
+        type="text"
+        id="doc-input"
+        class="doc-input"
+        placeholder="0000000000"
+        inputmode="numeric"
+        maxlength="20"
+        autocomplete="off"
+        aria-label="Número de documento"
+        readonly
+      >
+      <div id="doc-error" role="alert" style="color:#DC2626;font-size:0.9rem;margin-top:8px;min-height:20px;text-align:center;"></div>
+
+      <!-- Teclado numérico táctil -->
+      <div class="numpad" role="group" aria-label="Teclado numérico">
+        <button class="numpad-key" onclick="numpadKey('1')">1</button>
+        <button class="numpad-key" onclick="numpadKey('2')">2</button>
+        <button class="numpad-key" onclick="numpadKey('3')">3</button>
+        <button class="numpad-key" onclick="numpadKey('4')">4</button>
+        <button class="numpad-key" onclick="numpadKey('5')">5</button>
+        <button class="numpad-key" onclick="numpadKey('6')">6</button>
+        <button class="numpad-key" onclick="numpadKey('7')">7</button>
+        <button class="numpad-key" onclick="numpadKey('8')">8</button>
+        <button class="numpad-key" onclick="numpadKey('9')">9</button>
+        <button class="numpad-key empty" aria-hidden="true"></button>
+        <button class="numpad-key" onclick="numpadKey('0')">0</button>
+        <button class="numpad-key del" onclick="numpadDel()" aria-label="Borrar">⌫</button>
+      </div>
+
+      <button class="kiosco-btn" id="btn-confirmar" onclick="confirmarDocumento()" disabled>
+        Confirmar llegada
+      </button>
+      <button class="btn-back" onclick="volverBienvenida()">← Volver</button>
+    </div>
+
+    <!-- Pantalla 3: Turno asignado -->
+    <div class="screen" id="screen-ticket" aria-label="Tu turno ha sido asignado">
+      <div class="ticket-display">
+        <div class="ticket-label">Tu número de turno</div>
+        <div class="ticket-number" id="ticket-numero" aria-live="polite">—</div>
+        <div id="ticket-eta" class="ticket-eta" style="display:none">
+          <span>⏱</span>
+          <span id="ticket-eta-text">Tiempo de espera: calculando...</span>
+        </div>
+      </div>
+
+      <div class="ticket-patient" id="ticket-paciente" style="display:none">
+        <div class="patient-avatar" id="ticket-avatar" aria-hidden="true">?</div>
+        <div>
+          <div class="patient-name" id="ticket-nombre">Paciente</div>
+          <div class="patient-service" id="ticket-servicio">Consulta general</div>
+        </div>
+      </div>
+
+      <div style="background:#EDFAF4;border-radius:14px;padding:16px 20px;margin-top:20px;text-align:center;color:#0A3D24;font-size:0.95rem;font-weight:500;line-height:1.6;">
+        Toma asiento en la sala de espera.<br>
+        Te llamaremos por tu número.
+      </div>
+
+      <button class="kiosco-btn" onclick="resetKiosco()" style="margin-top:20px;background:#374151;box-shadow:none">
+        ✓ Listo, gracias
+      </button>
+    </div>
+
+    <!-- Pantalla 4: Error -->
+    <div class="screen" id="screen-error" aria-label="Error al registrar llegada">
+      <div style="text-align:center;padding:8px 0">
+        <div class="error-icon" aria-hidden="true">⚠️</div>
+        <p class="screen-title" style="color:#DC2626" id="error-titulo">No se encontró la cita</p>
+        <p class="screen-subtitle" id="error-mensaje" style="margin-top:12px">
+          Verifica tu número de documento o habla con la recepción.
+        </p>
+      </div>
+      <button class="kiosco-btn" onclick="volverBienvenida()" style="margin-top:28px">
+        Intentar de nuevo
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Ayuda -->
+  <p class="kiosco-help" aria-live="polite">
+    ¿Necesitas ayuda? Llama a recepción o presiona el botón de inicio.
+  </p>
+
+  <!-- Banner de auto-reset -->
+  <div class="reset-banner" id="reset-banner" role="status">
+    Reiniciando en <span id="reset-countdown">5</span>s...
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/format.js"></script>
+  <script>
+    'use strict';
+
+    // ── Estado ────────────────────────────────────────────────
+    let currentMode = 'cita'; // 'cita' | 'walk-in'
+    let docValue    = '';
+    let resetTimer  = null;
+    const AUTO_RESET_MS = 30000; // 30s después de asignar turno
+
+    // ── Reloj ─────────────────────────────────────────────────
+    function tickClock() {
+      const now = new Date();
+      document.getElementById('kiosco-clock').textContent =
+        now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+        + ' · ' + now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    }
+    tickClock();
+    setInterval(tickClock, 10000);
+
+    // ── Navegación de pantallas ───────────────────────────────
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById('screen-' + id);
+      if (el) { el.classList.add('active'); el.focus && el.focus(); }
+    }
+
+    function mostrarBusqueda(mode) {
+      currentMode = mode;
+      docValue = '';
+      document.getElementById('doc-input').value = '';
+      document.getElementById('btn-confirmar').disabled = true;
+      document.getElementById('doc-error').textContent = '';
+      document.getElementById('doc-input').classList.remove('error');
+
+      if (mode === 'cita') {
+        document.getElementById('doc-screen-title').textContent = 'Registra tu llegada';
+        document.getElementById('doc-screen-subtitle').textContent = 'Ingresa tu número de cédula o pasaporte';
+      } else {
+        document.getElementById('doc-screen-title').textContent = 'Lista de espera';
+        document.getElementById('doc-screen-subtitle').textContent = 'Ingresa tu número de documento para reservar tu turno';
+      }
+      showScreen('documento');
+    }
+
+    function volverBienvenida() {
+      clearAutoReset();
+      docValue = '';
+      showScreen('welcome');
+    }
+
+    // ── Teclado numérico ───────────────────────────────────────
+    function numpadKey(digit) {
+      if (docValue.length >= 20) return;
+      docValue += digit;
+      syncInput();
+    }
+
+    function numpadDel() {
+      docValue = docValue.slice(0, -1);
+      syncInput();
+    }
+
+    function syncInput() {
+      document.getElementById('doc-input').value = docValue;
+      document.getElementById('btn-confirmar').disabled = docValue.length < 5;
+      document.getElementById('doc-error').textContent = '';
+      document.getElementById('doc-input').classList.remove('error');
+    }
+
+    // ── Confirmar llegada ─────────────────────────────────────
+    async function confirmarDocumento() {
+      const doc = docValue.trim();
+      if (doc.length < 5) return;
+
+      const btn = document.getElementById('btn-confirmar');
+      btn.disabled = true;
+      btn.classList.add('loading');
+      btn.innerHTML = '<div class="spinner"></div> Procesando...';
+
+      try {
+        let result;
+        if (currentMode === 'cita') {
+          result = await apiPost('queue-checkin', { documentId: doc });
+        } else {
+          result = await apiPost('queue-ticket', { documentId: doc, mode: 'walk-in' });
+        }
+
+        if (result.ok) {
+          mostrarTicket(result.data);
+        } else {
+          mostrarError(result.error || 'No pudimos registrar tu llegada');
+        }
+      } catch (e) {
+        mostrarError('Sin conexión con el servidor. Habla con recepción.');
+      } finally {
+        btn.classList.remove('loading');
+        btn.innerHTML = 'Confirmar llegada';
+      }
+    }
+
+    // ── Mostrar ticket asignado ───────────────────────────────
+    function mostrarTicket(data) {
+      const numero  = data.ticketNumber || data.number || '—';
+      const nombre  = data.patientName  || data.name   || '';
+      const servicio = data.service     || 'Consulta general';
+      const etaMin  = data.estimatedWaitMinutes;
+
+      document.getElementById('ticket-numero').textContent = numero;
+
+      if (nombre) {
+        const initials = nombre.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        document.getElementById('ticket-avatar').textContent = initials;
+        document.getElementById('ticket-nombre').textContent = nombre;
+        document.getElementById('ticket-servicio').textContent =
+          servicio.charAt(0).toUpperCase() + servicio.slice(1);
+        document.getElementById('ticket-paciente').style.display = 'flex';
+      }
+
+      if (etaMin != null) {
+        const etaEl = document.getElementById('ticket-eta');
+        document.getElementById('ticket-eta-text').textContent =
+          'Tiempo estimado: ' + (etaMin <= 0 ? 'próximo' : '~' + etaMin + ' min');
+        etaEl.style.display = 'inline-flex';
+      }
+
+      showScreen('ticket');
+      scheduleAutoReset();
+    }
+
+    // ── Pantalla de error ─────────────────────────────────────
+    function mostrarError(msg) {
+      document.getElementById('error-mensaje').textContent = msg || 'Error inesperado';
+      showScreen('error');
+    }
+
+    // ── Auto-reset ────────────────────────────────────────────
+    function scheduleAutoReset() {
+      clearAutoReset();
+      const banner = document.getElementById('reset-banner');
+      const countdown = document.getElementById('reset-countdown');
+      let seconds = Math.round(AUTO_RESET_MS / 1000);
+
+      function tick() {
+        countdown.textContent = seconds;
+        banner.classList.add('visible');
+        if (seconds <= 0) {
+          resetKiosco();
+          return;
+        }
+        seconds--;
+        resetTimer = setTimeout(tick, 1000);
+      }
+      tick();
+    }
+
+    function clearAutoReset() {
+      if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
+      document.getElementById('reset-banner').classList.remove('visible');
+    }
+
+    function resetKiosco() {
+      clearAutoReset();
+      docValue = '';
+      document.getElementById('ticket-paciente').style.display = 'none';
+      document.getElementById('ticket-eta').style.display = 'none';
+      document.getElementById('ticket-numero').textContent = '—';
+      showScreen('welcome');
+    }
+  </script>
+</body>
+</html>
