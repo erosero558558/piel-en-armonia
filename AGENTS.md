@@ -77,11 +77,37 @@ Si un agente encuentra algo roto que no estaba en su ticket, abre un ticket nuev
 ### Regla 5 — El contexto siempre está en el repo
 
 Antes de hacer cualquier cosa, leer:
-1. `TASKS.md` — qué está asignado y a quién
+1. `TODAY.md` — estado actual y tareas activas (leer primero)
 2. `AGENTS.md` (este archivo) — las reglas
-3. Los archivos relevantes del área a modificar
+3. `TASKS.md` — tickets detallados
+4. Los archivos relevantes del área a modificar
 
 No asumir que el sistema funciona de una forma sin verificar el código.
+
+### Regla 6 — PROHIBIDO: renombrar, reestructurar o reinventar el sistema de tareas
+
+El sistema de nomenclatura de tickets es **exclusivamente de LClaude**. Ningún agente puede:
+- Cambiar el prefijo de un ticket (`T-01` → `EVO-01` está **prohibido**)
+- Inventar una nueva taxonomía de bloques
+- Reorganizar secciones de `TASKS.md`
+- Introducir metáforas temáticas (biomimética, anatomía, etc.) como estructura de trabajo
+
+**Prefijos válidos y su significado:**
+
+| Prefijo | Dominio |
+|---|---|
+| `B-` | Backend / infraestructura general |
+| `T-` | Turnero (sistema de colas) |
+| `A-` | Admin / dashboard médico |
+| `P-` | Portal del paciente |
+| `EJ-` | Ejecución inmediata — hacer funcionar lo que existe |
+| `CI-` | CI/CD y testing |
+| `DOC-` | Documentación |
+| `RF-` | Refactoring / deuda técnica |
+| `PS-` | Pagos y suscripciones |
+
+Los bloques con prefijo `EVO-` fueron creados sin autorización y están **congelados**.
+No usarlos como referencia activa. Las tareas activas están en Bloques 40-42 (prefijos EJ-, CI-, DOC-).
 
 ---
 
