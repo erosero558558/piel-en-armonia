@@ -33,7 +33,7 @@
 Esta hoja de ruta está diseñada bajo el Modelo de Arquitectura Biomimética para que la clínica crezca sana, resistente a traumas y con una homeostasis técnica perfecta.
 
 ### 🫁 Sistema Respiratorio Autónomo
-- [ ] **EVO-01** `[Jobs/Cron]` Configurar *Cronjobs* recurrentes que latan en el fondo revisando la tabla `appointments` para ejecutar acciones pre-programadas sin esperar estímulo exterior.
+- [x] **EVO-01** `[Jobs/Cron]` Configurar *Cronjobs* recurrentes que latan en el fondo revisando la tabla `appointments` para ejecutar acciones pre-programadas sin esperar estímulo exterior.
 
 ### 🩸 Sistema Inmunológico T y Memoria Genética
 - [ ] **EVO-02** `[Backup/Memory]` Implementar vaciado programado de SQLite/MySQL hacia almacenaje encriptado externo (S3) asegurando que el hipocampo jamás sufra amnesia.
