@@ -122,6 +122,59 @@ No usarlos como referencia activa. Las tareas activas están en Bloques 40-42 (p
 
 ---
 
+## Protocolo de auditorías
+
+### Cómo activar una auditoría
+
+Cuando el usuario escribe **`AUDITORÍA: [área]`**, todos los agentes saben que están en modo auditoría.
+Ejemplos válidos:
+- `AUDITORÍA: turnero`
+- `AUDITORÍA: pagos`
+- `AUDITORÍA: clinical-evolution`
+- `AUDITORÍA: seguridad`
+- `AUDITORÍA: sistema completo`
+
+En modo auditoría **no se escribe código**. Solo se observa, se reporta y se abren tickets.
+
+### Formato obligatorio de hallazgo
+
+Todo hallazgo de auditoría debe tener exactamente este formato.
+Sin este formato, el hallazgo no existe — es prosa, no trabajo:
+
+```
+HALLAZGO [PRIORIDAD]
+Archivo: lib/caso/MiServicio.php
+Línea: 42
+Problema: El método saveEvolution() no valida caseId vacío → inserta fila con case_id=''
+Criterio de éxito: POST con caseId vacío devuelve HTTP 400 + {"ok":false,"error":"caseId requerido"}
+Ticket: [abrir como RF-XX o EJ-XX en TASKS.md]
+```
+
+### Quién hace cada tipo de auditoría
+
+| Tipo | Responsable | Cómo |
+|---|---|---|
+| Runtime — ¿el sistema arranca? | **LClaude** | `php -l`, `curl`, `node lint` en tiempo real |
+| Sintaxis PHP masiva | **LClaude** | `node bin/lint-php-syntax.js` |
+| Contratos de endpoints | **LClaude** | `curl` contra servidor local |
+| Revisión de trabajo de Gemini/Codex | **LClaude** | Siempre |
+| Seguridad (XSS, SQLi, auth bypass) | **ChatGPT** | Un archivo a la vez, produce hallazgos en formato arriba |
+| Lógica financiera (Stripe, Kushki) | **ChatGPT** | Revisar tickets PS-01..PS-04 en TASKS.md |
+| Lógica clínica (SOAP, evolutions) | **ChatGPT** | LClaude valida con curl después |
+
+### Qué produce una auditoría
+
+1. **Lista de hallazgos** en el formato de arriba (P0/P1/P2)
+2. **Tickets nuevos** en TASKS.md con prefijo del bloque correspondiente
+3. **Actualización de TODAY.md** — estado de los componentes auditados
+4. **Nada más** — no se arregla nada hasta que LClaude asigne el ticket al agente correcto
+
+### Regla de oro de auditorías
+
+> Una auditoría que no produce tickets en TASKS.md no sucedió.
+
+---
+
 ## Estado del sistema (actualizado 2026-04-03)
 
 | Componente | Estado |
